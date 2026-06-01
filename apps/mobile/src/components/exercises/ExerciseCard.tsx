@@ -12,7 +12,7 @@ interface Props {
 
 export const ExerciseCard = ({ exercise, isFavorite, onToggleFavorite }: Props) => {
   return (
-    <Link href={`/exercise/${exercise.id}`} asChild>
+    <Link href={`/exercise/${exercise.id}` as any} asChild>
       <Pressable style={styles.card} testID="exercise-card">
         <View style={styles.header}>
           <Text style={styles.title} testID="exercise-title">{exercise.name}</Text>

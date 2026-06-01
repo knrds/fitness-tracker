@@ -16,7 +16,7 @@ Short guide for Claude Code. Full context: [AGENTS.md](./AGENTS.md).
 
 **Conventions:** strict TS, **no `any`**; `StyleSheet.create` (no inline styles); components `PascalCase.tsx`, other files `kebab-case.ts`; schemas `<Type>Schema`. Import order: RN → third-party → `@fitness-tracker/*` → local.
 
-**Scripts (root):** `pnpm dev` (Expo web), `pnpm typecheck`, `pnpm lint`, `pnpm format`. `pnpm test` is **not configured yet**.
+**Scripts (root):** `pnpm dev` (Expo web), `pnpm typecheck`, `pnpm lint`, `pnpm format`, `pnpm test`. Tests: Vitest in `packages/domain`, Jest + RN Testing Library in `apps/mobile`.
 
 **MVP — OUT of scope:** no social, no marketplace/IAP, no AI coach, no nutrition. Flag tasks that need these.
 

@@ -151,11 +151,14 @@ Run from the repo root.
 | `pnpm lint`        | ESLint across all packages (`pnpm -r lint`).             |
 | `pnpm typecheck`   | `tsc --noEmit` across all packages.                      |
 | `pnpm format`      | Prettier write across the repo.                          |
-| `pnpm test`        | ⚠️ **Not yet configured.** Test tooling (Vitest/Jest) is |
-|                    | not wired up. Add it before relying on it; until then    |
-|                    | DoD's "tests" item means typecheck + lint must pass.     |
+| `pnpm test`        | Run all package test suites (`pnpm -r test`).            |
 
 Platform variants: `pnpm --filter @fitness-tracker/mobile ios | android | web`.
+
+**Test stack:** Vitest for `packages/domain` (pure TS, schemas/logic); Jest +
+React Native Testing Library for `apps/mobile` (components, app code). Run a
+single package with `pnpm --filter <pkg> test`. CI runs `pnpm typecheck` then
+`pnpm test` on every push and PR to `main` (`.github/workflows/ci.yml`).
 
 ---
 
@@ -174,8 +177,9 @@ A feature task is complete only when **all** of the following hold:
    document.
 7. **Runs:** the relevant screen/flow launches and behaves as expected
    (verified in the app, not just by reading the code).
-8. **Tests:** added/updated where test tooling exists; until `pnpm test` is
-   configured, items 1–2 stand in for this.
+8. **Tests:** `pnpm test` passes; add/update tests for the change. Domain logic
+   and schemas are tested with **Vitest** (`packages/domain`); components and
+   app code with **Jest + React Native Testing Library** (`apps/mobile`).
 9. **Docs:** if behaviour or the data model changed, the relevant file in
    `docs/` is updated in the same change.
 

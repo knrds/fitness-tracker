@@ -64,7 +64,7 @@ export default function WorkoutSessionScreen() {
     // For MVP, just add a random exercise if any exist
     if (allExercises.length > 0) {
       const randomEx = allExercises[Math.floor(Math.random() * allExercises.length)];
-      addExercise(randomEx.id);
+      if (randomEx) addExercise(randomEx.id);
     }
   };
 

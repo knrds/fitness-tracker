@@ -1,0 +1,152 @@
+import React from 'react';
+import { View, Text, StyleSheet, TextInput, ScrollView, Pressable } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useProgramStore } from '../../src/stores/programStore';
+
+export default function ProgramBuilderScreen() {
+  const router = useRouter();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { programs, updateProgram, templates } = useProgramStore();
+  
+  const program = programs.find(p => p.id === id);
+  
+  if (!program) {
+    return (
+      <View style={styles.centered}>
+        <Text>Program not found.</Text>
+      </View>
+    );
+  }
+
+  // To keep it reactive without local state sync issues, we update the store directly
+  const handleChange = (updates: Partial<typeof program>) => {
+    updateProgram(program.id, updates);
+  };
+
+  const getDayName = (day: number) => {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    return days[day - 1];
+  };
+
+  const removeWorkout = (workoutId: string) => {
+    handleChange({
+      workouts: program.workouts.filter(w => w.id !== workoutId)
+    });
+  };
+
+  return (
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.label}>Program Name</Text>
+        <TextInput 
+          style={styles.input} 
+          value={program.name} 
+          onChangeText={(text) => handleChange({ name: text })} 
+          placeholder="e.g. 5/3/1 Boring But Big" 
+        />
+        
+        <Text style={styles.label}>Description</Text>
+        <TextInput 
+          style={[styles.input, styles.textArea]} 
+          value={program.description || ''} 
+          onChangeText={(text) => handleChange({ description: text })} 
+          placeholder="Optional description" 
+          multiline 
+        />
+        
+        <Text style={styles.label}>Duration (Weeks)</Text>
+        <TextInput 
+          style={styles.input} 
+          value={program.durationWeeks.toString()} 
+          onChangeText={(text) => handleChange({ durationWeeks: parseInt(text, 10) || 1 })} 
+          keyboardType="numeric" 
+        />
+
+        <Text style={styles.sectionTitle}>Weekly Schedule</Text>
+        {[1, 2, 3, 4, 5, 6, 7].map((day) => {
+          const dayWorkouts = program.workouts.filter(w => w.dayOfWeek === day);
+          return (
+            <View key={day} style={styles.dayContainer}>
+              <Text style={styles.dayName}>{getDayName(day)}</Text>
+              
+              {dayWorkouts.map(w => {
+                const template = templates.find(t => t.id === w.templateId);
+                return (
+                  <View key={w.id} style={styles.workoutRow}>
+                    <Text style={styles.workoutName}>{template?.name || 'Unknown Template'}</Text>
+                    <View style={styles.workoutActions}>
+                      <Pressable onPress={() => router.push(`/programs/template-builder?programId=${program.id}&templateId=${template?.id}&dayOfWeek=${day}`)}>
+                        <Text style={styles.editText}>Edit</Text>
+                      </Pressable>
+                      <Pressable onPress={() => removeWorkout(w.id)}>
+                        <Text style={styles.removeText}>Remove</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                );
+              })}
+              
+              <Pressable 
+                style={styles.addWorkoutBtn} 
+                onPress={() => router.push(`/programs/template-builder?programId=${program.id}&dayOfWeek=${day}`)}
+              >
+                <Text style={styles.addWorkoutText}>+ Add Workout</Text>
+              </Pressable>
+            </View>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  content: { padding: 16, paddingBottom: 40 },
+  label: { fontSize: 14, fontWeight: '600', color: '#475569', marginBottom: 8 },
+  input: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#0f172a',
+    marginBottom: 16,
+  },
+  textArea: { minHeight: 80, textAlignVertical: 'top' },
+  sectionTitle: { fontSize: 20, fontWeight: '700', color: '#0f172a', marginTop: 16, marginBottom: 16 },
+  dayContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  dayName: { fontSize: 16, fontWeight: '700', color: '#334155', marginBottom: 8 },
+  workoutRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f1f5f9',
+    padding: 12,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  workoutName: { fontSize: 16, fontWeight: '500', color: '#0f172a' },
+  workoutActions: { flexDirection: 'row', gap: 12 },
+  editText: { color: '#3b82f6', fontWeight: '600' },
+  removeText: { color: '#ef4444', fontWeight: '600' },
+  addWorkoutBtn: {
+    padding: 12,
+    alignItems: 'center',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderStyle: 'dashed',
+    marginTop: 4,
+  },
+  addWorkoutText: { color: '#64748b', fontWeight: '600' },
+});

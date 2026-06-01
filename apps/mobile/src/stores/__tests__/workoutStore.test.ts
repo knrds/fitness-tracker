@@ -32,22 +32,22 @@ describe('workoutStore', () => {
     useWorkoutStore.getState().addExercise('exercise-123');
     const state = useWorkoutStore.getState();
     expect(state.exercises.length).toBe(1);
-    expect(state.exercises[0].exerciseId).toBe('exercise-123');
+    expect(state.exercises[0]!.exerciseId).toBe('exercise-123');
   });
 
   it('should add and complete a set', () => {
     useWorkoutStore.getState().startWorkout();
     useWorkoutStore.getState().addExercise('ex-1');
-    const exId = useWorkoutStore.getState().exercises[0].id;
+    const exId = useWorkoutStore.getState().exercises[0]!.id;
     
     useWorkoutStore.getState().addSet(exId, { weight: 100, reps: 10 });
     let state = useWorkoutStore.getState();
-    expect(state.exercises[0].sets.length).toBe(1);
-    const setId = state.exercises[0].sets[0].id;
+    expect(state.exercises[0]!.sets.length).toBe(1);
+    const setId = state.exercises[0]!.sets[0]!.id;
     
     useWorkoutStore.getState().completeSet(exId, setId);
     state = useWorkoutStore.getState();
-    expect(state.exercises[0].sets[0].completed).toBe(true);
+    expect(state.exercises[0]!.sets[0]!.completed).toBe(true);
     expect(state.restTimer.isRunning).toBe(true);
   });
 });

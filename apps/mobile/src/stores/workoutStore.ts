@@ -158,34 +158,38 @@ export const useWorkoutStore = create<WorkoutStore>()(
         lastUpdatedAt: new Date(),
       }),
 
-      stopRestTimer: () => set((state) => ({
-        restTimer: {
-          ...state.restTimer,
-          isRunning: false,
-          endsAt: undefined,
-        },
-        lastUpdatedAt: new Date(),
-      })),
+      stopRestTimer: () => set((state) => {
+        const { endsAt, ...restTimer } = state.restTimer;
+        return {
+          restTimer: {
+            ...restTimer,
+            isRunning: false,
+          },
+          lastUpdatedAt: new Date(),
+        };
+      }),
       
-      resetRestTimer: () => set((state) => ({
-        restTimer: {
-          ...state.restTimer,
-          isRunning: false,
-          endsAt: undefined,
-          durationSeconds: 90,
-        },
-        lastUpdatedAt: new Date(),
-      })),
+      resetRestTimer: () => set((state) => {
+        const { endsAt, ...restTimer } = state.restTimer;
+        return {
+          restTimer: {
+            ...restTimer,
+            isRunning: false,
+            durationSeconds: 90,
+          },
+          lastUpdatedAt: new Date(),
+        };
+      }),
 
       tickRestTimer: () => set((state) => {
         if (!state.restTimer.isRunning || !state.restTimer.endsAt) return state;
         
         if (new Date() >= state.restTimer.endsAt) {
+          const { endsAt, ...restTimer } = state.restTimer;
           return {
             restTimer: {
-              ...state.restTimer,
+              ...restTimer,
               isRunning: false,
-              endsAt: undefined,
             },
             lastUpdatedAt: new Date(),
           };

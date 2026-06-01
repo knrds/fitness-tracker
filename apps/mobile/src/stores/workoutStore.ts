@@ -6,8 +6,10 @@ import {
   SessionExercise, 
   ExerciseSet, 
   UUID,
+  WorkoutSession
 } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
+import { useHistoryStore } from './historyStore';
 
 const storage = new MMKV({ id: 'workout-storage' });
 
@@ -84,7 +86,25 @@ export const useWorkoutStore = create<WorkoutStore>()(
       
       resumeWorkout: () => set({ status: 'active', lastUpdatedAt: new Date() }),
       
-      finishWorkout: () => set({ status: 'finished', lastUpdatedAt: new Date() }),
+      finishWorkout: () => set((state) => {
+        if (state.status === 'active' || state.status === 'paused') {
+          const session = {
+            id: state.sessionId || Crypto.randomUUID(),
+            userId: 'local-user',
+            name: state.name,
+            templateId: state.templateId,
+            programId: state.programId,
+            startedAt: state.startedAt || new Date(),
+            completedAt: new Date(),
+            durationSeconds: state.elapsedSeconds,
+            exercises: state.exercises,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          } as WorkoutSession;
+          useHistoryStore.getState().addSession(session);
+        }
+        return { status: 'finished', lastUpdatedAt: new Date() };
+      }),
       
       resetWorkout: () => set({ ...defaultState }),
 

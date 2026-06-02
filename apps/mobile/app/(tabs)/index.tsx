@@ -23,6 +23,10 @@ export default function HomeScreen() {
           {status === 'active' || status === 'paused' ? 'Resume Workout' : 'Start Quick Workout'}
         </Text>
       </Pressable>
+
+      <Pressable style={styles.secondaryBtn} onPress={() => router.push('/workout/quick-start' as unknown as Parameters<typeof router.push>[0])}>
+        <Text style={styles.secondaryBtnText}>Quick Start / Templates</Text>
+      </Pressable>
     </View>
   );
 }
@@ -56,9 +60,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+    width: '100%',
+    alignItems: 'center',
   },
   startBtnText: {
     color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  secondaryBtn: {
+    marginTop: 16,
+    borderWidth: 2,
+    borderColor: '#3b82f6',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+  },
+  secondaryBtnText: {
+    color: '#3b82f6',
     fontSize: 18,
     fontWeight: '700',
   },

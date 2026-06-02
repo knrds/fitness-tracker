@@ -1,13 +1,23 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert, Platform } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
+import { useWorkoutStore } from '../../src/stores/workoutStore';
+import { useProgramStore } from '../../src/stores/programStore';
+import { SaveTemplateModal } from '../../src/components/workout/SaveTemplateModal';
+import { TemplateExercise, SessionExercise } from '@fitness-tracker/domain';
+import * as Crypto from 'expo-crypto';
 
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const { sessions } = useHistoryStore();
   const { exercises } = useExerciseStore();
+  const { status: activeWorkoutStatus, startWorkoutFromSession } = useWorkoutStore();
+  const { createTemplate } = useProgramStore();
+
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
   
   const session = sessions.find(s => s.id === id);
 
@@ -37,51 +47,132 @@ export default function WorkoutDetailScreen() {
     return `${m}m`;
   };
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{session.name}</Text>
-        <Text style={styles.date}>{formatDate(session.startedAt)}</Text>
-        <Text style={styles.duration}>Duration: {formatDuration(session.durationSeconds)}</Text>
-      </View>
+  const mapToTemplateExercises = (sessionExercises: SessionExercise[]): TemplateExercise[] => {
+    return sessionExercises.map(ex => {
+      const firstSet = ex.sets[0];
+      return {
+        id: Crypto.randomUUID(),
+        exerciseId: ex.exerciseId,
+        order: ex.order,
+        targetSets: ex.sets.length > 0 ? ex.sets.length : 1,
+        ...(firstSet?.reps !== undefined ? { targetReps: firstSet.reps } : {}),
+        ...(firstSet?.weight !== undefined ? { targetWeight: firstSet.weight } : {}),
+        ...(firstSet?.rpe !== undefined ? { targetRpe: firstSet.rpe } : {}),
+        ...(ex.notes !== undefined ? { notes: ex.notes } : {}),
+      };
+    });
+  };
 
-      <Text style={styles.sectionTitle}>Exercises</Text>
+  const handleRepeatWorkout = () => {
+    const start = () => {
+      startWorkoutFromSession(session);
+      router.push('/workout/session' as unknown as Parameters<typeof router.push>[0]);
+    };
 
-      {session.exercises.map((ex, index) => {
-        const exerciseDef = exercises.find(e => e.id === ex.exerciseId);
-        const completedSets = ex.sets.filter(s => s.completed);
-        const volume = completedSets.reduce((sum, s) => sum + (s.weight || 0) * (s.reps || 0), 0);
-        
-        return (
-          <View key={ex.id} style={styles.card}>
-            <Text style={styles.exName}>{index + 1}. {exerciseDef?.name || 'Unknown Exercise'}</Text>
-            {volume > 0 && <Text style={styles.volumeText}>Volume: {volume} kg</Text>}
-            
-            <View style={styles.tableHeader}>
-              <Text style={styles.colSet}>Set</Text>
-              <Text style={styles.colWeight}>kg</Text>
-              <Text style={styles.colReps}>Reps</Text>
-              <Text style={styles.colRpe}>RPE</Text>
-            </View>
-
-            {ex.sets.map(set => (
-              <View key={set.id} style={[styles.tableRow, !set.completed && styles.incompleteRow]}>
-                <Text style={styles.colSet}>{set.setNumber}</Text>
-                <Text style={styles.colWeight}>{set.weight || '-'}</Text>
-                <Text style={styles.colReps}>{set.reps || '-'}</Text>
-                <Text style={styles.colRpe}>{set.rpe || '-'}</Text>
-              </View>
-            ))}
-          </View>
+    if (activeWorkoutStatus === 'active' || activeWorkoutStatus === 'paused') {
+      if (Platform.OS === 'web') {
+        if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
+          const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
+          if (confirmFn?.("An active workout is already in progress. Do you want to discard it and repeat this workout instead?")) {
+            start();
+          }
+        }
+      } else {
+        Alert.alert(
+          "Workout In Progress",
+          "An active workout is already in progress. Do you want to discard it and repeat this workout instead?",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Discard & Start", style: "destructive", onPress: start }
+          ]
         );
-      })}
-    </ScrollView>
+      }
+    } else {
+      start();
+    }
+  };
+
+  const handleSaveTemplate = (templateName: string) => {
+    createTemplate({
+      name: templateName,
+      exercises: mapToTemplateExercises(session.exercises),
+    });
+    setSaveModalVisible(false);
+    if (Platform.OS === 'web') {
+      if (typeof globalThis !== 'undefined' && 'alert' in globalThis) {
+        const alertFn = (globalThis as { alert?: (msg: string) => void }).alert;
+        alertFn?.('Template saved successfully!');
+      }
+    } else {
+      Alert.alert('Success', 'Template saved successfully!');
+    }
+  };
+
+  return (
+    <View style={styles.outerContainer}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <View style={styles.header}>
+          <Text style={styles.title}>{session.name}</Text>
+          <Text style={styles.date}>{formatDate(session.startedAt)}</Text>
+          <Text style={styles.duration}>Duration: {formatDuration(session.durationSeconds)}</Text>
+          
+          <View style={styles.actionRow}>
+            <Pressable style={styles.actionBtn} onPress={handleRepeatWorkout}>
+              <Text style={styles.actionBtnText}>Repeat Workout</Text>
+            </Pressable>
+            <Pressable style={[styles.actionBtn, styles.saveBtn]} onPress={() => setSaveModalVisible(true)}>
+              <Text style={styles.saveBtnText}>Save as Template</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Exercises</Text>
+
+        {session.exercises.map((ex, index) => {
+          const exerciseDef = exercises.find(e => e.id === ex.exerciseId);
+          const completedSets = ex.sets.filter(s => s.completed);
+          const volume = completedSets.reduce((sum, s) => sum + (s.weight || 0) * (s.reps || 0), 0);
+          
+          return (
+            <View key={ex.id} style={styles.card}>
+              <Text style={styles.exName}>{index + 1}. {exerciseDef?.name || 'Unknown Exercise'}</Text>
+              {volume > 0 && <Text style={styles.volumeText}>Volume: {volume} kg</Text>}
+              
+              <View style={styles.tableHeader}>
+                <Text style={styles.colSet}>Set</Text>
+                <Text style={styles.colWeight}>kg</Text>
+                <Text style={styles.colReps}>Reps</Text>
+                <Text style={styles.colRpe}>RPE</Text>
+              </View>
+
+              {ex.sets.map(set => (
+                <View key={set.id} style={[styles.tableRow, !set.completed && styles.incompleteRow]}>
+                  <Text style={styles.colSet}>{set.setNumber}</Text>
+                  <Text style={styles.colWeight}>{set.weight || '-'}</Text>
+                  <Text style={styles.colReps}>{set.reps || '-'}</Text>
+                  <Text style={styles.colRpe}>{set.rpe || '-'}</Text>
+                </View>
+              ))}
+            </View>
+          );
+        })}
+      </ScrollView>
+
+      <SaveTemplateModal
+        visible={saveModalVisible}
+        defaultName={session.name}
+        onClose={() => setSaveModalVisible(false)}
+        onSave={handleSaveTemplate}
+        onSkip={() => setSaveModalVisible(false)}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  outerContainer: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc' },
   content: { padding: 16, paddingBottom: 40 },
   header: {
     backgroundColor: '#fff',
@@ -94,6 +185,32 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '800', color: '#0f172a', marginBottom: 4 },
   date: { fontSize: 14, color: '#64748b', marginBottom: 8 },
   duration: { fontSize: 16, fontWeight: '500', color: '#334155' },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  actionBtn: {
+    flex: 1,
+    backgroundColor: '#3b82f6',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionBtnText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  saveBtn: {
+    backgroundColor: '#e2e8f0',
+  },
+  saveBtnText: {
+    color: '#0f172a',
+    fontWeight: '600',
+    fontSize: 14,
+  },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 12 },
   card: {
     backgroundColor: '#fff',

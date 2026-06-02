@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, Pressable, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useProgramStore } from '../../src/stores/programStore';
+import { useWorkoutStore } from '../../src/stores/workoutStore';
+import { WorkoutTemplate } from '@fitness-tracker/domain';
 
 export default function ProgramBuilderScreen() {
   const router = useRouter();
@@ -9,6 +11,38 @@ export default function ProgramBuilderScreen() {
   const { programs, updateProgram, templates } = useProgramStore();
   
   const program = programs.find(p => p.id === id);
+  const { status: activeWorkoutStatus, startWorkoutFromTemplate } = useWorkoutStore();
+
+  const handleStartTemplate = (template: WorkoutTemplate | undefined, programId: string) => {
+    if (!template) return;
+    
+    const start = () => {
+      startWorkoutFromTemplate(template, programId);
+      router.navigate('/workout/session');
+    };
+
+    if (activeWorkoutStatus === 'active' || activeWorkoutStatus === 'paused') {
+      if (Platform.OS === 'web') {
+        if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
+          const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
+          if (confirmFn?.("An active workout is already in progress. Do you want to discard it and start this template instead?")) {
+            start();
+          }
+        }
+      } else {
+        Alert.alert(
+          "Workout In Progress",
+          "An active workout is already in progress. Do you want to discard it and start this template instead?",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Discard & Start", style: "destructive", onPress: start }
+          ]
+        );
+      }
+    } else {
+      start();
+    }
+  };
   
   if (!program) {
     return (
@@ -75,6 +109,9 @@ export default function ProgramBuilderScreen() {
                   <View key={w.id} style={styles.workoutRow}>
                     <Text style={styles.workoutName}>{template?.name || 'Unknown Template'}</Text>
                     <View style={styles.workoutActions}>
+                      <Pressable onPress={() => handleStartTemplate(template, program.id)}>
+                        <Text style={styles.startText}>Start</Text>
+                      </Pressable>
                       <Pressable onPress={() => router.push(`/programs/template-builder?programId=${program.id}&templateId=${template?.id}&dayOfWeek=${day}`)}>
                         <Text style={styles.editText}>Edit</Text>
                       </Pressable>
@@ -139,6 +176,7 @@ const styles = StyleSheet.create({
   workoutActions: { flexDirection: 'row', gap: 12 },
   editText: { color: '#3b82f6', fontWeight: '600' },
   removeText: { color: '#ef4444', fontWeight: '600' },
+  startText: { color: '#10b981', fontWeight: '600' },
   addWorkoutBtn: {
     padding: 12,
     alignItems: 'center',

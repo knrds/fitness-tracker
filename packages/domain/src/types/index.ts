@@ -516,3 +516,20 @@ export interface ActiveWorkoutState {
   /** Timestamp of the last mutation, used for persistence/hydration. */
   lastUpdatedAt: Timestamp;
 }
+
+// ---------------------------------------------------------------------------
+// Achievements & Gamification
+// ---------------------------------------------------------------------------
+
+export type AchievementCategory = 'workouts' | 'streaks' | 'pr' | 'volume' | 'exercises';
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  category: AchievementCategory;
+  targetValue: number;
+  xpReward: number;
+  icon: string;
+}
+

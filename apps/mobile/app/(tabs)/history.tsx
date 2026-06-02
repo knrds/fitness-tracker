@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, ScrollView, Dimensions } from 'react-native';
+
 import { useRouter } from 'expo-router';
+import { LineChart } from 'react-native-chart-kit';
+import { Ionicons } from '@expo/vector-icons';
+
+import { WorkoutSession, ACHIEVEMENTS } from '@fitness-tracker/domain';
+
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
-import { WorkoutSession } from '@fitness-tracker/domain';
-import { LineChart } from 'react-native-chart-kit';
+import { useAchievementStore } from '../../src/stores/achievementStore';
+import { useAchievementCheck } from '../../src/hooks/useAchievementCheck';
+
 
 export default function HistoryScreen() {
-  const [activeTab, setActiveTab] = useState<'history' | 'progress'>('history');
+  const [activeTab, setActiveTab] = useState<'history' | 'progress' | 'achievements'>('history');
 
   return (
     <View style={styles.container}>
@@ -24,9 +31,21 @@ export default function HistoryScreen() {
         >
           <Text style={[styles.toggleText, activeTab === 'progress' && styles.toggleTextActive]}>Progress</Text>
         </Pressable>
+        <Pressable 
+          style={[styles.toggleBtn, activeTab === 'achievements' && styles.toggleBtnActive]}
+          onPress={() => setActiveTab('achievements')}
+        >
+          <Text style={[styles.toggleText, activeTab === 'achievements' && styles.toggleTextActive]}>Achievements</Text>
+        </Pressable>
       </View>
 
-      {activeTab === 'history' ? <HistoryView /> : <ProgressView />}
+      {activeTab === 'history' ? (
+        <HistoryView />
+      ) : activeTab === 'progress' ? (
+        <ProgressView />
+      ) : (
+        <AchievementsView />
+      )}
     </View>
   );
 }
@@ -169,6 +188,96 @@ function ProgressView() {
   );
 }
 
+function AchievementsView() {
+  const { xp, level, unlockedAchievements } = useAchievementStore();
+  const { getProgress } = useAchievementCheck();
+
+  const currentLevelXp = xp % 500;
+  const xpProgressPercent = Math.min(100, Math.floor((currentLevelXp / 500) * 100));
+
+  const formatDate = (isoStr: string) => {
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }).format(new Date(isoStr));
+  };
+
+  const unlockedList = ACHIEVEMENTS.filter(a => unlockedAchievements[a.id] !== undefined);
+  const lockedList = ACHIEVEMENTS.filter(a => unlockedAchievements[a.id] === undefined);
+
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      {/* Level Card */}
+      <View style={styles.levelCard}>
+        <View style={styles.levelHeader}>
+          <Text style={styles.levelTitle}>Level {level}</Text>
+          <Text style={styles.xpText}>{currentLevelXp} / 500 XP</Text>
+        </View>
+        <View style={styles.progressBarBg}>
+          <View style={[styles.progressBarFill, { width: `${xpProgressPercent}%` }]} />
+        </View>
+        <Text style={styles.xpSub}>{500 - currentLevelXp} XP to Level {level + 1}</Text>
+        <Text style={styles.totalXp}>Total XP: {xp}</Text>
+      </View>
+
+      {unlockedList.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>🏆 Unlocked ({unlockedList.length})</Text>
+          {unlockedList.map(ach => (
+            <View key={ach.id} style={[styles.achCard, styles.achCardUnlocked]}>
+              <View style={styles.achIconContainer}>
+                <Ionicons name={ach.icon as React.ComponentProps<typeof Ionicons>['name']} size={32} color="#eab308" />
+              </View>
+              <View style={styles.achInfo}>
+                <Text style={styles.achName}>{ach.name}</Text>
+                <Text style={styles.achDesc}>{ach.description}</Text>
+                <Text style={styles.achUnlockDate}>
+                  Unlocked on {formatDate(unlockedAchievements[ach.id]!)}
+                </Text>
+              </View>
+              <View style={styles.xpBadge}>
+                <Text style={styles.xpBadgeText}>+{ach.xpReward} XP</Text>
+              </View>
+            </View>
+          ))}
+        </>
+      )}
+
+      {lockedList.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>🔒 In Progress ({lockedList.length})</Text>
+          {lockedList.map(ach => {
+            const prog = getProgress(ach.id);
+            return (
+              <View key={ach.id} style={styles.achCard}>
+                <View style={[styles.achIconContainer, styles.achIconLocked]}>
+                  <Ionicons name={ach.icon as React.ComponentProps<typeof Ionicons>['name']} size={32} color="#94a3b8" />
+                </View>
+                <View style={styles.achInfo}>
+                  <Text style={styles.achName}>{ach.name}</Text>
+                  <Text style={styles.achDesc}>{ach.description}</Text>
+                  <View style={styles.achProgressRow}>
+                    <View style={styles.achProgressBarBg}>
+                      <View style={[styles.achProgressBarFill, { width: `${prog.percent}%` }]} />
+                    </View>
+                    <Text style={styles.achProgressText}>
+                      {prog.current} / {prog.target}
+                    </Text>
+                  </View>
+                </View>
+                <View style={[styles.xpBadge, styles.xpBadgeLocked]}>
+                  <Text style={styles.xpBadgeTextLocked}>+{ach.xpReward} XP</Text>
+                </View>
+              </View>
+            );
+          })}
+        </>
+      )}
+    </ScrollView>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   toggleContainer: {
@@ -233,4 +342,136 @@ const styles = StyleSheet.create({
   noDataText: { fontSize: 16, fontWeight: '600', color: '#475569', marginBottom: 4 },
   noDataSub: { fontSize: 14, color: '#94a3b8' },
   emptyTextProg: { fontSize: 16, color: '#64748b', fontStyle: 'italic' },
+  levelCard: {
+    backgroundColor: '#3b82f6',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+  },
+  levelHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 12,
+  },
+  levelTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+  xpText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#dbeafe',
+  },
+  progressBarBg: {
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#ffffff',
+  },
+  xpSub: {
+    fontSize: 14,
+    color: '#dbeafe',
+    fontWeight: '500',
+  },
+  totalXp: {
+    fontSize: 12,
+    color: '#93c5fd',
+    fontWeight: '500',
+    marginTop: 8,
+    textAlign: 'right',
+  },
+  achCard: {
+    flexDirection: 'row',
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  achCardUnlocked: {
+    borderColor: '#fef08a',
+    backgroundColor: '#fefce8',
+  },
+  achIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#fef9c3',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  achIconLocked: {
+    backgroundColor: '#f1f5f9',
+  },
+  achInfo: {
+    flex: 1,
+  },
+  achName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: 4,
+  },
+  achDesc: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 6,
+  },
+  achUnlockDate: {
+    fontSize: 12,
+    color: '#a1a1aa',
+    fontWeight: '500',
+  },
+  achProgressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  achProgressBarBg: {
+    flex: 1,
+    height: 6,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  achProgressBarFill: {
+    height: '100%',
+    backgroundColor: '#94a3b8',
+    borderRadius: 3,
+  },
+  achProgressText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  xpBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#fef08a',
+    marginLeft: 12,
+  },
+  xpBadgeLocked: {
+    backgroundColor: '#f1f5f9',
+  },
+  xpBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#a16207',
+  },
+  xpBadgeTextLocked: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748b',
+  },
 });

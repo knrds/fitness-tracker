@@ -39,6 +39,7 @@ Folgendes ist fertig und auf `main` gemerged:
 - ✅ Program Builder (Templates, Trainingstage)
 - ✅ History + Progress (Charts, PR-Tracker, Streaks)
 - ✅ Mission 6: Stabilisierung + Templates
+- ✅ Mission 7: Achievements + Gamification
 
 ---
 
@@ -1317,9 +1318,9 @@ neue Stores, neue Screens, neue Dependencies, aktueller Status.
 
 ```
 BLOCK 1 — KERN (Gemini Builder)
-[ ] Mission 6: Stabilisierung + Templates
-[ ] Mission 7: Achievements + Gamification
-[ ] Mission 8: Body Tracking + Profil
+[x] Mission 6: Stabilisierung + Templates
+[x] Mission 7: Achievements + Gamification
+[/] Mission 8: Body Tracking + Profil
 [ ] Mission 9: Workout-Verbesserungen
 [ ] → AGENTS.md aktualisieren
 

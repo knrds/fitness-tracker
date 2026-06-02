@@ -11,6 +11,7 @@ import {
 } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
 import { useHistoryStore } from './historyStore';
+import { useAchievementStore } from './achievementStore';
 
 const storage = new MMKV({ id: 'workout-storage' });
 
@@ -177,6 +178,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
             updatedAt: new Date(),
           } as WorkoutSession;
           useHistoryStore.getState().addSession(session);
+          useAchievementStore.getState().awardXpAndCheckAchievements(session);
         }
         set({ status: 'finished', lastUpdatedAt: new Date() });
       },

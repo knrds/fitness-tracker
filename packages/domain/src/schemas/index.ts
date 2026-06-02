@@ -297,3 +297,22 @@ export type ProgramInput = z.input<typeof ProgramSchema>;
 export type PersonalRecordInput = z.input<typeof PersonalRecordSchema>;
 export type BodyMetricInput = z.input<typeof BodyMetricSchema>;
 export type ActiveWorkoutStateInput = z.input<typeof ActiveWorkoutStateSchema>;
+
+// ---------------------------------------------------------------------------
+// Achievements & Gamification
+// ---------------------------------------------------------------------------
+
+export const AchievementCategorySchema = z.enum(['workouts', 'streaks', 'pr', 'volume', 'exercises']);
+
+export const AchievementSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  category: AchievementCategorySchema,
+  targetValue: z.number(),
+  xpReward: z.number(),
+  icon: z.string(),
+});
+
+export type AchievementInput = z.input<typeof AchievementSchema>;
+

@@ -218,7 +218,7 @@ export function mapExercises(rawData: RawExercise[]): Exercise[] {
 
     // Image URL
     const imageUrl = raw.images && raw.images.length > 0
-      ? `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises/${raw.images[0]}`
+      ? `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${raw.images[0]}`
       : undefined;
 
     const mappedEx: Exercise = {

@@ -30,6 +30,26 @@ describe('profileStore', () => {
     expect(state.profile.fitnessGoal).toBe('build_muscle');
   });
 
+  it('should update and save biological sex, height, weight, and maxes', () => {
+    const store = useProfileStore.getState();
+    store.updateProfile({
+      biologicalSex: 'male',
+      heightCm: 180,
+      weightKg: 85,
+      benchPressMaxKg: 120,
+      squatMaxKg: 140,
+      deadliftMaxKg: 180
+    });
+
+    const state = useProfileStore.getState();
+    expect(state.profile.biologicalSex).toBe('male');
+    expect(state.profile.heightCm).toBe(180);
+    expect(state.profile.weightKg).toBe(85);
+    expect(state.profile.benchPressMaxKg).toBe(120);
+    expect(state.profile.squatMaxKg).toBe(140);
+    expect(state.profile.deadliftMaxKg).toBe(180);
+  });
+
   it('should calculate statistics correctly (workouts, volume, streaks)', () => {
     const store = useProfileStore.getState();
 

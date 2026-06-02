@@ -14,7 +14,8 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useProfileStore } from '../src/stores/profileStore';
-import { FitnessGoal, ExperienceLevel, UnitSystem } from '@fitness-tracker/domain';
+import { useBodyMetricStore } from '../src/stores/bodyMetricStore';
+import { FitnessGoal, ExperienceLevel, UnitSystem, BiologicalSex } from '@fitness-tracker/domain';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -23,6 +24,43 @@ export default function ProfileScreen() {
   const [name, setName] = useState(profile.displayName);
   const [goal, setGoal] = useState<FitnessGoal | ''>(profile.fitnessGoal || '');
   const [level, setLevel] = useState<ExperienceLevel | ''>(profile.experienceLevel || '');
+  const [sex, setSex] = useState<BiologicalSex | ''>(profile.biologicalSex || '');
+  
+  const [height, setHeight] = useState(() => {
+    if (profile.heightCm === undefined) return '';
+    return profile.preferredUnits === 'imperial'
+      ? (profile.heightCm / 2.54).toFixed(1)
+      : profile.heightCm.toFixed(1);
+  });
+  
+  const [weight, setWeight] = useState(() => {
+    if (profile.weightKg === undefined) return '';
+    return profile.preferredUnits === 'imperial'
+      ? (profile.weightKg * 2.20462).toFixed(1)
+      : profile.weightKg.toFixed(1);
+  });
+
+  const [benchPressMax, setBenchPressMax] = useState(() => {
+    if (profile.benchPressMaxKg === undefined) return '';
+    return profile.preferredUnits === 'imperial'
+      ? (profile.benchPressMaxKg * 2.20462).toFixed(1)
+      : profile.benchPressMaxKg.toFixed(1);
+  });
+
+  const [squatMax, setSquatMax] = useState(() => {
+    if (profile.squatMaxKg === undefined) return '';
+    return profile.preferredUnits === 'imperial'
+      ? (profile.squatMaxKg * 2.20462).toFixed(1)
+      : profile.squatMaxKg.toFixed(1);
+  });
+
+  const [deadliftMax, setDeadliftMax] = useState(() => {
+    if (profile.deadliftMaxKg === undefined) return '';
+    return profile.preferredUnits === 'imperial'
+      ? (profile.deadliftMaxKg * 2.20462).toFixed(1)
+      : profile.deadliftMaxKg.toFixed(1);
+  });
+
   const [jsonModalVisible, setJsonModalVisible] = useState(false);
   const [exportedJson, setExportedJson] = useState('');
 
@@ -41,6 +79,47 @@ export default function ProfileScreen() {
     if (level) {
       updates.experienceLevel = level;
     }
+    if (sex) {
+      updates.biologicalSex = sex;
+    }
+
+    if (height.trim()) {
+      const hVal = parseFloat(height);
+      if (isNaN(hVal) || hVal <= 0) return Alert.alert('Error', 'Height must be a positive number.');
+      updates.heightCm = profile.preferredUnits === 'imperial' ? hVal * 2.54 : hVal;
+    }
+
+    if (weight.trim()) {
+      const wVal = parseFloat(weight);
+      if (isNaN(wVal) || wVal <= 0) return Alert.alert('Error', 'Weight must be a positive number.');
+      const canonicalWeight = profile.preferredUnits === 'imperial' ? wVal / 2.20462 : wVal;
+      updates.weightKg = canonicalWeight;
+      
+      // Sync to body metric tracker!
+      useBodyMetricStore.getState().addMetric({
+        recordedAt: new Date(),
+        weightKg: canonicalWeight,
+      });
+    }
+
+    if (benchPressMax.trim()) {
+      const val = parseFloat(benchPressMax);
+      if (isNaN(val) || val <= 0) return Alert.alert('Error', 'Bench Press Max must be a positive number.');
+      updates.benchPressMaxKg = profile.preferredUnits === 'imperial' ? val / 2.20462 : val;
+    }
+
+    if (squatMax.trim()) {
+      const val = parseFloat(squatMax);
+      if (isNaN(val) || val <= 0) return Alert.alert('Error', 'Squat Max must be a positive number.');
+      updates.squatMaxKg = profile.preferredUnits === 'imperial' ? val / 2.20462 : val;
+    }
+
+    if (deadliftMax.trim()) {
+      const val = parseFloat(deadliftMax);
+      if (isNaN(val) || val <= 0) return Alert.alert('Error', 'Deadlift Max must be a positive number.');
+      updates.deadliftMaxKg = profile.preferredUnits === 'imperial' ? val / 2.20462 : val;
+    }
+
     updateProfile(updates);
     Alert.alert('Success', 'Profile updated successfully!');
   };
@@ -48,6 +127,43 @@ export default function ProfileScreen() {
   const handleToggleUnits = () => {
     const nextUnit: UnitSystem = profile.preferredUnits === 'metric' ? 'imperial' : 'metric';
     updateProfile({ preferredUnits: nextUnit });
+
+    const isNowImperial = nextUnit === 'imperial';
+
+    setHeight(prev => {
+      if (!prev) return '';
+      const val = parseFloat(prev);
+      if (isNaN(val)) return '';
+      return isNowImperial ? (val / 2.54).toFixed(1) : (val * 2.54).toFixed(1);
+    });
+
+    setWeight(prev => {
+      if (!prev) return '';
+      const val = parseFloat(prev);
+      if (isNaN(val)) return '';
+      return isNowImperial ? (val * 2.20462).toFixed(1) : (val / 2.20462).toFixed(1);
+    });
+
+    setBenchPressMax(prev => {
+      if (!prev) return '';
+      const val = parseFloat(prev);
+      if (isNaN(val)) return '';
+      return isNowImperial ? (val * 2.20462).toFixed(1) : (val / 2.20462).toFixed(1);
+    });
+
+    setSquatMax(prev => {
+      if (!prev) return '';
+      const val = parseFloat(prev);
+      if (isNaN(val)) return '';
+      return isNowImperial ? (val * 2.20462).toFixed(1) : (val / 2.20462).toFixed(1);
+    });
+
+    setDeadliftMax(prev => {
+      if (!prev) return '';
+      const val = parseFloat(prev);
+      if (isNaN(val)) return '';
+      return isNowImperial ? (val * 2.20462).toFixed(1) : (val / 2.20462).toFixed(1);
+    });
   };
 
   const handleExport = async () => {
@@ -154,6 +270,89 @@ export default function ProfileScreen() {
                 </Text>
               </Pressable>
             ))}
+          </View>
+
+          <Text style={styles.inputLabel}>Biological Sex</Text>
+          <View style={styles.chipRow}>
+            {([
+              { value: 'male', label: 'Male' },
+              { value: 'female', label: 'Female' },
+              { value: 'other', label: 'Other' },
+              { value: 'prefer_not_to_say', label: 'Prefer not to say' }
+            ] as { value: BiologicalSex; label: string }[]).map(s => (
+              <Pressable
+                key={s.value}
+                style={[styles.chip, sex === s.value && styles.chipActive]}
+                onPress={() => setSex(sex === s.value ? '' : s.value)}
+              >
+                <Text style={[styles.chipText, sex === s.value && styles.chipTextActive]}>
+                  {s.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <View style={styles.inputGrid}>
+            <View style={styles.gridField}>
+              <Text style={styles.inputLabel}>Height ({profile.preferredUnits === 'imperial' ? 'in' : 'cm'})</Text>
+              <TextInput
+                style={styles.input}
+                value={height}
+                onChangeText={setHeight}
+                placeholder={profile.preferredUnits === 'imperial' ? 'e.g. 70' : 'e.g. 180'}
+                placeholderTextColor="#94a3b8"
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={styles.gridField}>
+              <Text style={styles.inputLabel}>Weight ({profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'})</Text>
+              <TextInput
+                style={styles.input}
+                value={weight}
+                onChangeText={setWeight}
+                placeholder={profile.preferredUnits === 'imperial' ? 'e.g. 175' : 'e.g. 80'}
+                placeholderTextColor="#94a3b8"
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+
+          <Text style={styles.sectionDivider}>Key Lift Maxes ({profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'})</Text>
+          
+          <View style={styles.inputGrid}>
+            <View style={styles.gridField}>
+              <Text style={styles.inputLabel}>Bench Press</Text>
+              <TextInput
+                style={styles.input}
+                value={benchPressMax}
+                onChangeText={setBenchPressMax}
+                placeholder="Bench"
+                placeholderTextColor="#94a3b8"
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={styles.gridField}>
+              <Text style={styles.inputLabel}>Squat</Text>
+              <TextInput
+                style={styles.input}
+                value={squatMax}
+                onChangeText={setSquatMax}
+                placeholder="Squat"
+                placeholderTextColor="#94a3b8"
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={styles.gridField}>
+              <Text style={styles.inputLabel}>Deadlift</Text>
+              <TextInput
+                style={styles.input}
+                value={deadliftMax}
+                onChangeText={setDeadliftMax}
+                placeholder="Deadlift"
+                placeholderTextColor="#94a3b8"
+                keyboardType="numeric"
+              />
+            </View>
           </View>
 
           <Pressable style={styles.saveBtn} onPress={handleSaveProfile}>
@@ -461,5 +660,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#e2e8f0',
+  },
+  inputGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  gridField: {
+    flex: 1,
+  },
+  sectionDivider: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#3b82f6',
+    marginTop: 20,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });

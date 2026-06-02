@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, PersistStorage } from 'zustand/middleware';
 import { MMKV } from 'react-native-mmkv';
-import { FitnessGoal, ExperienceLevel, UnitSystem, EXERCISES } from '@fitness-tracker/domain';
+import { FitnessGoal, ExperienceLevel, UnitSystem, EXERCISES, BiologicalSex } from '@fitness-tracker/domain';
 import { useHistoryStore } from './historyStore';
 import { useWorkoutStore } from './workoutStore';
 import { useExerciseStore } from './exerciseStore';
@@ -26,6 +26,12 @@ export interface Profile {
   fitnessGoal?: FitnessGoal;
   experienceLevel?: ExperienceLevel;
   preferredUnits: UnitSystem;
+  biologicalSex?: BiologicalSex;
+  heightCm?: number;
+  weightKg?: number;
+  benchPressMaxKg?: number;
+  squatMaxKg?: number;
+  deadliftMaxKg?: number;
 }
 
 export interface ProfileState {

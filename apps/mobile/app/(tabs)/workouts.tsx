@@ -7,7 +7,7 @@ import { WorkoutTemplate } from '@fitness-tracker/domain';
 
 export default function WorkoutsScreen() {
   const router = useRouter();
-  const { templates } = useProgramStore();
+  const { templates, deleteTemplate } = useProgramStore();
   const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
 
   const handleStartEmpty = () => {
@@ -46,15 +46,43 @@ export default function WorkoutsScreen() {
     }
   };
 
+  const handleDeleteTemplate = (templateId: string) => {
+    if (Platform.OS === 'web') {
+      if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
+        const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
+        if (confirmFn?.("Are you sure you want to delete this template?")) {
+          deleteTemplate(templateId);
+        }
+      }
+    } else {
+      Alert.alert(
+        "Delete Template",
+        "Are you sure you want to delete this template?",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Delete", style: "destructive", onPress: () => deleteTemplate(templateId) }
+        ]
+      );
+    }
+  };
+
   const renderTemplate = ({ item }: { item: WorkoutTemplate }) => (
     <View style={styles.card}>
       <View style={styles.cardInfo}>
         <Text style={styles.cardTitle}>{item.name}</Text>
         <Text style={styles.cardSubtitle}>{item.exercises.length} Exercises</Text>
       </View>
-      <Pressable style={styles.startBtn} onPress={() => handleStartTemplate(item)}>
-        <Text style={styles.startBtnText}>Start</Text>
-      </Pressable>
+      <View style={styles.templateActions}>
+        <Pressable style={[styles.actionBtn, styles.startBtn]} onPress={() => handleStartTemplate(item)}>
+          <Text style={styles.startBtnText}>Start</Text>
+        </Pressable>
+        <Pressable style={styles.actionBtn} onPress={() => router.push(`/programs/template-builder?templateId=${item.id}` as unknown as Parameters<typeof router.push>[0])}>
+          <Text style={styles.editBtnText}>Edit</Text>
+        </Pressable>
+        <Pressable style={styles.actionBtn} onPress={() => handleDeleteTemplate(item.id)}>
+          <Text style={styles.deleteBtnText}>Delete</Text>
+        </Pressable>
+      </View>
     </View>
   );
 
@@ -120,12 +148,24 @@ const styles = StyleSheet.create({
   cardInfo: { flex: 1 },
   cardTitle: { fontSize: 16, fontWeight: '700', color: '#0f172a' },
   cardSubtitle: { fontSize: 14, color: '#64748b', marginTop: 4 },
-  startBtn: {
-    backgroundColor: '#e0f2fe',
-    paddingHorizontal: 16,
+  templateActions: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  actionBtn: {
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  startBtn: {
+    backgroundColor: '#e0f2fe',
   },
   startBtnText: { color: '#0284c7', fontWeight: '700', fontSize: 14 },
+  editBtnText: { color: '#3b82f6', fontWeight: '700', fontSize: 14 },
+  deleteBtnText: { color: '#ef4444', fontWeight: '700', fontSize: 14 },
   emptyText: { color: '#64748b', textAlign: 'center', marginTop: 24, paddingHorizontal: 20, lineHeight: 22 },
 });

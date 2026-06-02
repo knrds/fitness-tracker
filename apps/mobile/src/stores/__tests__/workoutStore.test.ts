@@ -1,6 +1,6 @@
 import { useWorkoutStore } from '../workoutStore';
 import { useHistoryStore } from '../historyStore';
-import { WorkoutTemplate } from '@fitness-tracker/domain';
+import { WorkoutTemplate, WorkoutSession } from '@fitness-tracker/domain';
 
 jest.mock('react-native-mmkv', () => ({
   MMKV: jest.fn().mockImplementation(() => ({
@@ -99,6 +99,47 @@ describe('workoutStore', () => {
     expect(state.exercises[0]!.sets[0]!.weight).toBe(80);
     expect(state.exercises[0]!.sets[0]!.reps).toBe(8);
     expect(state.exercises[0]!.sets[0]!.rpe).toBe(9);
+    expect(state.exercises[0]!.sets[0]!.completed).toBe(false);
+  });
+
+  it('should start a workout from session', () => {
+    const mockSession = {
+      id: 'session-uuid',
+      name: 'Session Workout',
+      exercises: [
+        {
+          id: 's-ex-id',
+          exerciseId: 'ex-1',
+          order: 0,
+          notes: 'Session exercise note',
+          sets: [
+            {
+              id: 'set-id-1',
+              setNumber: 1,
+              type: 'standard',
+              completed: true,
+              weight: 85,
+              reps: 10,
+              rpe: 8,
+            }
+          ]
+        }
+      ],
+      startedAt: new Date(),
+      durationSeconds: 1800,
+    };
+
+    useWorkoutStore.getState().startWorkoutFromSession(mockSession as unknown as WorkoutSession);
+    const state = useWorkoutStore.getState();
+    expect(state.status).toBe('active');
+    expect(state.name).toBe('Session Workout');
+    expect(state.exercises.length).toBe(1);
+    expect(state.exercises[0]!.exerciseId).toBe('ex-1');
+    expect(state.exercises[0]!.notes).toBe('Session exercise note');
+    expect(state.exercises[0]!.sets.length).toBe(1);
+    expect(state.exercises[0]!.sets[0]!.weight).toBe(85);
+    expect(state.exercises[0]!.sets[0]!.reps).toBe(10);
+    expect(state.exercises[0]!.sets[0]!.rpe).toBe(8);
     expect(state.exercises[0]!.sets[0]!.completed).toBe(false);
   });
 });

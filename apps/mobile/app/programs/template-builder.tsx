@@ -1,27 +1,29 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, Pressable, Modal, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
+import { ExercisePickerModal } from '../../src/components/workout/ExercisePickerModal';
+import { TemplateExercise } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
 
 export default function WorkoutTemplateBuilderScreen() {
   const router = useRouter();
-  const { programId, templateId, dayOfWeek } = useLocalSearchParams<{ programId: string, templateId?: string, dayOfWeek?: string }>();
+  const { programId, templateId, dayOfWeek } = useLocalSearchParams<{ programId?: string, templateId?: string, dayOfWeek?: string }>();
   
   const { programs, templates, updateProgram, createTemplate, updateTemplate } = useProgramStore();
   const { exercises } = useExerciseStore();
   
-  const program = programs.find(p => p.id === programId);
+  const program = programId ? programs.find(p => p.id === programId) : undefined;
   const existingTemplate = templates.find(t => t.id === templateId);
   
   const [name, setName] = useState(existingTemplate?.name || '');
   const [description, setDescription] = useState(existingTemplate?.description || '');
-  const [templateExercises, setTemplateExercises] = useState(existingTemplate?.exercises || []);
+  const [templateExercises, setTemplateExercises] = useState<TemplateExercise[]>(existingTemplate?.exercises || []);
   
   const [isExerciseModalVisible, setExerciseModalVisible] = useState(false);
 
-  if (!program) {
+  if (programId && !program) {
     return (
       <View style={styles.centered}><Text>Program not found.</Text></View>
     );
@@ -36,23 +38,25 @@ export default function WorkoutTemplateBuilderScreen() {
       const newTemplateId = Crypto.randomUUID();
       createTemplate({ id: newTemplateId, name, description, exercises: templateExercises });
       
-      const newWorkout = {
-        id: Crypto.randomUUID(),
-        templateId: newTemplateId,
-        dayOfWeek: dayOfWeek ? parseInt(dayOfWeek, 10) : 1,
-        week: 1, // MVP
-        order: program.workouts.filter(w => w.dayOfWeek === parseInt(dayOfWeek || '1')).length,
-      };
-      
-      updateProgram(program.id, {
-        workouts: [...program.workouts, newWorkout]
-      });
+      if (program && dayOfWeek) {
+        const newWorkout = {
+          id: Crypto.randomUUID(),
+          templateId: newTemplateId,
+          dayOfWeek: parseInt(dayOfWeek, 10),
+          week: 1, // MVP
+          order: program.workouts.filter(w => w.dayOfWeek === parseInt(dayOfWeek)).length,
+        };
+        
+        updateProgram(program.id, {
+          workouts: [...program.workouts, newWorkout]
+        });
+      }
     }
     router.back();
   };
 
   const addExercise = (exerciseId: string) => {
-    const newEx = {
+    const newEx: TemplateExercise = {
       id: Crypto.randomUUID(),
       exerciseId,
       order: templateExercises.length,
@@ -67,7 +71,7 @@ export default function WorkoutTemplateBuilderScreen() {
     setTemplateExercises(templateExercises.filter(e => e.id !== id));
   };
 
-  const updateTemplateExercise = (id: string, updates: any) => {
+  const updateTemplateExercise = (id: string, updates: Partial<TemplateExercise>) => {
     setTemplateExercises(templateExercises.map(e => e.id === id ? { ...e, ...updates } : e));
   };
 
@@ -87,6 +91,14 @@ export default function WorkoutTemplateBuilderScreen() {
           value={name} 
           onChangeText={setName} 
           placeholder="e.g. Push Day" 
+        />
+
+        <Text style={styles.label}>Description</Text>
+        <TextInput 
+          style={styles.input} 
+          value={description} 
+          onChangeText={setDescription} 
+          placeholder="e.g. Focused on chest and triceps" 
         />
         
         <Text style={styles.sectionTitle}>Exercises</Text>
@@ -141,27 +153,11 @@ export default function WorkoutTemplateBuilderScreen() {
         </Pressable>
       </ScrollView>
 
-      {/* Exercise Selection Modal */}
-      <Modal visible={isExerciseModalVisible} animationType="slide" presentationStyle="pageSheet">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Select Exercise</Text>
-            <Pressable onPress={() => setExerciseModalVisible(false)}>
-              <Text style={styles.modalClose}>Cancel</Text>
-            </Pressable>
-          </View>
-          <FlatList
-            data={exercises}
-            keyExtractor={item => item.id}
-            renderItem={({ item }) => (
-              <Pressable style={styles.exItem} onPress={() => addExercise(item.id)}>
-                <Text style={styles.exItemName}>{item.name}</Text>
-                <Text style={styles.exItemTarget}>{item.primaryMuscles?.[0]}</Text>
-              </Pressable>
-            )}
-          />
-        </View>
-      </Modal>
+      <ExercisePickerModal
+        visible={isExerciseModalVisible}
+        onClose={() => setExerciseModalVisible(false)}
+        onSelect={(exerciseId) => addExercise(exerciseId)}
+      />
     </View>
   );
 }

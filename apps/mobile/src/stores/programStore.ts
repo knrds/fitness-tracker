@@ -6,7 +6,7 @@ import * as Crypto from 'expo-crypto';
 
 const storage = new MMKV({ id: 'program-storage' });
 
-const reviveDates = (key: string, value: any) => {
+const reviveDates = (key: string, value: unknown) => {
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
     return new Date(value);
   }
@@ -17,9 +17,9 @@ const customStorage: PersistStorage<ProgramState> = {
   getItem: (name: string) => {
     const str = storage.getString(name);
     if (!str) return null;
-    return JSON.parse(str, reviveDates);
+    return JSON.parse(str, reviveDates as (key: string, value: unknown) => unknown);
   },
-  setItem: (name: string, value: any) => {
+  setItem: (name: string, value: unknown) => {
     storage.set(name, JSON.stringify(value));
   },
   removeItem: (name: string) => storage.delete(name),

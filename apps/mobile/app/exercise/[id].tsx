@@ -42,7 +42,7 @@ export default function ExerciseDetailScreen() {
         useWorkoutStore.getState().addExercise(exercise.id);
         router.push('/workout/session');
       }
-    } catch (err) {
+    } catch {
       Alert.alert('Error', 'Could not add exercise to workout.');
     }
   };

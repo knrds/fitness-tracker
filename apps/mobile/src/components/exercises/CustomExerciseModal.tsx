@@ -34,7 +34,7 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
       setMuscle('');
       setEq('');
       onClose();
-    } catch (err) {
+    } catch {
       Alert.alert('Error', 'Could not create exercise.');
     }
   };

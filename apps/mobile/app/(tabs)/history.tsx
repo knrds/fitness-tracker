@@ -11,6 +11,7 @@ import { useHistoryStore } from '../../src/stores/historyStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { useAchievementStore } from '../../src/stores/achievementStore';
 import { useAchievementCheck } from '../../src/hooks/useAchievementCheck';
+import { useProfileStore } from '../../src/stores/profileStore';
 
 
 export default function HistoryScreen() {
@@ -108,6 +109,8 @@ function ProgressView() {
   useHistoryStore((state) => state.sessions);
   const { getStreak, getPRs, getExerciseVolumeHistory } = useHistoryStore();
   const { exercises } = useExerciseStore();
+  const { profile } = useProfileStore();
+  const isImperial = profile.preferredUnits === 'imperial';
   const streak = getStreak();
   const prs = getPRs();
   const activeExerciseIds = Object.keys(prs);
@@ -132,7 +135,7 @@ function ProgressView() {
     const data = {
       labels: history.map(h => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(h.date))),
       datasets: [
-        { data: history.map(h => h.volume), color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`, strokeWidth: 2 }
+        { data: history.map(h => isImperial ? Math.round(h.volume * 2.20462) : h.volume), color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`, strokeWidth: 2 }
       ],
     };
     return (
@@ -175,10 +178,12 @@ function ProgressView() {
               );
             })}
           </ScrollView>
-          {selectedExId && (
+          {selectedExId && prs[selectedExId] !== undefined && (
             <View style={styles.prHighlight}>
               <Text style={styles.prHighlightLabel}>Best Weight</Text>
-              <Text style={styles.prHighlightValue}>{prs[selectedExId]} kg</Text>
+              <Text style={styles.prHighlightValue}>
+                {isImperial ? Math.round(prs[selectedExId]! * 2.20462) : prs[selectedExId]} {isImperial ? 'lbs' : 'kg'}
+              </Text>
             </View>
           )}
           {renderChart()}

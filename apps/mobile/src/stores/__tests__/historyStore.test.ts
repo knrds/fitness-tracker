@@ -41,9 +41,9 @@ describe('historyStore', () => {
     const twoDaysAgo = new Date(today);
     twoDaysAgo.setDate(today.getDate() - 2);
 
-    useHistoryStore.getState().addSession({ id: 's1', startedAt: today, exercises: [] } as any);
-    useHistoryStore.getState().addSession({ id: 's2', startedAt: yesterday, exercises: [] } as any);
-    useHistoryStore.getState().addSession({ id: 's3', startedAt: twoDaysAgo, exercises: [] } as any);
+    useHistoryStore.getState().addSession({ id: 's1', startedAt: today, exercises: [] } as unknown as WorkoutSession);
+    useHistoryStore.getState().addSession({ id: 's2', startedAt: yesterday, exercises: [] } as unknown as WorkoutSession);
+    useHistoryStore.getState().addSession({ id: 's3', startedAt: twoDaysAgo, exercises: [] } as unknown as WorkoutSession);
 
     expect(useHistoryStore.getState().getStreak()).toBe(3);
   });
@@ -62,7 +62,7 @@ describe('historyStore', () => {
           ]
         }
       ]
-    } as any;
+    } as unknown as WorkoutSession;
 
     useHistoryStore.getState().addSession(session);
     const prs = useHistoryStore.getState().getPRs();

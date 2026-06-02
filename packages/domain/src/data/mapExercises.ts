@@ -163,7 +163,7 @@ function mapMovementPattern(name: string, category: string | null | undefined): 
   return MovementPattern.Isolation;
 }
 
-interface RawExercise {
+export interface RawExercise {
   name: string;
   level?: string;
   equipment?: string | null;
@@ -221,7 +221,7 @@ export function mapExercises(rawData: RawExercise[]): Exercise[] {
       ? `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises/${raw.images[0]}`
       : undefined;
 
-    const mappedEx: any = {
+    const mappedEx: Exercise = {
       id,
       name: raw.name,
       primaryMuscles,
@@ -231,18 +231,11 @@ export function mapExercises(rawData: RawExercise[]): Exercise[] {
       isCustom: false,
       createdAt: new Date('2026-06-01T00:00:00.000Z'),
       updatedAt: new Date('2026-06-01T00:00:00.000Z'),
+      ...(instructionsStr !== undefined ? { instructions: instructionsStr } : {}),
+      ...(imageUrl !== undefined ? { imageUrl } : {}),
+      ...(experienceLevel !== undefined ? { experienceLevel } : {}),
     };
 
-    if (instructionsStr !== undefined) {
-      mappedEx.instructions = instructionsStr;
-    }
-    if (imageUrl !== undefined) {
-      mappedEx.imageUrl = imageUrl;
-    }
-    if (experienceLevel !== undefined) {
-      mappedEx.experienceLevel = experienceLevel;
-    }
-
-    return mappedEx as Exercise;
+    return mappedEx;
   });
 }

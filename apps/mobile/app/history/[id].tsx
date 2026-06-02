@@ -5,6 +5,7 @@ import { useHistoryStore } from '../../src/stores/historyStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useProgramStore } from '../../src/stores/programStore';
+import { useProfileStore } from '../../src/stores/profileStore';
 import { SaveTemplateModal } from '../../src/components/workout/SaveTemplateModal';
 import { TemplateExercise, SessionExercise } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
@@ -16,6 +17,8 @@ export default function WorkoutDetailScreen() {
   const { exercises } = useExerciseStore();
   const { status: activeWorkoutStatus, startWorkoutFromSession } = useWorkoutStore();
   const { createTemplate } = useProgramStore();
+  const { profile } = useProfileStore();
+  const isImperial = profile.preferredUnits === 'imperial';
 
   const [saveModalVisible, setSaveModalVisible] = useState(false);
   
@@ -108,6 +111,14 @@ export default function WorkoutDetailScreen() {
     }
   };
 
+  const displayWeight = (w?: number) => {
+    if (!w) return '-';
+    if (isImperial) {
+      return (w * 2.20462).toFixed(1).replace(/\.0$/, '');
+    }
+    return w.toString();
+  };
+
   return (
     <View style={styles.outerContainer}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -131,16 +142,21 @@ export default function WorkoutDetailScreen() {
         {session.exercises.map((ex, index) => {
           const exerciseDef = exercises.find(e => e.id === ex.exerciseId);
           const completedSets = ex.sets.filter(s => s.completed);
-          const volume = completedSets.reduce((sum, s) => sum + (s.weight || 0) * (s.reps || 0), 0);
+          const volumeKg = completedSets.reduce((sum, s) => sum + (s.weight || 0) * (s.reps || 0), 0);
+          const volume = isImperial ? Math.round(volumeKg * 2.20462) : volumeKg;
           
           return (
             <View key={ex.id} style={styles.card}>
               <Text style={styles.exName}>{index + 1}. {exerciseDef?.name || 'Unknown Exercise'}</Text>
-              {volume > 0 && <Text style={styles.volumeText}>Volume: {volume} kg</Text>}
+              {volume > 0 && (
+                <Text style={styles.volumeText}>
+                  Volume: {volume.toLocaleString()} {isImperial ? 'lbs' : 'kg'}
+                </Text>
+              )}
               
               <View style={styles.tableHeader}>
                 <Text style={styles.colSet}>Set</Text>
-                <Text style={styles.colWeight}>kg</Text>
+                <Text style={styles.colWeight}>{isImperial ? 'lbs' : 'kg'}</Text>
                 <Text style={styles.colReps}>Reps</Text>
                 <Text style={styles.colRpe}>RPE</Text>
               </View>
@@ -148,7 +164,7 @@ export default function WorkoutDetailScreen() {
               {ex.sets.map(set => (
                 <View key={set.id} style={[styles.tableRow, !set.completed && styles.incompleteRow]}>
                   <Text style={styles.colSet}>{set.setNumber}</Text>
-                  <Text style={styles.colWeight}>{set.weight || '-'}</Text>
+                  <Text style={styles.colWeight}>{displayWeight(set.weight)}</Text>
                   <Text style={styles.colReps}>{set.reps || '-'}</Text>
                   <Text style={styles.colRpe}>{set.rpe || '-'}</Text>
                 </View>

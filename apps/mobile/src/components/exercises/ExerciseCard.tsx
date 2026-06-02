@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-nati
 import { Image } from 'expo-image';
 import { Exercise } from '@fitness-tracker/domain';
 import { MuscleGroupBadge } from './MuscleGroupBadge';
-import { Link } from 'expo-router';
+import { Link, Href } from 'expo-router';
 
 interface Props {
   exercise: Exercise;
@@ -15,7 +15,7 @@ export const ExerciseCard = ({ exercise, isFavorite, onToggleFavorite }: Props) 
   const [loading, setLoading] = useState(true);
 
   return (
-    <Link href={`/exercise/${exercise.id}` as any} asChild>
+    <Link href={`/exercise/${exercise.id}` as Href} asChild>
       <Pressable style={styles.card} testID="exercise-card">
         {exercise.imageUrl ? (
           <View style={styles.imageContainer}>

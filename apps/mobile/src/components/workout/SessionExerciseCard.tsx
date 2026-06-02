@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, TextInput, Alert, Platform } from 'r
 import { SessionExercise, ExerciseSet } from '@fitness-tracker/domain';
 import { useWorkoutStore } from '../../stores/workoutStore';
 import { useExerciseStore } from '../../stores/exerciseStore';
+import { useProfileStore } from '../../stores/profileStore';
 
 interface Props {
   sessionExercise: SessionExercise;
@@ -11,6 +12,8 @@ interface Props {
 export const SessionExerciseCard = ({ sessionExercise }: Props) => {
   const { exercises } = useExerciseStore();
   const { addSet, updateSet, completeSet, removeExercise, removeSet } = useWorkoutStore();
+  const { profile } = useProfileStore();
+  const isImperial = profile.preferredUnits === 'imperial';
   
   const exercise = exercises.find(e => e.id === sessionExercise.exerciseId);
   if (!exercise) return null;
@@ -47,7 +50,7 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
       
       <View style={styles.headerRow}>
         <Text style={[styles.columnHeader, styles.setCol]}>Set</Text>
-        <Text style={[styles.columnHeader, styles.inputCol]}>kg</Text>
+        <Text style={[styles.columnHeader, styles.inputCol]}>{isImperial ? 'lbs' : 'kg'}</Text>
         <Text style={[styles.columnHeader, styles.inputCol]}>Reps</Text>
         <Text style={[styles.columnHeader, styles.inputCol]}>RPE</Text>
         <Text style={[styles.columnHeader, styles.doneCol]}>✓</Text>
@@ -60,6 +63,7 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
           set={set} 
           index={idx}
           sessionExerciseId={sessionExercise.id}
+          isImperial={isImperial}
           onUpdate={(updates) => updateSet(sessionExercise.id, set.id, updates)}
           onComplete={() => completeSet(sessionExercise.id, set.id)}
           onDelete={() => removeSet(sessionExercise.id, set.id)}
@@ -80,13 +84,29 @@ interface SetRowProps {
   set: ExerciseSet;
   index: number;
   sessionExerciseId: string;
+  isImperial: boolean;
   onUpdate: (updates: Partial<ExerciseSet>) => void;
   onComplete: () => void;
   onDelete: () => void;
 }
 
-const SetRow = ({ set, index, onUpdate, onComplete, onDelete }: SetRowProps) => {
+const SetRow = ({ set, index, isImperial, onUpdate, onComplete, onDelete }: SetRowProps) => {
   const isDone = set.completed;
+  
+  // Format the display weight for imperial, round/clean it up
+  const getDisplayWeight = () => {
+    if (!set.weight) return '';
+    if (isImperial) {
+      const lbs = set.weight * 2.20462;
+      return lbs.toFixed(1).replace(/\.0$/, '');
+    }
+    return set.weight.toString();
+  };
+
+  const handleWeightChange = (text: string) => {
+    const val = parseFloat(text) || 0;
+    onUpdate({ weight: isImperial ? val / 2.20462 : val });
+  };
   
   return (
     <View style={[styles.row, isDone && styles.rowDone]}>
@@ -94,8 +114,8 @@ const SetRow = ({ set, index, onUpdate, onComplete, onDelete }: SetRowProps) => 
       <TextInput
         style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
         keyboardType="numeric"
-        value={set.weight ? set.weight.toString() : ''}
-        onChangeText={(text) => onUpdate({ weight: parseFloat(text) || 0 })}
+        value={getDisplayWeight()}
+        onChangeText={handleWeightChange}
         editable={!isDone}
         placeholder="-"
       />

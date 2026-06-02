@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { MMKV } from 'react-native-mmkv';
-import { Exercise, MuscleGroup, Equipment, EXERCISE_LIBRARY } from '@fitness-tracker/domain';
+import { Exercise, MuscleGroup, Equipment, EXERCISES } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
 
 const storage = new MMKV();
@@ -49,8 +49,8 @@ export interface ExerciseState {
 export const useExerciseStore = create<ExerciseState>()(
   persist(
     (set) => ({
-      exercises: EXERCISE_LIBRARY,
-      filteredExercises: EXERCISE_LIBRARY,
+      exercises: EXERCISES,
+      filteredExercises: EXERCISES,
       selectedMuscleGroup: null,
       selectedEquipment: null,
       searchQuery: '',
@@ -103,7 +103,7 @@ export const useExerciseStore = create<ExerciseState>()(
             updatedAt: new Date(),
           };
           const newCustom = [...state.customExercises, newEx];
-          const allExercises = [...EXERCISE_LIBRARY, ...newCustom];
+          const allExercises = [...EXERCISES, ...newCustom];
           const filtered = filterExercises(allExercises, state.searchQuery, state.selectedMuscleGroup, state.selectedEquipment);
           return {
             customExercises: newCustom,
@@ -118,7 +118,7 @@ export const useExerciseStore = create<ExerciseState>()(
       partialize: (state) => ({ favoriteIds: state.favoriteIds, customExercises: state.customExercises }),
       onRehydrateStorage: () => (state) => {
         if (state) {
-          state.exercises = [...EXERCISE_LIBRARY, ...(state.customExercises || [])];
+          state.exercises = [...EXERCISES, ...(state.customExercises || [])];
           state.filteredExercises = filterExercises(state.exercises, state.searchQuery, state.selectedMuscleGroup, state.selectedEquipment);
         }
       }

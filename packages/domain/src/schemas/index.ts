@@ -94,6 +94,8 @@ export const ExerciseSchema = z
     isCustom: z.boolean(),
     ownerId: UUIDSchema.optional(),
     isUnilateral: z.boolean().optional(),
+    imageUrl: z.string().optional(),
+    experienceLevel: ExperienceLevelSchema.optional(),
     createdAt: TimestampSchema,
     updatedAt: TimestampSchema,
   })

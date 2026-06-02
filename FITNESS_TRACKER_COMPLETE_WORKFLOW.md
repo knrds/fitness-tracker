@@ -34,7 +34,7 @@ Folgendes ist fertig und auf `main` gemerged:
 - ✅ AGENTS.md + CLAUDE.md + GEMINI.md
 - ✅ Skills (.agent/skills/)
 - ✅ Test-Infrastruktur (Vitest + Jest + CI)
-- ✅ Exercise Library (107 Übungen, Store, Screens)
+- ✅ Exercise Library (800+ ExerciseDB Übungen, Store, Screens, dynamic images)
 - ✅ Workout Logger (Session, Sets, RestTimer)
 - ✅ Program Builder (Templates, Trainingstage)
 - ✅ History + Progress (Charts, PR-Tracker, Streaks)

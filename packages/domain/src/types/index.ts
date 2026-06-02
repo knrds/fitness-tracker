@@ -197,6 +197,10 @@ export interface Exercise {
   ownerId?: UUID;
   /** Whether the exercise is single-limb (logged per side). */
   isUnilateral?: boolean;
+  /** Optional image URL showing how to perform it. */
+  imageUrl?: string;
+  /** Suggested experience level for this exercise. */
+  experienceLevel?: ExperienceLevel;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

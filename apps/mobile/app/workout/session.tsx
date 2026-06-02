@@ -57,10 +57,10 @@ export default function WorkoutSessionScreen() {
         exerciseId: ex.exerciseId,
         order: ex.order,
         targetSets: ex.sets.length > 0 ? ex.sets.length : 1,
-        targetReps: firstSet?.reps,
-        targetWeight: firstSet?.weight,
-        targetRpe: firstSet?.rpe,
-        notes: ex.notes,
+        ...(firstSet?.reps !== undefined ? { targetReps: firstSet.reps } : {}),
+        ...(firstSet?.weight !== undefined ? { targetWeight: firstSet.weight } : {}),
+        ...(firstSet?.rpe !== undefined ? { targetRpe: firstSet.rpe } : {}),
+        ...(ex.notes !== undefined ? { notes: ex.notes } : {}),
       };
     });
   };

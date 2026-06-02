@@ -95,9 +95,9 @@ export const useWorkoutStore = create<WorkoutStore>()(
               setNumber: j + 1,
               type: 'working',
               completed: false,
-              weight: tEx.targetWeight,
-              reps: tEx.targetReps,
-              rpe: tEx.targetRpe,
+              ...(tEx.targetWeight !== undefined ? { weight: tEx.targetWeight } : {}),
+              ...(tEx.targetReps !== undefined ? { reps: tEx.targetReps } : {}),
+              ...(tEx.targetRpe !== undefined ? { rpe: tEx.targetRpe } : {}),
             };
             sets.push(set);
           }
@@ -106,7 +106,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
             exerciseId: tEx.exerciseId,
             order: tEx.order,
             sets,
-            notes: tEx.notes,
+            ...(tEx.notes !== undefined ? { notes: tEx.notes } : {}),
           };
           return sessionEx;
         });

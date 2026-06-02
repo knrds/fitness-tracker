@@ -1,5 +1,6 @@
 import { useWorkoutStore } from '../workoutStore';
 import { useHistoryStore } from '../historyStore';
+import { WorkoutTemplate } from '@fitness-tracker/domain';
 
 jest.mock('react-native-mmkv', () => ({
   MMKV: jest.fn().mockImplementation(() => ({

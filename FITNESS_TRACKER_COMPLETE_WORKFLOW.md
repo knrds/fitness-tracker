@@ -33,6 +33,13 @@
 > Exercise-DB-Upgrade und alle Block 2 Stabilisierungen (H0, Bug-Jagd, Edge-Cases, TS-Härtung)
 > are completed, verified, and compiling cleanly.
 >
+> 🔀 **Branch-Konsolidierung (2026-06-03):** Alle ausstehenden Bugfix-/Feature-Commits
+> aus `fix/bugfixes` wurden nach `main` zusammengeführt (PR #9 hatte nur den ersten
+> Commit erfasst). Stale Branches (`chore/update-agents-md`, `fix/domain-logic-hardening`,
+> `feat/workout-improvements`) wurden lokal und auf GitHub gelöscht. `main` ist grün:
+> `pnpm typecheck` ✅, `pnpm test` (67 Tests) ✅, `pnpm lint` ✅. Aktiver Arbeits-Branch:
+> `fix/bugfixes` (Gemini). **Nächster Schritt: BLOCK 3 — Design-Fundament.**
+>
 > Additionally, the following fixes and features are implemented and fully tested:
 > - **In-App Restoration Modal**: Replaced standard browser confirm and Alert.alert popups with a beautiful, styled custom in-app `<Modal>` overlay.
 > - **12-Hour Workout Timeout**: Silently cancels/discards active workouts started more than 12 hours ago on startup to avoid background timer drift.
@@ -65,25 +72,25 @@ Tatsächlicher Stand:
 - ✅ Mission 8: Body Tracking + Profil
 - ✅ Mission 9: Workout-Verbesserungen
 
-### ⚠️ Offene Architektur-Schulden (vor Block 2 beheben)
+### ✅ Architektur-Schulden — BEHOBEN (Mission H0, gemerged)
 
-Ein Code-Review (2026-06-03) hat folgende Punkte ergeben. Sie sind in der neuen
-**Mission H0** (Block 2) gebündelt und über die **Architektur-Leitplanken**
-(Section 1b) für alle Agenten verbindlich:
+Der Code-Review (2026-06-03) hatte die untenstehenden Punkte ergeben. Sie wurden in
+**Mission H0** (`fix/domain-logic-hardening`, via PR #8 gemerged) behoben und sind
+über die **Architektur-Leitplanken** (Section 1b) für alle Agenten weiterhin
+verbindlich, damit sie nicht zurückkehren:
 
-1. **Geschäftslogik liegt nicht im Domain-Paket.** Volumen-, PR-, Streak-Logik
-   ist 2–3× über die Stores dupliziert (`historyStore`, `achievementStore`,
-   `useAchievementCheck`). Gehört nach `packages/domain/src/logic/`.
-2. **Keine Zod-Validierung beim Hydrieren** aus MMKV (verletzt DoD #3).
-3. **MMKV-Storage-Adapter (`reviveDates` + `customStorage`) in jedem Store
-   kopiert** → ein gemeinsamer Helper.
-4. **Warmups verfälschen Volumen/PRs** — Berechnungen ignorieren `set.type`.
-5. **Streak-Timezone-Bug** — Tage werden per `toISOString()` (UTC) verglichen.
-6. **PRs sind nur „max Gewicht"** statt e1RM-basiert (ignoriert Reps).
-7. **Workout-Timer driftet** im Hintergrund (zählt per `setInterval` hoch,
-   statt aus `startedAt` abzuleiten).
-8. **Leeres Workout** wird gespeichert + gibt XP (kein Guard).
-9. **Keine MMKV-Migrationsstrategie** (zustand `migrate`) bei Feldänderungen.
+1. ✅ **Geschäftslogik im Domain-Paket.** Volumen-, PR-, e1RM-, Streak- und
+   Summary-Logik liegt jetzt in `packages/domain/src/logic/` (mit Vitest-Tests);
+   Stores rufen die Helfer nur noch auf (keine Duplikate mehr).
+2. ✅ **Zod-Validierung beim Hydrieren** aus MMKV (gemeinsamer Helper).
+3. ✅ **Ein gemeinsamer MMKV-Storage-Helper** (`apps/mobile/src/stores/storage.ts`,
+   `createHydratedStorage`) — `reviveDates`/`customStorage` nicht mehr pro Store.
+4. ✅ **Warmups** werden aus Volumen-/PR-Berechnungen ausgeschlossen (`set.type`).
+5. ✅ **Streak** verwendet lokale `YYYY-MM-DD`-Tages-Keys (kein `toISOString()`).
+6. ✅ **PRs e1RM-basiert** (zusätzlich wird das tatsächliche Maximalgewicht getrackt).
+7. ✅ **Workout-Timer driftfrei** — `elapsedSeconds` aus `startedAt` abgeleitet.
+8. ✅ **Leeres-Workout-Guard** in `finishWorkout` (kein History-Eintrag, kein XP).
+9. ✅ **MMKV-Migrationsstrategie** (`version` + `migrate`) pro persistentem Store.
 
 ---
 
@@ -1538,9 +1545,12 @@ BLOCK 2 — ERSTE HÄRTUNG (Codex)
 [x] TypeScript-Härtung (strict checks with zero errors)
 [x] → pnpm typecheck strikt grün
 
-BLOCK 3 — DESIGN-FUNDAMENT (Gemini Designer)
-[ ] Design-Konzept → docs/design-system.md → MEIN OK
-[ ] Design-System implementieren
+BLOCK 3 — DESIGN-FUNDAMENT (Gemini Designer)  ← NÄCHSTER SCHRITT
+[ ] Stitch-Prompt (siehe docs/stitch-block3-prompt.md) im Google Stitch Designer
+    nutzen → exportierte Screens/Tokens als visuelle Referenz
+[ ] Design-Konzept → docs/design-system.md (aus Stitch-Output ableiten) → MEIN OK
+[ ] Design-System implementieren (packages/ui: theme + Button/Card/Input/Badge/
+    Modal/EmptyState/LoadingSkeleton); bestehende Screens schrittweise umstellen
 
 BLOCK 4 — PREMIUM UI (Gemini Designer)
 [ ] Premium Workout-Screen
@@ -1606,16 +1616,23 @@ FERTIG: Testbare App auf echten Geräten ✅
 
 ## 18. BRANCH-HYGIENE (Stand 2026-06-03)
 
-### Lage
-Der Branch-Catch-Up und die Merges von `feat/body-tracking` und `feat/workout-improvements` (Mission 9) wurden erfolgreich durchgeführt. `main` ist vollständig auf dem neuesten Stand.
+### Lage (aktualisiert 2026-06-03, Konsolidierung)
+`main` ist vollständig konsolidiert und grün. Die komplette Bugfix-/Feature-Arbeit
+aus `fix/bugfixes` wurde nach `main` gemerged. Hintergrund: PR #9 hatte durch eine
+veraltete Branch-Referenz nur den ersten der fünf Commits erfasst — der Rest
+(Multi-Select Exercise Picker, Plate-Visualizer, RIR/RPE-e1RM, Restoration-Modal,
+Programm-Kalender, Achievement-Expansion u.a.) wurde per `git merge fix/bugfixes`
+nachgezogen. Verifiziert: `pnpm typecheck` ✅ · `pnpm test` (67) ✅ · `pnpm lint` ✅.
 
 ### Bereinigte Branches
-Alle alten Feature-Branches (`feat/stabilization`, `feat/achievements`, `feat/body-tracking`, `feat/workout-improvements`) wurden nach dem Merge gelöscht.
+Gelöscht (lokal + GitHub), da vollständig in `main` enthalten:
+`feat/stabilization`, `feat/achievements`, `feat/body-tracking`,
+`feat/workout-improvements`, `fix/domain-logic-hardening`, `chore/update-agents-md`.
 
-### Aktiver Branch
-- `fix/domain-logic-hardening` (Mission H0 - fertiggestellt, bereit für Review)
-
-### Aufräum-Befehle (erledigt)
+### Aktive Branches
+- `main` — konsolidiert, grün, Single Source of Truth.
+- `fix/bugfixes` — Gemini arbeitet hier weiter; wird nach Abschluss erneut nach
+  `main` gemerged (dann als FF / sauberer Merge, da `main` jetzt synchron ist).
 
 ### Regel ab jetzt
 Fertige Missionen **zeitnah** nach `main` mergen statt Branches aufeinander zu
@@ -1623,5 +1640,5 @@ stapeln. Stacking war die Ursache des veralteten `main` und potenzieller
 Merge-Konflikte. Pro Mission ein kurzlebiger Branch → PR → Merge → Branch weg.
 
 ---
-*Erstellt: Juni 2026 · zuletzt aktualisiert: 2026-06-03 (Architektur-Review,
-Leitplanken, Branch-Hygiene) | Fitness-Tracker Projekt*
+*Erstellt: Juni 2026 · zuletzt aktualisiert: 2026-06-03 (Branch-Konsolidierung,
+H0-Schulden als behoben markiert, Block-3-Stitch-Prompt) | Fitness-Tracker Projekt*

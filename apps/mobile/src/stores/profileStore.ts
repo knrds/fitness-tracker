@@ -1,25 +1,24 @@
 import { create } from 'zustand';
-import { persist, PersistStorage } from 'zustand/middleware';
-import { MMKV } from 'react-native-mmkv';
-import { FitnessGoal, ExperienceLevel, UnitSystem, EXERCISES, BiologicalSex } from '@fitness-tracker/domain';
+import { persist } from 'zustand/middleware';
+import { 
+  FitnessGoal, 
+  ExperienceLevel, 
+  UnitSystem, 
+  EXERCISES, 
+  BiologicalSex,
+  FitnessGoalSchema,
+  ExperienceLevelSchema,
+  UnitSystemSchema,
+  BiologicalSexSchema,
+  calculateVolume,
+  calculateLongestStreak
+} from '@fitness-tracker/domain';
+import { z } from 'zod';
 import { useHistoryStore } from './historyStore';
 import { useWorkoutStore } from './workoutStore';
 import { useExerciseStore } from './exerciseStore';
 import { useBodyMetricStore } from './bodyMetricStore';
-
-const storage = new MMKV({ id: 'profile-storage' });
-
-const customStorage: PersistStorage<ProfileState> = {
-  getItem: (name: string) => {
-    const str = storage.getString(name);
-    if (!str) return null;
-    return JSON.parse(str);
-  },
-  setItem: (name: string, value: unknown) => {
-    storage.set(name, JSON.stringify(value));
-  },
-  removeItem: (name: string) => storage.delete(name),
-};
+import { createHydratedStorage } from './storage';
 
 export interface Profile {
   displayName: string;
@@ -52,6 +51,29 @@ const defaultProfile: Profile = {
   preferredUnits: 'metric',
 };
 
+const profileStateSchema = z.object({
+  displayName: z.string(),
+  fitnessGoal: FitnessGoalSchema.optional(),
+  experienceLevel: ExperienceLevelSchema.optional(),
+  preferredUnits: UnitSystemSchema,
+  biologicalSex: BiologicalSexSchema.optional(),
+  heightCm: z.number().optional(),
+  weightKg: z.number().optional(),
+  benchPressMaxKg: z.number().optional(),
+  squatMaxKg: z.number().optional(),
+  deadliftMaxKg: z.number().optional(),
+});
+
+const profilePersistedSchema = z.object({
+  profile: profileStateSchema,
+});
+
+type ProfilePersistedState = z.infer<typeof profilePersistedSchema>;
+
+const defaultPersistedState: ProfilePersistedState = {
+  profile: defaultProfile,
+};
+
 export const useProfileStore = create<ProfileState>()(
   persist(
     (set, get) => ({
@@ -65,16 +87,10 @@ export const useProfileStore = create<ProfileState>()(
         const sessions = useHistoryStore.getState().sessions;
         const totalWorkouts = sessions.length;
 
-        // Calculate total volume (canonical kg)
+        // Calculate total volume (canonical kg) excluding warmups
         let totalVolumeKg = 0;
         sessions.forEach((session) => {
-          session.exercises.forEach((ex) => {
-            ex.sets.forEach((set) => {
-              if (set.completed && set.weight && set.reps) {
-                totalVolumeKg += set.weight * set.reps;
-              }
-            });
-          });
+          totalVolumeKg += calculateVolume(session, { includeWarmups: false });
         });
 
         // Convert volume based on user's preferred units
@@ -83,39 +99,11 @@ export const useProfileStore = create<ProfileState>()(
           ? Math.round(totalVolumeKg * 2.20462)
           : Math.round(totalVolumeKg);
 
-        // Longest Streak
-        let longestStreak = 0;
-        if (sessions.length > 0) {
-          const uniqueDates = Array.from(new Set(sessions.map((s) => {
-            const d = new Date(s.startedAt);
-            d.setHours(0, 0, 0, 0);
-            return d.getTime();
-          }))).sort((a, b) => a - b);
+        // Longest Streak (derived from unique local dates)
+        // Longest Streak (derived from unique local dates)
+        const longestStreak = calculateLongestStreak(sessions);
 
-          let currentStreak = 0;
-          let prevTime: number | null = null;
-          const oneDayMs = 24 * 60 * 60 * 1000;
-
-          for (const time of uniqueDates) {
-            if (prevTime === null) {
-              currentStreak = 1;
-            } else {
-              const diff = time - prevTime;
-              if (diff <= oneDayMs) {
-                if (diff > 0) {
-                  currentStreak++;
-                }
-              } else {
-                longestStreak = Math.max(longestStreak, currentStreak);
-                currentStreak = 1;
-              }
-            }
-            prevTime = time;
-          }
-          longestStreak = Math.max(longestStreak, currentStreak);
-        }
-
-        // Current Streak
+        // Current Streak (uses timezone-fixed helper via historyStore)
         const currentStreak = useHistoryStore.getState().getStreak();
 
         return {
@@ -147,6 +135,7 @@ export const useProfileStore = create<ProfileState>()(
             isRunning: false,
             durationSeconds: 90,
           },
+          notes: '',
         });
 
         // 4. Exercise Store
@@ -158,6 +147,7 @@ export const useProfileStore = create<ProfileState>()(
           searchQuery: '',
           favoriteIds: [],
           customExercises: [],
+          exerciseRestDurations: {},
         });
 
         // 5. Body Metric Store
@@ -178,7 +168,7 @@ export const useProfileStore = create<ProfileState>()(
     }),
     {
       name: 'profile-storage',
-      storage: customStorage,
+      storage: createHydratedStorage('profile-storage', profilePersistedSchema, defaultPersistedState),
       version: 1,
     }
   )

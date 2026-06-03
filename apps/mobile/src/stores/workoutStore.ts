@@ -1,41 +1,42 @@
 import { create } from 'zustand';
-import { persist, PersistStorage } from 'zustand/middleware';
-import { MMKV } from 'react-native-mmkv';
+import { persist } from 'zustand/middleware';
 import { 
   ActiveWorkoutState, 
   SessionExercise, 
   ExerciseSet, 
   UUID,
   WorkoutSession,
-  WorkoutTemplate
+  WorkoutTemplate,
+  ActiveWorkoutStatusSchema,
+  SessionExerciseSchema
 } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
+import { z } from 'zod';
 import { useHistoryStore } from './historyStore';
 import { useAchievementStore } from './achievementStore';
 import { useExerciseStore } from './exerciseStore';
 import { useProfileStore } from './profileStore';
+import { createHydratedStorage } from './storage';
 
-const storage = new MMKV({ id: 'workout-storage' });
+const workoutPersistedSchema = z.object({
+  status: ActiveWorkoutStatusSchema,
+  name: z.string(),
+  elapsedSeconds: z.number(),
+  currentExerciseIndex: z.number().int(),
+  currentSetIndex: z.number().int(),
+  exercises: z.array(SessionExerciseSchema),
+  restTimer: z.object({
+    isRunning: z.boolean(),
+    durationSeconds: z.number().int().nonnegative(),
+    endsAt: z.coerce.date().optional(),
+  }),
+  notes: z.string(),
+  startedAt: z.coerce.date().optional(),
+  pausedAt: z.coerce.date().optional(),
+  accumulatedPauseMs: z.number().int().nonnegative(),
+});
 
-// Custom JSON reviver to correctly hydrate Date objects from MMKV
-const reviveDates = (key: string, value: unknown) => {
-  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
-    return new Date(value);
-  }
-  return value;
-};
-
-const customStorage: PersistStorage<WorkoutStore> = {
-  getItem: (name: string) => {
-    const str = storage.getString(name);
-    if (!str) return null;
-    return JSON.parse(str, reviveDates);
-  },
-  setItem: (name: string, value: unknown) => {
-    storage.set(name, JSON.stringify(value));
-  },
-  removeItem: (name: string) => storage.delete(name),
-};
+type WorkoutPersistedState = z.infer<typeof workoutPersistedSchema>;
 
 const defaultState = {
   status: 'idle' as const,
@@ -43,13 +44,15 @@ const defaultState = {
   elapsedSeconds: 0,
   currentExerciseIndex: 0,
   currentSetIndex: 0,
-  exercises: [],
+  exercises: [] as SessionExercise[],
   restTimer: {
     isRunning: false,
     durationSeconds: 90,
   },
   notes: '',
-  lastUpdatedAt: new Date(),
+  startedAt: undefined as Date | undefined,
+  pausedAt: undefined as Date | undefined,
+  accumulatedPauseMs: 0,
 };
 
 export interface WorkoutActions {
@@ -80,12 +83,18 @@ export interface WorkoutActions {
   toggleSuperset: (sessionExerciseId: UUID) => void;
 }
 
-export type WorkoutStore = ActiveWorkoutState & { notes: string } & WorkoutActions;
+export type WorkoutStore = Omit<ActiveWorkoutState, 'startedAt' | 'pausedAt'> & { 
+  notes: string;
+  startedAt: Date | undefined;
+  pausedAt: Date | undefined;
+  accumulatedPauseMs: number;
+} & WorkoutActions;
 
 export const useWorkoutStore = create<WorkoutStore>()(
   persist(
     (set, get) => ({
       ...defaultState,
+      lastUpdatedAt: new Date(),
 
       startWorkout: (name = 'New Workout') => set({
         ...defaultState,
@@ -165,34 +174,76 @@ export const useWorkoutStore = create<WorkoutStore>()(
         };
       }),
 
-      pauseWorkout: () => set({ status: 'paused', lastUpdatedAt: new Date() }),
+      pauseWorkout: () => set((state) => {
+        if (state.status !== 'active') return {};
+        const now = new Date();
+        const startedAt = state.startedAt || now;
+        const currentElapsed = Math.floor(
+          (now.getTime() - startedAt.getTime() - state.accumulatedPauseMs) / 1000
+        );
+        return { 
+          status: 'paused', 
+          pausedAt: now, 
+          elapsedSeconds: Math.max(0, currentElapsed),
+          lastUpdatedAt: now 
+        };
+      }),
       
-      resumeWorkout: () => set({ status: 'active', lastUpdatedAt: new Date() }),
+      resumeWorkout: () => set((state) => {
+        if (state.status !== 'paused') return {};
+        const now = new Date();
+        const pausedDuration = state.pausedAt ? (now.getTime() - state.pausedAt.getTime()) : 0;
+        return { 
+          status: 'active', 
+          pausedAt: undefined,
+          accumulatedPauseMs: state.accumulatedPauseMs + pausedDuration,
+          lastUpdatedAt: now 
+        };
+      }),
       
       finishWorkout: () => {
         const state = get();
         if (state.status === 'active' || state.status === 'paused') {
+          // Guard against sessions without any completed sets
+          const hasCompletedSet = state.exercises.some((ex) =>
+            ex.sets.some((s) => s.completed)
+          );
+
+          if (!hasCompletedSet) {
+            // Reset active workout but do NOT save or award XP
+            set({ ...defaultState, status: 'idle', lastUpdatedAt: new Date() });
+            return;
+          }
+
+          const completedAt = new Date();
+          const endTime = state.pausedAt || completedAt;
+          const startedAt = state.startedAt || completedAt;
+          const durationSeconds = Math.floor(
+            (endTime.getTime() - startedAt.getTime() - state.accumulatedPauseMs) / 1000
+          );
+
           const session = {
             id: state.sessionId || Crypto.randomUUID(),
             userId: 'local-user',
             name: state.name,
             templateId: state.templateId,
             programId: state.programId,
-            startedAt: state.startedAt || new Date(),
-            completedAt: new Date(),
-            durationSeconds: state.elapsedSeconds,
+            startedAt,
+            completedAt,
+            durationSeconds: Math.max(0, durationSeconds),
             exercises: state.exercises,
             notes: state.notes || undefined,
             createdAt: new Date(),
             updatedAt: new Date(),
           } as WorkoutSession;
+          
           useHistoryStore.getState().addSession(session);
           useAchievementStore.getState().awardXpAndCheckAchievements(session);
         }
-        set({ status: 'finished', lastUpdatedAt: new Date() });
+        set({ ...defaultState, status: 'finished', lastUpdatedAt: new Date() });
       },
       
-      resetWorkout: () => set({ ...defaultState }),
+      resetWorkout: () => set({ ...defaultState, lastUpdatedAt: new Date() }),
 
       addExercise: (exerciseId) => set((state) => {
         const newExercise: SessionExercise = {
@@ -281,8 +332,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
       }),
 
       stopRestTimer: () => set((state) => {
-        const restTimer = { ...state.restTimer };
-        delete restTimer.endsAt;
+        const { endsAt, ...restTimer } = state.restTimer;
         return {
           restTimer: {
             ...restTimer,
@@ -293,8 +343,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
       }),
       
       resetRestTimer: () => set((state) => {
-        const restTimer = { ...state.restTimer };
-        delete restTimer.endsAt;
+        const { endsAt, ...restTimer } = state.restTimer;
         return {
           restTimer: {
             ...restTimer,
@@ -309,8 +358,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
         if (!state.restTimer.isRunning || !state.restTimer.endsAt) return state;
         
         if (new Date() >= state.restTimer.endsAt) {
-          const restTimer = { ...state.restTimer };
-          delete restTimer.endsAt;
+          const { endsAt, ...restTimer } = state.restTimer;
           return {
             restTimer: {
               ...restTimer,
@@ -319,10 +367,11 @@ export const useWorkoutStore = create<WorkoutStore>()(
             lastUpdatedAt: new Date(),
           };
         }
-        return state; // return state to avoid re-renders if nothing changed
+        return state;
       }),
 
       tickWorkoutTimer: (seconds) => set((state) => {
+        // Kept for backward compatibility, but primarily timer is derived in UI.
         if (state.status !== 'active') return state;
         return {
           elapsedSeconds: state.elapsedSeconds + seconds,
@@ -433,7 +482,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
     }),
     {
       name: 'workout-storage',
-      storage: customStorage,
+      storage: createHydratedStorage('workout-storage', workoutPersistedSchema, defaultState),
       version: 1,
     }
   )

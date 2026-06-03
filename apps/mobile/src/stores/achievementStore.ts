@@ -1,30 +1,16 @@
 import { create } from 'zustand';
-import { persist, PersistStorage } from 'zustand/middleware';
-import { MMKV } from 'react-native-mmkv';
-import { WorkoutSession, ACHIEVEMENTS, MuscleGroup } from '@fitness-tracker/domain';
+import { persist } from 'zustand/middleware';
+import { 
+  WorkoutSession, 
+  ACHIEVEMENTS, 
+  MuscleGroup,
+  calculateVolume,
+  detectPRs
+} from '@fitness-tracker/domain';
+import { z } from 'zod';
 import { useHistoryStore } from './historyStore';
 import { useExerciseStore } from './exerciseStore';
-
-const storage = new MMKV({ id: 'achievement-storage' });
-
-const reviveDates = (key: string, value: unknown) => {
-  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
-    return new Date(value);
-  }
-  return value;
-};
-
-const customStorage: PersistStorage<AchievementState> = {
-  getItem: (name: string) => {
-    const str = storage.getString(name);
-    if (!str) return null;
-    return JSON.parse(str, reviveDates);
-  },
-  setItem: (name: string, value: unknown) => {
-    storage.set(name, JSON.stringify(value));
-  },
-  removeItem: (name: string) => storage.delete(name),
-};
+import { createHydratedStorage } from './storage';
 
 export interface AchievementState {
   xp: number;
@@ -37,35 +23,22 @@ export interface AchievementState {
   resetAchievements: () => void;
 }
 
-// Helpers for calculations
-const calculatePRs = (sessionsList: WorkoutSession[]): Record<string, number> => {
-  const prs: Record<string, number> = {};
-  sessionsList.forEach(s => {
-    s.exercises.forEach(ex => {
-      ex.sets.forEach(set => {
-        if (set.completed && set.weight) {
-          if (!prs[ex.exerciseId] || set.weight > prs[ex.exerciseId]!) {
-            prs[ex.exerciseId] = set.weight;
-          }
-        }
-      });
-    });
-  });
-  return prs;
-};
+const achievementPersistedSchema = z.object({
+  xp: z.number().int().nonnegative(),
+  level: z.number().int().positive(),
+  unlockedAchievements: z.record(z.string()),
+  newlyUnlocked: z.array(z.string()),
+  levelUpTo: z.number().int().positive().nullable(),
+});
 
-const calculateTotalVolume = (sessionsList: WorkoutSession[]): number => {
-  let total = 0;
-  sessionsList.forEach(s => {
-    s.exercises.forEach(ex => {
-      ex.sets.forEach(set => {
-        if (set.completed && set.weight && set.reps) {
-          total += set.weight * set.reps;
-        }
-      });
-    });
-  });
-  return total;
+type AchievementPersistedState = z.infer<typeof achievementPersistedSchema>;
+
+const defaultPersistedState: AchievementPersistedState = {
+  xp: 0,
+  level: 1,
+  unlockedAchievements: {},
+  newlyUnlocked: [],
+  levelUpTo: null,
 };
 
 export const useAchievementStore = create<AchievementState>()(
@@ -81,37 +54,13 @@ export const useAchievementStore = create<AchievementState>()(
         const historyStore = useHistoryStore.getState();
         const exerciseStore = useExerciseStore.getState();
 
-        // 1. Calculate Volume Bonus
-        let sessionVolume = 0;
-        session.exercises.forEach(ex => {
-          ex.sets.forEach(set => {
-            if (set.completed && set.weight && set.reps) {
-              sessionVolume += set.weight * set.reps;
-            }
-          });
-        });
+        // 1. Calculate Volume Bonus (excluding warmups)
+        const sessionVolume = calculateVolume(session, { includeWarmups: false });
         const volumeXpBonus = Math.floor(sessionVolume / 100);
 
-        // 2. Detect New PRs in this session
-        const otherSessions = historyStore.sessions.filter(s => s.id !== session.id);
-        const oldPRs = calculatePRs(otherSessions);
-        
-        let newPrCount = 0;
-        session.exercises.forEach(ex => {
-          let maxWeightInSession = 0;
-          ex.sets.forEach(set => {
-            if (set.completed && set.weight && set.weight > maxWeightInSession) {
-              maxWeightInSession = set.weight;
-            }
-          });
-          if (maxWeightInSession > 0) {
-            const prevPR = oldPRs[ex.exerciseId];
-            if (prevPR === undefined || maxWeightInSession > prevPR) {
-              newPrCount++;
-            }
-          }
-        });
-        const prXpBonus = newPrCount * 100;
+        // 2. Detect New PRs in this session (e1RM-based, excluding warmups)
+        const newPRs = detectPRs(session, historyStore.sessions);
+        const prXpBonus = newPRs.length * 100;
 
         // 3. Compute Session XP
         const baseSessionXp = 50;
@@ -129,7 +78,11 @@ export const useAchievementStore = create<AchievementState>()(
         const totalWorkouts = historyStore.sessions.length;
         const streak = historyStore.getStreak();
         const totalPrs = Object.keys(historyStore.getPRs()).length;
-        const totalVolume = calculateTotalVolume(historyStore.sessions);
+        
+        let totalVolume = 0;
+        historyStore.sessions.forEach(s => {
+          totalVolume += calculateVolume(s, { includeWarmups: false });
+        });
         
         // Unique exercises trained
         const uniqueExercises = new Set(historyStore.sessions.flatMap(s => s.exercises.map(ex => ex.exerciseId)));
@@ -145,6 +98,7 @@ export const useAchievementStore = create<AchievementState>()(
             }
           });
         });
+
         // Check each locked achievement
         ACHIEVEMENTS.forEach(ach => {
           if (unlocked[ach.id]) return; // Already unlocked
@@ -205,7 +159,8 @@ export const useAchievementStore = create<AchievementState>()(
     }),
     {
       name: 'achievement-storage',
-      storage: customStorage,
+      storage: createHydratedStorage('achievement-storage', achievementPersistedSchema, defaultPersistedState),
+      version: 1,
     }
   )
 );

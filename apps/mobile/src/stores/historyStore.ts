@@ -1,28 +1,15 @@
 import { create } from 'zustand';
-import { persist, PersistStorage } from 'zustand/middleware';
-import { MMKV } from 'react-native-mmkv';
-import { WorkoutSession, UUID, ExerciseSet } from '@fitness-tracker/domain';
-
-const storage = new MMKV({ id: 'history-storage' });
-
-const reviveDates = (key: string, value: unknown) => {
-  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
-    return new Date(value);
-  }
-  return value;
-};
-
-const customStorage: PersistStorage<HistoryStore> = {
-  getItem: (name: string) => {
-    const str = storage.getString(name);
-    if (!str) return null;
-    return JSON.parse(str, reviveDates as (key: string, value: unknown) => unknown);
-  },
-  setItem: (name: string, value: unknown) => {
-    storage.set(name, JSON.stringify(value));
-  },
-  removeItem: (name: string) => storage.delete(name),
-};
+import { persist } from 'zustand/middleware';
+import { 
+  WorkoutSession, 
+  UUID, 
+  ExerciseSet, 
+  WorkoutSessionSchema,
+  calculateStreak,
+  estimateOneRepMax
+} from '@fitness-tracker/domain';
+import { z } from 'zod';
+import { createHydratedStorage } from './storage';
 
 export interface HistoryStore {
   sessions: WorkoutSession[];
@@ -35,6 +22,16 @@ export interface HistoryStore {
   getExerciseVolumeHistory: (exerciseId: UUID) => { date: Date; volume: number }[];
   getPreviousPerformance: (exerciseId: UUID) => { date: Date; sets: ExerciseSet[] } | null;
 }
+
+const historyPersistedSchema = z.object({
+  sessions: z.array(WorkoutSessionSchema),
+});
+
+type HistoryPersistedState = z.infer<typeof historyPersistedSchema>;
+
+const defaultPersistedState: HistoryPersistedState = {
+  sessions: [],
+};
 
 export const useHistoryStore = create<HistoryStore>()(
   persist(
@@ -56,38 +53,7 @@ export const useHistoryStore = create<HistoryStore>()(
       },
 
       getStreak: () => {
-        const sessions = get().getSessionsByDateDesc();
-        if (sessions.length === 0) return 0;
-        
-        let streak = 0;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        if (sessions.length > 0) {
-           const latestDate = new Date(sessions[0]!.startedAt);
-           latestDate.setHours(0, 0, 0, 0);
-           const diffDays = Math.floor((today.getTime() - latestDate.getTime()) / (1000 * 3600 * 24));
-           if (diffDays > 1) return 0; // Streak broken
-        }
-
-        const uniqueDates = new Set<string>();
-        sessions.forEach(s => {
-          const d = new Date(s.startedAt);
-          d.setHours(0, 0, 0, 0);
-          uniqueDates.add(d.toISOString());
-        });
-
-        const checkDate = new Date(today);
-        if (!uniqueDates.has(checkDate.toISOString())) {
-          checkDate.setDate(checkDate.getDate() - 1);
-        }
-
-        while (uniqueDates.has(checkDate.toISOString())) {
-          streak++;
-          checkDate.setDate(checkDate.getDate() - 1);
-        }
-
-        return streak;
+        return calculateStreak(get().sessions);
       },
 
       getPRs: () => {
@@ -95,9 +61,11 @@ export const useHistoryStore = create<HistoryStore>()(
         get().sessions.forEach(session => {
           session.exercises.forEach(ex => {
             ex.sets.forEach(set => {
-              if (set.completed && set.weight) {
-                if (!prs[ex.exerciseId] || set.weight > prs[ex.exerciseId]!) {
-                  prs[ex.exerciseId] = set.weight;
+              // Exclude warmup sets and verify weight and reps are set
+              if (set.completed && set.weight && set.reps && set.type !== 'warmup') {
+                const e1rm = estimateOneRepMax(set.weight, set.reps);
+                if (!prs[ex.exerciseId] || e1rm > prs[ex.exerciseId]!) {
+                  prs[ex.exerciseId] = e1rm;
                 }
               }
             });
@@ -115,7 +83,8 @@ export const useHistoryStore = create<HistoryStore>()(
           session.exercises.forEach(ex => {
             if (ex.exerciseId === exerciseId) {
               ex.sets.forEach(set => {
-                if (set.completed && set.weight && set.reps) {
+                // Exclude warmup sets for volume calculation
+                if (set.completed && set.weight && set.reps && set.type !== 'warmup') {
                   volume += set.weight * set.reps;
                 }
               });
@@ -145,7 +114,7 @@ export const useHistoryStore = create<HistoryStore>()(
     }),
     {
       name: 'history-storage',
-      storage: customStorage,
+      storage: createHydratedStorage('history-storage', historyPersistedSchema, defaultPersistedState),
       version: 1,
     }
   )

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Share } from 'react-native';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { SessionExerciseCard } from '../../src/components/workout/SessionExerciseCard';
 import { RestTimer } from '../../src/components/workout/RestTimer';
 import { ExercisePickerModal } from '../../src/components/workout/ExercisePickerModal';
 import { SaveTemplateModal } from '../../src/components/workout/SaveTemplateModal';
 import { useProgramStore } from '../../src/stores/programStore';
+import { useProfileStore } from '../../src/stores/profileStore';
 import { TemplateExercise, SessionExercise } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
@@ -17,11 +18,13 @@ export default function WorkoutSessionScreen() {
     name, 
     elapsedSeconds, 
     exercises, 
+    notes,
     tickWorkoutTimer,
     pauseWorkout,
     resumeWorkout,
     finishWorkout,
-    addExercise
+    addExercise,
+    updateWorkoutNotes
   } = useWorkoutStore();
   const { createTemplate } = useProgramStore();
   
@@ -69,8 +72,46 @@ export default function WorkoutSessionScreen() {
     setSaveModalVisible(true);
   };
 
-  const finalizeWorkout = () => {
+  const finalizeWorkout = async () => {
+    // Collect session details for sharing
+    const state = useWorkoutStore.getState();
+    const durationMin = Math.round(state.elapsedSeconds / 60);
+
+    let volumeKg = 0;
+    let totalSets = 0;
+    state.exercises.forEach(ex => {
+      ex.sets.forEach(set => {
+        if (set.completed && set.weight && set.reps) {
+          volumeKg += set.weight * set.reps;
+          totalSets++;
+        }
+      });
+    });
+
+    const preferredUnits = useProfileStore.getState().profile?.preferredUnits || 'metric';
+    const isImperial = preferredUnits === 'imperial';
+    const displayVolume = isImperial ? Math.round(volumeKg * 2.20462) : Math.round(volumeKg);
+    const volumeUnit = isImperial ? 'lbs' : 'kg';
+
+    let shareMessage = `🏋️ Workout completed: ${state.name}\n`;
+    shareMessage += `⏱️ Duration: ${durationMin} min\n`;
+    shareMessage += `💪 Total Volume: ${displayVolume} ${volumeUnit}\n`;
+    shareMessage += `📊 Total Sets: ${totalSets}\n`;
+    if (state.notes) {
+      shareMessage += `📝 Note: ${state.notes}\n`;
+    }
+    shareMessage += `\nTracked with Fitness Tracker App!`;
+
+    // Finish workout in store
     finishWorkout();
+
+    // Trigger system share dialog
+    try {
+      await Share.share({ message: shareMessage });
+    } catch (e) {
+      console.log('Sharing failed', e);
+    }
+
     router.navigate('/');
   };
 
@@ -133,6 +174,19 @@ export default function WorkoutSessionScreen() {
         <Pressable style={styles.addBtn} onPress={handleAddExercise}>
           <Text style={styles.addBtnText}>+ Add Exercise</Text>
         </Pressable>
+
+        <View style={styles.notesContainer}>
+          <Text style={styles.notesLabel}>Workout Notes</Text>
+          <TextInput
+            style={styles.notesInput}
+            value={notes}
+            onChangeText={updateWorkoutNotes}
+            placeholder="Write a general note about your workout..."
+            placeholderTextColor="#94a3b8"
+            multiline
+            numberOfLines={3}
+          />
+        </View>
       </ScrollView>
 
       <RestTimer />
@@ -243,5 +297,25 @@ const styles = StyleSheet.create({
     color: '#0284c7',
     fontWeight: '700',
     fontSize: 16,
+  },
+  notesContainer: {
+    marginTop: 24,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  notesLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 8,
+  },
+  notesInput: {
+    minHeight: 60,
+    fontSize: 14,
+    color: '#0f172a',
+    textAlignVertical: 'top',
   },
 });

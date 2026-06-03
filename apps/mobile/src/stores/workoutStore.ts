@@ -12,6 +12,8 @@ import {
 import * as Crypto from 'expo-crypto';
 import { useHistoryStore } from './historyStore';
 import { useAchievementStore } from './achievementStore';
+import { useExerciseStore } from './exerciseStore';
+import { useProfileStore } from './profileStore';
 
 const storage = new MMKV({ id: 'workout-storage' });
 
@@ -35,8 +37,8 @@ const customStorage: PersistStorage<WorkoutStore> = {
   removeItem: (name: string) => storage.delete(name),
 };
 
-const defaultState: ActiveWorkoutState = {
-  status: 'idle',
+const defaultState = {
+  status: 'idle' as const,
   name: '',
   elapsedSeconds: 0,
   currentExerciseIndex: 0,
@@ -46,6 +48,7 @@ const defaultState: ActiveWorkoutState = {
     isRunning: false,
     durationSeconds: 90,
   },
+  notes: '',
   lastUpdatedAt: new Date(),
 };
 
@@ -70,9 +73,14 @@ export interface WorkoutActions {
   resetRestTimer: () => void;
   tickRestTimer: () => void;
   tickWorkoutTimer: (seconds: number) => void;
+
+  // New Actions
+  updateWorkoutNotes: (notes: string) => void;
+  calculateWarmupSets: (sessionExerciseId: UUID, targetWeight: number) => void;
+  toggleSuperset: (sessionExerciseId: UUID) => void;
 }
 
-export type WorkoutStore = ActiveWorkoutState & WorkoutActions;
+export type WorkoutStore = ActiveWorkoutState & { notes: string } & WorkoutActions;
 
 export const useWorkoutStore = create<WorkoutStore>()(
   persist(
@@ -174,6 +182,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
             completedAt: new Date(),
             durationSeconds: state.elapsedSeconds,
             exercises: state.exercises,
+            notes: state.notes || undefined,
             createdAt: new Date(),
             updatedAt: new Date(),
           } as WorkoutSession;
@@ -238,7 +247,10 @@ export const useWorkoutStore = create<WorkoutStore>()(
         });
         
         // Auto-start rest timer
-        const durationSeconds = state.restTimer.durationSeconds || 90;
+        const exercise = state.exercises.find(ex => ex.id === sessionExerciseId);
+        const durationSeconds = exercise
+          ? (useExerciseStore.getState().exerciseRestDurations[exercise.exerciseId] || state.restTimer.durationSeconds || 90)
+          : (state.restTimer.durationSeconds || 90);
         
         return { 
           exercises, 
@@ -316,6 +328,107 @@ export const useWorkoutStore = create<WorkoutStore>()(
           elapsedSeconds: state.elapsedSeconds + seconds,
           lastUpdatedAt: new Date(),
         };
+      }),
+
+      updateWorkoutNotes: (notes) => set({
+        notes,
+        lastUpdatedAt: new Date(),
+      }),
+
+      calculateWarmupSets: (sessionExerciseId, targetWeight) => set((state) => {
+        const preferredUnits = useProfileStore.getState().profile?.preferredUnits || 'metric';
+        const isImperial = preferredUnits === 'imperial';
+        const roundStep = isImperial ? 5 : 2.5;
+        
+        const roundToStep = (val: number) => {
+          return Math.round(val / roundStep) * roundStep;
+        };
+
+        const warmupWeightsDisplay = [
+          roundToStep(targetWeight * 0.5),
+          roundToStep(targetWeight * 0.7),
+          roundToStep(targetWeight * 0.9),
+        ];
+        
+        const warmupReps = [10, 5, 2];
+
+        const exercises = state.exercises.map(ex => {
+          if (ex.id !== sessionExerciseId) return ex;
+
+          // Filter out existing warmup sets
+          const existingWorkingSets = ex.sets.filter(s => s.type !== 'warmup');
+
+          // Generate 3 warmup sets
+          const newWarmupSets: ExerciseSet[] = warmupWeightsDisplay.map((weightDisplay, idx) => {
+            const weightKg = isImperial ? weightDisplay / 2.20462 : weightDisplay;
+            return {
+              id: Crypto.randomUUID(),
+              setNumber: idx + 1,
+              type: 'warmup',
+              completed: false,
+              weight: weightKg,
+              reps: warmupReps[idx]!,
+            };
+          });
+
+          // Merge them and recalculate setNumber
+          const mergedSets = [...newWarmupSets, ...existingWorkingSets].map((s, idx) => ({
+            ...s,
+            setNumber: idx + 1,
+          }));
+
+          return { ...ex, sets: mergedSets };
+        });
+
+        return { exercises, lastUpdatedAt: new Date() };
+      }),
+
+      toggleSuperset: (sessionExerciseId) => set((state) => {
+        const index = state.exercises.findIndex(ex => ex.id === sessionExerciseId);
+        if (index === -1) return {};
+
+        const exercise = state.exercises[index]!;
+        let exercises = [...state.exercises];
+
+        if (exercise.supersetGroup) {
+          // Already in a superset: remove it.
+          const group = exercise.supersetGroup;
+          const inGroup = exercises.filter(ex => ex.supersetGroup === group);
+
+          if (inGroup.length <= 2) {
+            // If only 2 or fewer, dissolve the entire superset group
+            exercises = exercises.map(ex => {
+              if (ex.supersetGroup === group) {
+                const { supersetGroup, ...rest } = ex;
+                return rest;
+              }
+              return ex;
+            });
+          } else {
+            // Just remove the current exercise
+            exercises = exercises.map(ex => {
+              if (ex.id === sessionExerciseId) {
+                const { supersetGroup, ...rest } = ex;
+                return rest;
+              }
+              return ex;
+            });
+          }
+        } else {
+          // Link with the next exercise
+          if (index < exercises.length - 1) {
+            const nextExercise = exercises[index + 1]!;
+            const newGroup = nextExercise.supersetGroup || Crypto.randomUUID();
+            exercises = exercises.map((ex, idx) => {
+              if (idx === index || idx === index + 1) {
+                return { ...ex, supersetGroup: newGroup };
+              }
+              return ex;
+            });
+          }
+        }
+
+        return { exercises, lastUpdatedAt: new Date() };
       })
     }),
     {

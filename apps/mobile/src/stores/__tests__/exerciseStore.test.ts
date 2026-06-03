@@ -50,4 +50,10 @@ describe('exerciseStore', () => {
     useExerciseStore.getState().toggleFavorite(id);
     expect(useExerciseStore.getState().favoriteIds).not.toContain(id);
   });
+
+  it('should set exercise rest duration', () => {
+    const exerciseId = 'ex-123';
+    useExerciseStore.getState().setExerciseRestDuration(exerciseId, 120);
+    expect(useExerciseStore.getState().exerciseRestDurations[exerciseId]).toBe(120);
+  });
 });

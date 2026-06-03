@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, Alert, Platform } from 'react-native';
 import { SessionExercise, ExerciseSet } from '@fitness-tracker/domain';
 import { useWorkoutStore } from '../../stores/workoutStore';
 import { useExerciseStore } from '../../stores/exerciseStore';
 import { useProfileStore } from '../../stores/profileStore';
+import { useHistoryStore } from '../../stores/historyStore';
+import { PlateCalculatorModal } from './PlateCalculatorModal';
 
 interface Props {
   sessionExercise: SessionExercise;
@@ -11,10 +13,13 @@ interface Props {
 
 export const SessionExerciseCard = ({ sessionExercise }: Props) => {
   const { exercises } = useExerciseStore();
-  const { addSet, updateSet, completeSet, removeExercise, removeSet } = useWorkoutStore();
+  const { addSet, updateSet, completeSet, removeExercise, removeSet, calculateWarmupSets, toggleSuperset } = useWorkoutStore();
   const { profile } = useProfileStore();
   const isImperial = profile.preferredUnits === 'imperial';
-  
+
+  const lastPerformance = useHistoryStore(state => state.getPreviousPerformance(sessionExercise.exerciseId));
+  const [plateCalcVisible, setPlateCalcVisible] = useState(false);
+
   const exercise = exercises.find(e => e.id === sessionExercise.exerciseId);
   if (!exercise) return null;
 
@@ -39,13 +44,67 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
     );
   };
 
+  const handleWarmupCalc = () => {
+    const firstSetWithWeight = sessionExercise.sets.find(s => s.weight && s.weight > 0);
+    if (!firstSetWithWeight) {
+      const alertFn = Platform.OS === 'web' 
+        ? (typeof globalThis !== 'undefined' && 'alert' in globalThis ? (globalThis as { alert?: (msg: string) => void }).alert : undefined)
+        : Alert.alert;
+
+      if (Platform.OS === 'web' && alertFn) {
+        alertFn('Please enter weight in at least one set first.');
+      } else {
+        Alert.alert('Warmup Calculator', 'Please enter weight in at least one set first to use as target working weight.');
+      }
+      return;
+    }
+
+    const targetWeightKg = firstSetWithWeight.weight!;
+    const targetWeightDisplay = isImperial ? targetWeightKg * 2.20462 : targetWeightKg;
+    calculateWarmupSets(sessionExercise.id, targetWeightDisplay);
+  };
+
+  const getPrevPerformanceText = () => {
+    if (!lastPerformance) return null;
+    const dateStr = new Date(lastPerformance.date).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: '2-digit' });
+    const setsStrUnits = lastPerformance.sets.map(s => {
+      if (!s.weight) return `${s.reps} reps`;
+      const weightDisplay = isImperial ? s.weight * 2.20462 : s.weight;
+      const formattedWeight = weightDisplay.toFixed(1).replace(/\.0$/, '');
+      const unit = isImperial ? 'lbs' : 'kg';
+      return `${formattedWeight} ${unit} x ${s.reps}`;
+    }).join(', ');
+
+    return `Last: ${setsStrUnits} on ${dateStr}`;
+  };
+
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, sessionExercise.supersetGroup ? styles.cardSuperset : null]}>
+      {sessionExercise.supersetGroup && (
+        <View style={styles.supersetHeader}>
+          <Text style={styles.supersetBadge}>🔗 SUPERSET</Text>
+        </View>
+      )}
       <View style={styles.titleRow}>
-        <Text style={styles.title}>{exercise.name}</Text>
-        <Pressable onPress={confirmDeleteExercise} style={styles.deleteExBtn}>
-          <Text style={styles.deleteExBtnText}>✕</Text>
-        </Pressable>
+        <View style={styles.titleCol}>
+          <Text style={styles.title}>{exercise.name}</Text>
+          {getPrevPerformanceText() && (
+            <Text style={styles.prevText}>{getPrevPerformanceText()}</Text>
+          )}
+        </View>
+        <View style={styles.headerIcons}>
+          <Pressable onPress={() => setPlateCalcVisible(true)} style={styles.iconBtn}>
+            <Text style={styles.iconText}>🏋️</Text>
+          </Pressable>
+          <Pressable onPress={() => toggleSuperset(sessionExercise.id)} style={styles.iconBtn}>
+            <Text style={[styles.iconText, sessionExercise.supersetGroup && styles.iconTextLinked]}>
+              {sessionExercise.supersetGroup ? '🔗' : '⛓️'}
+            </Text>
+          </Pressable>
+          <Pressable onPress={confirmDeleteExercise} style={styles.deleteExBtn}>
+            <Text style={styles.deleteExBtnText}>✕</Text>
+          </Pressable>
+        </View>
       </View>
       
       <View style={styles.headerRow}>
@@ -53,6 +112,7 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
         <Text style={[styles.columnHeader, styles.inputCol]}>{isImperial ? 'lbs' : 'kg'}</Text>
         <Text style={[styles.columnHeader, styles.inputCol]}>Reps</Text>
         <Text style={[styles.columnHeader, styles.inputCol]}>RPE</Text>
+        <Text style={[styles.columnHeader, styles.inputCol]}>RIR</Text>
         <Text style={[styles.columnHeader, styles.doneCol]}>✓</Text>
         <Text style={[styles.columnHeader, styles.delCol]}></Text>
       </View>
@@ -70,12 +130,26 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
         />
       ))}
 
-      <Pressable 
-        style={styles.addSetBtn} 
-        onPress={() => addSet(sessionExercise.id, { weight: 0, reps: 0 })}
-      >
-        <Text style={styles.addSetText}>+ Add Set</Text>
-      </Pressable>
+      <View style={styles.footerRow}>
+        <Pressable 
+          style={styles.addSetBtn} 
+          onPress={() => addSet(sessionExercise.id, { weight: 0, reps: 0 })}
+        >
+          <Text style={styles.addSetText}>+ Add Set</Text>
+        </Pressable>
+        <Pressable 
+          style={styles.warmupBtn} 
+          onPress={handleWarmupCalc}
+        >
+          <Text style={styles.warmupText}>🔥 Warmup Calculator</Text>
+        </Pressable>
+      </View>
+
+      <PlateCalculatorModal
+        visible={plateCalcVisible}
+        initialWeightKg={sessionExercise.sets[0]?.weight || 0}
+        onClose={() => setPlateCalcVisible(false)}
+      />
     </View>
   );
 };
@@ -107,43 +181,88 @@ const SetRow = ({ set, index, isImperial, onUpdate, onComplete, onDelete }: SetR
     const val = parseFloat(text) || 0;
     onUpdate({ weight: isImperial ? val / 2.20462 : val });
   };
-  
+
+  const cycleSetType = () => {
+    if (isDone) return;
+    const types: ('working' | 'warmup' | 'drop' | 'failure')[] = ['working', 'warmup', 'drop', 'failure'];
+    const currentIdx = types.indexOf(set.type as any);
+    const nextIdx = (currentIdx + 1) % types.length;
+    const nextType = types[nextIdx]!;
+    onUpdate({ type: nextType });
+  };
+
+  const getSetTypeBadge = () => {
+    switch (set.type) {
+      case 'warmup':
+        return <Text style={[styles.typeBadge, styles.warmupBadge]}>W</Text>;
+      case 'drop':
+        return <Text style={[styles.typeBadge, styles.dropBadge]}>D</Text>;
+      case 'failure':
+        return <Text style={[styles.typeBadge, styles.failureBadge]}>F</Text>;
+      default:
+        return <Text style={styles.cell}>{index + 1}</Text>;
+    }
+  };
+
+  // Real-time e1RM calculation
+  const weightVal = set.weight || 0;
+  const repsVal = set.reps || 0;
+  const displayWeight = isImperial ? weightVal * 2.20462 : weightVal;
+  const e1rm = (displayWeight > 0 && repsVal > 0) ? displayWeight * (1 + repsVal / 30) : 0;
+
   return (
-    <View style={[styles.row, isDone && styles.rowDone]}>
-      <Text style={[styles.cell, styles.setCol]}>{index + 1}</Text>
-      <TextInput
-        style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
-        keyboardType="numeric"
-        value={getDisplayWeight()}
-        onChangeText={handleWeightChange}
-        editable={!isDone}
-        placeholder="-"
-      />
-      <TextInput
-        style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
-        keyboardType="numeric"
-        value={set.reps ? set.reps.toString() : ''}
-        onChangeText={(text) => onUpdate({ reps: parseInt(text, 10) || 0 })}
-        editable={!isDone}
-        placeholder="-"
-      />
-      <TextInput
-        style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
-        keyboardType="numeric"
-        value={set.rpe ? set.rpe.toString() : ''}
-        onChangeText={(text) => onUpdate({ rpe: parseFloat(text) || 0 })}
-        editable={!isDone}
-        placeholder="-"
-      />
-      <Pressable 
-        style={[styles.doneBtn, styles.doneCol, isDone && styles.doneBtnActive]} 
-        onPress={onComplete}
-      >
-        <Text style={[styles.doneBtnText, isDone && styles.doneBtnTextActive]}>✓</Text>
-      </Pressable>
-      <Pressable style={[styles.deleteSetBtn, styles.delCol]} onPress={onDelete}>
-        <Text style={styles.deleteSetBtnText}>✕</Text>
-      </Pressable>
+    <View style={styles.rowContainer}>
+      <View style={[styles.row, isDone && styles.rowDone]}>
+        <Pressable onPress={cycleSetType} disabled={isDone} style={[styles.setCol, styles.centerAlign]}>
+          {getSetTypeBadge()}
+        </Pressable>
+        <TextInput
+          style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
+          keyboardType="numeric"
+          value={getDisplayWeight()}
+          onChangeText={handleWeightChange}
+          editable={!isDone}
+          placeholder="-"
+        />
+        <TextInput
+          style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
+          keyboardType="numeric"
+          value={set.reps ? set.reps.toString() : ''}
+          onChangeText={(text) => onUpdate({ reps: parseInt(text, 10) || 0 })}
+          editable={!isDone}
+          placeholder="-"
+        />
+        <TextInput
+          style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
+          keyboardType="numeric"
+          value={set.rpe ? set.rpe.toString() : ''}
+          onChangeText={(text) => onUpdate({ rpe: parseFloat(text) || 0 })}
+          editable={!isDone}
+          placeholder="-"
+        />
+        <TextInput
+          style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
+          keyboardType="numeric"
+          value={set.rir !== undefined ? set.rir.toString() : ''}
+          onChangeText={(text) => onUpdate({ rir: parseInt(text, 10) || 0 })}
+          editable={!isDone}
+          placeholder="-"
+        />
+        <Pressable 
+          style={[styles.doneBtn, styles.doneCol, isDone && styles.doneBtnActive]} 
+          onPress={onComplete}
+        >
+          <Text style={[styles.doneBtnText, isDone && styles.doneBtnTextActive]}>✓</Text>
+        </Pressable>
+        <Pressable style={[styles.deleteSetBtn, styles.delCol]} onPress={onDelete}>
+          <Text style={styles.deleteSetBtnText}>✕</Text>
+        </Pressable>
+      </View>
+      {e1rm > 0 && (
+        <View style={styles.e1rmRow}>
+          <Text style={styles.e1rmText}>e1RM: {e1rm.toFixed(1)} {isImperial ? 'lbs' : 'kg'}</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -159,18 +278,56 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+    borderLeftWidth: 4,
+    borderLeftColor: 'transparent',
+  },
+  cardSuperset: {
+    borderLeftColor: '#3b82f6',
+  },
+  supersetHeader: {
+    marginBottom: 6,
+  },
+  supersetBadge: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#3b82f6',
+    letterSpacing: 0.5,
   },
   titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 16,
+  },
+  titleCol: {
+    flex: 1,
+    paddingRight: 8,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
     color: '#0f172a',
-    flex: 1,
+  },
+  prevText: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  iconBtn: {
+    padding: 4,
+  },
+  iconText: {
+    fontSize: 16,
+    opacity: 0.6,
+  },
+  iconTextLinked: {
+    opacity: 1,
   },
   deleteExBtn: {
     padding: 4,
@@ -196,10 +353,12 @@ const styles = StyleSheet.create({
   doneCol: { width: 44, textAlign: 'center' },
   delCol: { width: 32, textAlign: 'center' },
   
+  rowContainer: {
+    marginBottom: 8,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
   },
   rowDone: {
     opacity: 0.7,
@@ -208,6 +367,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#334155',
+  },
+  centerAlign: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  typeBadge: {
+    fontSize: 12,
+    fontWeight: '800',
+    borderRadius: 6,
+    width: 24,
+    height: 24,
+    textAlign: 'center',
+    lineHeight: 24,
+    overflow: 'hidden',
+  },
+  warmupBadge: {
+    backgroundColor: '#ffedd5',
+    color: '#ea580c',
+  },
+  dropBadge: {
+    backgroundColor: '#f3e8ff',
+    color: '#9333ea',
+  },
+  failureBadge: {
+    backgroundColor: '#fee2e2',
+    color: '#dc2626',
   },
   input: {
     backgroundColor: '#f1f5f9',
@@ -252,13 +437,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  addSetBtn: {
-    marginTop: 8,
-    paddingVertical: 8,
+  e1rmRow: {
+    paddingLeft: 38,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  e1rmText: {
+    fontSize: 10,
+    color: '#64748b',
+    fontStyle: 'italic',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  addSetBtn: {
+    paddingVertical: 8,
   },
   addSetText: {
     color: '#3b82f6',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  warmupBtn: {
+    paddingVertical: 8,
+  },
+  warmupText: {
+    color: '#ea580c',
     fontWeight: '600',
     fontSize: 14,
   },

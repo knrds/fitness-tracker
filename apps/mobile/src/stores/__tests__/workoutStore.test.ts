@@ -142,4 +142,69 @@ describe('workoutStore', () => {
     expect(state.exercises[0]!.sets[0]!.rpe).toBe(8);
     expect(state.exercises[0]!.sets[0]!.completed).toBe(false);
   });
+
+  it('should update workout notes and save them in the history store session', () => {
+    useWorkoutStore.getState().startWorkout('Leg Day');
+    useWorkoutStore.getState().updateWorkoutNotes('Felt really good today');
+    expect(useWorkoutStore.getState().notes).toBe('Felt really good today');
+
+    useWorkoutStore.getState().finishWorkout();
+    const historySessions = useHistoryStore.getState().sessions;
+    expect(historySessions.length).toBe(1);
+    expect(historySessions[0]!.notes).toBe('Felt really good today');
+  });
+
+  it('should calculate warmup sets', () => {
+    useWorkoutStore.getState().startWorkout('Chest Day');
+    useWorkoutStore.getState().addExercise('ex-bench');
+    const exId = useWorkoutStore.getState().exercises[0]!.id;
+
+    // Add a working set
+    useWorkoutStore.getState().addSet(exId, { weight: 100, reps: 5, type: 'working' });
+    
+    // Calculate warmups based on 100kg target weight
+    useWorkoutStore.getState().calculateWarmupSets(exId, 100);
+
+    const exercise = useWorkoutStore.getState().exercises[0]!;
+    // Should have 3 warmup sets prepended, and 1 working set (total 4)
+    expect(exercise.sets.length).toBe(4);
+    expect(exercise.sets[0]!.type).toBe('warmup');
+    expect(exercise.sets[0]!.weight).toBe(50); // 50%
+    expect(exercise.sets[0]!.reps).toBe(10);
+    expect(exercise.sets[1]!.type).toBe('warmup');
+    expect(exercise.sets[1]!.weight).toBe(70); // 70%
+    expect(exercise.sets[1]!.reps).toBe(5);
+    expect(exercise.sets[2]!.type).toBe('warmup');
+    expect(exercise.sets[2]!.weight).toBe(90); // 90%
+    expect(exercise.sets[2]!.reps).toBe(2);
+    expect(exercise.sets[3]!.type).toBe('working');
+    expect(exercise.sets[3]!.weight).toBe(100);
+  });
+
+  it('should link exercises as superset and toggle them', () => {
+    useWorkoutStore.getState().startWorkout();
+    useWorkoutStore.getState().addExercise('ex-1');
+    useWorkoutStore.getState().addExercise('ex-2');
+
+    const ex1Id = useWorkoutStore.getState().exercises[0]!.id;
+    const ex2Id = useWorkoutStore.getState().exercises[1]!.id;
+
+    // Initially no superset
+    expect(useWorkoutStore.getState().exercises[0]!.supersetGroup).toBeUndefined();
+    expect(useWorkoutStore.getState().exercises[1]!.supersetGroup).toBeUndefined();
+
+    // Toggle superset on first exercise (links with next)
+    useWorkoutStore.getState().toggleSuperset(ex1Id);
+    
+    let state = useWorkoutStore.getState();
+    const group = state.exercises[0]!.supersetGroup;
+    expect(group).toBeDefined();
+    expect(state.exercises[1]!.supersetGroup).toBe(group);
+
+    // Toggle again to remove it (since only 2 elements in group, dissolves whole group)
+    useWorkoutStore.getState().toggleSuperset(ex1Id);
+    state = useWorkoutStore.getState();
+    expect(state.exercises[0]!.supersetGroup).toBeUndefined();
+    expect(state.exercises[1]!.supersetGroup).toBeUndefined();
+  });
 });

@@ -44,6 +44,8 @@ export interface ExerciseState {
   resetFilters: () => void;
   toggleFavorite: (id: string) => void;
   addCustomExercise: (data: Omit<Exercise, 'id' | 'createdAt' | 'updatedAt' | 'isCustom' | 'ownerId'>) => void;
+  exerciseRestDurations: Record<string, number>;
+  setExerciseRestDuration: (exerciseId: string, durationSeconds: number) => void;
 }
 
 export const useExerciseStore = create<ExerciseState>()(
@@ -56,6 +58,7 @@ export const useExerciseStore = create<ExerciseState>()(
       searchQuery: '',
       favoriteIds: [],
       customExercises: [],
+      exerciseRestDurations: {},
 
       setFilter: (muscleGroup, equipment) => 
         set((state) => {
@@ -110,12 +113,24 @@ export const useExerciseStore = create<ExerciseState>()(
             exercises: allExercises,
             filteredExercises: filtered,
           };
-        })
+        }),
+
+      setExerciseRestDuration: (exerciseId, durationSeconds) =>
+        set((state) => ({
+          exerciseRestDurations: {
+            ...state.exerciseRestDurations,
+            [exerciseId]: durationSeconds,
+          },
+        })),
     }),
     {
       name: 'exercise-storage',
       storage: createJSONStorage(() => zustandStorage),
-      partialize: (state) => ({ favoriteIds: state.favoriteIds, customExercises: state.customExercises }),
+      partialize: (state) => ({ 
+        favoriteIds: state.favoriteIds, 
+        customExercises: state.customExercises,
+        exerciseRestDurations: state.exerciseRestDurations 
+      }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.exercises = [...EXERCISES, ...(state.customExercises || [])];

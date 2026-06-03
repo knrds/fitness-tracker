@@ -6,6 +6,7 @@
 
 ## INHALT
 1. Aktueller Stand
+1b. Architektur-Leitplanken (für ALLE Agenten verbindlich)
 2. Setup: Multi-Agent-System (Worktrees + Rollen)
 3. Standard-Workflow (gilt für jede Mission)
 4. Rollen-Prompts (dauerhaft speichern)
@@ -22,25 +23,114 @@
 15. BLOCK 10 — Release-Vorbereitung
 16. Notfall-Prompts
 17. Reihenfolge-Checkliste
+18. Branch-Hygiene
 
 ---
 
 ## 1. AKTUELLER STAND
 
-Folgendes ist fertig und auf `main` gemerged:
+> ⚠️ **WICHTIG (Stand 2026-06-03): `main` ist VERALTET.** `main` steht auf PR #4
+> (`feat/history-progress`). Mission 6, 7, 8 und das Exercise-DB-Upgrade sind
+> **NICHT** auf `main` — sie liegen ungemergt als linearer Branch-Stack, dessen
+> Spitze `feat/workout-improvements` ist. **Erste Aktion: Catch-up-Merge**
+> (siehe Section 18 — Branch-Hygiene), sonst bauen Agenten auf altem `main` auf
+> und es entstehen unnötige Merge-Konflikte.
 
+Tatsächlicher Stand:
+
+**Auf `main` gemerged:**
 - ✅ Monorepo (Expo 52, pnpm workspaces, TypeScript strict)
 - ✅ Datenmodell (11 Tabellen, alle Types, Zod-Schemas)
 - ✅ AGENTS.md + CLAUDE.md + GEMINI.md
 - ✅ Skills (.agent/skills/)
 - ✅ Test-Infrastruktur (Vitest + Jest + CI)
-- ✅ Exercise Library (800+ ExerciseDB Übungen, Store, Screens, dynamic images)
+- ✅ Exercise Library (Store, Screens)
 - ✅ Workout Logger (Session, Sets, RestTimer)
 - ✅ Program Builder (Templates, Trainingstage)
 - ✅ History + Progress (Charts, PR-Tracker, Streaks)
-- ✅ Mission 6: Stabilisierung + Templates
-- ✅ Mission 7: Achievements + Gamification
-- ✅ Mission 8: Body Tracking + Profil
+
+**Fertig, aber NUR auf Feature-Branches (noch NICHT auf `main`):**
+- 🟡 Exercise-DB-Upgrade (800+ Übungen, expo-image) — `feat/exercise-database-upgrade`
+- 🟡 Mission 6: Stabilisierung + Templates — `feat/stabilization`
+- 🟡 Mission 7: Achievements + Gamification — `feat/achievements`
+- 🟡 Mission 8: Body Tracking + Profil — `feat/body-tracking`
+- 🟠 Mission 9: Workout-Verbesserungen — `feat/workout-improvements` (IN ARBEIT)
+
+### ⚠️ Offene Architektur-Schulden (vor Block 2 beheben)
+
+Ein Code-Review (2026-06-03) hat folgende Punkte ergeben. Sie sind in der neuen
+**Mission H0** (Block 2) gebündelt und über die **Architektur-Leitplanken**
+(Section 1b) für alle Agenten verbindlich:
+
+1. **Geschäftslogik liegt nicht im Domain-Paket.** Volumen-, PR-, Streak-Logik
+   ist 2–3× über die Stores dupliziert (`historyStore`, `achievementStore`,
+   `useAchievementCheck`). Gehört nach `packages/domain/src/logic/`.
+2. **Keine Zod-Validierung beim Hydrieren** aus MMKV (verletzt DoD #3).
+3. **MMKV-Storage-Adapter (`reviveDates` + `customStorage`) in jedem Store
+   kopiert** → ein gemeinsamer Helper.
+4. **Warmups verfälschen Volumen/PRs** — Berechnungen ignorieren `set.type`.
+5. **Streak-Timezone-Bug** — Tage werden per `toISOString()` (UTC) verglichen.
+6. **PRs sind nur „max Gewicht"** statt e1RM-basiert (ignoriert Reps).
+7. **Workout-Timer driftet** im Hintergrund (zählt per `setInterval` hoch,
+   statt aus `startedAt` abzuleiten).
+8. **Leeres Workout** wird gespeichert + gibt XP (kein Guard).
+9. **Keine MMKV-Migrationsstrategie** (zustand `migrate`) bei Feldänderungen.
+
+---
+
+## 1b. ARCHITEKTUR-LEITPLANKEN (für ALLE Agenten VERBINDLICH)
+
+> Diese Regeln gelten ab sofort für **jede** Mission (Builder, Designer,
+> Debugger). Sie verhindern, dass sich die unter Section 1 gelisteten
+> Architektur-Schulden wiederholen. Verstoß = Branch ist NICHT merge-ready.
+
+**1. Geschäftslogik gehört in `packages/domain/src/logic/` — nicht in Stores/UI.**
+   Reine, pflanzbare Funktionen (kein React, kein RN, kein MMKV) leben dort und
+   werden mit Vitest getestet. Stores/Hooks/Screens rufen sie nur auf.
+   Kanonische Helfer (nach Mission H0 vorhanden — vorher NICHT neu erfinden,
+   sondern H0 abwarten oder dort ergänzen):
+   - `calculateVolume(session, { includeWarmups: false })`
+   - `estimateOneRepMax(weight, reps)` (Epley: `weight * (1 + reps / 30)`)
+   - `calculateStreak(sessions)` (lokales Datum, **kein** `toISOString()`)
+   - `detectPRs(session, history)` (e1RM-basiert, Warmups ausgeschlossen)
+   - `summarizeWorkout(session)` (Dauer, Volumen, Sätze, PRs)
+   **Niemals** dieselbe Berechnung in zwei Dateien duplizieren.
+
+**2. Warmups zählen nie als Arbeitsvolumen oder PR.** Jede Volumen-/PR-/
+   Statistik-Berechnung MUSS `set.type` berücksichtigen (`warmup` ausschließen).
+
+**3. PRs sind e1RM-basiert** (geschätztes 1RM via Epley), nicht „max Gewicht".
+
+**4. Datumsvergleiche immer in lokaler Zeit.** Tages-Keys als `YYYY-MM-DD`
+   (lokal), nie `Date.toISOString()` (UTC verschiebt den Tag).
+
+**5. MMKV-Persistenz:**
+   - Genau **ein** gemeinsamer Storage-Helper
+     (`apps/mobile/src/stores/storage.ts`, z.B. `createMMKVStorage<T>(id)`).
+     `reviveDates`/`customStorage` NICHT mehr pro Store kopieren.
+   - Beim Hydrieren wird der State gegen das passende **Zod-Schema** aus
+     `@fitness-tracker/domain` validiert (DoD #3). Ungültige Daten → sauberer
+     Fallback, kein stiller Crash.
+   - Jeder persistente Store hat eine `version` und eine `migrate`-Funktion;
+     bei jeder Feldänderung wird `version` erhöht + Migration ergänzt.
+
+**6. Zeitmessung driftfrei.** Verstrichene Zeit (`elapsedSeconds`) wird aus
+   `startedAt` + akkumulierter Pausenzeit **abgeleitet**, nicht per
+   `setInterval` hochgezählt. Timer per Wanduhr (`endsAt`), damit Hintergrund/
+   Neustart korrekt bleiben.
+
+**7. Guards gegen Unsinn.** `finishWorkout` ignoriert Sessions ohne einen
+   einzigen abgeschlossenen Satz (kein History-Eintrag, kein XP). Zahlenfelder
+   akzeptieren keine negativen Werte.
+
+**8. Tests entstehen MIT dem Code, nicht erst in Block 9.** Jede neue Domain-
+   Funktion bekommt einen Vitest-Test im selben Branch. Kritische Store-Flows
+   bekommen mindestens einen Integrationstest.
+
+**9. MVP-Scope respektieren.** Social (Block 6) und Marketplace/Coaching
+   (Block 7) stehen in AGENTS.md als **OUT OF SCOPE**. Diese Blöcke erst
+   starten, wenn der Scope ausdrücklich (vom Menschen) freigegeben wurde —
+   siehe Hinweis zu Beginn von Block 6.
 
 ---
 
@@ -146,6 +236,12 @@ Diese Prompts am Anfang jeder neuen Session für den jeweiligen Agenten.
 ```
 Du bist der Builder-Agent für das Fitness-Tracker-Projekt.
 
+ZUERST: Lies Section 1b (Architektur-Leitplanken) im Workflow-Dokument.
+Sie sind verbindlich. Insbesondere: Geschäftslogik nach
+packages/domain/src/logic/ (keine Duplikate in Stores), Warmups nie als
+Volumen/PR zählen, e1RM-PRs, lokale Datums-Keys, gemeinsamer MMKV-Helper +
+Zod-Validierung beim Hydrieren, driftfreie Timer, Tests MIT dem Code.
+
 Deine Aufgaben:
 - Neue Features implementieren
 - Auf Branch-Namespace feat/* arbeiten
@@ -171,6 +267,12 @@ weitermachen mit der nächsten Mission.
 ```
 Du bist der Designer-Agent für das Fitness-Tracker-Projekt.
 
+ZUERST: Lies Section 1b (Architektur-Leitplanken). Für dich besonders:
+Rechne Werte (Volumen, e1RM, Streak) NIE selbst in der UI aus — nutze
+ausschließlich die Helfer aus packages/domain/src/logic/. Wenn ein Helfer
+fehlt, melde es in docs/debugger-queue.md statt eine eigene Berechnung in
+einen Screen zu schreiben.
+
 Deine Aufgaben:
 - UI, Design, Animationen, Visual Polish
 - Auf Branch-Namespace feat/ui-* und feat/design-* arbeiten
@@ -195,6 +297,12 @@ Grundsätze:
 ### DEBUGGER-ROLLEN-PROMPT (Codex)
 ```
 Du bist der Debugger-Agent für das Fitness-Tracker-Projekt.
+
+ZUERST: Lies Section 1b (Architektur-Leitplanken). Du setzt sie durch:
+Markiere bei Reviews jede duplizierte Berechnung, jede Berechnung die Warmups
+mitzählt, jeden toISOString()-Datumsvergleich, jeden fehlenden Zod-Check beim
+Hydrieren und jeden setInterval-basierten Timer als Finding. Mission H0
+(Block 2) ist deine erste Aufgabe.
 
 Deine Aufgaben:
 - Bugs finden und fixen
@@ -365,7 +473,17 @@ pnpm test. Merge nicht nach main.
 
 ### Mission 9: Workout-Verbesserungen
 ```
-Lies AGENTS.md. Branch: feat/workout-improvements
+Lies AGENTS.md UND Section 1b (Architektur-Leitplanken). Branch: feat/workout-improvements
+
+LEITPLANKEN für diese Mission:
+- e1RM-Schätzer (Punkt 8), Warmup-Rechner (7) und Share-Summary (10) NUR über
+  Helfer aus packages/domain/src/logic/ (estimateOneRepMax, summarizeWorkout).
+  Falls noch nicht vorhanden: dort anlegen + Vitest-Test, NICHT im Screen rechnen.
+- Set-Typen (2) nutzen den bestehenden SetType aus dem Domain-Paket; Volumen-/
+  PR-Anzeige schließt Warmups aus.
+- RIR (9) nutzt das bestehende Feld ExerciseSet.rir (kein neues Feld erfinden).
+- Workout-Notiz (4) nutzt WorkoutSession.notes; Supersätze (5) nutzen
+  SessionExercise.supersetGroup — beide existieren bereits in den Types.
 
 1. Previous Performance:
    Bei jeder Übung in der aktiven Session: zeige das Ergebnis
@@ -420,6 +538,52 @@ Tests. pnpm test. Merge nicht nach main.
 ```powershell
 cd C:\Users\Konrad\ft-debugger
 codex
+```
+
+### Mission H0: Domain-Logik-Extraktion & Kern-Bugfixes (ZUERST, vor allem anderen in Block 2)
+```
+Lies AGENTS.md UND Section 1b (Architektur-Leitplanken). Branch: fix/domain-logic-hardening
+
+Voraussetzung: Mission 9 ist nach main gemerged (sonst Konflikte). Diese Mission
+setzt die Architektur-Leitplanken technisch um und behebt die unter Section 1
+gelisteten Architektur-Schulden.
+
+1. packages/domain/src/logic/ anlegen + aus index.ts exportieren. Reine TS-
+   Funktionen (kein React/RN/MMKV), jede mit Vitest-Test:
+   - calculateVolume(session, { includeWarmups }): summiert weight*reps NUR über
+     completed Sets; schließt type === 'warmup' aus wenn includeWarmups false.
+   - estimateOneRepMax(weight, reps): Epley = weight * (1 + reps / 30).
+   - calculateStreak(sessions): lokaler Tages-Key 'YYYY-MM-DD', NICHT toISOString.
+   - detectPRs(session, history): e1RM-basiert, Warmups ausgeschlossen; gibt neue
+     PRs mit Delta zurück.
+   - summarizeWorkout(session): { durationSeconds, totalVolume, setCount, prs }.
+
+2. Stores auf die Helfer umstellen, ALLE Duplikate entfernen:
+   - historyStore: getStreak, getPRs, getExerciseVolumeHistory nutzen die Helfer.
+   - achievementStore: calculatePRs/calculateTotalVolume entfernen, Helfer nutzen.
+   - useAchievementCheck: eigene Volumen-Schleife entfernen, Helfer nutzen.
+
+3. Gemeinsamer MMKV-Helper apps/mobile/src/stores/storage.ts:
+   createMMKVStorage<T>(id) kapselt reviveDates + customStorage. Alle Stores
+   (workout, history, achievement, body, profile, exercise, program) nutzen ihn.
+   Pro Store: Hydration validiert gegen das passende Zod-Schema; bei Fehler
+   sauberer Default statt Crash. version + migrate-Funktion ergänzen.
+
+4. Kern-Bugfixes:
+   - Warmups aus allen Volumen-/PR-Berechnungen ausschließen (über die Helfer).
+   - Streak-Timezone-Bug behoben (lokale Datums-Keys).
+   - PRs e1RM-basiert.
+   - finishWorkout: Guard gegen Sessions ohne abgeschlossenen Satz (kein
+     History-Eintrag, kein XP).
+   - Workout-Timer in session.tsx: elapsedSeconds aus startedAt ableiten statt
+     per setInterval hochzuzählen (driftfrei, hintergrund-/neustart-fest).
+
+5. Integrationstest (Jest, apps/mobile): kompletter Flow
+   start -> addExercise -> addSet -> completeSet -> finishWorkout, der prüft:
+   historyStore aktualisiert, achievementStore vergibt XP, leeres Workout wird
+   ignoriert, Warmups nicht im Volumen.
+
+pnpm test + pnpm typecheck MÜSSEN strikt grün sein. Merge nicht nach main.
 ```
 
 ### Codex: Bug-Jagd
@@ -801,6 +965,13 @@ pnpm test. Merge nicht nach main.
 
 ## 11. BLOCK 6 — SOCIAL & COMMUNITY
 
+> 🚧 **SCOPE-GATE — vor diesem Block stoppen.** AGENTS.md listet Social-Features
+> ausdrücklich als **OUT OF SCOPE** für das MVP. Bevor irgendeine Mission aus
+> Block 6 oder 7 startet, muss der Mensch (Konrad) den Scope **explizit
+> freigeben** und AGENTS.md (MVP Scope + Hard Rules) entsprechend anpassen.
+> Kein Agent startet Block 6/7 eigenständig, auch nicht „weil das Board leer
+> ist". Bis zur Freigabe gilt: Block 5 (Backend) ist das Ende des MVP.
+
 ### Mission 12: Profile + Follows
 ```
 Lies AGENTS.md. Branch: feat/social-profiles
@@ -900,6 +1071,10 @@ pnpm test. Merge nicht nach main.
 ---
 
 ## 12. BLOCK 7 — MARKETPLACE & COACHING
+
+> 🚧 **SCOPE-GATE** — wie Block 6: Marketplace, bezahlte Programme und Coaching
+> sind in AGENTS.md **OUT OF SCOPE**. Nur nach expliziter menschlicher Freigabe
+> + AGENTS.md-Update starten.
 
 ### Mission 15: Programm-Marketplace
 ```
@@ -1134,6 +1309,9 @@ Fixe alles. pnpm test. Merge nicht nach main.
 ```
 Lies AGENTS.md. Branch: feat/test-coverage
 
+HINWEIS: Tests entstehen laut Leitplanke 8 bereits MIT jeder Mission. Dieser
+Block ist nur noch das Auffüllen verbliebener Lücken — kein Nachholen von Null.
+
 Ziel: >60% Test-Coverage für kritische Pfade.
 
 Prüfe welche Stores noch keine oder wenige Tests haben.
@@ -1333,14 +1511,19 @@ neue Stores, neue Screens, neue Dependencies, aktueller Status.
 ## 17. REIHENFOLGE-CHECKLISTE
 
 ```
-BLOCK 1 — KERN (Gemini Builder)
-[x] Mission 6: Stabilisierung + Templates
-[x] Mission 7: Achievements + Gamification
-[x] Mission 8: Body Tracking + Profil
-[ ] Mission 9: Workout-Verbesserungen
+BLOCK 0 — BRANCH-CATCH-UP (Mensch, siehe Section 18) — ZUERST
+[ ] Catch-up-PR feat/body-tracking → main (holt M6/M7/M8 + exercise-db nach)
+[ ] Gemergte/redundante Branches aufräumen
+
+BLOCK 1 — KERN (Gemini Builder) — fertig, aber erst nach Catch-up auf main
+[~] Mission 6: Stabilisierung + Templates (Branch fertig, via Catch-up auf main)
+[~] Mission 7: Achievements + Gamification (Branch fertig, via Catch-up auf main)
+[~] Mission 8: Body Tracking + Profil (Branch fertig, via Catch-up auf main)
+[x] Mission 9: Workout-Verbesserungen
 [ ] → AGENTS.md aktualisieren
 
 BLOCK 2 — ERSTE HÄRTUNG (Codex)
+[ ] Mission H0: Domain-Logik-Extraktion & Kern-Bugfixes (ZUERST)
 [ ] Bug-Jagd → docs/bug-report.md
 [ ] Edge-Cases
 [ ] TypeScript-Härtung
@@ -1395,13 +1578,68 @@ FERTIG: Testbare App auf echten Geräten ✅
 ---
 
 **GOLDENE REGELN:**
-1. Jede Mission beginnt mit: `Lies AGENTS.md`
+1. Jede Mission beginnt mit: `Lies AGENTS.md` **und Section 1b (Leitplanken)**
 2. Jede Mission auf eigenem Branch — nie direkt auf main
 3. Immer testen: `pnpm dev` + `pnpm test` + `pnpm typecheck`
 4. Gemini baut + gestaltet · Codex härtet + debuggt
 5. AGENTS.md alle 3-4 Missionen aktualisieren
 6. Bei Merge-Konflikten: Builder-Branch hat Vorrang vor Designer-Branch
 7. Dieser Plan ist die einzige Quelle der Wahrheit
+8. **Geschäftslogik nach `packages/domain/src/logic/` — nie in Stores/UI
+   duplizieren. Tests entstehen MIT dem Code.**
+9. **Warmups nie als Volumen/PR; PRs e1RM-basiert; Datums-Keys lokal.**
+10. **Ein MMKV-Helper, Zod-Validierung beim Hydrieren, `version` + `migrate`.**
+11. **Scope: Block 6/7 (Social/Marketplace) nur nach menschlicher Freigabe.**
+12. **`main` immer aktuell halten — fertige Missionen zeitnah mergen, nicht
+    stapeln (siehe Section 18 — Branch-Hygiene).**
 
 ---
-*Erstellt: Juni 2026 | Fitness-Tracker Projekt*
+
+## 18. BRANCH-HYGIENE (Stand 2026-06-03)
+
+### Lage
+`main` steht auf PR #4 (`feat/history-progress`). Alle weiteren fertigen
+Missionen liegen ungemergt als **linearer Stack**, dessen Spitze
+`feat/workout-improvements` ist. `feat/body-tracking` zeigt auf denselben
+Commit wie `feat/workout-improvements` (vor Mission 9) und enthält damit den
+gesamten Stack M6→M8 + Exercise-DB-Upgrade.
+
+### Catch-up (zuerst, durch Menschen)
+1. **PR `feat/body-tracking` → `main`** erstellen und mergen. Holt M6/M7/M8 +
+   Exercise-DB in einem Rutsch auf `main`. Stört Gemini auf
+   `feat/workout-improvements` nicht (anderer Branch).
+2. `main` lokal aktualisieren: `git checkout main && git pull`.
+3. Danach: Mission 9 (`feat/workout-improvements`) als PR auf den neuen `main`.
+
+### Branch-Klassifikation
+| Branch | Status | Aktion |
+| --- | --- | --- |
+| `feat/exercise-library` | 100 % in `main` | löschen |
+| `feat/history-progress` | 100 % in `main` | löschen |
+| `feat/program-builder` | 100 % in `main` | löschen |
+| `feat/workout-logger` | 100 % in `main` | löschen |
+| `feat/ux-fixes` | 100 % in `main` (= history-progress) | löschen |
+| `feat/stabilization` (M6) | Ahne von workout-improvements | nach Catch-up löschen |
+| `feat/exercise-database-upgrade` | Ahne von workout-improvements | nach Catch-up löschen |
+| `feat/achievements` (M7) | Ahne von workout-improvements | nach Catch-up löschen |
+| `feat/body-tracking` (M8) | = Catch-up-PR | nach Merge löschen |
+| `feat/workout-improvements` (M9) | LIVE (Gemini) | behalten |
+
+### Aufräum-Befehle (erst nach erfolgreichem Catch-up-Merge ausführen)
+```powershell
+# Lokale, vollständig gemergte Branches löschen:
+git branch -d feat/exercise-library feat/history-progress feat/program-builder feat/workout-logger feat/ux-fixes
+# Nach Catch-up-Merge zusätzlich (mit -d wenn dann gemergt, sonst -D bewusst):
+git branch -d feat/stabilization feat/exercise-database-upgrade feat/achievements feat/body-tracking
+# Remote-Pendants (nur wenn die PRs gemergt/geschlossen sind):
+git push origin --delete feat/exercise-database-upgrade feat/stabilization feat/achievements feat/body-tracking
+```
+
+### Regel ab jetzt
+Fertige Missionen **zeitnah** nach `main` mergen statt Branches aufeinander zu
+stapeln. Stacking war die Ursache des veralteten `main` und potenzieller
+Merge-Konflikte. Pro Mission ein kurzlebiger Branch → PR → Merge → Branch weg.
+
+---
+*Erstellt: Juni 2026 · zuletzt aktualisiert: 2026-06-03 (Architektur-Review,
+Leitplanken, Branch-Hygiene) | Fitness-Tracker Projekt*

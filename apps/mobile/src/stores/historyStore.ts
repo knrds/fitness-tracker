@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, PersistStorage } from 'zustand/middleware';
 import { MMKV } from 'react-native-mmkv';
-import { WorkoutSession, UUID } from '@fitness-tracker/domain';
+import { WorkoutSession, UUID, ExerciseSet } from '@fitness-tracker/domain';
 
 const storage = new MMKV({ id: 'history-storage' });
 
@@ -33,6 +33,7 @@ export interface HistoryStore {
   getStreak: () => number;
   getPRs: () => Record<string, number>;
   getExerciseVolumeHistory: (exerciseId: UUID) => { date: Date; volume: number }[];
+  getPreviousPerformance: (exerciseId: UUID) => { date: Date; sets: ExerciseSet[] } | null;
 }
 
 export const useHistoryStore = create<HistoryStore>()(
@@ -126,6 +127,20 @@ export const useHistoryStore = create<HistoryStore>()(
         });
         
         return history;
+      },
+
+      getPreviousPerformance: (exerciseId) => {
+        const sortedSessions = get().getSessionsByDateDesc();
+        for (const session of sortedSessions) {
+          const sessionEx = session.exercises.find(ex => ex.exerciseId === exerciseId);
+          if (sessionEx && sessionEx.sets.some(s => s.completed)) {
+            return {
+              date: session.startedAt,
+              sets: sessionEx.sets.filter(s => s.completed)
+            };
+          }
+        }
+        return null;
       }
     }),
     {

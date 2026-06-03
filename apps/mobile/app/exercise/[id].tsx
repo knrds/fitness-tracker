@@ -8,13 +8,31 @@ import { MuscleGroupBadge } from '../../src/components/exercises/MuscleGroupBadg
 
 export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { exercises, favoriteIds, toggleFavorite } = useExerciseStore();
+  const { exercises, favoriteIds, toggleFavorite, exerciseRestDurations, setExerciseRestDuration } = useExerciseStore();
   const { status, addExercise, startWorkout } = useWorkoutStore();
   
   const [imageLoading, setImageLoading] = useState(true);
 
   const exercise = exercises.find(e => e.id === id);
   const isFavorite = favoriteIds.includes(id || '');
+  const customRestDuration = exerciseRestDurations[id || ''] || 90;
+
+  const handleAdjustRest = (amount: number) => {
+    const newDuration = Math.max(0, customRestDuration + amount);
+    if (id) {
+      setExerciseRestDuration(id, newDuration);
+    }
+  };
+
+  const formatRestTime = (seconds: number) => {
+    if (seconds === 0) return 'Disabled';
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    if (m > 0) {
+      return `${m}m ${s > 0 ? `${s}s` : ''}`;
+    }
+    return `${s}s`;
+  };
 
   if (!exercise) {
     return (
@@ -146,6 +164,30 @@ export default function ExerciseDetailScreen() {
           ) : (
             <Text style={styles.noInstructionsText}>No instructions available for this exercise.</Text>
           )}
+        </View>
+
+        {/* Rest Timer Configuration */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Default Rest Timer</Text>
+          <View style={styles.restTimerConfig}>
+            <Pressable 
+              onPress={() => handleAdjustRest(-15)} 
+              style={styles.adjustRestBtn}
+              testID="adjust-rest-minus"
+            >
+              <Text style={styles.adjustRestBtnText}>-15s</Text>
+            </Pressable>
+            <View style={styles.restDurationDisplay}>
+              <Text style={styles.restDurationVal}>{formatRestTime(customRestDuration)}</Text>
+            </View>
+            <Pressable 
+              onPress={() => handleAdjustRest(15)} 
+              style={styles.adjustRestBtn}
+              testID="adjust-rest-plus"
+            >
+              <Text style={styles.adjustRestBtnText}>+15s</Text>
+            </Pressable>
+          </View>
         </View>
 
         {/* Action Button */}
@@ -360,5 +402,38 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '700',
+  },
+  restTimerConfig: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    gap: 20,
+  },
+  adjustRestBtn: {
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  adjustRestBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  restDurationDisplay: {
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  restDurationVal: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0f172a',
   },
 });

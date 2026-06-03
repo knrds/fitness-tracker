@@ -16,30 +16,46 @@ export default function WorkoutSessionScreen() {
   const { 
     status, 
     name, 
-    elapsedSeconds, 
     exercises, 
     notes,
-    tickWorkoutTimer,
     pauseWorkout,
     resumeWorkout,
     finishWorkout,
     addExercise,
-    updateWorkoutNotes
+    updateWorkoutNotes,
+    startedAt,
+    pausedAt,
+    accumulatedPauseMs
   } = useWorkoutStore();
   const { createTemplate } = useProgramStore();
   
   const [pickerVisible, setPickerVisible] = useState(false);
   const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
+    const calculateElapsed = () => {
+      if (!startedAt) return 0;
+      const startedTime = startedAt instanceof Date ? startedAt : new Date(startedAt);
+      const pausedTime = pausedAt ? (pausedAt instanceof Date ? pausedAt : new Date(pausedAt)) : null;
+      const endTime = pausedTime || new Date();
+      return Math.floor((endTime.getTime() - startedTime.getTime() - accumulatedPauseMs) / 1000);
+    };
+
+    setElapsed(calculateElapsed());
+
     let interval: NodeJS.Timeout;
     if (status === 'active') {
       interval = setInterval(() => {
-        tickWorkoutTimer(1);
+        setElapsed(calculateElapsed());
       }, 1000);
     }
-    return () => clearInterval(interval);
-  }, [status, tickWorkoutTimer]);
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [status, startedAt, pausedAt, accumulatedPauseMs]);
 
   if (status === 'idle' || status === 'finished') {
     return (
@@ -75,7 +91,7 @@ export default function WorkoutSessionScreen() {
   const finalizeWorkout = async () => {
     // Collect session details for sharing
     const state = useWorkoutStore.getState();
-    const durationMin = Math.round(state.elapsedSeconds / 60);
+    const durationMin = Math.round(elapsed / 60);
 
     let volumeKg = 0;
     let totalSets = 0;
@@ -148,7 +164,7 @@ export default function WorkoutSessionScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>{name}</Text>
-          <Text style={styles.timer}>{formatElapsed(elapsedSeconds)}</Text>
+          <Text style={styles.timer}>{formatElapsed(elapsed)}</Text>
         </View>
         
         <View style={styles.headerActions}>

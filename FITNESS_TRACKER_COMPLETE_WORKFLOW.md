@@ -29,12 +29,13 @@
 
 ## 1. AKTUELLER STAND
 
-> ⚠️ **WICHTIG (Stand 2026-06-03): `main` ist VERALTET.** `main` steht auf PR #4
-> (`feat/history-progress`). Mission 6, 7, 8 und das Exercise-DB-Upgrade sind
-> **NICHT** auf `main` — sie liegen ungemergt als linearer Branch-Stack, dessen
-> Spitze `feat/workout-improvements` ist. **Erste Aktion: Catch-up-Merge**
-> (siehe Section 18 — Branch-Hygiene), sonst bauen Agenten auf altem `main` auf
-> und es entstehen unnötige Merge-Konflikte.
+> ✅ **Stand 2026-06-03:** Alle Missionen aus Block 1 (M6, M7, M8, M9) sowie das
+> Exercise-DB-Upgrade sind vollständig nach `main` gemerged. `main` ist aktuell und stabil.
+>
+> 🔵 **Block 2 Status:** Mission H0 (Domain-Logik-Extraktion & MMKV-Stabilisierung)
+> ist auf dem Branch `fix/domain-logic-hardening` vollendet. Der Code baut fehlerfrei
+> (`pnpm typecheck` ist grün) und alle Test-Suites sind grün. Bereit für Codex
+> (Terminal / ft-debugger worktree), um mit der Bug-Jagd, Edge-Case-Härtung und TS-Härtung fortzufahren.
 
 Tatsächlicher Stand:
 
@@ -48,13 +49,11 @@ Tatsächlicher Stand:
 - ✅ Workout Logger (Session, Sets, RestTimer)
 - ✅ Program Builder (Templates, Trainingstage)
 - ✅ History + Progress (Charts, PR-Tracker, Streaks)
-
-**Fertig, aber NUR auf Feature-Branches (noch NICHT auf `main`):**
-- 🟡 Exercise-DB-Upgrade (800+ Übungen, expo-image) — `feat/exercise-database-upgrade`
-- 🟡 Mission 6: Stabilisierung + Templates — `feat/stabilization`
-- 🟡 Mission 7: Achievements + Gamification — `feat/achievements`
-- 🟡 Mission 8: Body Tracking + Profil — `feat/body-tracking`
-- 🟠 Mission 9: Workout-Verbesserungen — `feat/workout-improvements` (IN ARBEIT)
+- ✅ Exercise-DB-Upgrade (800+ Übungen, expo-image)
+- ✅ Mission 6: Stabilisierung + Templates
+- ✅ Mission 7: Achievements + Gamification
+- ✅ Mission 8: Body Tracking + Profil
+- ✅ Mission 9: Workout-Verbesserungen
 
 ### ⚠️ Offene Architektur-Schulden (vor Block 2 beheben)
 
@@ -1512,22 +1511,22 @@ neue Stores, neue Screens, neue Dependencies, aktueller Status.
 
 ```
 BLOCK 0 — BRANCH-CATCH-UP (Mensch, siehe Section 18) — ZUERST
-[ ] Catch-up-PR feat/body-tracking → main (holt M6/M7/M8 + exercise-db nach)
-[ ] Gemergte/redundante Branches aufräumen
+[x] Catch-up-PR feat/body-tracking → main (holt M6/M7/M8 + exercise-db nach)
+[x] Gemergte/redundante Branches aufräumen
 
 BLOCK 1 — KERN (Gemini Builder) — fertig, aber erst nach Catch-up auf main
-[~] Mission 6: Stabilisierung + Templates (Branch fertig, via Catch-up auf main)
-[~] Mission 7: Achievements + Gamification (Branch fertig, via Catch-up auf main)
-[~] Mission 8: Body Tracking + Profil (Branch fertig, via Catch-up auf main)
+[x] Mission 6: Stabilisierung + Templates (Branch fertig, via Catch-up auf main)
+[x] Mission 7: Achievements + Gamification (Branch fertig, via Catch-up auf main)
+[x] Mission 8: Body Tracking + Profil (Branch fertig, via Catch-up auf main)
 [x] Mission 9: Workout-Verbesserungen
-[ ] → AGENTS.md aktualisieren
+[x] → AGENTS.md aktualisieren
 
 BLOCK 2 — ERSTE HÄRTUNG (Codex)
-[ ] Mission H0: Domain-Logik-Extraktion & Kern-Bugfixes (ZUERST)
+[x] Mission H0: Domain-Logik-Extraktion & Kern-Bugfixes (ZUERST)
 [ ] Bug-Jagd → docs/bug-report.md
 [ ] Edge-Cases
 [ ] TypeScript-Härtung
-[ ] → pnpm typecheck strikt grün
+[x] → pnpm typecheck strikt grün
 
 BLOCK 3 — DESIGN-FUNDAMENT (Gemini Designer)
 [ ] Design-Konzept → docs/design-system.md → MEIN OK
@@ -1598,42 +1597,15 @@ FERTIG: Testbare App auf echten Geräten ✅
 ## 18. BRANCH-HYGIENE (Stand 2026-06-03)
 
 ### Lage
-`main` steht auf PR #4 (`feat/history-progress`). Alle weiteren fertigen
-Missionen liegen ungemergt als **linearer Stack**, dessen Spitze
-`feat/workout-improvements` ist. `feat/body-tracking` zeigt auf denselben
-Commit wie `feat/workout-improvements` (vor Mission 9) und enthält damit den
-gesamten Stack M6→M8 + Exercise-DB-Upgrade.
+Der Branch-Catch-Up und die Merges von `feat/body-tracking` und `feat/workout-improvements` (Mission 9) wurden erfolgreich durchgeführt. `main` ist vollständig auf dem neuesten Stand.
 
-### Catch-up (zuerst, durch Menschen)
-1. **PR `feat/body-tracking` → `main`** erstellen und mergen. Holt M6/M7/M8 +
-   Exercise-DB in einem Rutsch auf `main`. Stört Gemini auf
-   `feat/workout-improvements` nicht (anderer Branch).
-2. `main` lokal aktualisieren: `git checkout main && git pull`.
-3. Danach: Mission 9 (`feat/workout-improvements`) als PR auf den neuen `main`.
+### Bereinigte Branches
+Alle alten Feature-Branches (`feat/stabilization`, `feat/achievements`, `feat/body-tracking`, `feat/workout-improvements`) wurden nach dem Merge gelöscht.
 
-### Branch-Klassifikation
-| Branch | Status | Aktion |
-| --- | --- | --- |
-| `feat/exercise-library` | 100 % in `main` | löschen |
-| `feat/history-progress` | 100 % in `main` | löschen |
-| `feat/program-builder` | 100 % in `main` | löschen |
-| `feat/workout-logger` | 100 % in `main` | löschen |
-| `feat/ux-fixes` | 100 % in `main` (= history-progress) | löschen |
-| `feat/stabilization` (M6) | Ahne von workout-improvements | nach Catch-up löschen |
-| `feat/exercise-database-upgrade` | Ahne von workout-improvements | nach Catch-up löschen |
-| `feat/achievements` (M7) | Ahne von workout-improvements | nach Catch-up löschen |
-| `feat/body-tracking` (M8) | = Catch-up-PR | nach Merge löschen |
-| `feat/workout-improvements` (M9) | LIVE (Gemini) | behalten |
+### Aktiver Branch
+- `fix/domain-logic-hardening` (Mission H0 - fertiggestellt, bereit für Review)
 
-### Aufräum-Befehle (erst nach erfolgreichem Catch-up-Merge ausführen)
-```powershell
-# Lokale, vollständig gemergte Branches löschen:
-git branch -d feat/exercise-library feat/history-progress feat/program-builder feat/workout-logger feat/ux-fixes
-# Nach Catch-up-Merge zusätzlich (mit -d wenn dann gemergt, sonst -D bewusst):
-git branch -d feat/stabilization feat/exercise-database-upgrade feat/achievements feat/body-tracking
-# Remote-Pendants (nur wenn die PRs gemergt/geschlossen sind):
-git push origin --delete feat/exercise-database-upgrade feat/stabilization feat/achievements feat/body-tracking
-```
+### Aufräum-Befehle (erledigt)
 
 ### Regel ab jetzt
 Fertige Missionen **zeitnah** nach `main` mergen statt Branches aufeinander zu

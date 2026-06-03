@@ -145,6 +145,10 @@ describe('workoutStore', () => {
 
   it('should update workout notes and save them in the history store session', () => {
     useWorkoutStore.getState().startWorkout('Leg Day');
+    useWorkoutStore.getState().addExercise('ex-1');
+    const exId = useWorkoutStore.getState().exercises[0]!.id;
+    useWorkoutStore.getState().addSet(exId, { weight: 100, reps: 10, completed: true });
+
     useWorkoutStore.getState().updateWorkoutNotes('Felt really good today');
     expect(useWorkoutStore.getState().notes).toBe('Felt really good today');
 
@@ -152,6 +156,19 @@ describe('workoutStore', () => {
     const historySessions = useHistoryStore.getState().sessions;
     expect(historySessions.length).toBe(1);
     expect(historySessions[0]!.notes).toBe('Felt really good today');
+  });
+
+  it('should NOT save workout to history if there are no completed sets', () => {
+    useWorkoutStore.getState().startWorkout('Empty Workout');
+    useWorkoutStore.getState().addExercise('ex-1');
+    const exId = useWorkoutStore.getState().exercises[0]!.id;
+    useWorkoutStore.getState().addSet(exId, { weight: 100, reps: 10, completed: false }); // not completed
+
+    useWorkoutStore.getState().finishWorkout();
+
+    expect(useWorkoutStore.getState().status).toBe('idle');
+    const historySessions = useHistoryStore.getState().sessions;
+    expect(historySessions.length).toBe(0);
   });
 
   it('should calculate warmup sets', () => {

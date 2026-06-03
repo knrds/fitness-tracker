@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Switch, Modal } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useProfileStore } from '../../src/stores/profileStore';
@@ -19,6 +20,7 @@ export default function ExerciseDetailScreen() {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
  
   const exercise = exercises.find(e => e.id === id);
 
@@ -101,7 +103,7 @@ export default function ExerciseDetailScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {exercise.imageUrl ? (
-        <Pressable onPress={() => setIsPlaying(p => !p)} style={styles.imageContainer}>
+        <Pressable onPress={() => { setIsPlaying(true); setFullscreen(true); }} style={styles.imageContainer}>
           <Image
             source={{ uri: getDisplayedImageUri() }}
             style={styles.image}
@@ -117,10 +119,11 @@ export default function ExerciseDetailScreen() {
               <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
           )}
+          <View style={styles.expandBadge}>
+            <Ionicons name="expand" size={18} color="#F4F5F7" />
+          </View>
           <View style={styles.playOverlay}>
-            <Text style={styles.playOverlayText}>
-              {isPlaying ? '⏸ Click to Pause' : '▶ Click to Play Animation'}
-            </Text>
+            <Text style={styles.playOverlayText}>▶ Tap to enlarge &amp; play</Text>
           </View>
         </Pressable>
       ) : (
@@ -284,6 +287,20 @@ export default function ExerciseDetailScreen() {
           </Text>
         </Pressable>
       </View>
+
+      <Modal visible={fullscreen} animationType="fade" onRequestClose={() => setFullscreen(false)}>
+        <View style={styles.fullscreenContainer}>
+          <Pressable style={styles.fullscreenClose} hitSlop={12} onPress={() => setFullscreen(false)}>
+            <Ionicons name="close" size={30} color="#F4F5F7" />
+          </Pressable>
+          <Pressable style={styles.fullscreenImageWrap} onPress={() => setIsPlaying((p) => !p)}>
+            <Image source={{ uri: getDisplayedImageUri() }} style={styles.fullscreenImage} contentFit="contain" />
+          </Pressable>
+          <View style={styles.fullscreenHint}>
+            <Text style={styles.playOverlayText}>{isPlaying ? '⏸ Tap to pause' : '▶ Tap to play'}</Text>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -509,6 +526,17 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceGrotesk_700Bold',
     color: '#F4F5F7',
   },
+  expandBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(11, 11, 15, 0.75)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   playOverlay: {
     position: 'absolute',
     bottom: 12,
@@ -516,6 +544,41 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(11, 11, 15, 0.75)',
     paddingHorizontal: 12,
     paddingVertical: 6,
+    borderRadius: 20,
+  },
+  fullscreenContainer: {
+    flex: 1,
+    backgroundColor: '#0B0B0F',
+    justifyContent: 'center',
+  },
+  fullscreenClose: {
+    position: 'absolute',
+    top: 48,
+    right: 20,
+    zIndex: 2,
+    backgroundColor: 'rgba(26,28,35,0.9)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenImageWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenImage: {
+    width: '100%',
+    height: '80%',
+  },
+  fullscreenHint: {
+    position: 'absolute',
+    bottom: 48,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(26,28,35,0.9)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
   },
   playOverlayText: {

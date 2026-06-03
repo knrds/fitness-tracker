@@ -79,19 +79,24 @@ describe('achievementStore', () => {
 
     const state = useAchievementStore.getState();
 
-    // XP calculation: 
+    // XP calculation:
     // - Base: 50 XP
     // - Volume bonus: 1000 kg / 100 = 10 XP
     // - PR bonus: ex-bench is a new PR = 100 XP
-    // - Achievement first_workout reward = 100 XP
-    // - Achievement first_pr reward = 100 XP
-    // Total XP = 50 + 10 + 100 + 100 + 100 = 360 XP
-    expect(state.xp).toBe(360);
+    // One-time achievements: first_workout (100) + first_pr (100) = 200 XP
+    // Repeatable achievements earned this session:
+    //   - rep_workout_complete (+25), rep_session_pr (+50) = 75 XP
+    // Total XP = 50 + 10 + 100 + 200 + 75 = 435 XP
+    expect(state.xp).toBe(435);
     expect(state.level).toBe(1);
     expect(state.unlockedAchievements['first_workout']).toBeDefined();
     expect(state.unlockedAchievements['first_pr']).toBeDefined(); // First PR unlocked as well
     expect(state.newlyUnlocked).toContain('first_workout');
     expect(state.newlyUnlocked).toContain('first_pr');
+    // Repeatable achievements track a count and are not part of the celebration list.
+    expect(state.repeatCounts['rep_workout_complete']).toBe(1);
+    expect(state.repeatCounts['rep_session_pr']).toBe(1);
+    expect(state.newlyUnlocked).not.toContain('rep_workout_complete');
     expect(state.levelUpTo).toBeNull();
   });
 

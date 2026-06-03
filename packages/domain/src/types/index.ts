@@ -525,7 +525,14 @@ export interface ActiveWorkoutState {
 // Achievements & Gamification
 // ---------------------------------------------------------------------------
 
-export type AchievementCategory = 'workouts' | 'streaks' | 'pr' | 'volume' | 'exercises';
+export type AchievementCategory =
+  | 'workouts'
+  | 'streaks'
+  | 'pr'
+  | 'volume'
+  | 'exercises'
+  | 'muscles'
+  | 'session';
 
 export interface Achievement {
   id: string;
@@ -535,5 +542,11 @@ export interface Achievement {
   targetValue: number;
   xpReward: number;
   icon: string;
+  /**
+   * When true, the achievement can be earned repeatedly — once per workout that
+   * meets its condition (evaluated against per-session metrics). When false or
+   * omitted, it is a one-time milestone evaluated against cumulative metrics.
+   */
+  repeatable?: boolean;
 }
 

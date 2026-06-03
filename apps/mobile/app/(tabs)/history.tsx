@@ -212,16 +212,31 @@ function ProgressView() {
   );
 }
 
+const GOLD = '#FFB020';
+
+function AchievementBadge({ kind }: { kind: 'one_time' | 'repeatable' }) {
+  const theme = useTheme();
+  const color = kind === 'repeatable' ? GOLD : theme.colors.muted;
+  return (
+    <View style={[styles.kindBadge, { borderColor: color }]}>
+      <Ionicons name={kind === 'repeatable' ? 'repeat' : 'flag-outline'} size={10} color={color} />
+      <Text style={[styles.kindBadgeText, { color }]}>{kind === 'repeatable' ? 'REPEATABLE' : 'ONE-TIME'}</Text>
+    </View>
+  );
+}
+
 function AchievementsView() {
   const theme = useTheme();
-  const { xp, level, unlockedAchievements } = useAchievementStore();
+  const { xp, level, unlockedAchievements, repeatCounts } = useAchievementStore();
   const { getProgress } = useAchievementCheck();
 
   const currentLevelXp = xp % 500;
   const xpProgressPercent = Math.min(100, Math.floor((currentLevelXp / 500) * 100));
 
-  const unlockedList = ACHIEVEMENTS.filter(a => unlockedAchievements[a.id] !== undefined);
-  const lockedList = ACHIEVEMENTS.filter(a => unlockedAchievements[a.id] === undefined);
+  const oneTime = ACHIEVEMENTS.filter((a) => !a.repeatable);
+  const repeatables = ACHIEVEMENTS.filter((a) => a.repeatable);
+  const unlockedList = oneTime.filter((a) => unlockedAchievements[a.id] !== undefined);
+  const lockedList = oneTime.filter((a) => unlockedAchievements[a.id] === undefined);
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
@@ -237,9 +252,35 @@ function AchievementsView() {
         <Text style={[styles.xpSub, { color: theme.colors.muted, ...theme.typography.caption }]}>{500 - currentLevelXp} XP TO LEVEL {level + 1}</Text>
       </Card>
 
+      {/* Repeatable */}
+      <Text style={[styles.sectionTitle, { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 }]}>REPEATABLE</Text>
+      {repeatables.map((ach) => {
+        const count = repeatCounts[ach.id] || 0;
+        const earned = count > 0;
+        return (
+          <Card key={ach.id} style={[styles.achCard, earned ? { borderColor: GOLD, borderWidth: 1 } : { opacity: 0.6 }]} padding="md">
+            <View style={styles.achRow}>
+              <View style={[styles.achIconContainer, { backgroundColor: theme.colors.surface }]}>
+                <Ionicons name={ach.icon as React.ComponentProps<typeof Ionicons>['name']} size={24} color={earned ? GOLD : theme.colors.muted} />
+              </View>
+              <View style={styles.achInfo}>
+                <View style={styles.achNameRow}>
+                  <Text style={[styles.achName, { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>{ach.name}</Text>
+                  <AchievementBadge kind="repeatable" />
+                </View>
+                <Text style={[styles.achDesc, { color: theme.colors.muted, ...theme.typography.caption }]}>{ach.description}</Text>
+              </View>
+              {earned && (
+                <Text style={[styles.achCount, { color: GOLD }]}>×{count}</Text>
+              )}
+            </View>
+          </Card>
+        );
+      })}
+
       {unlockedList.length > 0 && (
         <>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 }]}>UNLOCKED ({unlockedList.length})</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text, ...theme.typography.heading, fontSize: 20, marginTop: 24 }]}>UNLOCKED ({unlockedList.length})</Text>
           {unlockedList.map(ach => (
             <Card key={ach.id} style={[styles.achCard, { borderColor: theme.colors.primary, borderWidth: 1 }]} padding="md">
               <View style={styles.achRow}>
@@ -247,7 +288,10 @@ function AchievementsView() {
                   <Ionicons name={ach.icon as React.ComponentProps<typeof Ionicons>['name']} size={24} color={theme.colors.primary} />
                 </View>
                 <View style={styles.achInfo}>
-                  <Text style={[styles.achName, { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>{ach.name}</Text>
+                  <View style={styles.achNameRow}>
+                    <Text style={[styles.achName, { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>{ach.name}</Text>
+                    <AchievementBadge kind="one_time" />
+                  </View>
                   <Text style={[styles.achDesc, { color: theme.colors.muted, ...theme.typography.caption }]}>{ach.description}</Text>
                 </View>
               </View>
@@ -268,7 +312,10 @@ function AchievementsView() {
                     <Ionicons name={ach.icon as React.ComponentProps<typeof Ionicons>['name']} size={24} color={theme.colors.muted} />
                   </View>
                   <View style={styles.achInfo}>
-                    <Text style={[styles.achName, { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>{ach.name}</Text>
+                    <View style={styles.achNameRow}>
+                      <Text style={[styles.achName, { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>{ach.name}</Text>
+                      <AchievementBadge kind="one_time" />
+                    </View>
                     <Text style={[styles.achDesc, { color: theme.colors.muted, ...theme.typography.caption }]}>{ach.description}</Text>
                     <View style={styles.achProgressRow}>
                       <View style={[styles.achProgressBarBg, { backgroundColor: theme.colors.surface }]}>
@@ -375,8 +422,35 @@ const styles = StyleSheet.create({
   achInfo: {
     flex: 1,
   },
+  achNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 4,
+  },
   achName: {
     marginBottom: 4,
+  },
+  achCount: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 18,
+    marginLeft: 8,
+    fontVariant: ['tabular-nums'],
+  },
+  kindBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    borderWidth: 1,
+    borderRadius: 9999,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  kindBadgeText: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 9,
+    letterSpacing: 0.5,
   },
   achDesc: {
     marginBottom: 6,

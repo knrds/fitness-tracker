@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { 
-  WorkoutSession, 
-  ACHIEVEMENTS, 
+import {
+  WorkoutSession,
+  ACHIEVEMENTS,
   MuscleGroup,
   calculateVolume,
-  detectPRs
+  detectPRs,
 } from '@fitness-tracker/domain';
 import { z } from 'zod';
 import { useHistoryStore } from './historyStore';
@@ -15,8 +15,9 @@ import { createHydratedStorage } from './storage';
 export interface AchievementState {
   xp: number;
   level: number;
-  unlockedAchievements: Record<string, string | Date>; // achievementId -> ISO date string or Date object
-  newlyUnlocked: string[]; // achievementIds unlocked in the last finishWorkout
+  unlockedAchievements: Record<string, string | Date>; // one-time achievementId -> unlock date
+  repeatCounts: Record<string, number>; // repeatable achievementId -> times earned
+  newlyUnlocked: string[]; // one-time achievementIds unlocked in the last finishWorkout
   levelUpTo: number | null; // level reached if leveled up in the last finishWorkout
   awardXpAndCheckAchievements: (session: WorkoutSession) => void;
   clearCelebrations: () => void;
@@ -27,6 +28,7 @@ const achievementPersistedSchema = z.object({
   xp: z.number().int().nonnegative(),
   level: z.number().int().positive(),
   unlockedAchievements: z.record(z.union([z.string(), z.instanceof(Date)])),
+  repeatCounts: z.record(z.number().int().nonnegative()),
   newlyUnlocked: z.array(z.string()),
   levelUpTo: z.number().int().positive().nullable(),
 });
@@ -37,6 +39,7 @@ const defaultPersistedState: AchievementPersistedState = {
   xp: 0,
   level: 1,
   unlockedAchievements: {},
+  repeatCounts: {},
   newlyUnlocked: [],
   levelUpTo: null,
 };
@@ -47,6 +50,7 @@ export const useAchievementStore = create<AchievementState>()(
       xp: 0,
       level: 1,
       unlockedAchievements: {},
+      repeatCounts: {},
       newlyUnlocked: [],
       levelUpTo: null,
 
@@ -54,102 +58,108 @@ export const useAchievementStore = create<AchievementState>()(
         const historyStore = useHistoryStore.getState();
         const exerciseStore = useExerciseStore.getState();
 
-        // 1. Calculate Volume Bonus (excluding warmups)
+        // --- Session-level metrics (for repeatable achievements) ---
         const sessionVolume = calculateVolume(session, { includeWarmups: false });
-        const volumeXpBonus = Math.floor(sessionVolume / 100);
-
-        // 2. Detect New PRs in this session (e1RM-based, excluding warmups)
         const newPRs = detectPRs(session, historyStore.sessions);
-        const prXpBonus = newPRs.length * 100;
+        const sessionPrCount = newPRs.length;
+        const sessionSetCount = session.exercises.reduce(
+          (sum, ex) => sum + ex.sets.filter((s) => s.completed && s.type !== 'warmup').length,
+          0
+        );
 
-        // 3. Compute Session XP
+        // --- Base session XP ---
+        const volumeXpBonus = Math.floor(sessionVolume / 100);
+        const prXpBonus = sessionPrCount * 100;
         const baseSessionXp = 50;
         const totalSessionXp = baseSessionXp + volumeXpBonus + prXpBonus;
 
         const currentXp = get().xp;
         const currentLevel = get().level;
         const unlocked = { ...get().unlockedAchievements };
+        const repeatCounts = { ...get().repeatCounts };
         const newlyUnlocked: string[] = [];
 
-        // Temporary new XP total to evaluate achievements
         let tempXp = currentXp + totalSessionXp;
 
-        // 4. Evaluate Achievements
+        // --- Cumulative metrics (for one-time achievements) ---
         const totalWorkouts = historyStore.sessions.length;
         const streak = historyStore.getStreak();
         const totalPrs = Object.keys(historyStore.getPRs()).length;
-        
+
         let totalVolume = 0;
-        historyStore.sessions.forEach(s => {
+        historyStore.sessions.forEach((s) => {
           totalVolume += calculateVolume(s, { includeWarmups: false });
         });
-        
-        // Unique exercises trained
-        const uniqueExercises = new Set(historyStore.sessions.flatMap(s => s.exercises.map(ex => ex.exerciseId)));
-        const uniqueExercisesCount = uniqueExercises.size;
 
-        // Muscle groups trained
+        const uniqueExercisesCount = new Set(
+          historyStore.sessions.flatMap((s) => s.exercises.map((ex) => ex.exerciseId))
+        ).size;
+
         const trainedMuscles = new Set<MuscleGroup>();
-        historyStore.sessions.forEach(s => {
-          s.exercises.forEach(ex => {
-            const def = exerciseStore.exercises.find(e => e.id === ex.exerciseId);
+        historyStore.sessions.forEach((s) => {
+          s.exercises.forEach((ex) => {
+            const def = exerciseStore.exercises.find((e) => e.id === ex.exerciseId);
             if (def) {
-              def.primaryMuscles.forEach(m => trainedMuscles.add(m));
+              def.primaryMuscles.forEach((m) => trainedMuscles.add(m));
             }
           });
         });
 
-        // Check each locked achievement
-        ACHIEVEMENTS.forEach(ach => {
-          if (unlocked[ach.id]) return; // Already unlocked
-
-          let isSatisfied = false;
-          switch (ach.id) {
-            case 'first_workout':
-            case 'workouts_5':
-            case 'workouts_10':
-            case 'workouts_25':
-            case 'workouts_50':
-            case 'workouts_100':
-            case 'workouts_250':
-              isSatisfied = totalWorkouts >= ach.targetValue;
-              break;
-            case 'streak_3':
-            case 'streak_7':
-            case 'streak_14':
-            case 'streak_30':
-              isSatisfied = streak >= ach.targetValue;
-              break;
-            case 'first_pr':
-            case 'prs_5':
-            case 'prs_10':
-            case 'prs_25':
-              isSatisfied = totalPrs >= ach.targetValue;
-              break;
-            case 'volume_10k':
-            case 'volume_50k':
-            case 'volume_100k':
-            case 'volume_500k':
-              isSatisfied = totalVolume >= ach.targetValue;
-              break;
-            case 'muscles_all':
-              isSatisfied = trainedMuscles.size >= ach.targetValue;
-              break;
-            case 'unique_exercises_10':
-            case 'unique_exercises_30':
-            case 'unique_exercises_50':
-              isSatisfied = uniqueExercisesCount >= ach.targetValue;
-              break;
+        const cumulativeMetric = (category: string): number => {
+          switch (category) {
+            case 'workouts':
+              return totalWorkouts;
+            case 'streaks':
+              return streak;
+            case 'pr':
+              return totalPrs;
+            case 'volume':
+              return totalVolume;
+            case 'exercises':
+              return uniqueExercisesCount;
+            case 'muscles':
+              return trainedMuscles.size;
+            default:
+              return 0;
           }
+        };
 
-          if (isSatisfied) {
-            unlocked[ach.id] = new Date().toISOString();
-            newlyUnlocked.push(ach.id);
-            tempXp += ach.xpReward;
+        const sessionMetric = (category: string): number => {
+          switch (category) {
+            case 'workouts':
+              return 1; // one workout was just completed
+            case 'volume':
+              return sessionVolume;
+            case 'pr':
+              return sessionPrCount;
+            case 'session':
+              return sessionSetCount;
+            default:
+              return 0;
+          }
+        };
+
+        // --- Evaluate achievements ---
+        ACHIEVEMENTS.forEach((ach) => {
+          if (ach.repeatable) {
+            // Repeatable: earned again every workout that meets the per-session
+            // condition. Awards XP + increments count, but does not spam the
+            // celebration modal.
+            if (sessionMetric(ach.category) >= ach.targetValue) {
+              repeatCounts[ach.id] = (repeatCounts[ach.id] || 0) + 1;
+              tempXp += ach.xpReward;
+            }
+          } else {
+            // One-time milestone.
+            if (unlocked[ach.id]) return;
+            if (cumulativeMetric(ach.category) >= ach.targetValue) {
+              unlocked[ach.id] = new Date().toISOString();
+              newlyUnlocked.push(ach.id);
+              tempXp += ach.xpReward;
+            }
           }
         });
 
-        // 5. Finalize XP & Level
         const newLevel = Math.floor(tempXp / 500) + 1;
         const levelUpTo = newLevel > currentLevel ? newLevel : null;
 
@@ -157,22 +167,31 @@ export const useAchievementStore = create<AchievementState>()(
           xp: tempXp,
           level: newLevel,
           unlockedAchievements: unlocked,
+          repeatCounts,
           newlyUnlocked,
           levelUpTo,
         });
       },
 
       clearCelebrations: () => set({ newlyUnlocked: [], levelUpTo: null }),
-      
-      resetAchievements: () => set({ xp: 0, level: 1, unlockedAchievements: {}, newlyUnlocked: [], levelUpTo: null }),
+
+      resetAchievements: () =>
+        set({ xp: 0, level: 1, unlockedAchievements: {}, repeatCounts: {}, newlyUnlocked: [], levelUpTo: null }),
     }),
     {
       name: 'achievement-storage',
       storage: createHydratedStorage('achievement-storage', achievementPersistedSchema, defaultPersistedState),
-      version: 1,
+      version: 2,
       migrate: (persistedState) => {
         const parsed = achievementPersistedSchema.safeParse(persistedState);
-        return parsed.success ? parsed.data : defaultPersistedState;
+        if (parsed.success) return parsed.data;
+        // v1 -> v2: add repeatCounts if missing, keep prior progress where valid.
+        const legacy = (persistedState ?? {}) as Partial<AchievementPersistedState>;
+        return {
+          ...defaultPersistedState,
+          ...legacy,
+          repeatCounts: legacy.repeatCounts ?? {},
+        };
       },
     }
   )

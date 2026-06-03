@@ -10,6 +10,7 @@ import {
 } from '@expo-google-fonts/space-grotesk';
 import { Manrope_500Medium } from '@expo-google-fonts/manrope';
 import * as SplashScreen from 'expo-splash-screen';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useTheme } from '@fitness-tracker/ui';
 
 import { AchievementCelebration } from '../src/components/workout/AchievementCelebration';
@@ -167,9 +168,11 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider>
-      <RootNavigator />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <RootNavigator />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
 

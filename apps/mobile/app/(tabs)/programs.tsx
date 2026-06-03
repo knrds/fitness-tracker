@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, Modal, TextInput, Alert, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Crypto from 'expo-crypto';
+import { Ionicons } from '@expo/vector-icons';
 
 import { Program, WorkoutTemplate } from '@fitness-tracker/domain';
 
@@ -13,6 +14,7 @@ export default function ProgramListScreen() {
   const { programs, templates, setActiveProgram, deleteProgram, createProgram } = useProgramStore();
 
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
+  const [menuProgramId, setMenuProgramId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [durationWeeks, setDurationWeeks] = useState('4');
@@ -184,49 +186,54 @@ export default function ProgramListScreen() {
     );
   };
 
+  const confirmDeactivate = () => {
+    if (Platform.OS === 'web') {
+      const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
+      if (confirmFn?.('Are you sure you want to deactivate this program?')) {
+        setActiveProgram(null);
+      }
+      return;
+    }
+    Alert.alert('Deactivate Program', 'Are you sure you want to deactivate this program?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Deactivate', style: 'destructive', onPress: () => setActiveProgram(null) },
+    ]);
+  };
+
+  const confirmDelete = (id: string, programName: string) => {
+    if (Platform.OS === 'web') {
+      const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
+      if (confirmFn?.(`Delete "${programName}"? This cannot be undone.`)) {
+        deleteProgram(id);
+      }
+      return;
+    }
+    Alert.alert('Delete Program', `Delete "${programName}"? This cannot be undone.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteProgram(id) },
+    ]);
+  };
+
+  const menuProgram = programs.find((p) => p.id === menuProgramId) || null;
+
   const renderItem = ({ item }: { item: Program }) => (
-    <View style={styles.card}>
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardTitle}>{item.name}</Text>
-        <Text style={styles.cardSubtitle}>{item.durationWeeks} Weeks</Text>
-      </View>
-      <View style={styles.cardActions}>
-        {item.isActive ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={styles.activeLabel}>Active</Text>
-            <Pressable style={styles.deactivateBtnInline} onPress={() => {
-              if (Platform.OS === 'web') {
-                const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-                if (confirmFn?.("Are you sure you want to deactivate this program?")) {
-                  setActiveProgram(null);
-                }
-                return;
-              }
-              Alert.alert(
-                "Deactivate Program",
-                "Are you sure you want to deactivate this program?",
-                [
-                  { text: "Cancel", style: "cancel" },
-                  { text: "Deactivate", style: "destructive", onPress: () => setActiveProgram(null) }
-                ]
-              );
-            }}>
-              <Text style={styles.deactivateBtnTextInline}>Deactivate</Text>
-            </Pressable>
+    <Pressable style={styles.card} onPress={() => router.push(`/programs/builder?id=${item.id}`)}>
+      <View style={styles.cardTopRow}>
+        <View style={styles.cardInfo}>
+          <Text style={styles.cardTitle}>{item.name}</Text>
+          <Text style={styles.cardSubtitle}>{item.durationWeeks} Weeks</Text>
+        </View>
+        {item.isActive && (
+          <View style={styles.activePill}>
+            <Ionicons name="checkmark-circle" size={12} color="#0B0B0F" />
+            <Text style={styles.activePillText}>ACTIVE</Text>
           </View>
-        ) : (
-          <Pressable style={styles.btn} onPress={() => setActiveProgram(item.id)}>
-            <Text style={styles.btnText}>Set Active</Text>
-          </Pressable>
         )}
-        <Pressable style={styles.editBtn} onPress={() => router.push(`/programs/builder?id=${item.id}`)}>
-          <Text style={styles.editBtnText}>Edit</Text>
-        </Pressable>
-        <Pressable style={styles.deleteBtn} onPress={() => deleteProgram(item.id)}>
-          <Text style={styles.deleteBtnText}>Delete</Text>
+        <Pressable style={styles.kebabBtn} hitSlop={10} onPress={() => setMenuProgramId(item.id)}>
+          <Ionicons name="ellipsis-vertical" size={20} color="#8A8D9F" />
         </Pressable>
       </View>
-    </View>
+    </Pressable>
   );
 
   return (
@@ -288,6 +295,34 @@ export default function ProgramListScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Program action menu */}
+      <Modal visible={menuProgram !== null} transparent animationType="fade" onRequestClose={() => setMenuProgramId(null)}>
+        <Pressable style={styles.menuOverlay} onPress={() => setMenuProgramId(null)}>
+          <View style={styles.menuSheet}>
+            <Text style={styles.menuTitle}>{menuProgram?.name}</Text>
+            {menuProgram?.isActive ? (
+              <Pressable style={styles.menuItem} onPress={() => { setMenuProgramId(null); confirmDeactivate(); }}>
+                <Ionicons name="pause-circle-outline" size={20} color="#F4F5F7" />
+                <Text style={styles.menuItemText}>Deactivate</Text>
+              </Pressable>
+            ) : (
+              <Pressable style={styles.menuItem} onPress={() => { if (menuProgram) setActiveProgram(menuProgram.id); setMenuProgramId(null); }}>
+                <Ionicons name="checkmark-circle-outline" size={20} color="#C6FF00" />
+                <Text style={[styles.menuItemText, { color: '#C6FF00' }]}>Set Active</Text>
+              </Pressable>
+            )}
+            <Pressable style={styles.menuItem} onPress={() => { const id = menuProgram?.id; setMenuProgramId(null); if (id) router.push(`/programs/builder?id=${id}`); }}>
+              <Ionicons name="create-outline" size={20} color="#F4F5F7" />
+              <Text style={styles.menuItemText}>Edit</Text>
+            </Pressable>
+            <Pressable style={styles.menuItem} onPress={() => { const p = menuProgram; setMenuProgramId(null); if (p) confirmDelete(p.id, p.name); }}>
+              <Ionicons name="trash-outline" size={20} color="#ef4444" />
+              <Text style={[styles.menuItemText, { color: '#ef4444' }]}>Delete</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -305,7 +340,52 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 18, fontFamily: 'SpaceGrotesk_700Bold', color: '#F4F5F7' },
   cardSubtitle: { fontSize: 14, fontFamily: 'Manrope_500Medium', color: '#8A8D9F', marginTop: 4 },
-  cardInfo: { marginBottom: 12 },
+  cardInfo: { flex: 1 },
+  cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  activePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#C6FF00',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 9999,
+  },
+  activePillText: { color: '#0B0B0F', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 11, letterSpacing: 0.5 },
+  kebabBtn: { padding: 4 },
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(11, 11, 15, 0.7)',
+    justifyContent: 'flex-end',
+  },
+  menuSheet: {
+    backgroundColor: '#1A1C23',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2A2B31',
+    paddingTop: 16,
+    paddingBottom: 40,
+    paddingHorizontal: 12,
+  },
+  menuTitle: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#8A8D9F',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  menuItemText: { color: '#F4F5F7', fontFamily: 'SpaceGrotesk_600SemiBold', fontSize: 16 },
   cardActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   btn: { backgroundColor: '#C6FF00', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   editBtn: { backgroundColor: '#2A2B31', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },

@@ -257,7 +257,7 @@ const SetRow = ({ set, index, isImperial, showRpe, showRir, exerciseName, onUpda
 
   return (
     <View style={styles.rowContainer}>
-      <View style={[styles.row, isDone && styles.rowDone]}>
+      <View style={[styles.row, isDone && { borderColor: theme.colors.primary, backgroundColor: 'rgba(198,255,0,0.07)' }]}>
         <Pressable onPress={cycleSetType} disabled={isDone} style={[styles.setCol, styles.centerAlign]}>
           {getSetTypeBadge()}
         </Pressable>
@@ -368,9 +368,11 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  rowDone: {
-    opacity: 0.7,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    borderRadius: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
   },
   cell: {
     fontSize: 16,

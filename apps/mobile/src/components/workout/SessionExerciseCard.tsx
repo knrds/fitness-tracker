@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, Alert, Platform } from 'react-native';
-import { SessionExercise, ExerciseSet, SetType } from '@fitness-tracker/domain';
+import { SessionExercise, ExerciseSet, SetType, estimateOneRepMax } from '@fitness-tracker/domain';
 import { useWorkoutStore } from '../../stores/workoutStore';
 import { useExerciseStore } from '../../stores/exerciseStore';
 import { useProfileStore } from '../../stores/profileStore';
@@ -239,7 +239,7 @@ const SetRow = ({ set, index, isImperial, showRpe, showRir, onUpdate, onComplete
   const weightVal = set.weight || 0;
   const repsVal = set.reps || 0;
   const displayWeight = isImperial ? weightVal * 2.20462 : weightVal;
-  const e1rm = (displayWeight > 0 && repsVal > 0) ? displayWeight * (1 + repsVal / 30) : 0;
+  const e1rm = estimateOneRepMax(displayWeight, repsVal, set.rpe, set.rir);
 
   return (
     <View style={styles.rowContainer}>

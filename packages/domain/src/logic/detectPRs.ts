@@ -21,7 +21,7 @@ export function detectPRs(session: WorkoutSession, history: WorkoutSession[]): P
     s.exercises.forEach((ex) => {
       ex.sets.forEach((set) => {
         if (set.completed && set.weight && set.reps && set.type !== 'warmup') {
-          const e1rm = estimateOneRepMax(set.weight, set.reps);
+          const e1rm = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir);
           if (!historicalMaxE1RM[ex.exerciseId] || e1rm > historicalMaxE1RM[ex.exerciseId]!) {
             historicalMaxE1RM[ex.exerciseId] = e1rm;
           }
@@ -36,7 +36,7 @@ export function detectPRs(session: WorkoutSession, history: WorkoutSession[]): P
 
     for (const set of ex.sets) {
       if (set.completed && set.weight && set.reps && set.type !== 'warmup') {
-        const e1rm = estimateOneRepMax(set.weight, set.reps);
+        const e1rm = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir);
         if (!maxSessionSet || e1rm > maxSessionSet.e1rm) {
           maxSessionSet = { weight: set.weight, reps: set.reps, e1rm };
         }

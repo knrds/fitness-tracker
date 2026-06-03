@@ -53,6 +53,17 @@ describe('estimateOneRepMax', () => {
     expect(estimateOneRepMax(100, 0)).toBe(0);
     expect(estimateOneRepMax(100, 10)).toBe(100 * (1 + 10 / 30));
   });
+
+  it('takes RPE and RIR into account', () => {
+    // 10 reps at RPE 8 -> 10 + 2 = 12 effective reps
+    expect(estimateOneRepMax(100, 10, 8)).toBe(100 * (1 + 12 / 30));
+    
+    // 10 reps at RIR 3 -> 10 + 3 = 13 effective reps
+    expect(estimateOneRepMax(100, 10, undefined, 3)).toBe(100 * (1 + 13 / 30));
+    
+    // When both are provided, RIR is preferred
+    expect(estimateOneRepMax(100, 10, 8, 3)).toBe(100 * (1 + 13 / 30));
+  });
 });
 
 describe('calculateVolume', () => {

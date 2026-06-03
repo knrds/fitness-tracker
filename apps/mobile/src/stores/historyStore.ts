@@ -63,7 +63,7 @@ export const useHistoryStore = create<HistoryStore>()(
             ex.sets.forEach(set => {
               // Exclude warmup sets and verify weight and reps are set
               if (set.completed && set.weight && set.reps && set.type !== 'warmup') {
-                const e1rm = estimateOneRepMax(set.weight, set.reps);
+                const e1rm = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir);
                 if (!prs[ex.exerciseId] || e1rm > prs[ex.exerciseId]!) {
                   prs[ex.exerciseId] = e1rm;
                 }

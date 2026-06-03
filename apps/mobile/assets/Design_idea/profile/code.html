@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Profile - Volt Performance Fitness</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "primary": "#c1f20d",
+          "background-light": "#f8f8f5",
+          "background-dark": "#0B0B0F",
+          "surface-dark": "#1A1C23",
+          "muted": "#2A2B31",
+          "accent": "#FF3366",
+        },
+        fontFamily: {
+          "display": ["Space Grotesk", "sans-serif"],
+          "body": ["Manrope", "sans-serif"]
+        },
+        borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+      },
+    },
+  }
+</script>
+<style>
+  body {
+    background-color: theme('colors.background-dark');
+    color: #F4F5F7;
+    font-family: theme('fontFamily.body');
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, .font-display {
+    font-family: theme('fontFamily.display');
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-dark min-h-screen flex flex-col">
+<!-- Top App Bar (Custom minimal header as per Back-to-Main Exception or general Profile view) -->
+<header class="sticky top-0 z-50 bg-background-dark/95 backdrop-blur-sm border-b border-muted">
+<div class="flex items-center justify-between p-4 pb-3">
+<h1 class="text-white text-xl font-bold font-display uppercase tracking-wider flex-1 text-center">PROFILE</h1>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto pb-24">
+<!-- Profile Header Component -->
+<section class="flex flex-col items-center pt-8 pb-6 px-4 border-b border-muted">
+<div class="relative mb-4 group cursor-pointer">
+<div class="w-24 h-24 rounded-full bg-surface-dark border-2 border-primary flex items-center justify-center overflow-hidden bg-cover bg-center" data-alt="A striking portrait of a determined athlete in a dimly lit, high-tech gym environment. Soft, dramatic rim lighting accentuates their focus. The scene utilizes deep blacks with subtle electric lime accents, evoking a modern, data-driven fitness aesthetic." style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCubrzgKUGjb0Lb3JHGhWXOw32Mj8nEMZcalVxj-NW9N_2Z1KFbX80eG5hbS1TKM4zpEFafY6wfQybbobAJNWNNOYIv90spZXkBtG3KXbMi56STxvRp9WNL_T__4tqnaL2Evjkcfi_JaxRflaakgehbitx_2kQv7aIOyZboakgUpgVpQ0CXegb8dRjpFTEGoJFsBCHxcUALKXR88qwQPJ3cg4TIWdcVD1m8ujZbbITTdP4KBVhtu9HPO04H3XOZvX9yXqHKnOUMsck");'>
+<!-- Placeholder for actual image -->
+</div>
+<div class="absolute bottom-0 right-0 bg-surface-dark border border-muted rounded-full p-1.5 text-white shadow-lg">
+<span class="material-symbols-outlined text-[16px]" data-icon="edit">edit</span>
+</div>
+</div>
+<h2 class="text-2xl font-bold font-display uppercase tracking-wide text-white mb-1">ALEX MERCER</h2>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="military_tech" data-weight="fill" style="font-variation-settings: 'FILL' 1;">military_tech</span>
+<p class="text-primary font-body font-semibold tracking-wide text-sm uppercase">Level 12 - Elite</p>
+</div>
+</section>
+<!-- Biometrics Grid -->
+<section class="p-6">
+<div class="flex justify-between items-end mb-4">
+<h3 class="font-display font-bold text-sm uppercase tracking-widest text-gray-400">BIOMETRICS</h3>
+<button class="text-primary text-xs font-display font-semibold uppercase tracking-wider hover:opacity-80 transition-opacity">UPDATE</button>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<!-- Weight Card -->
+<div class="bg-surface-dark border border-muted rounded-lg p-4 flex flex-col justify-between active:scale-[0.98] transition-transform cursor-pointer">
+<div class="flex items-center gap-2 mb-2 text-gray-400">
+<span class="material-symbols-outlined text-[16px]" data-icon="scale">scale</span>
+<span class="font-body text-xs font-semibold uppercase tracking-wider">Weight</span>
+</div>
+<div class="flex items-baseline gap-1">
+<span class="font-display font-bold text-2xl text-white tabular-nums">185</span>
+<span class="font-body text-sm text-gray-500">lbs</span>
+</div>
+</div>
+<!-- Body Fat Card -->
+<div class="bg-surface-dark border border-muted rounded-lg p-4 flex flex-col justify-between active:scale-[0.98] transition-transform cursor-pointer">
+<div class="flex items-center gap-2 mb-2 text-gray-400">
+<span class="material-symbols-outlined text-[16px]" data-icon="water_drop">water_drop</span>
+<span class="font-body text-xs font-semibold uppercase tracking-wider">Body Fat</span>
+</div>
+<div class="flex items-baseline gap-1">
+<span class="font-display font-bold text-2xl text-white tabular-nums">12</span>
+<span class="font-body text-sm text-gray-500">%</span>
+</div>
+</div>
+<!-- Height Card -->
+<div class="bg-surface-dark border border-muted rounded-lg p-4 flex flex-col justify-between active:scale-[0.98] transition-transform cursor-pointer col-span-2">
+<div class="flex items-center justify-between w-full">
+<div class="flex items-center gap-2 text-gray-400">
+<span class="material-symbols-outlined text-[16px]" data-icon="height">height</span>
+<span class="font-body text-xs font-semibold uppercase tracking-wider">Height</span>
+</div>
+<div class="flex items-baseline gap-1">
+<span class="font-display font-bold text-xl text-white tabular-nums">6'0"</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Achievements Carousel -->
+<section class="py-6 border-t border-muted">
+<div class="px-6 flex justify-between items-end mb-4">
+<h3 class="font-display font-bold text-sm uppercase tracking-widest text-gray-400">ACHIEVEMENTS</h3>
+<span class="font-display text-xs text-gray-500 tracking-wider">3/12 UNLOCKED</span>
+</div>
+<div class="flex overflow-x-auto px-6 pb-4 gap-4 snap-x no-scrollbar">
+<!-- Unlocked Badge 1 -->
+<div class="snap-start shrink-0 w-28 bg-surface-dark border border-primary rounded-lg p-4 flex flex-col items-center justify-center gap-3 relative overflow-hidden group cursor-pointer hover:border-primary/80 transition-colors">
+<div class="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="fitness_center" data-weight="fill" style="font-variation-settings: 'FILL' 1;">fitness_center</span>
+</div>
+<span class="font-display text-xs font-semibold text-center text-white leading-tight">1000LB CLUB</span>
+</div>
+<!-- Unlocked Badge 2 -->
+<div class="snap-start shrink-0 w-28 bg-surface-dark border border-primary rounded-lg p-4 flex flex-col items-center justify-center gap-3 relative overflow-hidden group cursor-pointer hover:border-primary/80 transition-colors">
+<div class="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="local_fire_department" data-weight="fill" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+</div>
+<span class="font-display text-xs font-semibold text-center text-white leading-tight">30-DAY STREAK</span>
+</div>
+<!-- Locked Badge 1 -->
+<div class="snap-start shrink-0 w-28 bg-background-dark border border-muted rounded-lg p-4 flex flex-col items-center justify-center gap-3 opacity-50 cursor-not-allowed">
+<div class="w-12 h-12 rounded-full bg-surface-dark flex items-center justify-center">
+<span class="material-symbols-outlined text-gray-500 text-3xl" data-icon="lock">lock</span>
+</div>
+<span class="font-display text-xs font-semibold text-center text-gray-500 leading-tight">IRON MASTER</span>
+</div>
+<!-- Locked Badge 2 -->
+<div class="snap-start shrink-0 w-28 bg-background-dark border border-muted rounded-lg p-4 flex flex-col items-center justify-center gap-3 opacity-50 cursor-not-allowed">
+<div class="w-12 h-12 rounded-full bg-surface-dark flex items-center justify-center">
+<span class="material-symbols-outlined text-gray-500 text-3xl" data-icon="lock">lock</span>
+</div>
+<span class="font-display text-xs font-semibold text-center text-gray-500 leading-tight">SQUAT GOD</span>
+</div>
+</div>
+</section>
+<!-- Settings List -->
+<section class="p-6 border-t border-muted">
+<h3 class="font-display font-bold text-sm uppercase tracking-widest text-gray-400 mb-4">SETTINGS</h3>
+<div class="flex flex-col gap-2">
+<!-- Standard Link Item -->
+<button class="w-full bg-surface-dark border border-muted rounded-lg p-4 flex items-center justify-between active:bg-muted/50 transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-gray-400" data-icon="person">person</span>
+<span class="font-body font-semibold text-white">Account Details</span>
+</div>
+<span class="material-symbols-outlined text-gray-500" data-icon="chevron_right">chevron_right</span>
+</button>
+<!-- Standard Link Item -->
+<button class="w-full bg-surface-dark border border-muted rounded-lg p-4 flex items-center justify-between active:bg-muted/50 transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-gray-400" data-icon="tune">tune</span>
+<span class="font-body font-semibold text-white">Workout Preferences</span>
+</div>
+<span class="material-symbols-outlined text-gray-500" data-icon="chevron_right">chevron_right</span>
+</button>
+<!-- Toggle Item -->
+<div class="w-full bg-surface-dark border border-muted rounded-lg p-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-gray-400" data-icon="favorite">favorite</span>
+<div class="flex flex-col items-start">
+<span class="font-body font-semibold text-white">Apple Health Sync</span>
+<span class="font-body text-xs text-gray-500 mt-0.5">Sync workouts &amp; biometrics</span>
+</div>
+</div>
+<!-- Custom Toggle Switch -->
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<!-- Destructive Action -->
+<button class="w-full mt-4 bg-transparent border border-muted rounded-lg p-4 flex items-center justify-center gap-2 active:bg-muted/30 transition-colors">
+<span class="material-symbols-outlined text-accent" data-icon="logout">logout</span>
+<span class="font-display font-bold uppercase tracking-wider text-accent">LOG OUT</span>
+</button>
+</div>
+</section>
+</main>
+<!-- Shared BottomNav (Immutable, literal transcription, active state forced by generic inclusion rules but stylized slightly to match theme if possible without breaking structure) -->
+<div class="fixed bottom-0 left-0 right-0 z-50">
+<div class="relative flex h-auto w-full flex-col bg-[#161811] dark group/design-root overflow-x-hidden" style='font-family: "Space Grotesk", "Noto Sans", sans-serif;'>
+<div class="flex gap-2 border-t border-[#353928] bg-[#25271b] px-4 pb-3 pt-2">
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 text-[#b3ba9c]" href="#">
+<div class="text-[#b3ba9c] flex h-8 items-center justify-center" data-icon="House" data-size="24px" data-weight="regular">
+<svg fill="currentColor" height="24px" viewbox="0 0 256 256" width="24px" xmlns="http://www.w3.org/2000/svg">
+<path d="M218.83,103.77l-80-75.48a1.14,1.14,0,0,1-.11-.11,16,16,0,0,0-21.53,0l-.11.11L37.17,103.77A16,16,0,0,0,32,115.55V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V160h32v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V115.55A16,16,0,0,0,218.83,103.77ZM208,208H160V160a16,16,0,0,0-16-16H112a16,16,0,0,0-16,16v48H48V115.55l.11-.1L128,40l79.9,75.43.11.1Z"></path>
+</svg>
+</div>
+</a>
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 text-[#b3ba9c]" href="#">
+<div class="text-[#b3ba9c] flex h-8 items-center justify-center" data-icon="Play" data-size="24px" data-weight="regular">
+<svg fill="currentColor" height="24px" viewbox="0 0 256 256" width="24px" xmlns="http://www.w3.org/2000/svg">
+<path d="M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,39.87V216.13A15.94,15.94,0,0,0,80,232a16.07,16.07,0,0,0,8.36-2.35L232.4,141.51a15.81,15.81,0,0,0,0-27ZM80,215.94V40l143.83,88Z"></path>
+</svg>
+</div>
+</a>
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 text-[#b3ba9c]" href="#">
+<div class="text-[#b3ba9c] flex h-8 items-center justify-center" data-icon="ChartLineUp" data-size="24px" data-weight="regular">
+<svg fill="currentColor" height="24px" viewbox="0 0 256 256" width="24px" xmlns="http://www.w3.org/2000/svg">
+<path d="M232,208a8,8,0,0,1-8,8H32a8,8,0,0,1-8-8V48a8,8,0,0,1,16,0V156.69l50.34-50.35a8,8,0,0,1,11.32,0L128,132.69,180.69,80H160a8,8,0,0,1,0-16h40a8,8,0,0,1,8,8v40a8,8,0,0,1-16,0V91.31l-58.34,58.35a8,8,0,0,1-11.32,0L96,123.31l-56,56V200H224A8,8,0,0,1,232,208Z"></path>
+</svg>
+</div>
+</a>
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 rounded-full text-[#c1f20d]" href="#">
+<div class="text-[#c1f20d] flex h-8 items-center justify-center" data-icon="User" data-size="24px" data-weight="fill">
+<svg fill="currentColor" height="24px" viewbox="0 0 256 256" width="24px" xmlns="http://www.w3.org/2000/svg">
+<path d="M230.93,220a8,8,0,0,1-6.93,4H32a8,8,0,0,1-6.92-12c15.23-26.33,38.7-45.21,66.09-54.16a72,72,0,1,1,73.66,0c27.39,8.95,50.86,27.83,66.09,54.16A8,8,0,0,1,230.93,220Z"></path>
+</svg>
+</div>
+</a>
+</div>
+</div>
+</div>
+<style>
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+      display: none;
+  }
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+  }
+</style>
+<script>
+  // Simple interaction script
+  document.querySelectorAll('.no-scrollbar > div').forEach(badge => {
+    badge.addEventListener('click', function() {
+      if(!this.classList.contains('cursor-not-allowed')) {
+        // Mock interaction for unlocked badges
+        this.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          this.style.transform = 'scale(1)';
+        }, 150);
+      }
+    });
+  });
+</script>
+</body></html>

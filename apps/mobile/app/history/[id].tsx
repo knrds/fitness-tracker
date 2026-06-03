@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert, Platform, Share } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useHistoryStore } from '../../src/stores/historyStore';
+import { useTheme } from '@fitness-tracker/ui';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useProgramStore } from '../../src/stores/programStore';
@@ -13,6 +14,7 @@ import * as Crypto from 'expo-crypto';
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const theme = useTheme();
   const { sessions } = useHistoryStore();
   const { exercises } = useExerciseStore();
   const { status: activeWorkoutStatus, startWorkoutFromSession } = useWorkoutStore();
@@ -213,21 +215,21 @@ export default function WorkoutDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  outerContainer: { flex: 1, backgroundColor: '#f8fafc' },
+  outerContainer: { flex: 1, backgroundColor: '#0B0B0F' },
   container: { flex: 1 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0B0B0F' },
   content: { padding: 16, paddingBottom: 40 },
   header: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#1A1C23',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#2A2B31',
   },
-  title: { fontSize: 22, fontWeight: '800', color: '#0f172a', marginBottom: 4 },
-  date: { fontSize: 14, color: '#64748b', marginBottom: 8 },
-  duration: { fontSize: 16, fontWeight: '500', color: '#334155' },
+  title: { fontSize: 22, fontFamily: 'SpaceGrotesk_700Bold', color: '#F4F5F7', marginBottom: 4, textTransform: 'uppercase' },
+  date: { fontSize: 14, fontFamily: 'Manrope_500Medium', color: '#8A8D9F', marginBottom: 8 },
+  duration: { fontSize: 16, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#F4F5F7' },
   actionRow: {
     flexDirection: 'row',
     gap: 12,
@@ -235,50 +237,50 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     flex: 1,
-    backgroundColor: '#3b82f6',
-    paddingVertical: 10,
-    borderRadius: 8,
+    backgroundColor: '#C6FF00',
+    paddingVertical: 12,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   actionBtnText: {
-    color: '#ffffff',
-    fontWeight: '600',
+    color: '#0B0B0F',
+    fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 14,
   },
   saveBtn: {
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#2A2B31',
   },
   saveBtnText: {
-    color: '#0f172a',
-    fontWeight: '600',
+    color: '#F4F5F7',
+    fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 14,
   },
   shareBtn: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: '#2A2B31',
   },
   shareBtnText: {
-    color: '#475569',
-    fontWeight: '600',
+    color: '#F4F5F7',
+    fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 14,
   },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 12 },
+  sectionTitle: { fontSize: 18, fontFamily: 'SpaceGrotesk_700Bold', color: '#C6FF00', marginBottom: 12, textTransform: 'uppercase' },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: '#1A1C23',
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#2A2B31',
   },
-  exName: { fontSize: 16, fontWeight: '700', color: '#1e293b', marginBottom: 4 },
-  volumeText: { fontSize: 14, color: '#10b981', fontWeight: '600', marginBottom: 12 },
+  exName: { fontSize: 16, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#F4F5F7', marginBottom: 4 },
+  volumeText: { fontSize: 14, color: '#C6FF00', fontFamily: 'SpaceGrotesk_700Bold', marginBottom: 12 },
   tableHeader: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: '#2A2B31',
     paddingBottom: 8,
     marginBottom: 8,
   },
@@ -287,8 +289,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   incompleteRow: { opacity: 0.4 },
-  colSet: { flex: 1, fontWeight: '600', color: '#475569' },
-  colWeight: { flex: 1, textAlign: 'center', color: '#334155' },
-  colReps: { flex: 1, textAlign: 'center', color: '#334155' },
-  colRpe: { flex: 1, textAlign: 'center', color: '#334155' },
+  colSet: { flex: 1, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#8A8D9F' },
+  colWeight: { flex: 1, textAlign: 'center', fontFamily: 'Manrope_500Medium', color: '#F4F5F7' },
+  colReps: { flex: 1, textAlign: 'center', fontFamily: 'Manrope_500Medium', color: '#F4F5F7' },
+  colRpe: { flex: 1, textAlign: 'center', fontFamily: 'Manrope_500Medium', color: '#F4F5F7' },
 });

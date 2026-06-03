@@ -1,11 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, Pressable, Alert, Platform } from 'react-native';
+import { useTheme } from '@fitness-tracker/ui';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { WorkoutTemplate } from '@fitness-tracker/domain';
 
 export default function ProgramBuilderScreen() {
+  const theme = useTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { programs, updateProgram, templates } = useProgramStore();
@@ -138,53 +140,56 @@ export default function ProgramBuilderScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: '#0B0B0F' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0B0B0F' },
   content: { padding: 16, paddingBottom: 40 },
-  label: { fontSize: 14, fontWeight: '600', color: '#475569', marginBottom: 8 },
+  label: { fontSize: 14, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#8A8D9F', marginBottom: 8, textTransform: 'uppercase' },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: '#0B0B0F',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
+    borderColor: '#2A2B31',
+    borderRadius: 12,
     padding: 12,
     fontSize: 16,
-    color: '#0f172a',
+    fontFamily: 'Manrope_500Medium',
+    color: '#F4F5F7',
     marginBottom: 16,
   },
   textArea: { minHeight: 80, textAlignVertical: 'top' },
-  sectionTitle: { fontSize: 20, fontWeight: '700', color: '#0f172a', marginTop: 16, marginBottom: 16 },
+  sectionTitle: { fontSize: 20, fontFamily: 'SpaceGrotesk_700Bold', color: '#C6FF00', marginTop: 16, marginBottom: 16, textTransform: 'uppercase' },
   dayContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: '#1A1C23',
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#2A2B31',
   },
-  dayName: { fontSize: 16, fontWeight: '700', color: '#334155', marginBottom: 8 },
+  dayName: { fontSize: 16, fontFamily: 'SpaceGrotesk_700Bold', color: '#F4F5F7', marginBottom: 8, textTransform: 'uppercase' },
   workoutRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#0B0B0F',
     padding: 12,
-    borderRadius: 6,
+    borderRadius: 8,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#2A2B31',
   },
-  workoutName: { fontSize: 16, fontWeight: '500', color: '#0f172a' },
+  workoutName: { fontSize: 16, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#F4F5F7' },
   workoutActions: { flexDirection: 'row', gap: 12 },
-  editText: { color: '#3b82f6', fontWeight: '600' },
-  removeText: { color: '#ef4444', fontWeight: '600' },
-  startText: { color: '#10b981', fontWeight: '600' },
+  editText: { color: '#C6FF00', fontFamily: 'SpaceGrotesk_700Bold' },
+  removeText: { color: '#ef4444', fontFamily: 'SpaceGrotesk_700Bold' },
+  startText: { color: '#C6FF00', fontFamily: 'SpaceGrotesk_700Bold' },
   addWorkoutBtn: {
     padding: 12,
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: '#2A2B31',
     borderStyle: 'dashed',
     marginTop: 4,
   },
-  addWorkoutText: { color: '#64748b', fontWeight: '600' },
+  addWorkoutText: { color: '#8A8D9F', fontFamily: 'SpaceGrotesk_700Bold' },
 });

@@ -5,11 +5,14 @@ import { StatusBar } from 'expo-status-bar';
 import { AchievementCelebration } from '../src/components/workout/AchievementCelebration';
 import { useWorkoutStore } from '../src/stores/workoutStore';
 
+import { useTheme } from '@fitness-tracker/ui';
+
 function StartupWorkoutChecker() {
   const router = useRouter();
   const { status, resetWorkout, resumeWorkout, startedAt } = useWorkoutStore();
   const [hasChecked, setHasChecked] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const theme = useTheme();
 
   useEffect(() => {
     if ((status === 'active' || status === 'paused') && !hasChecked) {
@@ -60,15 +63,31 @@ function StartupWorkoutChecker() {
       animationType="fade"
       onRequestClose={() => {}}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalCard}>
-          <Text style={styles.modalTitle}>Unfinished Workout</Text>
-          <Text style={styles.modalMessage}>
+      <View style={[styles.modalOverlay, { backgroundColor: 'rgba(11, 11, 15, 0.8)' }]}>
+        <View
+          style={[
+            styles.modalCard,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+              borderWidth: 1,
+              borderRadius: theme.radius.lg,
+            },
+          ]}
+        >
+          <Text style={[styles.modalTitle, { color: theme.colors.text, ...theme.typography.heading }]}>
+            Unfinished Workout
+          </Text>
+          <Text style={[styles.modalMessage, { color: theme.colors.muted, ...theme.typography.body }]}>
             You have an active workout session in progress. Do you want to resume it or start a new one?
           </Text>
           <View style={styles.modalActions}>
             <Pressable
-              style={[styles.modalBtn, styles.resumeBtn]}
+              style={[
+                styles.modalBtn,
+                styles.resumeBtn,
+                { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md },
+              ]}
               onPress={() => {
                 if (status === 'paused') {
                   resumeWorkout();
@@ -77,16 +96,39 @@ function StartupWorkoutChecker() {
                 router.push('/workout/session');
               }}
             >
-              <Text style={styles.resumeBtnText}>Resume Workout</Text>
+              <Text
+                style={[
+                  styles.resumeBtnText,
+                  { color: theme.colors.background, ...theme.typography.button },
+                ]}
+              >
+                Resume Workout
+              </Text>
             </Pressable>
             <Pressable
-              style={[styles.modalBtn, styles.discardBtn]}
+              style={[
+                styles.modalBtn,
+                styles.discardBtn,
+                {
+                  backgroundColor: 'transparent',
+                  borderColor: theme.colors.border,
+                  borderWidth: 1,
+                  borderRadius: theme.radius.md,
+                },
+              ]}
               onPress={() => {
                 resetWorkout();
                 setModalVisible(false);
               }}
             >
-              <Text style={styles.discardBtnText}>Discard & Start New</Text>
+              <Text
+                style={[
+                  styles.discardBtnText,
+                  { color: theme.colors.accent, ...theme.typography.button },
+                ]}
+              >
+                Discard & Start New
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -95,16 +137,40 @@ function StartupWorkoutChecker() {
   );
 }
 
+import { useFonts, SpaceGrotesk_400Regular, SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
+import { Manrope_500Medium } from '@expo-google-fonts/manrope';
+import { ThemeProvider } from '@fitness-tracker/ui';
+import * as SplashScreen from 'expo-splash-screen';
+
+SplashScreen.preventAutoHideAsync();
+
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    SpaceGrotesk_400Regular,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
+    Manrope_500Medium,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
   return (
-    <>
+    <ThemeProvider>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
       <AchievementCelebration />
       <StartupWorkoutChecker />
-    </>
+    </ThemeProvider>
   );
 }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, ScrollView, Dimensions } from 'react-native';
 
 import { useRouter } from 'expo-router';
@@ -12,32 +12,35 @@ import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { useAchievementStore } from '../../src/stores/achievementStore';
 import { useAchievementCheck } from '../../src/hooks/useAchievementCheck';
 import { useProfileStore } from '../../src/stores/profileStore';
-
+import { useTheme, Card, Badge, EmptyState } from '@fitness-tracker/ui';
+import Animated, { useAnimatedStyle, withTiming, useSharedValue } from 'react-native-reanimated';
 
 export default function HistoryScreen() {
   const [activeTab, setActiveTab] = useState<'history' | 'progress' | 'achievements'>('history');
+  const theme = useTheme();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={styles.header}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text, ...theme.typography.heading }]}>
+          ACTIVITY
+        </Text>
+      </View>
       <View style={styles.toggleContainer}>
-        <Pressable 
-          style={[styles.toggleBtn, activeTab === 'history' && styles.toggleBtnActive]}
-          onPress={() => setActiveTab('history')}
-        >
-          <Text style={[styles.toggleText, activeTab === 'history' && styles.toggleTextActive]}>History</Text>
-        </Pressable>
-        <Pressable 
-          style={[styles.toggleBtn, activeTab === 'progress' && styles.toggleBtnActive]}
-          onPress={() => setActiveTab('progress')}
-        >
-          <Text style={[styles.toggleText, activeTab === 'progress' && styles.toggleTextActive]}>Progress</Text>
-        </Pressable>
-        <Pressable 
-          style={[styles.toggleBtn, activeTab === 'achievements' && styles.toggleBtnActive]}
-          onPress={() => setActiveTab('achievements')}
-        >
-          <Text style={[styles.toggleText, activeTab === 'achievements' && styles.toggleTextActive]}>Achievements</Text>
-        </Pressable>
+        {(['history', 'progress', 'achievements'] as const).map(tab => (
+          <Pressable 
+            key={tab}
+            style={[styles.toggleBtn, activeTab === tab && { borderBottomColor: theme.colors.primary, borderBottomWidth: 2 }]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[
+              styles.toggleText, 
+              { color: activeTab === tab ? theme.colors.primary : theme.colors.muted, ...theme.typography.caption }
+            ]}>
+              {tab.toUpperCase()}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
       {activeTab === 'history' ? (
@@ -53,6 +56,7 @@ export default function HistoryScreen() {
 
 function HistoryView() {
   const router = useRouter();
+  const theme = useTheme();
   useHistoryStore((state) => state.sessions);
   const { getSessionsByDateDesc } = useHistoryStore();
   const sessions = getSessionsByDateDesc();
@@ -60,7 +64,6 @@ function HistoryView() {
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
       weekday: 'short', month: 'short', day: 'numeric',
-      hour: 'numeric', minute: '2-digit'
     }).format(new Date(date));
   };
 
@@ -74,18 +77,33 @@ function HistoryView() {
 
   const renderItem = ({ item }: { item: WorkoutSession }) => {
     const totalSets = item.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0);
+    const totalVolume = item.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed && s.weight).reduce((sSum, s) => sSum + s.weight! * (s.reps || 0), 0), 0);
+    
     return (
-      <Pressable style={styles.card} onPress={() => router.push(`/history/${item.id}` as unknown as Parameters<typeof router.push>[0])}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{item.name}</Text>
-          <Text style={styles.date}>{formatDate(item.startedAt)}</Text>
+      <Card 
+        style={styles.card} 
+        onPress={() => router.push(`/history/${item.id}` as unknown as Parameters<typeof router.push>[0])}
+        padding="lg"
+      >
+        <View style={styles.cardHeader}>
+          <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading, fontSize: 18 }]}>{item.name}</Text>
+          <Text style={[styles.date, { color: theme.colors.muted, ...theme.typography.caption }]}>{formatDate(item.startedAt)}</Text>
         </View>
         <View style={styles.stats}>
-          <Text style={styles.statText}>⏱ {formatDuration(item.durationSeconds)}</Text>
-          <Text style={styles.statText}>🏋️ {item.exercises.length} Exercises</Text>
-          <Text style={styles.statText}>🔢 {totalSets} Sets</Text>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>{formatDuration(item.durationSeconds)}</Text>
+            <Text style={[styles.statLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>Time</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>{Math.round(totalVolume)}</Text>
+            <Text style={[styles.statLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>Volume</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>{totalSets}</Text>
+            <Text style={[styles.statLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>Sets</Text>
+          </View>
         </View>
-      </Pressable>
+      </Card>
     );
   };
 
@@ -96,22 +114,22 @@ function HistoryView() {
       renderItem={renderItem}
       contentContainerStyle={styles.list}
       ListEmptyComponent={
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No workouts recorded yet.</Text>
-          <Text style={styles.emptySubtext}>Your finished workouts will appear here.</Text>
-        </View>
+        <EmptyState 
+          title="NO WORKOUTS YET"
+          description="Your completed workouts will appear here."
+        />
       }
     />
   );
 }
 
 function ProgressView() {
+  const theme = useTheme();
   useHistoryStore((state) => state.sessions);
   const { getStreak, getPRs, getExerciseVolumeHistory } = useHistoryStore();
   const { exercises } = useExerciseStore();
   const { profile } = useProfileStore();
   const isImperial = profile.preferredUnits === 'imperial';
-  const streak = getStreak();
   const prs = getPRs();
   const activeExerciseIds = Object.keys(prs);
   
@@ -126,28 +144,30 @@ function ProgressView() {
     const history = getExerciseVolumeHistory(selectedExId);
     if (history.length < 2) {
       return (
-        <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>Not enough data to chart volume.</Text>
-          <Text style={styles.noDataSub}>Complete at least 2 sessions.</Text>
-        </View>
+        <Card padding="lg" style={{ alignItems: 'center' }}>
+          <Text style={[{ color: theme.colors.text, fontSize: 16, marginBottom: 4 }, theme.typography.heading]}>Not enough data</Text>
+          <Text style={[{ color: theme.colors.muted }, theme.typography.body]}>Complete at least 2 sessions.</Text>
+        </Card>
       );
     }
     const data = {
       labels: history.map(h => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(h.date))),
       datasets: [
-        { data: history.map(h => isImperial ? Math.round(h.volume * 2.20462) : h.volume), color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`, strokeWidth: 2 }
+        { data: history.map(h => isImperial ? Math.round(h.volume * 2.20462) : h.volume), color: (opacity = 1) => theme.colors.primary, strokeWidth: 2 }
       ],
     };
     return (
-      <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>Volume History</Text>
+      <View style={[styles.chartContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.muted }]}>
+        <Text style={[styles.chartTitle, { color: theme.colors.text, ...theme.typography.heading }]}>Volume History</Text>
         <LineChart
           data={data} width={screenWidth - 64} height={220}
+          withInnerLines={false}
+          withOuterLines={false}
           chartConfig={{
-            backgroundColor: '#ffffff', backgroundGradientFrom: '#ffffff', backgroundGradientTo: '#ffffff',
-            decimalPlaces: 0, color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
-            labelColor: (opacity = 1) => `rgba(100, 116, 139, ${opacity})`,
-            style: { borderRadius: 16 }, propsForDots: { r: '4', strokeWidth: '2', stroke: '#059669' }
+            backgroundColor: theme.colors.surface, backgroundGradientFrom: theme.colors.surface, backgroundGradientTo: theme.colors.surface,
+            decimalPlaces: 0, color: (opacity = 1) => theme.colors.primary,
+            labelColor: (opacity = 1) => theme.colors.muted,
+            propsForDots: { r: '4', strokeWidth: '2', stroke: theme.colors.surface }
           }}
           bezier style={{ marginVertical: 8, borderRadius: 16 }}
         />
@@ -157,14 +177,9 @@ function ProgressView() {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.streakCard}>
-        <Text style={styles.streakTitle}>🔥 Current Streak</Text>
-        <Text style={styles.streakValue}>{streak} {streak === 1 ? 'Day' : 'Days'}</Text>
-        <Text style={styles.streakSub}>Keep it up!</Text>
-      </View>
-      <Text style={styles.sectionTitle}>Personal Records</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 }]}>PERSONAL RECORDS</Text>
       {activeExerciseIds.length === 0 ? (
-        <Text style={styles.emptyTextProg}>Complete a workout to see your PRs.</Text>
+        <Text style={[{ color: theme.colors.muted, ...theme.typography.body }]}>Complete a workout to see your PRs.</Text>
       ) : (
         <>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
@@ -172,16 +187,16 @@ function ProgressView() {
               const ex = exercises.find(e => e.id === id);
               const isSelected = id === selectedExId;
               return (
-                <Pressable key={id} style={[styles.chip, isSelected && styles.chipSelected]} onPress={() => setSelectedExId(id)}>
-                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{ex?.name || 'Unknown'}</Text>
+                <Pressable key={id} style={[styles.chip, { backgroundColor: isSelected ? theme.colors.primary : theme.colors.surface }]} onPress={() => setSelectedExId(id)}>
+                  <Text style={[styles.chipText, { color: isSelected ? theme.colors.background : theme.colors.muted, ...theme.typography.caption }]}>{ex?.name || 'Unknown'}</Text>
                 </Pressable>
               );
             })}
           </ScrollView>
           {selectedExId && prs[selectedExId] !== undefined && (
-            <View style={styles.prHighlight}>
-              <Text style={styles.prHighlightLabel}>Best Weight</Text>
-              <Text style={styles.prHighlightValue}>
+            <Card style={styles.prHighlight} padding="md">
+              <Text style={[styles.prHighlightLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>BEST WEIGHT</Text>
+              <Text style={[styles.prHighlightValue, { color: theme.colors.primary, ...theme.typography.display, fontSize: 32 }]}>
                 {(() => {
                   const rawVal = prs[selectedExId]!;
                   const converted = isImperial ? rawVal * 2.20462 : rawVal;
@@ -189,7 +204,7 @@ function ProgressView() {
                   return roundedDown.toFixed(2);
                 })()} {isImperial ? 'lbs' : 'kg'}
               </Text>
-            </View>
+            </Card>
           )}
           {renderChart()}
         </>
@@ -199,6 +214,7 @@ function ProgressView() {
 }
 
 function AchievementsView() {
+  const theme = useTheme();
   const { xp, level, unlockedAchievements } = useAchievementStore();
   const { getProgress } = useAchievementCheck();
 
@@ -219,67 +235,61 @@ function AchievementsView() {
   return (
     <ScrollView contentContainerStyle={styles.content}>
       {/* Level Card */}
-      <View style={styles.levelCard}>
+      <Card style={styles.levelCard} padding="lg">
         <View style={styles.levelHeader}>
-          <Text style={styles.levelTitle}>Level {level}</Text>
-          <Text style={styles.xpText}>{currentLevelXp} / 500 XP</Text>
+          <Text style={[styles.levelTitle, { color: theme.colors.text, ...theme.typography.heading, fontSize: 24 }]}>LEVEL {level}</Text>
+          <Text style={[styles.xpText, { color: theme.colors.primary, ...theme.typography.heading }]}>{currentLevelXp} / 500 XP</Text>
         </View>
-        <View style={styles.progressBarBg}>
-          <View style={[styles.progressBarFill, { width: `${xpProgressPercent}%` }]} />
+        <View style={[styles.progressBarBg, { backgroundColor: theme.colors.surface }]}>
+          <View style={[styles.progressBarFill, { backgroundColor: theme.colors.primary, width: `${xpProgressPercent}%` }]} />
         </View>
-        <Text style={styles.xpSub}>{500 - currentLevelXp} XP to Level {level + 1}</Text>
-        <Text style={styles.totalXp}>Total XP: {xp}</Text>
-      </View>
+        <Text style={[styles.xpSub, { color: theme.colors.muted, ...theme.typography.caption }]}>{500 - currentLevelXp} XP TO LEVEL {level + 1}</Text>
+      </Card>
 
       {unlockedList.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>🏆 Unlocked ({unlockedList.length})</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 }]}>UNLOCKED ({unlockedList.length})</Text>
           {unlockedList.map(ach => (
-            <View key={ach.id} style={[styles.achCard, styles.achCardUnlocked]}>
-              <View style={styles.achIconContainer}>
-                <Ionicons name={ach.icon as React.ComponentProps<typeof Ionicons>['name']} size={32} color="#eab308" />
+            <Card key={ach.id} style={[styles.achCard, { borderColor: theme.colors.primary, borderWidth: 1 }]} padding="md">
+              <View style={styles.achRow}>
+                <View style={[styles.achIconContainer, { backgroundColor: theme.colors.surface }]}>
+                  <Ionicons name={ach.icon as React.ComponentProps<typeof Ionicons>['name']} size={24} color={theme.colors.primary} />
+                </View>
+                <View style={styles.achInfo}>
+                  <Text style={[styles.achName, { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>{ach.name}</Text>
+                  <Text style={[styles.achDesc, { color: theme.colors.muted, ...theme.typography.caption }]}>{ach.description}</Text>
+                </View>
               </View>
-              <View style={styles.achInfo}>
-                <Text style={styles.achName}>{ach.name}</Text>
-                <Text style={styles.achDesc}>{ach.description}</Text>
-                <Text style={styles.achUnlockDate}>
-                  Unlocked on {formatDate(unlockedAchievements[ach.id]!)}
-                </Text>
-              </View>
-              <View style={styles.xpBadge}>
-                <Text style={styles.xpBadgeText}>+{ach.xpReward} XP</Text>
-              </View>
-            </View>
+            </Card>
           ))}
         </>
       )}
 
       {lockedList.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>🔒 In Progress ({lockedList.length})</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text, ...theme.typography.heading, fontSize: 20, marginTop: 24 }]}>LOCKED ({lockedList.length})</Text>
           {lockedList.map(ach => {
             const prog = getProgress(ach.id);
             return (
-              <View key={ach.id} style={styles.achCard}>
-                <View style={[styles.achIconContainer, styles.achIconLocked]}>
-                  <Ionicons name={ach.icon as React.ComponentProps<typeof Ionicons>['name']} size={32} color="#94a3b8" />
-                </View>
-                <View style={styles.achInfo}>
-                  <Text style={styles.achName}>{ach.name}</Text>
-                  <Text style={styles.achDesc}>{ach.description}</Text>
-                  <View style={styles.achProgressRow}>
-                    <View style={styles.achProgressBarBg}>
-                      <View style={[styles.achProgressBarFill, { width: `${prog.percent}%` }]} />
+              <Card key={ach.id} style={[styles.achCard, { opacity: 0.6 }]} padding="md">
+                <View style={styles.achRow}>
+                  <View style={[styles.achIconContainer, { backgroundColor: theme.colors.surface }]}>
+                    <Ionicons name={ach.icon as React.ComponentProps<typeof Ionicons>['name']} size={24} color={theme.colors.muted} />
+                  </View>
+                  <View style={styles.achInfo}>
+                    <Text style={[styles.achName, { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>{ach.name}</Text>
+                    <Text style={[styles.achDesc, { color: theme.colors.muted, ...theme.typography.caption }]}>{ach.description}</Text>
+                    <View style={styles.achProgressRow}>
+                      <View style={[styles.achProgressBarBg, { backgroundColor: theme.colors.surface }]}>
+                        <View style={[styles.achProgressBarFill, { backgroundColor: theme.colors.muted, width: `${prog.percent}%` }]} />
+                      </View>
+                      <Text style={[styles.achProgressText, { color: theme.colors.muted, ...theme.typography.caption, marginLeft: 8 }]}>
+                        {prog.current} / {prog.target}
+                      </Text>
                     </View>
-                    <Text style={styles.achProgressText}>
-                      {prog.current} / {prog.target}
-                    </Text>
                   </View>
                 </View>
-                <View style={[styles.xpBadge, styles.xpBadgeLocked]}>
-                  <Text style={styles.xpBadgeTextLocked}>+{ach.xpReward} XP</Text>
-                </View>
-              </View>
+              </Card>
             );
           })}
         </>
@@ -289,199 +299,111 @@ function AchievementsView() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1 },
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 48,
+    paddingBottom: 16,
+  },
+  headerTitle: {
+  },
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#e2e8f0',
-    margin: 16,
-    borderRadius: 8,
-    padding: 4,
+    paddingHorizontal: 24,
+    marginBottom: 16,
   },
   toggleBtn: {
-    flex: 1,
+    marginRight: 24,
     paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 6,
   },
-  toggleBtnActive: {
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+  toggleText: { 
   },
-  toggleText: { fontSize: 14, fontWeight: '600', color: '#64748b' },
-  toggleTextActive: { color: '#0f172a' },
-  list: { padding: 16, paddingTop: 0 },
+  list: { paddingHorizontal: 24, paddingBottom: 40 },
   card: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+    marginBottom: 16,
   },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  title: { fontSize: 18, fontWeight: '700', color: '#0f172a' },
-  date: { fontSize: 14, color: '#64748b' },
-  stats: { flexDirection: 'row', gap: 16 },
-  statText: { fontSize: 14, color: '#475569', fontWeight: '500' },
-  emptyContainer: { alignItems: 'center', marginTop: 60 },
-  emptyText: { fontSize: 18, fontWeight: '600', color: '#0f172a', marginBottom: 8 },
-  emptySubtext: { fontSize: 14, color: '#64748b' },
-  content: { padding: 16, paddingBottom: 40, paddingTop: 0 },
-  streakCard: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 24,
-    borderWidth: 1, borderColor: '#e2e8f0',
-  },
-  streakTitle: { fontSize: 18, fontWeight: '600', color: '#64748b', marginBottom: 8 },
-  streakValue: { fontSize: 48, fontWeight: '800', color: '#f97316', marginBottom: 4 },
-  streakSub: { fontSize: 14, color: '#94a3b8', fontWeight: '500' },
-  sectionTitle: { fontSize: 20, fontWeight: '700', color: '#0f172a', marginBottom: 16 },
-  chipScroll: { marginBottom: 20 },
-  chip: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#e2e8f0', borderRadius: 20, marginRight: 8 },
-  chipSelected: { backgroundColor: '#0f172a' },
-  chipText: { fontSize: 14, fontWeight: '600', color: '#475569' },
-  chipTextSelected: { color: '#fff' },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  title: { flex: 1, marginRight: 8 },
+  date: { },
+  stats: { flexDirection: 'row', gap: 24 },
+  statItem: { alignItems: 'flex-start' },
+  statValue: { marginBottom: 2 },
+  statLabel: { },
+  content: { paddingHorizontal: 24, paddingBottom: 40 },
+  sectionTitle: { marginBottom: 16 },
+  chipScroll: { marginBottom: 24 },
+  chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8 },
+  chipText: { },
   prHighlight: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#f1f5f9', padding: 16, borderRadius: 12, marginBottom: 24,
-  },
-  prHighlightLabel: { fontSize: 16, fontWeight: '600', color: '#475569' },
-  prHighlightValue: { fontSize: 24, fontWeight: '800', color: '#10b981' },
-  chartContainer: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#e2e8f0', alignItems: 'center' },
-  chartTitle: { fontSize: 16, fontWeight: '600', color: '#0f172a', alignSelf: 'flex-start', marginBottom: 12 },
-  noDataContainer: { backgroundColor: '#fff', borderRadius: 16, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: '#e2e8f0' },
-  noDataText: { fontSize: 16, fontWeight: '600', color: '#475569', marginBottom: 4 },
-  noDataSub: { fontSize: 14, color: '#94a3b8' },
-  emptyTextProg: { fontSize: 16, color: '#64748b', fontStyle: 'italic' },
-  levelCard: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 16,
-    padding: 20,
+    alignItems: 'flex-start',
     marginBottom: 24,
+  },
+  prHighlightLabel: { marginBottom: 8 },
+  prHighlightValue: { },
+  chartContainer: { borderRadius: 16, padding: 16, borderWidth: 1, alignItems: 'center' },
+  chartTitle: { alignSelf: 'flex-start', marginBottom: 16 },
+  levelCard: {
+    marginBottom: 32,
   },
   levelHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   levelTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#ffffff',
   },
   xpText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#dbeafe',
   },
   progressBarBg: {
     height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 4,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#ffffff',
   },
   xpSub: {
-    fontSize: 14,
-    color: '#dbeafe',
-    fontWeight: '500',
-  },
-  totalXp: {
-    fontSize: 12,
-    color: '#93c5fd',
-    fontWeight: '500',
-    marginTop: 8,
-    textAlign: 'right',
   },
   achCard: {
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
     marginBottom: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
   },
-  achCardUnlocked: {
-    borderColor: '#fef08a',
-    backgroundColor: '#fefce8',
+  achRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   achIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#fef9c3',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
-  },
-  achIconLocked: {
-    backgroundColor: '#f1f5f9',
   },
   achInfo: {
     flex: 1,
   },
   achName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1e293b',
     marginBottom: 4,
   },
   achDesc: {
-    fontSize: 14,
-    color: '#64748b',
     marginBottom: 6,
-  },
-  achUnlockDate: {
-    fontSize: 12,
-    color: '#a1a1aa',
-    fontWeight: '500',
   },
   achProgressRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   achProgressBarBg: {
     flex: 1,
-    height: 6,
-    backgroundColor: '#e2e8f0',
-    borderRadius: 3,
+    height: 4,
+    borderRadius: 2,
     overflow: 'hidden',
   },
   achProgressBarFill: {
     height: '100%',
-    backgroundColor: '#94a3b8',
-    borderRadius: 3,
+    borderRadius: 2,
   },
   achProgressText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748b',
-  },
-  xpBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: '#fef08a',
-    marginLeft: 12,
-  },
-  xpBadgeLocked: {
-    backgroundColor: '#f1f5f9',
-  },
-  xpBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#a16207',
-  },
-  xpBadgeTextLocked: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#64748b',
   },
 });

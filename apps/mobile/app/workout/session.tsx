@@ -12,9 +12,11 @@ import { RestTimer } from '../../src/components/workout/RestTimer';
 import { ExercisePickerModal } from '../../src/components/workout/ExercisePickerModal';
 import { SaveTemplateModal } from '../../src/components/workout/SaveTemplateModal';
 import { useProgramStore } from '../../src/stores/programStore';
+import { useTheme, Button, Card, Input } from '@fitness-tracker/ui';
 
 export default function WorkoutSessionScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const {
     status,
     name,
@@ -63,11 +65,11 @@ export default function WorkoutSessionScreen() {
 
   if (status === 'idle' || status === 'finished') {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.emptyText}>No active workout.</Text>
-        <Pressable style={styles.button} onPress={() => router.back()}>
-          <Text style={styles.buttonText}>Go Back</Text>
-        </Pressable>
+      <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
+        <Text style={{ color: theme.colors.muted, ...theme.typography.body, marginBottom: 16 }}>
+          No active workout.
+        </Text>
+        <Button title="GO BACK" onPress={() => router.back()} />
       </View>
     );
   }
@@ -174,35 +176,33 @@ export default function WorkoutSessionScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Stack.Screen
         options={{
-          headerLeft: () => (
-            <Pressable onPress={handleBackAction} style={{ paddingLeft: 4, paddingRight: 20, paddingVertical: 8 }}>
-              <Ionicons name="arrow-back" size={24} color="#3b82f6" />
-            </Pressable>
-          )
+          headerShown: false,
         }}
       />
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>{name}</Text>
-          <Text style={styles.timer}>{formatElapsed(elapsed)}</Text>
-        </View>
-
-        <View style={styles.headerActions}>
-          <Pressable
-            style={[styles.actionBtn, styles.pauseBtn]}
-            onPress={status === 'active' ? pauseWorkout : resumeWorkout}
-          >
-            <Text style={styles.actionBtnText}>
-              {status === 'active' ? 'Pause' : 'Resume'}
+      {/* Sticky Header */}
+      <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.muted }]}>
+        <View style={styles.headerLeft}>
+          <Pressable onPress={handleBackAction} style={{ paddingRight: 16 }}>
+            <Ionicons name="close" size={24} color={theme.colors.muted} />
+          </Pressable>
+          <View>
+            <Text style={[{ color: theme.colors.text, fontSize: 18 }, theme.typography.heading]}>
+              {name}
             </Text>
-          </Pressable>
-          <Pressable style={[styles.actionBtn, styles.finishBtn]} onPress={handleFinish}>
-            <Text style={styles.actionBtnText}>Finish</Text>
-          </Pressable>
+            <Text style={[{ color: theme.colors.primary, fontSize: 20 }, theme.typography.display]}>
+              {formatElapsed(elapsed)}
+            </Text>
+          </View>
         </View>
+        <Button 
+          title="FINISH" 
+          variant="primary" 
+          onPress={handleFinish} 
+          style={{ height: 40, paddingHorizontal: 16 }}
+        />
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -210,22 +210,25 @@ export default function WorkoutSessionScreen() {
           <SessionExerciseCard key={ex.id} sessionExercise={ex} />
         ))}
 
-        <Pressable style={styles.addBtn} onPress={handleAddExercise}>
-          <Text style={styles.addBtnText}>+ Add Exercise</Text>
-        </Pressable>
+        <Button 
+          title="+ ADD EXERCISE" 
+          variant="secondary" 
+          onPress={handleAddExercise} 
+          style={{ marginBottom: 24 }}
+        />
 
-        <View style={styles.notesContainer}>
-          <Text style={styles.notesLabel}>Workout Notes</Text>
+        <Card padding="md" style={styles.notesContainer}>
+          <Text style={[{ color: theme.colors.text, ...theme.typography.heading, fontSize: 16, marginBottom: 8 }]}>WORKOUT NOTES</Text>
           <TextInput
-            style={styles.notesInput}
+            style={[styles.notesInput, { color: theme.colors.text, ...theme.typography.body }]}
             value={notes}
             onChangeText={updateWorkoutNotes}
             placeholder="Write a general note about your workout..."
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={theme.colors.muted}
             multiline
             numberOfLines={3}
           />
-        </View>
+        </Card>
       </ScrollView>
 
       <RestTimer />
@@ -250,111 +253,43 @@ export default function WorkoutSessionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  emptyText: {
-    fontSize: 16,
-    color: '#64748b',
-    marginBottom: 16,
-  },
-  button: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontWeight: '600',
-    fontSize: 16,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#ffffff',
+    paddingHorizontal: 24,
+    paddingTop: 48,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#0f172a',
+    marginBottom: 2,
   },
   timer: {
-    fontSize: 14,
-    color: '#3b82f6',
-    fontWeight: '600',
-    marginTop: 4,
-    fontVariant: ['tabular-nums'],
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    justifyContent: 'center',
-  },
-  pauseBtn: {
-    backgroundColor: '#e2e8f0',
-  },
-  finishBtn: {
-    backgroundColor: '#10b981',
-  },
-  actionBtnText: {
-    fontWeight: '600',
-    fontSize: 14,
-    color: '#0f172a',
+    marginTop: 2,
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  addBtn: {
-    backgroundColor: '#e0f2fe',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: '#bae6fd',
-    borderStyle: 'dashed',
-  },
-  addBtnText: {
-    color: '#0284c7',
-    fontWeight: '700',
-    fontSize: 16,
+    padding: 24,
+    paddingBottom: 100,
   },
   notesContainer: {
-    marginTop: 24,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  notesLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#334155',
-    marginBottom: 8,
+    marginBottom: 24,
   },
   notesInput: {
     minHeight: 60,
-    fontSize: 14,
-    color: '#0f172a',
     textAlignVertical: 'top',
   },
 });

@@ -1,50 +1,111 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, Pressable } from 'react-native';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
-import { ExerciseCard } from '../../src/components/exercises/ExerciseCard';
-import { ExerciseFilter } from '../../src/components/exercises/ExerciseFilter';
+import { ExerciseRow } from '../../src/components/exercises/ExerciseRow';
 import { CustomExerciseModal } from '../../src/components/exercises/CustomExerciseModal';
+import { useTheme, EmptyState } from '@fitness-tracker/ui';
+import { Ionicons } from '@expo/vector-icons';
+import { MuscleGroup } from '@fitness-tracker/domain';
+
+const MUSCLE_FILTERS = [
+  { id: 'all', label: 'All Muscles' },
+  { id: MuscleGroup.Chest, label: 'Chest' },
+  { id: MuscleGroup.UpperBack, label: 'Back' }, // We'll map 'Back' to upper back for the filter
+  { id: MuscleGroup.Quads, label: 'Legs' },
+  { id: MuscleGroup.FrontDelts, label: 'Shoulders' },
+  { id: MuscleGroup.Biceps, label: 'Arms' },
+  { id: MuscleGroup.Abs, label: 'Core' },
+  { id: MuscleGroup.FullBody, label: 'Full Body' }
+];
 
 export default function ExercisesScreen() {
+  const theme = useTheme();
   const { filteredExercises, favoriteIds, toggleFavorite, searchQuery, setSearchQuery } = useExerciseStore();
-  const [showFilters, setShowFilters] = useState(false);
   const [showCustomModal, setShowCustomModal] = useState(false);
+  const [selectedMuscle, setSelectedMuscle] = useState<MuscleGroup | null>(null);
+
+  const displayExercises = filteredExercises.filter(ex => 
+    selectedMuscle ? ex.primaryMuscles.includes(selectedMuscle) : true
+  );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Exercise Library</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text, ...theme.typography.heading }]}>
+          EXERCISE LIBRARY
+        </Text>
         <Pressable style={styles.createBtn} onPress={() => setShowCustomModal(true)}>
-          <Text style={styles.createBtnText}>+ Custom</Text>
+          <Ionicons name="add" size={24} color={theme.colors.primary} />
         </Pressable>
       </View>
 
       <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search exercises..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor="#94a3b8"
-        />
-        <Pressable style={styles.filterToggle} onPress={() => setShowFilters(!showFilters)}>
-          <Text style={styles.filterText}>{showFilters ? 'Hide Filters' : 'Filters'}</Text>
-        </Pressable>
+        <View style={[styles.searchBar, { backgroundColor: theme.colors.surface, borderColor: theme.colors.muted }]}>
+          <Ionicons name="search" size={20} color={theme.colors.muted} style={styles.searchIcon} />
+          <TextInput
+            style={[styles.searchInput, { color: theme.colors.text, ...theme.typography.body }]}
+            placeholder="Search exercises..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor={theme.colors.muted}
+          />
+        </View>
       </View>
 
-      {showFilters && <ExerciseFilter />}
+      <View style={styles.filterContainer}>
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={MUSCLE_FILTERS}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.filterList}
+          renderItem={({ item }) => {
+            const isSelected = (selectedMuscle === null && item.id === 'all') || selectedMuscle === item.id;
+            return (
+              <Pressable
+                style={[
+                  styles.filterPill,
+                  {
+                    backgroundColor: isSelected ? theme.colors.surface : 'transparent',
+                    borderColor: isSelected ? theme.colors.primary : theme.colors.muted,
+                  }
+                ]}
+                onPress={() => setSelectedMuscle(item.id === 'all' ? null : item.id as MuscleGroup)}
+              >
+                <Text
+                  style={[
+                    styles.filterPillText,
+                    {
+                      color: isSelected ? theme.colors.primary : theme.colors.muted,
+                      ...theme.typography.caption,
+                    }
+                  ]}
+                >
+                  {item.label}
+                </Text>
+              </Pressable>
+            );
+          }}
+        />
+      </View>
 
       <FlatList
-        data={filteredExercises}
+        data={displayExercises}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
-          <ExerciseCard 
+          <ExerciseRow 
             exercise={item} 
             isFavorite={favoriteIds.includes(item.id)}
             onToggleFavorite={toggleFavorite}
           />
         )}
+        ListEmptyComponent={
+          <EmptyState 
+            title="0 EXERCISES FOUND" 
+            description="Adjust your search or filters to find what you're looking for."
+          />
+        }
       />
 
       <CustomExerciseModal 
@@ -58,61 +119,58 @@ export default function ExercisesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f1f5f9',
+    paddingTop: 48,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#ffffff',
+    paddingHorizontal: 24,
+    marginBottom: 16,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#0f172a',
   },
   createBtn: {
-    backgroundColor: '#e0f2fe',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  createBtnText: {
-    color: '#0284c7',
-    fontWeight: '600',
-    fontSize: 14,
+    padding: 8,
   },
   searchContainer: {
+    paddingHorizontal: 24,
+    marginBottom: 16,
+  },
+  searchBar: {
     flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#ffffff',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    height: 48,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+  },
+  searchIcon: {
+    marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    height: 40,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    fontSize: 16,
-    color: '#0f172a',
+    height: '100%',
   },
-  filterToggle: {
-    marginLeft: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#e2e8f0',
-    borderRadius: 8,
+  filterContainer: {
+    marginBottom: 16,
   },
-  filterText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#334155',
+  filterList: {
+    paddingHorizontal: 24,
+    gap: 8,
+  },
+  filterPill: {
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterPillText: {
   },
   listContent: {
-    padding: 16,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
   },
 });

@@ -2,12 +2,14 @@ import React from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProgramStore } from '../../src/stores/programStore';
+import { useTheme } from '@fitness-tracker/ui';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { WorkoutTemplate } from '@fitness-tracker/domain';
 
 export default function QuickStartScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const { templates, deleteTemplate } = useProgramStore();
   const { exercises: allExercises } = useExerciseStore();
   const { status: activeWorkoutStatus, startWorkout, startWorkoutFromTemplate } = useWorkoutStore();
@@ -158,7 +160,7 @@ export default function QuickStartScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#0B0B0F',
     padding: 16,
   },
   header: {
@@ -166,47 +168,45 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '800',
-    color: '#0f172a',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#F4F5F7',
+    textTransform: 'uppercase',
   },
   headerSub: {
     fontSize: 14,
-    color: '#64748b',
+    fontFamily: 'Manrope_500Medium',
+    color: '#8A8D9F',
     marginTop: 4,
   },
   emptyWorkoutBtn: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#C6FF00',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     marginBottom: 24,
-    shadowColor: '#3b82f6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   emptyWorkoutBtnText: {
-    color: '#ffffff',
+    color: '#0B0B0F',
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'SpaceGrotesk_700Bold',
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#C6FF00',
     marginBottom: 12,
+    textTransform: 'uppercase',
   },
   list: {
     paddingBottom: 24,
   },
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
+    backgroundColor: '#1A1C23',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#2A2B31',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -216,8 +216,8 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#F4F5F7',
     flex: 1,
     marginRight: 12,
   },
@@ -230,41 +230,45 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#2A2B31',
     justifyContent: 'center',
     alignItems: 'center',
   },
   startBtn: {
-    backgroundColor: '#10b981',
+    backgroundColor: '#C6FF00',
   },
   startBtnText: {
-    color: '#ffffff',
-    fontWeight: '700',
+    color: '#0B0B0F',
+    fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 14,
   },
   editBtnText: {
-    color: '#3b82f6',
-    fontWeight: '700',
+    color: '#C6FF00',
+    fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 14,
   },
   deleteBtnText: {
     color: '#ef4444',
-    fontWeight: '700',
+    fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 14,
   },
   cardDesc: {
     fontSize: 14,
-    color: '#64748b',
+    fontFamily: 'Manrope_500Medium',
+    color: '#8A8D9F',
     marginBottom: 12,
   },
   exercisePreview: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#0B0B0F',
     borderRadius: 8,
     padding: 12,
+    borderWidth: 1,
+    borderColor: '#2A2B31',
   },
   exerciseText: {
     fontSize: 14,
-    color: '#475569',
+    fontFamily: 'Manrope_500Medium',
+    color: '#F4F5F7',
     marginBottom: 4,
   },
   emptyContainer: {
@@ -274,13 +278,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#334155',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#F4F5F7',
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#64748b',
+    fontFamily: 'Manrope_500Medium',
+    color: '#8A8D9F',
     textAlign: 'center',
     lineHeight: 20,
   },

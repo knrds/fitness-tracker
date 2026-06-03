@@ -2,11 +2,13 @@ import React from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProgramStore } from '../../src/stores/programStore';
+import { useTheme } from '@fitness-tracker/ui';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { WorkoutTemplate } from '@fitness-tracker/domain';
 
 export default function WorkoutsScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const { templates, deleteTemplate } = useProgramStore();
   const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
 
@@ -112,42 +114,44 @@ export default function WorkoutsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1, backgroundColor: '#0B0B0F' },
   quickStart: {
     padding: 16,
     marginBottom: 8,
   },
-  sectionTitle: { fontSize: 20, fontWeight: '700', color: '#0f172a', marginBottom: 12 },
+  sectionTitle: {
+    fontSize: 20,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#C6FF00',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+  },
   emptyWorkoutBtn: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#C6FF00',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#3b82f6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  emptyWorkoutBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  emptyWorkoutBtnText: {
+    color: '#0B0B0F',
+    fontSize: 16,
+    fontFamily: 'SpaceGrotesk_700Bold',
+  },
   list: { padding: 16 },
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
+    backgroundColor: '#1A1C23',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#2A2B31',
   },
   cardInfo: { flex: 1 },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#0f172a' },
-  cardSubtitle: { fontSize: 14, color: '#64748b', marginTop: 4 },
+  cardTitle: { fontSize: 16, fontFamily: 'SpaceGrotesk_700Bold', color: '#F4F5F7' },
+  cardSubtitle: { fontSize: 14, fontFamily: 'Manrope_500Medium', color: '#8A8D9F', marginTop: 4 },
   templateActions: {
     flexDirection: 'row',
     gap: 8,
@@ -157,15 +161,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#2A2B31',
     justifyContent: 'center',
     alignItems: 'center',
   },
   startBtn: {
-    backgroundColor: '#e0f2fe',
+    backgroundColor: '#C6FF00',
   },
-  startBtnText: { color: '#0284c7', fontWeight: '700', fontSize: 14 },
-  editBtnText: { color: '#3b82f6', fontWeight: '700', fontSize: 14 },
-  deleteBtnText: { color: '#ef4444', fontWeight: '700', fontSize: 14 },
-  emptyText: { color: '#64748b', textAlign: 'center', marginTop: 24, paddingHorizontal: 20, lineHeight: 22 },
+  startBtnText: { color: '#0B0B0F', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 14 },
+  editBtnText: { color: '#C6FF00', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 14 },
+  deleteBtnText: { color: '#ef4444', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 14 },
+  emptyText: { color: '#8A8D9F', fontFamily: 'Manrope_500Medium', textAlign: 'center', marginTop: 24, paddingHorizontal: 20, lineHeight: 22 },
 });

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, Pressable } from 'react-native';
+import { useTheme } from '@fitness-tracker/ui';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
@@ -8,6 +9,7 @@ import { TemplateExercise } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
 
 export default function WorkoutTemplateBuilderScreen() {
+  const theme = useTheme();
   const router = useRouter();
   const { programId, templateId, dayOfWeek } = useLocalSearchParams<{ programId?: string, templateId?: string, dayOfWeek?: string }>();
   
@@ -163,69 +165,74 @@ export default function WorkoutTemplateBuilderScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: '#0B0B0F' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0B0B0F' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#1A1C23',
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: '#2A2B31',
     alignItems: 'center',
   },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a' },
-  saveBtn: { backgroundColor: '#10b981', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 6 },
-  saveBtnText: { color: '#fff', fontWeight: '600' },
+  headerTitle: { fontSize: 18, fontFamily: 'SpaceGrotesk_700Bold', color: '#F4F5F7', textTransform: 'uppercase' },
+  saveBtn: { backgroundColor: '#C6FF00', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
+  saveBtnText: { color: '#0B0B0F', fontFamily: 'SpaceGrotesk_700Bold' },
   content: { padding: 16, paddingBottom: 40 },
-  label: { fontSize: 14, fontWeight: '600', color: '#475569', marginBottom: 8 },
+  label: { fontSize: 14, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#8A8D9F', marginBottom: 8, textTransform: 'uppercase' },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: '#0B0B0F',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
+    borderColor: '#2A2B31',
+    borderRadius: 12,
     padding: 12,
     fontSize: 16,
+    fontFamily: 'Manrope_500Medium',
+    color: '#F4F5F7',
     marginBottom: 16,
   },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 16 },
+  sectionTitle: { fontSize: 18, fontFamily: 'SpaceGrotesk_700Bold', color: '#C6FF00', marginBottom: 16, textTransform: 'uppercase' },
   exerciseCard: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: '#1A1C23',
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#2A2B31',
   },
   exHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  exName: { fontSize: 16, fontWeight: '600', color: '#0f172a' },
-  removeText: { color: '#ef4444', fontWeight: '700', fontSize: 16 },
+  exName: { fontSize: 16, fontFamily: 'SpaceGrotesk_700Bold', color: '#F4F5F7' },
+  removeText: { color: '#ef4444', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 16 },
   exConfig: { flexDirection: 'row', gap: 12 },
   configItem: { flex: 1 },
-  configLabel: { fontSize: 12, color: '#64748b', marginBottom: 4, textAlign: 'center' },
+  configLabel: { fontSize: 12, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#8A8D9F', marginBottom: 4, textAlign: 'center', textTransform: 'uppercase' },
   configInput: {
-    backgroundColor: '#f1f5f9',
-    borderRadius: 6,
+    backgroundColor: '#0B0B0F',
+    borderWidth: 1,
+    borderColor: '#2A2B31',
+    borderRadius: 8,
     padding: 8,
     textAlign: 'center',
-    fontWeight: '600',
+    fontFamily: 'Manrope_500Medium',
+    color: '#F4F5F7',
   },
   addExBtn: {
-    backgroundColor: '#e0f2fe',
+    backgroundColor: 'transparent',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#bae6fd',
+    borderColor: '#2A2B31',
     borderStyle: 'dashed',
   },
-  addExText: { color: '#0284c7', fontWeight: '700', fontSize: 16 },
+  addExText: { color: '#C6FF00', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 16, textTransform: 'uppercase' },
   
-  modalContainer: { flex: 1, backgroundColor: '#fff', paddingTop: 40 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderColor: '#e2e8f0' },
-  modalTitle: { fontSize: 18, fontWeight: '700' },
-  modalClose: { color: '#ef4444', fontSize: 16, fontWeight: '600' },
-  exItem: { padding: 16, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between' },
-  exItemName: { fontSize: 16, fontWeight: '500', color: '#0f172a' },
-  exItemTarget: { fontSize: 14, color: '#64748b' },
+  modalContainer: { flex: 1, backgroundColor: '#0B0B0F', paddingTop: 40 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderColor: '#2A2B31' },
+  modalTitle: { fontSize: 18, fontFamily: 'SpaceGrotesk_700Bold', color: '#F4F5F7' },
+  modalClose: { color: '#ef4444', fontSize: 16, fontFamily: 'SpaceGrotesk_700Bold' },
+  exItem: { padding: 16, borderBottomWidth: 1, borderBottomColor: '#2A2B31', flexDirection: 'row', justifyContent: 'space-between' },
+  exItemName: { fontSize: 16, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#F4F5F7' },
+  exItemTarget: { fontSize: 14, fontFamily: 'Manrope_500Medium', color: '#8A8D9F' },
 });

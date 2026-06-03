@@ -230,7 +230,7 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={15} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#0f172a" />
+          <Ionicons name="arrow-back" size={24} color="#F4F5F7" />
         </Pressable>
         <Text style={styles.headerTitle}>Profile & Settings</Text>
         <View style={styles.headerRight} />
@@ -246,7 +246,7 @@ export default function ProfileScreen() {
             value={name}
             onChangeText={setName}
             placeholder="Name"
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor="#8A8D9F"
           />
 
           <Text style={styles.inputLabel}>Training Goal</Text>
@@ -305,7 +305,7 @@ export default function ProfileScreen() {
                 value={height}
                 onChangeText={setHeight}
                 placeholder={profile.preferredUnits === 'imperial' ? 'e.g. 70' : 'e.g. 180'}
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A8D9F"
                 keyboardType="numeric"
               />
             </View>
@@ -316,7 +316,7 @@ export default function ProfileScreen() {
                 value={weight}
                 onChangeText={setWeight}
                 placeholder={profile.preferredUnits === 'imperial' ? 'e.g. 175' : 'e.g. 80'}
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A8D9F"
                 keyboardType="numeric"
               />
             </View>
@@ -332,7 +332,7 @@ export default function ProfileScreen() {
                 value={benchPressMax}
                 onChangeText={setBenchPressMax}
                 placeholder="Bench"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A8D9F"
                 keyboardType="numeric"
               />
             </View>
@@ -343,7 +343,7 @@ export default function ProfileScreen() {
                 value={squatMax}
                 onChangeText={setSquatMax}
                 placeholder="Squat"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A8D9F"
                 keyboardType="numeric"
               />
             </View>
@@ -354,7 +354,7 @@ export default function ProfileScreen() {
                 value={deadliftMax}
                 onChangeText={setDeadliftMax}
                 placeholder="Deadlift"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A8D9F"
                 keyboardType="numeric"
               />
             </View>
@@ -393,20 +393,20 @@ export default function ProfileScreen() {
         <View style={styles.sectionCard}>
           <Pressable style={styles.settingsRow} onPress={handleToggleUnits}>
             <View style={styles.settingsRowLeft}>
-              <Ionicons name="options-outline" size={22} color="#475569" />
+              <Ionicons name="options-outline" size={22} color="#8A8D9F" />
               <Text style={styles.settingsLabel}>Measurement Units</Text>
             </View>
             <View style={styles.settingsRowRight}>
               <Text style={styles.settingsValue}>
                 {profile.preferredUnits === 'metric' ? 'Metric (kg/cm)' : 'Imperial (lbs/in)'}
               </Text>
-              <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+              <Ionicons name="chevron-forward" size={18} color="#8A8D9F" />
             </View>
           </Pressable>
 
           <View style={styles.settingsRowVertical}>
             <View style={styles.settingsRowLeft}>
-              <Ionicons name="eye-outline" size={22} color="#475569" />
+              <Ionicons name="eye-outline" size={22} color="#8A8D9F" />
               <Text style={styles.settingsLabel}>RPE Column Tracking</Text>
             </View>
             <View style={styles.chipRow}>
@@ -445,7 +445,7 @@ export default function ProfileScreen() {
 
           <View style={styles.settingsRowVertical}>
             <View style={styles.settingsRowLeft}>
-              <Ionicons name="eye-outline" size={22} color="#475569" />
+              <Ionicons name="eye-outline" size={22} color="#8A8D9F" />
               <Text style={styles.settingsLabel}>RIR Column Tracking</Text>
             </View>
             <View style={styles.chipRow}>
@@ -484,10 +484,10 @@ export default function ProfileScreen() {
 
           <Pressable style={styles.settingsRow} onPress={handleExport}>
             <View style={styles.settingsRowLeft}>
-              <Ionicons name="download-outline" size={22} color="#475569" />
+              <Ionicons name="download-outline" size={22} color="#8A8D9F" />
               <Text style={styles.settingsLabel}>Export Data (JSON)</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+            <Ionicons name="chevron-forward" size={18} color="#8A8D9F" />
           </Pressable>
 
           <Pressable style={[styles.settingsRow, styles.lastRow]} onPress={handleResetData}>
@@ -495,7 +495,7 @@ export default function ProfileScreen() {
               <Ionicons name="trash-outline" size={22} color="#ef4444" />
               <Text style={[styles.settingsLabel, styles.dangerText]}>Reset All Data</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+            <Ionicons name="chevron-forward" size={18} color="#8A8D9F" />
           </Pressable>
         </View>
       </ScrollView>
@@ -524,7 +524,7 @@ export default function ProfileScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Backup JSON</Text>
               <Pressable onPress={() => setJsonModalVisible(false)} hitSlop={10}>
-                <Ionicons name="close" size={24} color="#64748b" />
+                <Ionicons name="close" size={24} color="#8A8D9F" />
               </Pressable>
             </View>
             <ScrollView style={styles.jsonScrollView}>
@@ -540,7 +540,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#0B0B0F',
   },
   header: {
     flexDirection: 'row',
@@ -549,16 +549,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#cbd5e1',
-    backgroundColor: '#ffffff',
+    borderBottomColor: '#2A2B31',
+    backgroundColor: '#1A1C23',
   },
   backBtn: {
     padding: 4,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#0f172a',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#F4F5F7',
+    textTransform: 'uppercase',
   },
   headerRight: {
     width: 28,
@@ -571,42 +572,39 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   sectionCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#1A1C23',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#2A2B31',
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 1,
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '800',
-    color: '#3b82f6',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#C6FF00',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 16,
   },
   inputLabel: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#475569',
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    color: '#8A8D9F',
     marginBottom: 6,
     marginTop: 12,
+    textTransform: 'uppercase',
   },
   input: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#0B0B0F',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
+    borderColor: '#2A2B31',
+    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: '#0f172a',
+    fontFamily: 'Manrope_500Medium',
+    color: '#F4F5F7',
   },
   chipRow: {
     flexDirection: 'row',
@@ -615,38 +613,38 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   chip: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#2A2B31',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
   },
   chipActive: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#C6FF00',
   },
   chipText: {
-    color: '#475569',
+    color: '#8A8D9F',
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'SpaceGrotesk_600SemiBold',
   },
   chipTextActive: {
-    color: '#ffffff',
+    color: '#0B0B0F',
   },
   saveBtn: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#C6FF00',
     padding: 14,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
     marginTop: 24,
   },
   saveBtnText: {
-    color: '#ffffff',
+    color: '#0B0B0F',
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'SpaceGrotesk_700Bold',
   },
   listSectionTitle: {
     fontSize: 13,
-    fontWeight: '800',
-    color: '#64748b',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#8A8D9F',
     marginBottom: 12,
     marginTop: 8,
     textTransform: 'uppercase',
@@ -659,31 +657,26 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   statCard: {
-    width: '48%', // roughly half width with gap
+    width: '48%',
     flexGrow: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#1A1C23',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 1,
+    borderColor: '#2A2B31',
   },
   statLabel: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#94a3b8',
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    color: '#8A8D9F',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 4,
   },
   statValue: {
     fontSize: 20,
-    fontWeight: '800',
-    color: '#334155',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#F4F5F7',
   },
   settingsRow: {
     flexDirection: 'row',
@@ -691,12 +684,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: '#2A2B31',
   },
   settingsRowVertical: {
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: '#2A2B31',
     gap: 8,
   },
   lastRow: {
@@ -714,27 +707,29 @@ const styles = StyleSheet.create({
   },
   settingsLabel: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#334155',
+    fontFamily: 'Manrope_500Medium',
+    color: '#F4F5F7',
   },
   settingsValue: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#64748b',
+    fontFamily: 'Manrope_500Medium',
+    color: '#8A8D9F',
   },
   dangerText: {
     color: '#ef4444',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    backgroundColor: 'rgba(11, 11, 15, 0.8)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#1A1C23',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     height: '75%',
+    borderWidth: 1,
+    borderColor: '#2A2B31',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -742,12 +737,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: '#2A2B31',
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#F4F5F7',
   },
   jsonScrollView: {
     padding: 16,
@@ -755,12 +750,12 @@ const styles = StyleSheet.create({
   jsonText: {
     fontFamily: 'monospace',
     fontSize: 12,
-    color: '#334155',
-    backgroundColor: '#f8fafc',
+    color: '#F4F5F7',
+    backgroundColor: '#0B0B0F',
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#2A2B31',
   },
   inputGrid: {
     flexDirection: 'row',
@@ -771,8 +766,8 @@ const styles = StyleSheet.create({
   },
   sectionDivider: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#3b82f6',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#C6FF00',
     marginTop: 20,
     marginBottom: 6,
     textTransform: 'uppercase',
@@ -783,22 +778,22 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   selectBtn: {
-    backgroundColor: '#e0f2fe',
+    backgroundColor: '#2A2B31',
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 8,
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: '#bae6fd',
+    borderColor: '#2A2B31',
   },
   selectBtnText: {
-    color: '#0369a1',
-    fontWeight: '700',
+    color: '#C6FF00',
+    fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 14,
   },
   selectedExercisesText: {
     fontSize: 13,
-    color: '#64748b',
+    color: '#8A8D9F',
     marginTop: 6,
     lineHeight: 18,
     fontStyle: 'italic',

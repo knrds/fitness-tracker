@@ -6,12 +6,15 @@ import { useExerciseStore } from '../../stores/exerciseStore';
 import { useProfileStore } from '../../stores/profileStore';
 import { useHistoryStore } from '../../stores/historyStore';
 import { PlateCalculatorModal } from './PlateCalculatorModal';
+import { useTheme, Card, Button } from '@fitness-tracker/ui';
+import { Ionicons } from '@expo/vector-icons';
 
 interface Props {
   sessionExercise: SessionExercise;
 }
 
 export const SessionExerciseCard = ({ sessionExercise }: Props) => {
+  const theme = useTheme();
   const { exercises } = useExerciseStore();
   const { addSet, updateSet, completeSet, removeExercise, removeSet, calculateWarmupSets, toggleSuperset } = useWorkoutStore();
   const { profile } = useProfileStore();
@@ -113,42 +116,45 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
   };
 
   return (
-    <View style={[styles.card, sessionExercise.supersetGroup ? styles.cardSuperset : null]}>
+    <Card 
+      style={[
+        styles.card, 
+        sessionExercise.supersetGroup && { borderLeftColor: theme.colors.primary, borderLeftWidth: 4 }
+      ]}
+      padding="md"
+    >
       {sessionExercise.supersetGroup && (
         <View style={styles.supersetHeader}>
-          <Text style={styles.supersetBadge}>🔗 SUPERSET</Text>
+          <Text style={[styles.supersetBadge, { color: theme.colors.primary, ...theme.typography.caption }]}>🔗 SUPERSET</Text>
         </View>
       )}
       <View style={styles.titleRow}>
         <View style={styles.titleCol}>
-          <Text style={styles.title}>{exercise.name}</Text>
+          <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading, fontSize: 18 }]}>{exercise.name}</Text>
           {getPrevPerformanceText() && (
-            <Text style={styles.prevText}>{getPrevPerformanceText()}</Text>
+            <Text style={[styles.prevText, { color: theme.colors.muted, ...theme.typography.caption }]}>{getPrevPerformanceText()}</Text>
           )}
         </View>
         <View style={styles.headerIcons}>
           <Pressable onPress={() => setPlateCalcVisible(true)} style={styles.iconBtn}>
-            <Text style={styles.iconText}>🏋️</Text>
+            <Ionicons name="barbell-outline" size={24} color={theme.colors.muted} />
           </Pressable>
           <Pressable onPress={handleToggleSuperset} style={styles.iconBtn}>
-            <Text style={[styles.iconText, sessionExercise.supersetGroup && styles.iconTextLinked]}>
-              {sessionExercise.supersetGroup ? '🔗' : '⛓️'}
-            </Text>
+            <Ionicons name="link" size={24} color={sessionExercise.supersetGroup ? theme.colors.primary : theme.colors.muted} />
           </Pressable>
           <Pressable onPress={confirmDeleteExercise} style={styles.deleteExBtn}>
-            <Text style={styles.deleteExBtnText}>✕</Text>
+            <Ionicons name="trash-outline" size={20} color="#ef4444" />
           </Pressable>
         </View>
       </View>
       
       <View style={styles.headerRow}>
-        <Text style={[styles.columnHeader, styles.setCol]}>Set</Text>
-        <Text style={[styles.columnHeader, styles.inputCol]}>{isImperial ? 'lbs' : 'kg'}</Text>
-        <Text style={[styles.columnHeader, styles.inputCol]}>Reps</Text>
-        {showRpe && <Text style={[styles.columnHeader, styles.inputCol]}>RPE</Text>}
-        {showRir && <Text style={[styles.columnHeader, styles.inputCol]}>RIR</Text>}
-        <Text style={[styles.columnHeader, styles.doneCol]}>✓</Text>
-        <Text style={[styles.columnHeader, styles.delCol]}></Text>
+        <Text style={[styles.columnHeader, styles.setCol, { color: theme.colors.muted }]}>Set</Text>
+        <Text style={[styles.columnHeader, styles.inputCol, { color: theme.colors.muted }]}>{isImperial ? 'lbs' : 'kg'}</Text>
+        <Text style={[styles.columnHeader, styles.inputCol, { color: theme.colors.muted }]}>Reps</Text>
+        {showRpe && <Text style={[styles.columnHeader, styles.inputCol, { color: theme.colors.muted }]}>RPE</Text>}
+        {showRir && <Text style={[styles.columnHeader, styles.inputCol, { color: theme.colors.muted }]}>RIR</Text>}
+        <Text style={[styles.columnHeader, styles.doneCol, { color: theme.colors.muted }]}>✓</Text>
       </View>
 
       {sessionExercise.sets.map((set, idx) => (
@@ -168,18 +174,16 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
       ))}
 
       <View style={styles.footerRow}>
-        <Pressable 
-          style={styles.addSetBtn} 
+        <Button 
+          title="+ ADD SET" 
+          variant="ghost" 
           onPress={() => addSet(sessionExercise.id)}
-        >
-          <Text style={styles.addSetText}>+ Add Set</Text>
-        </Pressable>
-        <Pressable 
-          style={styles.warmupBtn} 
+        />
+        <Button 
+          title="🔥 WARMUP" 
+          variant="ghost" 
           onPress={handleWarmupCalc}
-        >
-          <Text style={styles.warmupText}>🔥 Warmup Calculator</Text>
-        </Pressable>
+        />
       </View>
 
       <PlateCalculatorModal
@@ -187,7 +191,7 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
         initialWeightKg={sessionExercise.sets[0]?.weight || 0}
         onClose={() => setPlateCalcVisible(false)}
       />
-    </View>
+    </Card>
   );
 };
 
@@ -205,6 +209,7 @@ interface SetRowProps {
 }
 
 const SetRow = ({ set, index, isImperial, showRpe, showRir, exerciseName, onUpdate, onComplete, onDelete }: SetRowProps) => {
+  const theme = useTheme();
   const isDone = set.completed;
   
   // Format the display weight for imperial, round/clean it up
@@ -234,13 +239,13 @@ const SetRow = ({ set, index, isImperial, showRpe, showRir, exerciseName, onUpda
   const getSetTypeBadge = () => {
     switch (set.type) {
       case 'warmup':
-        return <Text style={[styles.typeBadge, styles.warmupBadge]}>W</Text>;
+        return <Text style={[styles.typeBadge, { backgroundColor: '#ffedd5', color: '#ea580c' }]}>W</Text>;
       case 'drop':
-        return <Text style={[styles.typeBadge, styles.dropBadge]}>D</Text>;
+        return <Text style={[styles.typeBadge, { backgroundColor: '#f3e8ff', color: '#9333ea' }]}>D</Text>;
       case 'failure':
-        return <Text style={[styles.typeBadge, styles.failureBadge]}>F</Text>;
+        return <Text style={[styles.typeBadge, { backgroundColor: '#fee2e2', color: '#dc2626' }]}>F</Text>;
       default:
-        return <Text style={styles.cell}>{index + 1}</Text>;
+        return <Text style={[styles.cell, { color: theme.colors.text }]}>{index + 1}</Text>;
     }
   };
 
@@ -257,50 +262,51 @@ const SetRow = ({ set, index, isImperial, showRpe, showRir, exerciseName, onUpda
           {getSetTypeBadge()}
         </Pressable>
         <TextInput
-          style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
+          style={[styles.input, styles.inputCol, { color: theme.colors.text, backgroundColor: theme.colors.background }, isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface }]}
           keyboardType="numeric"
           value={getDisplayWeight()}
           onChangeText={handleWeightChange}
           placeholder="-"
+          placeholderTextColor={theme.colors.muted}
         />
         <TextInput
-          style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
+          style={[styles.input, styles.inputCol, { color: theme.colors.text, backgroundColor: theme.colors.background }, isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface }]}
           keyboardType="numeric"
           value={set.reps ? set.reps.toString() : ''}
           onChangeText={(text) => onUpdate({ reps: parseInt(text, 10) || 0 })}
           placeholder="-"
+          placeholderTextColor={theme.colors.muted}
         />
         {showRpe && (
           <TextInput
-            style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
+            style={[styles.input, styles.inputCol, { color: theme.colors.text, backgroundColor: theme.colors.background }, isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface }]}
             keyboardType="numeric"
             value={set.rpe ? set.rpe.toString() : ''}
             onChangeText={(text) => onUpdate({ rpe: parseFloat(text) || 0 })}
             placeholder="-"
+            placeholderTextColor={theme.colors.muted}
           />
         )}
         {showRir && (
           <TextInput
-            style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
+            style={[styles.input, styles.inputCol, { color: theme.colors.text, backgroundColor: theme.colors.background }, isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface }]}
             keyboardType="numeric"
             value={set.rir !== undefined ? set.rir.toString() : ''}
             onChangeText={(text) => onUpdate({ rir: parseInt(text, 10) || 0 })}
             placeholder="-"
+            placeholderTextColor={theme.colors.muted}
           />
         )}
         <Pressable 
-          style={[styles.doneBtn, styles.doneCol, isDone && styles.doneBtnActive]} 
+          style={[styles.doneBtn, styles.doneCol, { backgroundColor: isDone ? theme.colors.primary : theme.colors.surface }]} 
           onPress={onComplete}
         >
-          <Text style={[styles.doneBtnText, isDone && styles.doneBtnTextActive]}>✓</Text>
-        </Pressable>
-        <Pressable style={[styles.deleteSetBtn, styles.delCol]} onPress={onDelete}>
-          <Text style={styles.deleteSetBtnText}>✕</Text>
+          <Ionicons name="checkmark" size={20} color={isDone ? theme.colors.background : theme.colors.muted} />
         </Pressable>
       </View>
       {e1rm > 0 && (
         <View style={styles.e1rmRow}>
-          <Text style={styles.e1rmText}>e1RM: {e1rm.toFixed(1)} {isImperial ? 'lbs' : 'kg'}</Text>
+          <Text style={[styles.e1rmText, { color: theme.colors.muted }]}>e1RM: {e1rm.toFixed(1)} {isImperial ? 'lbs' : 'kg'}</Text>
         </View>
       )}
     </View>
@@ -309,29 +315,12 @@ const SetRow = ({ set, index, isImperial, showRpe, showRir, exerciseName, onUpda
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    borderLeftWidth: 4,
-    borderLeftColor: 'transparent',
-  },
-  cardSuperset: {
-    borderLeftColor: '#3b82f6',
   },
   supersetHeader: {
     marginBottom: 6,
   },
   supersetBadge: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#3b82f6',
-    letterSpacing: 0.5,
   },
   titleRow: {
     flexDirection: 'row',
@@ -344,15 +333,9 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0f172a',
+    marginBottom: 2,
   },
   prevText: {
-    fontSize: 11,
-    color: '#64748b',
-    marginTop: 4,
-    fontWeight: '500',
   },
   headerIcons: {
     flexDirection: 'row',
@@ -362,20 +345,8 @@ const styles = StyleSheet.create({
   iconBtn: {
     padding: 4,
   },
-  iconText: {
-    fontSize: 16,
-    opacity: 0.6,
-  },
-  iconTextLinked: {
-    opacity: 1,
-  },
   deleteExBtn: {
     padding: 4,
-  },
-  deleteExBtnText: {
-    fontSize: 18,
-    color: '#ef4444',
-    fontWeight: '700',
   },
   headerRow: {
     flexDirection: 'row',
@@ -385,13 +356,11 @@ const styles = StyleSheet.create({
   columnHeader: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748b',
     textAlign: 'center',
   },
   setCol: { width: 30, textAlign: 'center' },
   inputCol: { flex: 1, textAlign: 'center' },
   doneCol: { width: 44, textAlign: 'center' },
-  delCol: { width: 32, textAlign: 'center' },
   
   rowContainer: {
     marginBottom: 8,
@@ -406,7 +375,6 @@ const styles = StyleSheet.create({
   cell: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#334155',
   },
   centerAlign: {
     justifyContent: 'center',
@@ -422,60 +390,22 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     overflow: 'hidden',
   },
-  warmupBadge: {
-    backgroundColor: '#ffedd5',
-    color: '#ea580c',
-  },
-  dropBadge: {
-    backgroundColor: '#f3e8ff',
-    color: '#9333ea',
-  },
-  failureBadge: {
-    backgroundColor: '#fee2e2',
-    color: '#dc2626',
-  },
   input: {
-    backgroundColor: '#f1f5f9',
     borderRadius: 8,
     marginHorizontal: 4,
     paddingVertical: 6,
     paddingHorizontal: 8,
     fontSize: 16,
     textAlign: 'center',
-    color: '#0f172a',
     fontWeight: '500',
-  },
-  inputDone: {
-    backgroundColor: '#e2e8f0',
-    color: '#64748b',
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   doneBtn: {
-    backgroundColor: '#e2e8f0',
     borderRadius: 8,
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  doneBtnActive: {
-    backgroundColor: '#22c55e',
-  },
-  doneBtnText: {
-    color: '#64748b',
-    fontWeight: '700',
-  },
-  doneBtnTextActive: {
-    color: '#ffffff',
-  },
-  deleteSetBtn: {
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 4,
-  },
-  deleteSetBtnText: {
-    color: '#ef4444',
-    fontSize: 16,
-    fontWeight: '700',
   },
   e1rmRow: {
     paddingLeft: 38,
@@ -484,7 +414,6 @@ const styles = StyleSheet.create({
   },
   e1rmText: {
     fontSize: 10,
-    color: '#64748b',
     fontStyle: 'italic',
   },
   footerRow: {
@@ -493,21 +422,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
     paddingHorizontal: 4,
-  },
-  addSetBtn: {
-    paddingVertical: 8,
-  },
-  addSetText: {
-    color: '#3b82f6',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  warmupBtn: {
-    paddingVertical: 8,
-  },
-  warmupText: {
-    color: '#ea580c',
-    fontWeight: '600',
-    fontSize: 14,
   },
 });

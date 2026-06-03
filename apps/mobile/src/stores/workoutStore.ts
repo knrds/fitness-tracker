@@ -16,6 +16,7 @@ import { useHistoryStore } from './historyStore';
 import { useAchievementStore } from './achievementStore';
 import { useExerciseStore } from './exerciseStore';
 import { useProfileStore } from './profileStore';
+import { LOCAL_USER_ID } from './local-user';
 import { createHydratedStorage } from './storage';
 
 const workoutPersistedSchema = z.object({
@@ -36,10 +37,11 @@ const workoutPersistedSchema = z.object({
   accumulatedPauseMs: z.number().int().nonnegative(),
 });
 
-type WorkoutPersistedState = z.infer<typeof workoutPersistedSchema>;
-
 const defaultState = {
   status: 'idle' as const,
+  sessionId: undefined as UUID | undefined,
+  templateId: undefined as UUID | undefined,
+  programId: undefined as UUID | undefined,
   name: '',
   elapsedSeconds: 0,
   currentExerciseIndex: 0,
@@ -55,13 +57,19 @@ const defaultState = {
   accumulatedPauseMs: 0,
 };
 
+const removeSupersetGroup = (exercise: SessionExercise): SessionExercise => {
+  const nextExercise = { ...exercise };
+  delete nextExercise.supersetGroup;
+  return nextExercise;
+};
+
 export interface WorkoutActions {
   startWorkout: (name?: string) => void;
   startWorkoutFromTemplate: (template: WorkoutTemplate, programId?: UUID) => void;
   startWorkoutFromSession: (session: WorkoutSession) => void;
   pauseWorkout: () => void;
   resumeWorkout: () => void;
-  finishWorkout: () => void;
+  finishWorkout: () => WorkoutSession | null;
   resetWorkout: () => void;
   addExercise: (exerciseId: UUID) => void;
   removeExercise: (sessionExerciseId: UUID) => void;
@@ -83,7 +91,13 @@ export interface WorkoutActions {
   toggleSuperset: (sessionExerciseId: UUID) => void;
 }
 
-export type WorkoutStore = Omit<ActiveWorkoutState, 'startedAt' | 'pausedAt'> & { 
+export type WorkoutStore = Omit<
+  ActiveWorkoutState,
+  'startedAt' | 'pausedAt' | 'sessionId' | 'templateId' | 'programId'
+> & {
+  sessionId: UUID | undefined;
+  templateId: UUID | undefined;
+  programId: UUID | undefined;
   notes: string;
   startedAt: Date | undefined;
   pausedAt: Date | undefined;
@@ -131,6 +145,8 @@ export const useWorkoutStore = create<WorkoutStore>()(
           name: session.name,
           startedAt: new Date(),
           sessionId: Crypto.randomUUID(),
+          templateId: undefined,
+          programId: undefined,
           exercises,
           lastUpdatedAt: new Date(),
         };
@@ -168,7 +184,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
           startedAt: new Date(),
           sessionId: Crypto.randomUUID(),
           templateId: template.id,
-          ...(programId ? { programId } : {}),
+          programId,
           exercises,
           lastUpdatedAt: new Date(),
         };
@@ -203,44 +219,47 @@ export const useWorkoutStore = create<WorkoutStore>()(
       
       finishWorkout: () => {
         const state = get();
-        if (state.status === 'active' || state.status === 'paused') {
-          // Guard against sessions without any completed sets
-          const hasCompletedSet = state.exercises.some((ex) =>
-            ex.sets.some((s) => s.completed)
-          );
-
-          if (!hasCompletedSet) {
-            // Reset active workout but do NOT save or award XP
-            set({ ...defaultState, status: 'idle', lastUpdatedAt: new Date() });
-            return;
-          }
-
-          const completedAt = new Date();
-          const endTime = state.pausedAt || completedAt;
-          const startedAt = state.startedAt || completedAt;
-          const durationSeconds = Math.floor(
-            (endTime.getTime() - startedAt.getTime() - state.accumulatedPauseMs) / 1000
-          );
-
-          const session = {
-            id: state.sessionId || Crypto.randomUUID(),
-            userId: 'local-user',
-            name: state.name,
-            templateId: state.templateId,
-            programId: state.programId,
-            startedAt,
-            completedAt,
-            durationSeconds: Math.max(0, durationSeconds),
-            exercises: state.exercises,
-            notes: state.notes || undefined,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          } as WorkoutSession;
-          
-          useHistoryStore.getState().addSession(session);
-          useAchievementStore.getState().awardXpAndCheckAchievements(session);
+        if (state.status !== 'active' && state.status !== 'paused') {
+          return null;
         }
-        set({ ...defaultState, status: 'finished', lastUpdatedAt: new Date() });
+
+        // Guard against sessions without any completed sets
+        const hasCompletedSet = state.exercises.some((ex) =>
+          ex.sets.some((s) => s.completed)
+        );
+
+        if (!hasCompletedSet) {
+          // Reset active workout but do NOT save or award XP
+          set({ ...defaultState, status: 'idle', lastUpdatedAt: new Date() });
+          return null;
+        }
+
+        const completedAt = new Date();
+        const endTime = state.pausedAt || completedAt;
+        const startedAt = state.startedAt || completedAt;
+        const durationSeconds = Math.floor(
+          (endTime.getTime() - startedAt.getTime() - state.accumulatedPauseMs) / 1000
+        );
+
+        const session: WorkoutSession = {
+          id: state.sessionId || Crypto.randomUUID(),
+          userId: LOCAL_USER_ID,
+          name: state.name,
+          ...(state.templateId ? { templateId: state.templateId } : {}),
+          ...(state.programId ? { programId: state.programId } : {}),
+          startedAt,
+          completedAt,
+          durationSeconds: Math.max(0, durationSeconds),
+          exercises: state.exercises,
+          ...(state.notes ? { notes: state.notes } : {}),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        set({ ...defaultState, status: 'finished', lastUpdatedAt: completedAt });
+        useHistoryStore.getState().addSession(session);
+        useAchievementStore.getState().awardXpAndCheckAchievements(session);
+        return session;
       },
       
       resetWorkout: () => set({ ...defaultState, lastUpdatedAt: new Date() }),
@@ -332,37 +351,31 @@ export const useWorkoutStore = create<WorkoutStore>()(
       }),
 
       stopRestTimer: () => set((state) => {
-        const { endsAt, ...restTimer } = state.restTimer;
         return {
           restTimer: {
-            ...restTimer,
             isRunning: false,
+            durationSeconds: state.restTimer.durationSeconds,
           },
           lastUpdatedAt: new Date(),
         };
       }),
       
-      resetRestTimer: () => set((state) => {
-        const { endsAt, ...restTimer } = state.restTimer;
-        return {
-          restTimer: {
-            ...restTimer,
-            isRunning: false,
-            durationSeconds: 90,
-          },
-          lastUpdatedAt: new Date(),
-        };
+      resetRestTimer: () => set({
+        restTimer: {
+          isRunning: false,
+          durationSeconds: 90,
+        },
+        lastUpdatedAt: new Date(),
       }),
 
       tickRestTimer: () => set((state) => {
         if (!state.restTimer.isRunning || !state.restTimer.endsAt) return state;
         
         if (new Date() >= state.restTimer.endsAt) {
-          const { endsAt, ...restTimer } = state.restTimer;
           return {
             restTimer: {
-              ...restTimer,
               isRunning: false,
+              durationSeconds: state.restTimer.durationSeconds,
             },
             lastUpdatedAt: new Date(),
           };
@@ -448,8 +461,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
             // If only 2 or fewer, dissolve the entire superset group
             exercises = exercises.map(ex => {
               if (ex.supersetGroup === group) {
-                const { supersetGroup, ...rest } = ex;
-                return rest;
+                return removeSupersetGroup(ex);
               }
               return ex;
             });
@@ -457,8 +469,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
             // Just remove the current exercise
             exercises = exercises.map(ex => {
               if (ex.id === sessionExerciseId) {
-                const { supersetGroup, ...rest } = ex;
-                return rest;
+                return removeSupersetGroup(ex);
               }
               return ex;
             });
@@ -484,6 +495,10 @@ export const useWorkoutStore = create<WorkoutStore>()(
       name: 'workout-storage',
       storage: createHydratedStorage('workout-storage', workoutPersistedSchema, defaultState),
       version: 1,
+      migrate: (persistedState) => {
+        const parsed = workoutPersistedSchema.safeParse(persistedState);
+        return parsed.success ? parsed.data : defaultState;
+      },
     }
   )
 );

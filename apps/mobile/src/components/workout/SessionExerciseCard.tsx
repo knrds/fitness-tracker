@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, Alert, Platform } from 'react-native';
-import { SessionExercise, ExerciseSet } from '@fitness-tracker/domain';
+import { SessionExercise, ExerciseSet, SetType } from '@fitness-tracker/domain';
 import { useWorkoutStore } from '../../stores/workoutStore';
 import { useExerciseStore } from '../../stores/exerciseStore';
 import { useProfileStore } from '../../stores/profileStore';
@@ -184,8 +184,8 @@ const SetRow = ({ set, index, isImperial, onUpdate, onComplete, onDelete }: SetR
 
   const cycleSetType = () => {
     if (isDone) return;
-    const types: ('working' | 'warmup' | 'drop' | 'failure')[] = ['working', 'warmup', 'drop', 'failure'];
-    const currentIdx = types.indexOf(set.type as any);
+    const types: SetType[] = ['working', 'warmup', 'drop', 'failure'];
+    const currentIdx = types.indexOf(set.type);
     const nextIdx = (currentIdx + 1) % types.length;
     const nextType = types[nextIdx]!;
     onUpdate({ type: nextType });

@@ -116,6 +116,10 @@ export const useHistoryStore = create<HistoryStore>()(
       name: 'history-storage',
       storage: createHydratedStorage('history-storage', historyPersistedSchema, defaultPersistedState),
       version: 1,
+      migrate: (persistedState) => {
+        const parsed = historyPersistedSchema.safeParse(persistedState);
+        return parsed.success ? parsed.data : defaultPersistedState;
+      },
     }
   )
 );

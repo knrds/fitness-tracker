@@ -161,6 +161,10 @@ export const useAchievementStore = create<AchievementState>()(
       name: 'achievement-storage',
       storage: createHydratedStorage('achievement-storage', achievementPersistedSchema, defaultPersistedState),
       version: 1,
+      migrate: (persistedState) => {
+        const parsed = achievementPersistedSchema.safeParse(persistedState);
+        return parsed.success ? parsed.data : defaultPersistedState;
+      },
     }
   )
 );

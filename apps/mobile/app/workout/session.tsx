@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Share } from 'react-native';
+import * as Crypto from 'expo-crypto';
+import { useRouter } from 'expo-router';
+
+import { TemplateExercise, SessionExercise, summarizeWorkout } from '@fitness-tracker/domain';
+
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { SessionExerciseCard } from '../../src/components/workout/SessionExerciseCard';
 import { RestTimer } from '../../src/components/workout/RestTimer';
@@ -7,16 +12,13 @@ import { ExercisePickerModal } from '../../src/components/workout/ExercisePicker
 import { SaveTemplateModal } from '../../src/components/workout/SaveTemplateModal';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useProfileStore } from '../../src/stores/profileStore';
-import { TemplateExercise, SessionExercise } from '@fitness-tracker/domain';
-import * as Crypto from 'expo-crypto';
-import { useRouter } from 'expo-router';
 
 export default function WorkoutSessionScreen() {
   const router = useRouter();
-  const { 
-    status, 
-    name, 
-    exercises, 
+  const {
+    status,
+    name,
+    exercises,
     notes,
     pauseWorkout,
     resumeWorkout,
@@ -25,12 +27,13 @@ export default function WorkoutSessionScreen() {
     updateWorkoutNotes,
     startedAt,
     pausedAt,
-    accumulatedPauseMs
+    accumulatedPauseMs,
   } = useWorkoutStore();
   const { createTemplate } = useProgramStore();
-  
+
   const [pickerVisible, setPickerVisible] = useState(false);
   const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -84,54 +87,56 @@ export default function WorkoutSessionScreen() {
     });
   };
 
-  const handleFinish = () => {
-    setSaveModalVisible(true);
-  };
-
   const finalizeWorkout = async () => {
-    // Collect session details for sharing
-    const state = useWorkoutStore.getState();
-    const durationMin = Math.round(elapsed / 60);
+    if (isFinishing) return;
+    setIsFinishing(true);
 
-    let volumeKg = 0;
-    let totalSets = 0;
-    state.exercises.forEach(ex => {
-      ex.sets.forEach(set => {
-        if (set.completed && set.weight && set.reps) {
-          volumeKg += set.weight * set.reps;
-          totalSets++;
-        }
-      });
-    });
+    const finishedSession = finishWorkout();
+    if (!finishedSession) {
+      setSaveModalVisible(false);
+      router.replace('/');
+      return;
+    }
 
-    const preferredUnits = useProfileStore.getState().profile?.preferredUnits || 'metric';
+    const summary = summarizeWorkout(finishedSession);
+    const durationMin = Math.round(summary.durationSeconds / 60);
+    const preferredUnits = useProfileStore.getState().profile.preferredUnits;
     const isImperial = preferredUnits === 'imperial';
-    const displayVolume = isImperial ? Math.round(volumeKg * 2.20462) : Math.round(volumeKg);
+    const displayVolume = isImperial
+      ? Math.round(summary.totalVolume * 2.20462)
+      : Math.round(summary.totalVolume);
     const volumeUnit = isImperial ? 'lbs' : 'kg';
 
-    let shareMessage = `🏋️ Workout completed: ${state.name}\n`;
-    shareMessage += `⏱️ Duration: ${durationMin} min\n`;
-    shareMessage += `💪 Total Volume: ${displayVolume} ${volumeUnit}\n`;
-    shareMessage += `📊 Total Sets: ${totalSets}\n`;
-    if (state.notes) {
-      shareMessage += `📝 Note: ${state.notes}\n`;
+    let shareMessage = `Workout completed: ${finishedSession.name}\n`;
+    shareMessage += `Duration: ${durationMin} min\n`;
+    shareMessage += `Total Volume: ${displayVolume} ${volumeUnit}\n`;
+    shareMessage += `Total Sets: ${summary.setCount}\n`;
+    if (finishedSession.notes) {
+      shareMessage += `Note: ${finishedSession.notes}\n`;
     }
     shareMessage += `\nTracked with Fitness Tracker App!`;
 
-    // Finish workout in store
-    finishWorkout();
-
-    // Trigger system share dialog
     try {
       await Share.share({ message: shareMessage });
     } catch (e) {
       console.log('Sharing failed', e);
     }
 
-    router.navigate('/');
+    router.replace('/');
+  };
+
+  const handleFinish = () => {
+    if (isFinishing) return;
+    const hasCompletedSet = exercises.some(ex => ex.sets.some(set => set.completed));
+    if (!hasCompletedSet) {
+      finalizeWorkout();
+      return;
+    }
+    setSaveModalVisible(true);
   };
 
   const handleSaveTemplate = (templateName: string) => {
+    if (isFinishing) return;
     createTemplate({
       name: templateName,
       exercises: mapToTemplateExercises(exercises),
@@ -141,6 +146,7 @@ export default function WorkoutSessionScreen() {
   };
 
   const handleSkipTemplate = () => {
+    if (isFinishing) return;
     setSaveModalVisible(false);
     finalizeWorkout();
   };
@@ -166,10 +172,10 @@ export default function WorkoutSessionScreen() {
           <Text style={styles.title}>{name}</Text>
           <Text style={styles.timer}>{formatElapsed(elapsed)}</Text>
         </View>
-        
+
         <View style={styles.headerActions}>
-          <Pressable 
-            style={[styles.actionBtn, styles.pauseBtn]} 
+          <Pressable
+            style={[styles.actionBtn, styles.pauseBtn]}
             onPress={status === 'active' ? pauseWorkout : resumeWorkout}
           >
             <Text style={styles.actionBtnText}>
@@ -186,7 +192,7 @@ export default function WorkoutSessionScreen() {
         {exercises.map(ex => (
           <SessionExerciseCard key={ex.id} sessionExercise={ex} />
         ))}
-        
+
         <Pressable style={styles.addBtn} onPress={handleAddExercise}>
           <Text style={styles.addBtnText}>+ Add Exercise</Text>
         </Pressable>
@@ -206,7 +212,7 @@ export default function WorkoutSessionScreen() {
       </ScrollView>
 
       <RestTimer />
-      
+
       <ExercisePickerModal
         visible={pickerVisible}
         onClose={() => setPickerVisible(false)}

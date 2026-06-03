@@ -1,6 +1,7 @@
 import { useWorkoutStore } from '../workoutStore';
 import { useHistoryStore } from '../historyStore';
 import { WorkoutTemplate, WorkoutSession } from '@fitness-tracker/domain';
+import { LOCAL_USER_ID } from '../local-user';
 
 jest.mock('react-native-mmkv', () => ({
   MMKV: jest.fn().mockImplementation(() => ({
@@ -66,6 +67,20 @@ describe('workoutStore', () => {
     expect(historySessions.length).toBe(1);
     expect(historySessions[0]!.name).toBe('Leg Day');
     expect(historySessions[0]!.exercises[0]!.exerciseId).toBe('exercise-123');
+  });
+
+  it('should ignore duplicate finish calls after saving once', () => {
+    useWorkoutStore.getState().startWorkout('Leg Day');
+    useWorkoutStore.getState().addExercise('exercise-123');
+    const exId = useWorkoutStore.getState().exercises[0]!.id;
+    useWorkoutStore.getState().addSet(exId, { weight: 100, reps: 10, completed: true });
+
+    const firstResult = useWorkoutStore.getState().finishWorkout();
+    const secondResult = useWorkoutStore.getState().finishWorkout();
+
+    expect(firstResult?.userId).toBe(LOCAL_USER_ID);
+    expect(secondResult).toBeNull();
+    expect(useHistoryStore.getState().sessions.length).toBe(1);
   });
 
   it('should start a workout from template with programId', () => {
@@ -164,8 +179,9 @@ describe('workoutStore', () => {
     const exId = useWorkoutStore.getState().exercises[0]!.id;
     useWorkoutStore.getState().addSet(exId, { weight: 100, reps: 10, completed: false }); // not completed
 
-    useWorkoutStore.getState().finishWorkout();
+    const result = useWorkoutStore.getState().finishWorkout();
 
+    expect(result).toBeNull();
     expect(useWorkoutStore.getState().status).toBe('idle');
     const historySessions = useHistoryStore.getState().sessions;
     expect(historySessions.length).toBe(0);
@@ -204,7 +220,6 @@ describe('workoutStore', () => {
     useWorkoutStore.getState().addExercise('ex-2');
 
     const ex1Id = useWorkoutStore.getState().exercises[0]!.id;
-    const ex2Id = useWorkoutStore.getState().exercises[1]!.id;
 
     // Initially no superset
     expect(useWorkoutStore.getState().exercises[0]!.supersetGroup).toBeUndefined();

@@ -16,6 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useProfileStore } from '../src/stores/profileStore';
 import { useBodyMetricStore } from '../src/stores/bodyMetricStore';
 import { FitnessGoal, ExperienceLevel, UnitSystem, BiologicalSex } from '@fitness-tracker/domain';
+import { useExerciseStore } from '../src/stores/exerciseStore';
+import { ExercisePickerModal } from '../src/components/workout/ExercisePickerModal';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -64,6 +66,9 @@ export default function ProfileScreen() {
   const [jsonModalVisible, setJsonModalVisible] = useState(false);
   const [exportedJson, setExportedJson] = useState('');
 
+  const { exercises } = useExerciseStore();
+  const [isRpePickerVisible, setRpePickerVisible] = useState(false);
+  const [isRirPickerVisible, setRirPickerVisible] = useState(false);
   const stats = getStatistics();
 
   const handleSaveProfile = () => {
@@ -130,35 +135,35 @@ export default function ProfileScreen() {
 
     const isNowImperial = nextUnit === 'imperial';
 
-    setHeight(prev => {
+    setHeight((prev: string) => {
       if (!prev) return '';
       const val = parseFloat(prev);
       if (isNaN(val)) return '';
       return isNowImperial ? (val / 2.54).toFixed(1) : (val * 2.54).toFixed(1);
     });
 
-    setWeight(prev => {
+    setWeight((prev: string) => {
       if (!prev) return '';
       const val = parseFloat(prev);
       if (isNaN(val)) return '';
       return isNowImperial ? (val * 2.20462).toFixed(1) : (val / 2.20462).toFixed(1);
     });
 
-    setBenchPressMax(prev => {
+    setBenchPressMax((prev: string) => {
       if (!prev) return '';
       const val = parseFloat(prev);
       if (isNaN(val)) return '';
       return isNowImperial ? (val * 2.20462).toFixed(1) : (val / 2.20462).toFixed(1);
     });
 
-    setSquatMax(prev => {
+    setSquatMax((prev: string) => {
       if (!prev) return '';
       const val = parseFloat(prev);
       if (isNaN(val)) return '';
       return isNowImperial ? (val * 2.20462).toFixed(1) : (val / 2.20462).toFixed(1);
     });
 
-    setDeadliftMax(prev => {
+    setDeadliftMax((prev: string) => {
       if (!prev) return '';
       const val = parseFloat(prev);
       if (isNaN(val)) return '';
@@ -399,6 +404,84 @@ export default function ProfileScreen() {
             </View>
           </Pressable>
 
+          <View style={styles.settingsRowVertical}>
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="eye-outline" size={22} color="#475569" />
+              <Text style={styles.settingsLabel}>RPE Column Tracking</Text>
+            </View>
+            <View style={styles.chipRow}>
+              {([
+                { value: 'always_on', label: 'Always Show' },
+                { value: 'always_off', label: 'Always Hide' },
+                { value: 'selected_exercises', label: 'For Selected' }
+              ] as const).map(opt => {
+                const isActive = (profile.rpeMode || 'always_on') === opt.value;
+                return (
+                  <Pressable
+                    key={opt.value}
+                    style={[styles.chip, isActive && styles.chipActive]}
+                    onPress={() => updateProfile({ rpeMode: opt.value })}
+                  >
+                    <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{opt.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {profile.rpeMode === 'selected_exercises' && (
+              <View style={styles.selectedExercisesContainer}>
+                <Pressable style={styles.selectBtn} onPress={() => setRpePickerVisible(true)}>
+                  <Text style={styles.selectBtnText}>
+                    Select Exercises ({profile.rpeEnabledExerciseIds?.length || 0} selected)
+                  </Text>
+                </Pressable>
+                {profile.rpeEnabledExerciseIds && profile.rpeEnabledExerciseIds.length > 0 && (
+                  <Text style={styles.selectedExercisesText}>
+                    Selected: {profile.rpeEnabledExerciseIds.map(id => exercises.find(e => e.id === id)?.name).filter(Boolean).join(', ')}
+                  </Text>
+                )}
+              </View>
+            )}
+          </View>
+
+          <View style={styles.settingsRowVertical}>
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="eye-outline" size={22} color="#475569" />
+              <Text style={styles.settingsLabel}>RIR Column Tracking</Text>
+            </View>
+            <View style={styles.chipRow}>
+              {([
+                { value: 'always_on', label: 'Always Show' },
+                { value: 'always_off', label: 'Always Hide' },
+                { value: 'selected_exercises', label: 'For Selected' }
+              ] as const).map(opt => {
+                const isActive = (profile.rirMode || 'always_on') === opt.value;
+                return (
+                  <Pressable
+                    key={opt.value}
+                    style={[styles.chip, isActive && styles.chipActive]}
+                    onPress={() => updateProfile({ rirMode: opt.value })}
+                  >
+                    <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{opt.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {profile.rirMode === 'selected_exercises' && (
+              <View style={styles.selectedExercisesContainer}>
+                <Pressable style={styles.selectBtn} onPress={() => setRirPickerVisible(true)}>
+                  <Text style={styles.selectBtnText}>
+                    Select Exercises ({profile.rirEnabledExerciseIds?.length || 0} selected)
+                  </Text>
+                </Pressable>
+                {profile.rirEnabledExerciseIds && profile.rirEnabledExerciseIds.length > 0 && (
+                  <Text style={styles.selectedExercisesText}>
+                    Selected: {profile.rirEnabledExerciseIds.map(id => exercises.find(e => e.id === id)?.name).filter(Boolean).join(', ')}
+                  </Text>
+                )}
+              </View>
+            )}
+          </View>
+
           <Pressable style={styles.settingsRow} onPress={handleExport}>
             <View style={styles.settingsRowLeft}>
               <Ionicons name="download-outline" size={22} color="#475569" />
@@ -416,6 +499,18 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
       </ScrollView>
+
+      {/* Exercise Selection Modals */}
+      <ExercisePickerModal
+        visible={isRpePickerVisible}
+        onClose={() => setRpePickerVisible(false)}
+        onSelect={(exerciseIds) => updateProfile({ rpeEnabledExerciseIds: exerciseIds })}
+      />
+      <ExercisePickerModal
+        visible={isRirPickerVisible}
+        onClose={() => setRirPickerVisible(false)}
+        onSelect={(exerciseIds) => updateProfile({ rirEnabledExerciseIds: exerciseIds })}
+      />
 
       {/* JSON Backup viewer Modal */}
       <Modal
@@ -598,6 +693,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
   },
+  settingsRowVertical: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+    gap: 8,
+  },
   lastRow: {
     borderBottomWidth: 0,
   },
@@ -676,5 +777,30 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  selectedExercisesContainer: {
+    marginTop: 6,
+    paddingLeft: 4,
+  },
+  selectBtn: {
+    backgroundColor: '#e0f2fe',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+  },
+  selectBtnText: {
+    color: '#0369a1',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  selectedExercisesText: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 6,
+    lineHeight: 18,
+    fontStyle: 'italic',
   },
 });

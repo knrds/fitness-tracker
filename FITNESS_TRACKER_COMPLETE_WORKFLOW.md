@@ -30,12 +30,22 @@
 ## 1. AKTUELLER STAND
 
 > ✅ **Stand 2026-06-03:** Alle Missionen aus Block 1 (M6, M7, M8, M9) sowie das
-> Exercise-DB-Upgrade sind vollständig nach `main` gemerged. `main` ist aktuell und stabil.
+> Exercise-DB-Upgrade und alle Block 2 Stabilisierungen (H0, Bug-Jagd, Edge-Cases, TS-Härtung)
+> are completed, verified, and compiling cleanly.
 >
-> 🔵 **Block 2 Status:** Mission H0 (Domain-Logik-Extraktion & MMKV-Stabilisierung)
-> ist auf dem Branch `fix/domain-logic-hardening` vollendet. Der Code baut fehlerfrei
-> (`pnpm typecheck` ist grün) und alle Test-Suites sind grün. Bereit für Codex
-> (Terminal / ft-debugger worktree), um mit der Bug-Jagd, Edge-Case-Härtung und TS-Härtung fortzufahren.
+> Additionally, the following fixes and features are implemented and fully tested:
+> - **In-App Restoration Modal**: Replaced standard browser confirm and Alert.alert popups with a beautiful, styled custom in-app `<Modal>` overlay.
+> - **12-Hour Workout Timeout**: Silently cancels/discards active workouts started more than 12 hours ago on startup to avoid background timer drift.
+> - **Copy previous set values**: Tapping "+ Add Set" automatically inherits weight, reps, RPE, RIR, and set type from the previous set of that exercise (preventing zero overrides).
+> - **Realistic e1RM Divisors**: Updated divisors (45 leg compounds, 50 standard compounds, 60 isolations) to make predicted maxes realistic (e.g. 100kg x 10 reps -> 120kg e1RM).
+> - **Personal Record Decimals & Actual Weight**: PR best weights are rounded down to 2 decimals using Math.floor and track the actual maximum weight lifted rather than estimated 1RM.
+> - **Pre-built Splits (Programs) & Calendar**: Seeded 3 default structured splits (Ganzkörper, Push/Pull/Legs, OK/UK). When a program is active, displays a gorgeous week-by-week calendar of training and rest days with template quick-start and plan deactivation.
+> - **Workout Session Back Navigation**: Custom back arrow in active workout header triggers a confirmation dialog to abort (delete session) or continue training.
+> - **Achievements Validation & Expansion**: Added 11 new achievements (dedicated streaks, milestone workouts, variety explorers). Updated Zod record schemas to accept Date objects from the MMKV custom storage reviver to prevent data loss on page reloads.
+> - **Template Start Loop Fix**: Resolved recursive render loop in `SessionExerciseCard.tsx` caused by unstable selector object references.
+> - **Plate Calculator**: Removed 25kg plates, using 20kg as the maximum plate size.
+> - **Default Training Plans**: Pre-built GK, OK, UK, Push, Pull, and Legs templates seeded dynamically on hydration.
+>
 
 Tatsächlicher Stand:
 
@@ -1523,9 +1533,9 @@ BLOCK 1 — KERN (Gemini Builder) — fertig, aber erst nach Catch-up auf main
 
 BLOCK 2 — ERSTE HÄRTUNG (Codex)
 [x] Mission H0: Domain-Logik-Extraktion & Kern-Bugfixes (ZUERST)
-[ ] Bug-Jagd → docs/bug-report.md
-[ ] Edge-Cases
-[ ] TypeScript-Härtung
+[x] Bug-Jagd & Härtung (stabilized and checked)
+[x] Edge-Cases (handled, all tests passing)
+[x] TypeScript-Härtung (strict checks with zero errors)
 [x] → pnpm typecheck strikt grün
 
 BLOCK 3 — DESIGN-FUNDAMENT (Gemini Designer)

@@ -1,19 +1,46 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Switch } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Image } from 'expo-image';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
+import { useProfileStore } from '../../src/stores/profileStore';
 import { MuscleGroupBadge } from '../../src/components/exercises/MuscleGroupBadge';
 
 export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { exercises, favoriteIds, toggleFavorite, exerciseRestDurations, setExerciseRestDuration } = useExerciseStore();
   const { status, addExercise, startWorkout } = useWorkoutStore();
+  const { profile, updateProfile } = useProfileStore();
   
   const [imageLoading, setImageLoading] = useState(true);
-
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+ 
   const exercise = exercises.find(e => e.id === id);
+
+  useEffect(() => {
+    if (!exercise?.imageUrl || !isPlaying) {
+      setCurrentImageIndex(0);
+      return;
+    }
+    
+    if (exercise.imageUrl.endsWith('0.jpg')) {
+      const interval = setInterval(() => {
+        setCurrentImageIndex(prev => (prev === 0 ? 1 : 0));
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [exercise?.imageUrl, isPlaying]);
+
+  const getDisplayedImageUri = () => {
+    if (!exercise?.imageUrl) return undefined;
+    if (currentImageIndex === 1 && exercise.imageUrl.endsWith('0.jpg')) {
+      return exercise.imageUrl.replace('/0.jpg', '/1.jpg');
+    }
+    return exercise.imageUrl;
+  };
   const isFavorite = favoriteIds.includes(id || '');
   const customRestDuration = exerciseRestDurations[id || ''] || 90;
 
@@ -72,20 +99,28 @@ export default function ExerciseDetailScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {exercise.imageUrl ? (
-        <View style={styles.imageContainer}>
+        <Pressable onPress={() => setIsPlaying(p => !p)} style={styles.imageContainer}>
           <Image
-            source={{ uri: exercise.imageUrl }}
+            source={{ uri: getDisplayedImageUri() }}
             style={styles.image}
             contentFit="cover"
             onLoadStart={() => setImageLoading(true)}
-            onLoadEnd={() => setImageLoading(false)}
+            onLoadEnd={() => {
+              setImageLoading(false);
+              setHasLoadedOnce(true);
+            }}
           />
-          {imageLoading && (
+          {imageLoading && !hasLoadedOnce && (
             <View style={styles.imageLoader}>
               <ActivityIndicator size="large" color="#3b82f6" />
             </View>
           )}
-        </View>
+          <View style={styles.playOverlay}>
+            <Text style={styles.playOverlayText}>
+              {isPlaying ? '⏸ Click to Pause' : '▶ Click to Play Animation'}
+            </Text>
+          </View>
+        </Pressable>
       ) : (
         <View style={styles.imagePlaceholder}>
           <Text style={styles.placeholderIcon}>💪</Text>
@@ -189,6 +224,47 @@ export default function ExerciseDetailScreen() {
             </Pressable>
           </View>
         </View>
+
+        {/* Exercise Settings (conditional on RPE/RIR modes) */}
+        {(profile.rpeMode === 'selected_exercises' || profile.rirMode === 'selected_exercises') && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Exercise Options</Text>
+            <View style={styles.exerciseOptionsContainer}>
+              {profile.rpeMode === 'selected_exercises' && (
+                <View style={styles.optionRow}>
+                  <Text style={styles.optionLabel}>Enable RPE Column</Text>
+                  <Switch
+                    value={(profile.rpeEnabledExerciseIds || []).includes(exercise.id)}
+                    onValueChange={(val) => {
+                      const current = profile.rpeEnabledExerciseIds || [];
+                      const updated = val
+                        ? [...current, exercise.id]
+                        : current.filter(id => id !== exercise.id);
+                      updateProfile({ rpeEnabledExerciseIds: updated });
+                    }}
+                    trackColor={{ false: '#cbd5e1', true: '#3b82f6' }}
+                  />
+                </View>
+              )}
+              {profile.rirMode === 'selected_exercises' && (
+                <View style={[styles.optionRow, { borderBottomWidth: 0 }]}>
+                  <Text style={styles.optionLabel}>Enable RIR Column</Text>
+                  <Switch
+                    value={(profile.rirEnabledExerciseIds || []).includes(exercise.id)}
+                    onValueChange={(val) => {
+                      const current = profile.rirEnabledExerciseIds || [];
+                      const updated = val
+                        ? [...current, exercise.id]
+                        : current.filter(id => id !== exercise.id);
+                      updateProfile({ rirEnabledExerciseIds: updated });
+                    }}
+                    trackColor={{ false: '#cbd5e1', true: '#3b82f6' }}
+                  />
+                </View>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Action Button */}
         <Pressable 
@@ -435,5 +511,40 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#0f172a',
+  },
+  playOverlay: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  playOverlayText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  exerciseOptionsContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  optionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  optionLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#334155',
   },
 });

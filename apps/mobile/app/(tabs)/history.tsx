@@ -182,7 +182,12 @@ function ProgressView() {
             <View style={styles.prHighlight}>
               <Text style={styles.prHighlightLabel}>Best Weight</Text>
               <Text style={styles.prHighlightValue}>
-                {isImperial ? Math.round(prs[selectedExId]! * 2.20462) : prs[selectedExId]} {isImperial ? 'lbs' : 'kg'}
+                {(() => {
+                  const rawVal = prs[selectedExId]!;
+                  const converted = isImperial ? rawVal * 2.20462 : rawVal;
+                  const roundedDown = Math.floor(converted * 100) / 100;
+                  return roundedDown.toFixed(2);
+                })()} {isImperial ? 'lbs' : 'kg'}
               </Text>
             </View>
           )}
@@ -200,12 +205,12 @@ function AchievementsView() {
   const currentLevelXp = xp % 500;
   const xpProgressPercent = Math.min(100, Math.floor((currentLevelXp / 500) * 100));
 
-  const formatDate = (isoStr: string) => {
+  const formatDate = (dateInput: string | Date) => {
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
-    }).format(new Date(isoStr));
+    }).format(new Date(dateInput));
   };
 
   const unlockedList = ACHIEVEMENTS.filter(a => unlockedAchievements[a.id] !== undefined);

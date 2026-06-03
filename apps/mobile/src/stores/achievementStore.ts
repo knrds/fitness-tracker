@@ -15,7 +15,7 @@ import { createHydratedStorage } from './storage';
 export interface AchievementState {
   xp: number;
   level: number;
-  unlockedAchievements: Record<string, string>; // achievementId -> ISO date string
+  unlockedAchievements: Record<string, string | Date>; // achievementId -> ISO date string or Date object
   newlyUnlocked: string[]; // achievementIds unlocked in the last finishWorkout
   levelUpTo: number | null; // level reached if leveled up in the last finishWorkout
   awardXpAndCheckAchievements: (session: WorkoutSession) => void;
@@ -26,7 +26,7 @@ export interface AchievementState {
 const achievementPersistedSchema = z.object({
   xp: z.number().int().nonnegative(),
   level: z.number().int().positive(),
-  unlockedAchievements: z.record(z.string()),
+  unlockedAchievements: z.record(z.union([z.string(), z.instanceof(Date)])),
   newlyUnlocked: z.array(z.string()),
   levelUpTo: z.number().int().positive().nullable(),
 });
@@ -106,29 +106,38 @@ export const useAchievementStore = create<AchievementState>()(
           let isSatisfied = false;
           switch (ach.id) {
             case 'first_workout':
-              isSatisfied = totalWorkouts >= ach.targetValue;
-              break;
+            case 'workouts_5':
             case 'workouts_10':
+            case 'workouts_25':
             case 'workouts_50':
             case 'workouts_100':
+            case 'workouts_250':
               isSatisfied = totalWorkouts >= ach.targetValue;
               break;
+            case 'streak_3':
             case 'streak_7':
+            case 'streak_14':
             case 'streak_30':
               isSatisfied = streak >= ach.targetValue;
               break;
             case 'first_pr':
+            case 'prs_5':
             case 'prs_10':
+            case 'prs_25':
               isSatisfied = totalPrs >= ach.targetValue;
               break;
             case 'volume_10k':
             case 'volume_50k':
+            case 'volume_100k':
+            case 'volume_500k':
               isSatisfied = totalVolume >= ach.targetValue;
               break;
             case 'muscles_all':
               isSatisfied = trainedMuscles.size >= ach.targetValue;
               break;
+            case 'unique_exercises_10':
             case 'unique_exercises_30':
+            case 'unique_exercises_50':
               isSatisfied = uniqueExercisesCount >= ach.targetValue;
               break;
           }

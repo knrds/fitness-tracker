@@ -73,7 +73,7 @@ export interface WorkoutActions {
   resetWorkout: () => void;
   addExercise: (exerciseId: UUID) => void;
   removeExercise: (sessionExerciseId: UUID) => void;
-  addSet: (sessionExerciseId: UUID, set: Partial<ExerciseSet>) => void;
+  addSet: (sessionExerciseId: UUID, set?: Partial<ExerciseSet>) => void;
   updateSet: (sessionExerciseId: UUID, setId: UUID, updates: Partial<ExerciseSet>) => void;
   completeSet: (sessionExerciseId: UUID, setId: UUID) => void;
   removeSet: (sessionExerciseId: UUID, setId: UUID) => void;
@@ -269,7 +269,16 @@ export const useWorkoutStore = create<WorkoutStore>()(
           id: Crypto.randomUUID(),
           exerciseId,
           order: state.exercises.length,
-          sets: [],
+          sets: [
+            {
+              id: Crypto.randomUUID(),
+              setNumber: 1,
+              type: 'working',
+              completed: false,
+              weight: 0,
+              reps: 0,
+            }
+          ],
         };
         return { 
           exercises: [...state.exercises, newExercise],
@@ -282,15 +291,26 @@ export const useWorkoutStore = create<WorkoutStore>()(
         lastUpdatedAt: new Date(),
       })),
 
-      addSet: (sessionExerciseId, setPartial) => set((state) => {
+      addSet: (sessionExerciseId, setPartial = {}) => set((state) => {
         const exercises = state.exercises.map(ex => {
           if (ex.id !== sessionExerciseId) return ex;
           
+          const lastSet = ex.sets[ex.sets.length - 1];
+          const defaults: Partial<ExerciseSet> = {};
+          if (lastSet) {
+            if (lastSet.weight !== undefined) defaults.weight = lastSet.weight;
+            if (lastSet.reps !== undefined) defaults.reps = lastSet.reps;
+            if (lastSet.rpe !== undefined) defaults.rpe = lastSet.rpe;
+            if (lastSet.rir !== undefined) defaults.rir = lastSet.rir;
+            if (lastSet.type !== undefined) defaults.type = lastSet.type;
+          }
+
           const newSet: ExerciseSet = {
             id: Crypto.randomUUID(),
             setNumber: ex.sets.length + 1,
             type: 'working',
             completed: false,
+            ...defaults,
             ...setPartial,
           };
           return { ...ex, sets: [...ex.sets, newSet] };
@@ -308,13 +328,35 @@ export const useWorkoutStore = create<WorkoutStore>()(
       }),
 
       completeSet: (sessionExerciseId, setId) => set((state) => {
+        let wasCompleted = false;
         const exercises = state.exercises.map(ex => {
           if (ex.id !== sessionExerciseId) return ex;
-          const sets = ex.sets.map(s => 
-            s.id === setId ? { ...s, completed: true, completedAt: new Date() } : s
-          );
+          const sets = ex.sets.map(s => {
+            if (s.id === setId) {
+              wasCompleted = s.completed;
+              const nextCompleted = !s.completed;
+              const updatedSet: ExerciseSet = {
+                ...s,
+                completed: nextCompleted,
+              };
+              if (nextCompleted) {
+                updatedSet.completedAt = new Date();
+              } else {
+                delete updatedSet.completedAt;
+              }
+              return updatedSet;
+            }
+            return s;
+          });
           return { ...ex, sets };
         });
+        
+        if (wasCompleted) {
+          return {
+            exercises,
+            lastUpdatedAt: new Date(),
+          };
+        }
         
         // Auto-start rest timer
         const exercise = state.exercises.find(ex => ex.id === sessionExerciseId);

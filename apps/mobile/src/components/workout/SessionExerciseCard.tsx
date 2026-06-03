@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, Alert, Platform } from 'react-native';
-import { SessionExercise, ExerciseSet, SetType } from '@fitness-tracker/domain';
+import { SessionExercise, ExerciseSet, SetType, estimateOneRepMax } from '@fitness-tracker/domain';
 import { useWorkoutStore } from '../../stores/workoutStore';
 import { useExerciseStore } from '../../stores/exerciseStore';
 import { useProfileStore } from '../../stores/profileStore';
@@ -17,11 +17,20 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
   const { profile } = useProfileStore();
   const isImperial = profile.preferredUnits === 'imperial';
 
-  const lastPerformance = useHistoryStore(state => state.getPreviousPerformance(sessionExercise.exerciseId));
+  const getPreviousPerformance = useHistoryStore(state => state.getPreviousPerformance);
+  const lastPerformance = React.useMemo(() => getPreviousPerformance(sessionExercise.exerciseId), [getPreviousPerformance, sessionExercise.exerciseId]);
   const [plateCalcVisible, setPlateCalcVisible] = useState(false);
 
   const exercise = exercises.find(e => e.id === sessionExercise.exerciseId);
   if (!exercise) return null;
+
+  const rpeMode = profile.rpeMode || 'always_on';
+  const rirMode = profile.rirMode || 'always_on';
+  const rpeEnabledExerciseIds = profile.rpeEnabledExerciseIds || [];
+  const rirEnabledExerciseIds = profile.rirEnabledExerciseIds || [];
+
+  const showRpe = rpeMode === 'always_on' || (rpeMode === 'selected_exercises' && rpeEnabledExerciseIds.includes(sessionExercise.exerciseId));
+  const showRir = rirMode === 'always_on' || (rirMode === 'selected_exercises' && rirEnabledExerciseIds.includes(sessionExercise.exerciseId));
 
   const confirmDeleteExercise = () => {
     if (Platform.OS === 'web') {
@@ -78,6 +87,31 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
     return `Last: ${setsStrUnits} on ${dateStr}`;
   };
 
+  const handleToggleSuperset = () => {
+    const currentIdx = useWorkoutStore.getState().exercises.findIndex(ex => ex.id === sessionExercise.id);
+    const totalEx = useWorkoutStore.getState().exercises.length;
+    
+    if (sessionExercise.supersetGroup) {
+      toggleSuperset(sessionExercise.id);
+      Alert.alert("Superset", "Exercise unlinked from superset.");
+    } else {
+      if (currentIdx === totalEx - 1) {
+        Alert.alert(
+          "Superset",
+          "Supersets link this exercise with the next one. Please add another exercise first to create a superset."
+        );
+      } else {
+        toggleSuperset(sessionExercise.id);
+        const nextExId = useWorkoutStore.getState().exercises[currentIdx + 1]?.exerciseId;
+        const nextEx = exercises.find(e => e.id === nextExId);
+        Alert.alert(
+          "Superset Created",
+          `Linked this exercise with "${nextEx?.name || 'the next exercise'}" as a superset.`
+        );
+      }
+    }
+  };
+
   return (
     <View style={[styles.card, sessionExercise.supersetGroup ? styles.cardSuperset : null]}>
       {sessionExercise.supersetGroup && (
@@ -96,7 +130,7 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
           <Pressable onPress={() => setPlateCalcVisible(true)} style={styles.iconBtn}>
             <Text style={styles.iconText}>🏋️</Text>
           </Pressable>
-          <Pressable onPress={() => toggleSuperset(sessionExercise.id)} style={styles.iconBtn}>
+          <Pressable onPress={handleToggleSuperset} style={styles.iconBtn}>
             <Text style={[styles.iconText, sessionExercise.supersetGroup && styles.iconTextLinked]}>
               {sessionExercise.supersetGroup ? '🔗' : '⛓️'}
             </Text>
@@ -111,8 +145,8 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
         <Text style={[styles.columnHeader, styles.setCol]}>Set</Text>
         <Text style={[styles.columnHeader, styles.inputCol]}>{isImperial ? 'lbs' : 'kg'}</Text>
         <Text style={[styles.columnHeader, styles.inputCol]}>Reps</Text>
-        <Text style={[styles.columnHeader, styles.inputCol]}>RPE</Text>
-        <Text style={[styles.columnHeader, styles.inputCol]}>RIR</Text>
+        {showRpe && <Text style={[styles.columnHeader, styles.inputCol]}>RPE</Text>}
+        {showRir && <Text style={[styles.columnHeader, styles.inputCol]}>RIR</Text>}
         <Text style={[styles.columnHeader, styles.doneCol]}>✓</Text>
         <Text style={[styles.columnHeader, styles.delCol]}></Text>
       </View>
@@ -124,6 +158,9 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
           index={idx}
           sessionExerciseId={sessionExercise.id}
           isImperial={isImperial}
+          showRpe={showRpe}
+          showRir={showRir}
+          exerciseName={exercise.name}
           onUpdate={(updates) => updateSet(sessionExercise.id, set.id, updates)}
           onComplete={() => completeSet(sessionExercise.id, set.id)}
           onDelete={() => removeSet(sessionExercise.id, set.id)}
@@ -133,7 +170,7 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
       <View style={styles.footerRow}>
         <Pressable 
           style={styles.addSetBtn} 
-          onPress={() => addSet(sessionExercise.id, { weight: 0, reps: 0 })}
+          onPress={() => addSet(sessionExercise.id)}
         >
           <Text style={styles.addSetText}>+ Add Set</Text>
         </Pressable>
@@ -159,12 +196,15 @@ interface SetRowProps {
   index: number;
   sessionExerciseId: string;
   isImperial: boolean;
+  showRpe: boolean;
+  showRir: boolean;
+  exerciseName?: string;
   onUpdate: (updates: Partial<ExerciseSet>) => void;
   onComplete: () => void;
   onDelete: () => void;
 }
 
-const SetRow = ({ set, index, isImperial, onUpdate, onComplete, onDelete }: SetRowProps) => {
+const SetRow = ({ set, index, isImperial, showRpe, showRir, exerciseName, onUpdate, onComplete, onDelete }: SetRowProps) => {
   const isDone = set.completed;
   
   // Format the display weight for imperial, round/clean it up
@@ -208,7 +248,7 @@ const SetRow = ({ set, index, isImperial, onUpdate, onComplete, onDelete }: SetR
   const weightVal = set.weight || 0;
   const repsVal = set.reps || 0;
   const displayWeight = isImperial ? weightVal * 2.20462 : weightVal;
-  const e1rm = (displayWeight > 0 && repsVal > 0) ? displayWeight * (1 + repsVal / 30) : 0;
+  const e1rm = estimateOneRepMax(displayWeight, repsVal, set.rpe, set.rir, exerciseName);
 
   return (
     <View style={styles.rowContainer}>
@@ -221,7 +261,6 @@ const SetRow = ({ set, index, isImperial, onUpdate, onComplete, onDelete }: SetR
           keyboardType="numeric"
           value={getDisplayWeight()}
           onChangeText={handleWeightChange}
-          editable={!isDone}
           placeholder="-"
         />
         <TextInput
@@ -229,25 +268,26 @@ const SetRow = ({ set, index, isImperial, onUpdate, onComplete, onDelete }: SetR
           keyboardType="numeric"
           value={set.reps ? set.reps.toString() : ''}
           onChangeText={(text) => onUpdate({ reps: parseInt(text, 10) || 0 })}
-          editable={!isDone}
           placeholder="-"
         />
-        <TextInput
-          style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
-          keyboardType="numeric"
-          value={set.rpe ? set.rpe.toString() : ''}
-          onChangeText={(text) => onUpdate({ rpe: parseFloat(text) || 0 })}
-          editable={!isDone}
-          placeholder="-"
-        />
-        <TextInput
-          style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
-          keyboardType="numeric"
-          value={set.rir !== undefined ? set.rir.toString() : ''}
-          onChangeText={(text) => onUpdate({ rir: parseInt(text, 10) || 0 })}
-          editable={!isDone}
-          placeholder="-"
-        />
+        {showRpe && (
+          <TextInput
+            style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
+            keyboardType="numeric"
+            value={set.rpe ? set.rpe.toString() : ''}
+            onChangeText={(text) => onUpdate({ rpe: parseFloat(text) || 0 })}
+            placeholder="-"
+          />
+        )}
+        {showRir && (
+          <TextInput
+            style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
+            keyboardType="numeric"
+            value={set.rir !== undefined ? set.rir.toString() : ''}
+            onChangeText={(text) => onUpdate({ rir: parseInt(text, 10) || 0 })}
+            placeholder="-"
+          />
+        )}
         <Pressable 
           style={[styles.doneBtn, styles.doneCol, isDone && styles.doneBtnActive]} 
           onPress={onComplete}

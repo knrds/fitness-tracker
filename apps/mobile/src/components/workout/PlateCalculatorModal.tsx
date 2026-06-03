@@ -50,7 +50,7 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
     if (weightKg <= barbell) return [];
 
     let perSide = (weightKg - barbell) / 2;
-    const plates = [25, 20, 15, 10, 5, 2.5, 1.25];
+    const plates = [20, 15, 10, 5, 2.5, 1.25];
     const result: PlateCount[] = [];
 
     for (const plate of plates) {
@@ -109,14 +109,16 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
           {/* Barbell Visualization */}
           {targetWeightKg > 20 && (
             <View style={styles.visualizerContainer}>
-              <View style={styles.barbellCollar} />
-              <View style={styles.barbellBar} />
-              <View style={styles.platesWrapper}>
+              {/* Left Sleeve End */}
+              <View style={styles.barbellSleeveLeft} />
+              
+              {/* Left Plates Wrapper (right-aligned to collar) */}
+              <View style={[styles.platesWrapper, { flexDirection: 'row-reverse' }]}>
                 {visualPlates.map((weight, idx) => {
                   const meta = PLATE_METADATA[weight] || { color: '#cbd5e1', labelColor: '#334155', height: 40, width: 12 };
                   return (
                     <View
-                      key={idx}
+                      key={`left-${idx}`}
                       style={[
                         styles.plateBlock,
                         {
@@ -127,14 +129,50 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
                         },
                       ]}
                     >
-                      <Text style={[styles.plateLabel, { color: meta.labelColor, fontSize: meta.width < 14 ? 7 : 9 }]}>
+                      <Text style={[styles.plateLabel, { color: meta.labelColor, fontSize: meta.width < 14 ? 6 : 8 }]}>
                         {weight}
                       </Text>
                     </View>
                   );
                 })}
               </View>
-              <View style={styles.barbellSleeve} />
+
+              {/* Left Collar */}
+              <View style={styles.barbellCollar} />
+
+              {/* Center Bar */}
+              <View style={styles.barbellCenter} />
+
+              {/* Right Collar */}
+              <View style={styles.barbellCollar} />
+
+              {/* Right Plates Wrapper (left-aligned to collar) */}
+              <View style={[styles.platesWrapper, { flexDirection: 'row' }]}>
+                {visualPlates.map((weight, idx) => {
+                  const meta = PLATE_METADATA[weight] || { color: '#cbd5e1', labelColor: '#334155', height: 40, width: 12 };
+                  return (
+                    <View
+                      key={`right-${idx}`}
+                      style={[
+                        styles.plateBlock,
+                        {
+                          backgroundColor: meta.color,
+                          height: meta.height,
+                          width: meta.width,
+                          borderColor: weight === 5 ? '#e2e8f0' : 'rgba(0,0,0,0.15)',
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.plateLabel, { color: meta.labelColor, fontSize: meta.width < 14 ? 6 : 8 }]}>
+                        {weight}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+
+              {/* Right Sleeve End */}
+              <View style={styles.barbellSleeveRight} />
             </View>
           )}
 
@@ -260,26 +298,39 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e2e8f0',
     marginBottom: 20,
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     overflow: 'hidden',
   },
-  barbellBar: {
+  barbellSleeveLeft: {
     width: 20,
-    height: 16,
+    height: 12,
     backgroundColor: '#cbd5e1',
-    borderTopLeftRadius: 2,
-    borderBottomLeftRadius: 2,
+    borderTopLeftRadius: 3,
+    borderBottomLeftRadius: 3,
+  },
+  barbellSleeveRight: {
+    width: 20,
+    height: 12,
+    backgroundColor: '#cbd5e1',
+    borderTopRightRadius: 3,
+    borderBottomRightRadius: 3,
   },
   barbellCollar: {
-    width: 14,
+    width: 8,
     height: 38,
     backgroundColor: '#94a3b8',
-    borderRadius: 3,
+    borderRadius: 2,
+    zIndex: 2,
+  },
+  barbellCenter: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#94a3b8',
+    minWidth: 40,
   },
   platesWrapper: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 1.5,
+    gap: 1,
     backgroundColor: 'transparent',
     zIndex: 1,
   },
@@ -296,14 +347,6 @@ const styles = StyleSheet.create({
   plateLabel: {
     fontWeight: '800',
     textAlign: 'center',
-  },
-  barbellSleeve: {
-    flex: 1,
-    height: 20,
-    backgroundColor: '#cbd5e1',
-    borderTopRightRadius: 4,
-    borderBottomRightRadius: 4,
-    marginLeft: -2,
   },
   summaryList: {
     maxHeight: 180,

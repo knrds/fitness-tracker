@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Modal, TextInput, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, Modal, TextInput, Alert, Platform, ScrollView } from 'react-native';
 
 import { useRouter } from 'expo-router';
 import * as Crypto from 'expo-crypto';
 
-import { Program } from '@fitness-tracker/domain';
+import { Program, WorkoutTemplate } from '@fitness-tracker/domain';
 
 import { useProgramStore } from '../../src/stores/programStore';
+import { useWorkoutStore } from '../../src/stores/workoutStore';
 
 export default function ProgramListScreen() {
   const router = useRouter();
-  const { programs, setActiveProgram, deleteProgram, createProgram } = useProgramStore();
+  const { programs, templates, setActiveProgram, deleteProgram, createProgram } = useProgramStore();
 
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
   const [name, setName] = useState('');
@@ -46,6 +47,144 @@ export default function ProgramListScreen() {
     router.push(`/programs/builder?id=${newId}` as unknown as Parameters<typeof router.push>[0]);
   };
 
+  const activeProgram = programs.find(p => p.isActive);
+  const { status: activeWorkoutStatus, startWorkoutFromTemplate } = useWorkoutStore();
+  const [selectedWeek, setSelectedWeek] = useState(1);
+
+  const handleStartTemplate = (template: WorkoutTemplate | undefined, programId: string) => {
+    if (!template) return;
+    
+    const start = () => {
+      startWorkoutFromTemplate(template, programId);
+      router.push('/workout/session');
+    };
+
+    if (activeWorkoutStatus === 'active' || activeWorkoutStatus === 'paused') {
+      if (Platform.OS === 'web') {
+        const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
+        if (confirmFn?.("An active workout is already in progress. Do you want to discard it and start this template instead?")) {
+          start();
+        }
+      } else {
+        Alert.alert(
+          "Workout In Progress",
+          "An active workout is already in progress. Do you want to discard it and start this template instead?",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Discard & Start", style: "destructive", onPress: start }
+          ]
+        );
+      }
+    } else {
+      start();
+    }
+  };
+
+  const renderHeader = () => {
+    if (!activeProgram) return null;
+
+    const getDayName = (d: number) => {
+      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      return days[d - 1];
+    };
+
+    return (
+      <View style={styles.activeProgramSection}>
+        <View style={styles.activeProgramHeader}>
+          <View style={styles.activeInfoCol}>
+            <Text style={styles.activeBadge}>⭐ ACTIVE PLAN</Text>
+            <Text style={styles.activeTitle}>{activeProgram.name}</Text>
+            {activeProgram.description ? (
+              <Text style={styles.activeDesc}>{activeProgram.description}</Text>
+            ) : null}
+            <Text style={styles.activeDuration}>Duration: {activeProgram.durationWeeks} Weeks</Text>
+          </View>
+          <Pressable 
+            style={styles.deactivateBtn} 
+            onPress={() => {
+              if (Platform.OS === 'web') {
+                const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
+                if (confirmFn?.("Are you sure you want to deactivate this program?")) {
+                  setActiveProgram(null);
+                }
+                return;
+              }
+              Alert.alert(
+                "Deactivate Program",
+                "Are you sure you want to deactivate this program?",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  { text: "Deactivate", style: "destructive", onPress: () => setActiveProgram(null) }
+                ]
+              );
+            }}
+          >
+            <Text style={styles.deactivateBtnText}>Deactivate</Text>
+          </Pressable>
+        </View>
+
+        {/* Week Selector Tabs */}
+        <Text style={styles.calendarTitle}>Weekly Schedule</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.weekTabsScroll}>
+          {Array.from({ length: activeProgram.durationWeeks }, (_, i) => i + 1).map(w => {
+            const isSelected = w === selectedWeek;
+            return (
+              <Pressable 
+                key={w} 
+                style={[styles.weekTab, isSelected && styles.weekTabSelected]}
+                onPress={() => setSelectedWeek(w)}
+              >
+                <Text style={[styles.weekTabText, isSelected && styles.weekTabTextSelected]}>
+                  Week {w}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        {/* Days List */}
+        <View style={styles.daysList}>
+          {[1, 2, 3, 4, 5, 6, 7].map(day => {
+            const dayWorkouts = activeProgram.workouts.filter(
+              w => w.week === selectedWeek && w.dayOfWeek === day
+            );
+
+            return (
+              <View key={day} style={styles.dayRow}>
+                <View style={styles.dayInfo}>
+                  <Text style={styles.dayLabel}>{getDayName(day)}</Text>
+                  {dayWorkouts.length > 0 ? (
+                    dayWorkouts.map(w => {
+                      const template = templates.find(t => t.id === w.templateId);
+                      return (
+                        <View key={w.id} style={styles.scheduledWorkout}>
+                          <Text style={styles.workoutTemplateName}>
+                            🏋️ {template?.name || 'Unknown Template'}
+                          </Text>
+                          <Pressable 
+                            style={styles.startWorkoutBtn}
+                            onPress={() => handleStartTemplate(template, activeProgram.id)}
+                          >
+                            <Text style={styles.startWorkoutBtnText}>Start</Text>
+                          </Pressable>
+                        </View>
+                      );
+                    })
+                  ) : (
+                    <Text style={styles.restDayText}>💤 Rest Day</Text>
+                  )}
+                </View>
+              </View>
+            );
+          })}
+        </View>
+        
+        <View style={styles.divider} />
+        <Text style={styles.sectionHeaderTitle}>All Programs</Text>
+      </View>
+    );
+  };
+
   const renderItem = ({ item }: { item: Program }) => (
     <View style={styles.card}>
       <View style={styles.cardInfo}>
@@ -54,7 +193,28 @@ export default function ProgramListScreen() {
       </View>
       <View style={styles.cardActions}>
         {item.isActive ? (
-          <Text style={styles.activeLabel}>Active</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={styles.activeLabel}>Active</Text>
+            <Pressable style={styles.deactivateBtnInline} onPress={() => {
+              if (Platform.OS === 'web') {
+                const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
+                if (confirmFn?.("Are you sure you want to deactivate this program?")) {
+                  setActiveProgram(null);
+                }
+                return;
+              }
+              Alert.alert(
+                "Deactivate Program",
+                "Are you sure you want to deactivate this program?",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  { text: "Deactivate", style: "destructive", onPress: () => setActiveProgram(null) }
+                ]
+              );
+            }}>
+              <Text style={styles.deactivateBtnTextInline}>Deactivate</Text>
+            </Pressable>
+          </View>
         ) : (
           <Pressable style={styles.btn} onPress={() => setActiveProgram(item.id)}>
             <Text style={styles.btnText}>Set Active</Text>
@@ -76,6 +236,7 @@ export default function ProgramListScreen() {
         data={programs}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.list}
         ListEmptyComponent={<Text style={styles.empty}>No programs found. Click + to create one.</Text>}
       />
@@ -245,5 +406,176 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '600',
     fontSize: 16,
+  },
+  deactivateBtnInline: {
+    backgroundColor: '#fee2e2',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  deactivateBtnTextInline: {
+    color: '#ef4444',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  activeProgramSection: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    elevation: 3,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+  },
+  activeProgramHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  activeInfoCol: {
+    flex: 1,
+    marginRight: 12,
+  },
+  activeBadge: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#3b82f6',
+    backgroundColor: '#eff6ff',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 6,
+  },
+  activeTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 4,
+  },
+  activeDesc: {
+    fontSize: 14,
+    color: '#475569',
+    marginBottom: 8,
+    lineHeight: 18,
+  },
+  activeDuration: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  deactivateBtn: {
+    backgroundColor: '#fee2e2',
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  deactivateBtnText: {
+    color: '#ef4444',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  calendarTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 10,
+    marginTop: 8,
+  },
+  weekTabsScroll: {
+    marginBottom: 16,
+  },
+  weekTab: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#f1f5f9',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  weekTabSelected: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  weekTabText: {
+    color: '#475569',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  weekTabTextSelected: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  daysList: {
+    gap: 8,
+  },
+  dayRow: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  dayInfo: {
+    width: '100%',
+  },
+  dayLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#475569',
+    marginBottom: 6,
+  },
+  scheduledWorkout: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    marginTop: 4,
+  },
+  workoutTemplateName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0f172a',
+    flex: 1,
+  },
+  startWorkoutBtn: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  startWorkoutBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  restDayText: {
+    fontSize: 13,
+    color: '#94a3b8',
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#e2e8f0',
+    marginVertical: 20,
+  },
+  sectionHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 12,
   },
 });

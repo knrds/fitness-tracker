@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Share } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Platform, Alert } from 'react-native';
 import * as Crypto from 'expo-crypto';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
-import { TemplateExercise, SessionExercise, summarizeWorkout } from '@fitness-tracker/domain';
+import { TemplateExercise, SessionExercise } from '@fitness-tracker/domain';
 
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { SessionExerciseCard } from '../../src/components/workout/SessionExerciseCard';
@@ -11,7 +12,6 @@ import { RestTimer } from '../../src/components/workout/RestTimer';
 import { ExercisePickerModal } from '../../src/components/workout/ExercisePickerModal';
 import { SaveTemplateModal } from '../../src/components/workout/SaveTemplateModal';
 import { useProgramStore } from '../../src/stores/programStore';
-import { useProfileStore } from '../../src/stores/profileStore';
 
 export default function WorkoutSessionScreen() {
   const router = useRouter();
@@ -28,6 +28,7 @@ export default function WorkoutSessionScreen() {
     startedAt,
     pausedAt,
     accumulatedPauseMs,
+    resetWorkout,
   } = useWorkoutStore();
   const { createTemplate } = useProgramStore();
 
@@ -98,30 +99,6 @@ export default function WorkoutSessionScreen() {
       return;
     }
 
-    const summary = summarizeWorkout(finishedSession);
-    const durationMin = Math.round(summary.durationSeconds / 60);
-    const preferredUnits = useProfileStore.getState().profile.preferredUnits;
-    const isImperial = preferredUnits === 'imperial';
-    const displayVolume = isImperial
-      ? Math.round(summary.totalVolume * 2.20462)
-      : Math.round(summary.totalVolume);
-    const volumeUnit = isImperial ? 'lbs' : 'kg';
-
-    let shareMessage = `Workout completed: ${finishedSession.name}\n`;
-    shareMessage += `Duration: ${durationMin} min\n`;
-    shareMessage += `Total Volume: ${displayVolume} ${volumeUnit}\n`;
-    shareMessage += `Total Sets: ${summary.setCount}\n`;
-    if (finishedSession.notes) {
-      shareMessage += `Note: ${finishedSession.notes}\n`;
-    }
-    shareMessage += `\nTracked with Fitness Tracker App!`;
-
-    try {
-      await Share.share({ message: shareMessage });
-    } catch (e) {
-      console.log('Sharing failed', e);
-    }
-
     router.replace('/');
   };
 
@@ -165,8 +142,48 @@ export default function WorkoutSessionScreen() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  const handleBackAction = () => {
+    if (Platform.OS === 'web') {
+      const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
+      if (confirmFn?.("Möchtest du das aktuelle Training abbrechen (löschen) oder weiter trainieren?\n\n[OK] = Abbrechen, [Abbrechen] = Weiter trainieren")) {
+        resetWorkout();
+        router.replace('/');
+      }
+      return;
+    }
+
+    Alert.alert(
+      "Training verlassen",
+      "Möchtest du das aktuelle Training abbrechen (löschen) oder weiter trainieren?",
+      [
+        {
+          text: "Weiter trainieren",
+          style: "cancel",
+          onPress: () => {}
+        },
+        {
+          text: "Abbrechen",
+          style: "destructive",
+          onPress: () => {
+            resetWorkout();
+            router.replace('/');
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
+      <Stack.Screen
+        options={{
+          headerLeft: () => (
+            <Pressable onPress={handleBackAction} style={{ paddingLeft: 4, paddingRight: 20, paddingVertical: 8 }}>
+              <Ionicons name="arrow-back" size={24} color="#3b82f6" />
+            </Pressable>
+          )
+        }}
+      />
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>{name}</Text>
@@ -216,7 +233,7 @@ export default function WorkoutSessionScreen() {
       <ExercisePickerModal
         visible={pickerVisible}
         onClose={() => setPickerVisible(false)}
-        onSelect={(id) => addExercise(id)}
+        onSelect={(ids) => ids.forEach(id => addExercise(id))}
       />
 
       <SaveTemplateModal

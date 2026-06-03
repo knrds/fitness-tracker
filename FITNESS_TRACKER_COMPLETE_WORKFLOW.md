@@ -394,6 +394,21 @@ Lies AGENTS.md. Branch: feat/workout-improvements
    Standard-Pausenzeit pro Übung konfigurierbar (im Exercise-Detail).
    Rest Timer startet automatisch nach Set-Abschluss.
 
+7. Aufwärmsatz-Rechner (Warmup Calculator):
+   Option im Übungsmenü: Berechne basierend auf dem Arbeitsgewicht automatisch 
+   die Aufwärmsätze (z.B. 50% x 10, 70% x 5, 90% x 2) und füge sie als W-Sätze hinzu.
+
+8. Echtzeit e1RM-Schätzer:
+   Berechne für jeden Satz beim Eintragen das geschätzte 1-Rep Max 
+   (Epley-Formel: weight * (1 + reps / 30)) und zeige es als kleine Muted-Info an.
+
+9. RIR (Reps in Reserve) Erfassung:
+   Neben RPE auch RIR (0 bis 5+) als alternatives/ergänzendes Tracking-Feld ermöglichen.
+
+10. Share Workout Summary (Teilen):
+    Nach Abschluss des Workouts eine formatisierte Textzusammenfassung generieren, 
+    die über den systemweiten Share-Dialog geteilt werden kann (Dauer, Volumen, Sätze, PRs).
+
 Tests. pnpm test. Merge nicht nach main.
 ```
 

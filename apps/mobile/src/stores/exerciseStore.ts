@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { MMKV } from 'react-native-mmkv';
-import { Exercise, MuscleGroup, Equipment, EXERCISE_LIBRARY } from '@fitness-tracker/domain';
+import { Exercise, MuscleGroup, Equipment, EXERCISES } from '@fitness-tracker/domain';
+import * as Crypto from 'expo-crypto';
 
 const storage = new MMKV();
 const zustandStorage = {
@@ -36,22 +37,25 @@ export interface ExerciseState {
   selectedEquipment: Equipment | null;
   searchQuery: string;
   favoriteIds: string[];
+  customExercises: Exercise[];
   
   setFilter: (muscleGroup: MuscleGroup | null, equipment: Equipment | null) => void;
   setSearchQuery: (query: string) => void;
   resetFilters: () => void;
   toggleFavorite: (id: string) => void;
+  addCustomExercise: (data: Omit<Exercise, 'id' | 'createdAt' | 'updatedAt' | 'isCustom' | 'ownerId'>) => void;
 }
 
 export const useExerciseStore = create<ExerciseState>()(
   persist(
     (set) => ({
-      exercises: EXERCISE_LIBRARY,
-      filteredExercises: EXERCISE_LIBRARY,
+      exercises: EXERCISES,
+      filteredExercises: EXERCISES,
       selectedMuscleGroup: null,
       selectedEquipment: null,
       searchQuery: '',
       favoriteIds: [],
+      customExercises: [],
 
       setFilter: (muscleGroup, equipment) => 
         set((state) => {
@@ -86,12 +90,38 @@ export const useExerciseStore = create<ExerciseState>()(
           return {
             favoriteIds: isFav ? state.favoriteIds.filter(f => f !== id) : [...state.favoriteIds, id]
           };
+        }),
+
+      addCustomExercise: (data) =>
+        set((state) => {
+          const newEx: Exercise = {
+            ...data,
+            id: Crypto.randomUUID(),
+            isCustom: true,
+            ownerId: 'local-user',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          const newCustom = [...state.customExercises, newEx];
+          const allExercises = [...EXERCISES, ...newCustom];
+          const filtered = filterExercises(allExercises, state.searchQuery, state.selectedMuscleGroup, state.selectedEquipment);
+          return {
+            customExercises: newCustom,
+            exercises: allExercises,
+            filteredExercises: filtered,
+          };
         })
     }),
     {
       name: 'exercise-storage',
       storage: createJSONStorage(() => zustandStorage),
-      partialize: (state) => ({ favoriteIds: state.favoriteIds }),
+      partialize: (state) => ({ favoriteIds: state.favoriteIds, customExercises: state.customExercises }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.exercises = [...EXERCISES, ...(state.customExercises || [])];
+          state.filteredExercises = filterExercises(state.exercises, state.searchQuery, state.selectedMuscleGroup, state.selectedEquipment);
+        }
+      }
     }
   )
 );

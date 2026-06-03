@@ -197,6 +197,10 @@ export interface Exercise {
   ownerId?: UUID;
   /** Whether the exercise is single-limb (logged per side). */
   isUnilateral?: boolean;
+  /** Optional image URL showing how to perform it. */
+  imageUrl?: string;
+  /** Suggested experience level for this exercise. */
+  experienceLevel?: ExperienceLevel;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -516,3 +520,20 @@ export interface ActiveWorkoutState {
   /** Timestamp of the last mutation, used for persistence/hydration. */
   lastUpdatedAt: Timestamp;
 }
+
+// ---------------------------------------------------------------------------
+// Achievements & Gamification
+// ---------------------------------------------------------------------------
+
+export type AchievementCategory = 'workouts' | 'streaks' | 'pr' | 'volume' | 'exercises';
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  category: AchievementCategory;
+  targetValue: number;
+  xpReward: number;
+  icon: string;
+}
+

@@ -1,9 +1,13 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
-import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { SessionExerciseCard } from '../../src/components/workout/SessionExerciseCard';
 import { RestTimer } from '../../src/components/workout/RestTimer';
+import { ExercisePickerModal } from '../../src/components/workout/ExercisePickerModal';
+import { SaveTemplateModal } from '../../src/components/workout/SaveTemplateModal';
+import { useProgramStore } from '../../src/stores/programStore';
+import { TemplateExercise, SessionExercise } from '@fitness-tracker/domain';
+import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 
 export default function WorkoutSessionScreen() {
@@ -19,7 +23,10 @@ export default function WorkoutSessionScreen() {
     finishWorkout,
     addExercise
   } = useWorkoutStore();
-  const { exercises: allExercises } = useExerciseStore();
+  const { createTemplate } = useProgramStore();
+  
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -42,30 +49,47 @@ export default function WorkoutSessionScreen() {
     );
   }
 
+  const mapToTemplateExercises = (sessionExercises: SessionExercise[]): TemplateExercise[] => {
+    return sessionExercises.map(ex => {
+      const firstSet = ex.sets[0];
+      return {
+        id: Crypto.randomUUID(),
+        exerciseId: ex.exerciseId,
+        order: ex.order,
+        targetSets: ex.sets.length > 0 ? ex.sets.length : 1,
+        ...(firstSet?.reps !== undefined ? { targetReps: firstSet.reps } : {}),
+        ...(firstSet?.weight !== undefined ? { targetWeight: firstSet.weight } : {}),
+        ...(firstSet?.rpe !== undefined ? { targetRpe: firstSet.rpe } : {}),
+        ...(ex.notes !== undefined ? { notes: ex.notes } : {}),
+      };
+    });
+  };
+
   const handleFinish = () => {
-    Alert.alert(
-      "Finish Workout",
-      "Are you sure you want to finish this workout?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Finish", 
-          style: "default",
-          onPress: () => {
-            finishWorkout();
-            router.back();
-          } 
-        }
-      ]
-    );
+    setSaveModalVisible(true);
+  };
+
+  const finalizeWorkout = () => {
+    finishWorkout();
+    router.navigate('/');
+  };
+
+  const handleSaveTemplate = (templateName: string) => {
+    createTemplate({
+      name: templateName,
+      exercises: mapToTemplateExercises(exercises),
+    });
+    setSaveModalVisible(false);
+    finalizeWorkout();
+  };
+
+  const handleSkipTemplate = () => {
+    setSaveModalVisible(false);
+    finalizeWorkout();
   };
 
   const handleAddExercise = () => {
-    // For MVP, just add a random exercise if any exist
-    if (allExercises.length > 0) {
-      const randomEx = allExercises[Math.floor(Math.random() * allExercises.length)];
-      if (randomEx) addExercise(randomEx.id);
-    }
+    setPickerVisible(true);
   };
 
   const formatElapsed = (secs: number) => {
@@ -112,6 +136,20 @@ export default function WorkoutSessionScreen() {
       </ScrollView>
 
       <RestTimer />
+      
+      <ExercisePickerModal
+        visible={pickerVisible}
+        onClose={() => setPickerVisible(false)}
+        onSelect={(id) => addExercise(id)}
+      />
+
+      <SaveTemplateModal
+        visible={saveModalVisible}
+        defaultName={name}
+        onClose={() => setSaveModalVisible(false)}
+        onSave={handleSaveTemplate}
+        onSkip={handleSkipTemplate}
+      />
     </View>
   );
 }

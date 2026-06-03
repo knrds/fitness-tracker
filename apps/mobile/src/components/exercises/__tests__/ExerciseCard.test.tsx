@@ -4,7 +4,7 @@ import { ExerciseCard } from '../ExerciseCard';
 import { MuscleGroup, Equipment, MovementPattern } from '@fitness-tracker/domain';
 
 jest.mock('expo-router', () => ({
-  Link: ({ children }: any) => children,
+  Link: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 const mockExercise = {

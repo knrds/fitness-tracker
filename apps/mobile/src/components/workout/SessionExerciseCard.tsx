@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, Alert, Platform } from 'react-native';
 import { SessionExercise, ExerciseSet } from '@fitness-tracker/domain';
 import { useWorkoutStore } from '../../stores/workoutStore';
 import { useExerciseStore } from '../../stores/exerciseStore';
+import { useProfileStore } from '../../stores/profileStore';
 
 interface Props {
   sessionExercise: SessionExercise;
@@ -10,21 +11,50 @@ interface Props {
 
 export const SessionExerciseCard = ({ sessionExercise }: Props) => {
   const { exercises } = useExerciseStore();
-  const { addSet, updateSet, completeSet } = useWorkoutStore();
+  const { addSet, updateSet, completeSet, removeExercise, removeSet } = useWorkoutStore();
+  const { profile } = useProfileStore();
+  const isImperial = profile.preferredUnits === 'imperial';
   
   const exercise = exercises.find(e => e.id === sessionExercise.exerciseId);
   if (!exercise) return null;
 
+  const confirmDeleteExercise = () => {
+    if (Platform.OS === 'web') {
+      if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
+        const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
+        if (confirmFn?.("Are you sure you want to remove this exercise and all its sets?")) {
+          removeExercise(sessionExercise.id);
+        }
+      }
+      return;
+    }
+
+    Alert.alert(
+      "Remove Exercise",
+      "Are you sure you want to remove this exercise and all its sets?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Remove", style: "destructive", onPress: () => removeExercise(sessionExercise.id) }
+      ]
+    );
+  };
+
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>{exercise.name}</Text>
+      <View style={styles.titleRow}>
+        <Text style={styles.title}>{exercise.name}</Text>
+        <Pressable onPress={confirmDeleteExercise} style={styles.deleteExBtn}>
+          <Text style={styles.deleteExBtnText}>✕</Text>
+        </Pressable>
+      </View>
       
       <View style={styles.headerRow}>
         <Text style={[styles.columnHeader, styles.setCol]}>Set</Text>
-        <Text style={[styles.columnHeader, styles.inputCol]}>kg</Text>
+        <Text style={[styles.columnHeader, styles.inputCol]}>{isImperial ? 'lbs' : 'kg'}</Text>
         <Text style={[styles.columnHeader, styles.inputCol]}>Reps</Text>
         <Text style={[styles.columnHeader, styles.inputCol]}>RPE</Text>
         <Text style={[styles.columnHeader, styles.doneCol]}>✓</Text>
+        <Text style={[styles.columnHeader, styles.delCol]}></Text>
       </View>
 
       {sessionExercise.sets.map((set, idx) => (
@@ -33,8 +63,10 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
           set={set} 
           index={idx}
           sessionExerciseId={sessionExercise.id}
+          isImperial={isImperial}
           onUpdate={(updates) => updateSet(sessionExercise.id, set.id, updates)}
           onComplete={() => completeSet(sessionExercise.id, set.id)}
+          onDelete={() => removeSet(sessionExercise.id, set.id)}
         />
       ))}
 
@@ -52,12 +84,29 @@ interface SetRowProps {
   set: ExerciseSet;
   index: number;
   sessionExerciseId: string;
+  isImperial: boolean;
   onUpdate: (updates: Partial<ExerciseSet>) => void;
   onComplete: () => void;
+  onDelete: () => void;
 }
 
-const SetRow = ({ set, index, onUpdate, onComplete }: SetRowProps) => {
+const SetRow = ({ set, index, isImperial, onUpdate, onComplete, onDelete }: SetRowProps) => {
   const isDone = set.completed;
+  
+  // Format the display weight for imperial, round/clean it up
+  const getDisplayWeight = () => {
+    if (!set.weight) return '';
+    if (isImperial) {
+      const lbs = set.weight * 2.20462;
+      return lbs.toFixed(1).replace(/\.0$/, '');
+    }
+    return set.weight.toString();
+  };
+
+  const handleWeightChange = (text: string) => {
+    const val = parseFloat(text) || 0;
+    onUpdate({ weight: isImperial ? val / 2.20462 : val });
+  };
   
   return (
     <View style={[styles.row, isDone && styles.rowDone]}>
@@ -65,8 +114,8 @@ const SetRow = ({ set, index, onUpdate, onComplete }: SetRowProps) => {
       <TextInput
         style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
         keyboardType="numeric"
-        value={set.weight ? set.weight.toString() : ''}
-        onChangeText={(text) => onUpdate({ weight: parseFloat(text) || 0 })}
+        value={getDisplayWeight()}
+        onChangeText={handleWeightChange}
         editable={!isDone}
         placeholder="-"
       />
@@ -92,6 +141,9 @@ const SetRow = ({ set, index, onUpdate, onComplete }: SetRowProps) => {
       >
         <Text style={[styles.doneBtnText, isDone && styles.doneBtnTextActive]}>✓</Text>
       </Pressable>
+      <Pressable style={[styles.deleteSetBtn, styles.delCol]} onPress={onDelete}>
+        <Text style={styles.deleteSetBtnText}>✕</Text>
+      </Pressable>
     </View>
   );
 };
@@ -108,11 +160,25 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   title: {
     fontSize: 18,
     fontWeight: '700',
     color: '#0f172a',
-    marginBottom: 16,
+    flex: 1,
+  },
+  deleteExBtn: {
+    padding: 4,
+  },
+  deleteExBtnText: {
+    fontSize: 18,
+    color: '#ef4444',
+    fontWeight: '700',
   },
   headerRow: {
     flexDirection: 'row',
@@ -125,9 +191,10 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
   },
-  setCol: { width: 40, textAlign: 'center' },
+  setCol: { width: 30, textAlign: 'center' },
   inputCol: { flex: 1, textAlign: 'center' },
-  doneCol: { width: 48, textAlign: 'center' },
+  doneCol: { width: 44, textAlign: 'center' },
+  delCol: { width: 32, textAlign: 'center' },
   
   row: {
     flexDirection: 'row',
@@ -173,6 +240,17 @@ const styles = StyleSheet.create({
   },
   doneBtnTextActive: {
     color: '#ffffff',
+  },
+  deleteSetBtn: {
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 4,
+  },
+  deleteSetBtnText: {
+    color: '#ef4444',
+    fontSize: 16,
+    fontWeight: '700',
   },
   addSetBtn: {
     marginTop: 8,

@@ -3,13 +3,22 @@ import { View, Text, StyleSheet, FlatList, TextInput, Pressable } from 'react-na
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { ExerciseCard } from '../../src/components/exercises/ExerciseCard';
 import { ExerciseFilter } from '../../src/components/exercises/ExerciseFilter';
+import { CustomExerciseModal } from '../../src/components/exercises/CustomExerciseModal';
 
 export default function ExercisesScreen() {
   const { filteredExercises, favoriteIds, toggleFavorite, searchQuery, setSearchQuery } = useExerciseStore();
   const [showFilters, setShowFilters] = useState(false);
+  const [showCustomModal, setShowCustomModal] = useState(false);
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Exercise Library</Text>
+        <Pressable style={styles.createBtn} onPress={() => setShowCustomModal(true)}>
+          <Text style={styles.createBtnText}>+ Custom</Text>
+        </Pressable>
+      </View>
+
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -37,6 +46,11 @@ export default function ExercisesScreen() {
           />
         )}
       />
+
+      <CustomExerciseModal 
+        visible={showCustomModal} 
+        onClose={() => setShowCustomModal(false)} 
+      />
     </View>
   );
 }
@@ -45,6 +59,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f1f5f9',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#ffffff',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  createBtn: {
+    backgroundColor: '#e0f2fe',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  createBtnText: {
+    color: '#0284c7',
+    fontWeight: '600',
+    fontSize: 14,
   },
   searchContainer: {
     flexDirection: 'row',

@@ -1,5 +1,4 @@
 import { useProgramStore } from '../programStore';
-import * as Crypto from 'expo-crypto';
 
 jest.mock('react-native-mmkv', () => ({
   MMKV: jest.fn().mockImplementation(() => ({

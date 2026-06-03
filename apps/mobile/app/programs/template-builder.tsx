@@ -55,17 +55,7 @@ export default function WorkoutTemplateBuilderScreen() {
     router.back();
   };
 
-  const addExercise = (exerciseId: string) => {
-    const newEx: TemplateExercise = {
-      id: Crypto.randomUUID(),
-      exerciseId,
-      order: templateExercises.length,
-      targetSets: 3,
-      targetReps: 10,
-    };
-    setTemplateExercises([...templateExercises, newEx]);
-    setExerciseModalVisible(false);
-  };
+
 
   const removeExercise = (id: string) => {
     setTemplateExercises(templateExercises.filter(e => e.id !== id));

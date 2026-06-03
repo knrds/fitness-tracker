@@ -50,7 +50,7 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
     if (weightKg <= barbell) return [];
 
     let perSide = (weightKg - barbell) / 2;
-    const plates = [25, 20, 15, 10, 5, 2.5, 1.25];
+    const plates = [20, 15, 10, 5, 2.5, 1.25];
     const result: PlateCount[] = [];
 
     for (const plate of plates) {

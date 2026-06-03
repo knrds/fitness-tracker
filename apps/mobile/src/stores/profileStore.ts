@@ -18,6 +18,7 @@ import { useHistoryStore } from './historyStore';
 import { useWorkoutStore } from './workoutStore';
 import { useExerciseStore } from './exerciseStore';
 import { useBodyMetricStore } from './bodyMetricStore';
+import { useProgramStore, getDefaultTemplates } from './programStore';
 import { createHydratedStorage } from './storage';
 
 export interface Profile {
@@ -33,6 +34,10 @@ export interface Profile {
   deadliftMaxKg?: number;
   showRpe?: boolean;
   showRir?: boolean;
+  rpeMode?: 'always_on' | 'always_off' | 'selected_exercises';
+  rirMode?: 'always_on' | 'always_off' | 'selected_exercises';
+  rpeEnabledExerciseIds?: string[];
+  rirEnabledExerciseIds?: string[];
 }
 
 export interface ProfileState {
@@ -53,6 +58,10 @@ const defaultProfile: Profile = {
   preferredUnits: 'metric',
   showRpe: true,
   showRir: true,
+  rpeMode: 'always_on',
+  rirMode: 'always_on',
+  rpeEnabledExerciseIds: [],
+  rirEnabledExerciseIds: [],
 };
 
 const profileStateSchema = z.object({
@@ -68,6 +77,10 @@ const profileStateSchema = z.object({
   deadliftMaxKg: z.number().optional(),
   showRpe: z.boolean().optional(),
   showRir: z.boolean().optional(),
+  rpeMode: z.enum(['always_on', 'always_off', 'selected_exercises']).optional(),
+  rirMode: z.enum(['always_on', 'always_off', 'selected_exercises']).optional(),
+  rpeEnabledExerciseIds: z.array(z.string()).optional(),
+  rirEnabledExerciseIds: z.array(z.string()).optional(),
 });
 
 const profilePersistedSchema = z.object({
@@ -164,6 +177,12 @@ export const useProfileStore = create<ProfileState>()(
 
         // 5. Body Metric Store
         useBodyMetricStore.setState({ metrics: [] });
+
+        // 6. Program Store
+        useProgramStore.setState({
+          programs: [],
+          templates: getDefaultTemplates(),
+        });
       },
 
       exportData: () => {

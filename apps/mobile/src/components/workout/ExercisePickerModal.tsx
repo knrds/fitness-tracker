@@ -10,11 +10,30 @@ interface Props {
   onSelect: (exerciseIds: UUID[]) => void;
 }
 
-const DEFAULT_POPULAR_KEYWORDS = [
-  'bench press', 'squat', 'deadlift', 'overhead press', 'bicep curl',
-  'pushdown', 'lateral raise', 'lat pulldown', 'pull-up', 'push-up',
-  'hammer curl', 'face pull', 'leg press', 'leg curl', 'leg extension',
-  'calf raise', 'crunch', 'plank'
+const POPULAR_EXERCISE_NAMES = [
+  'Barbell Bench Press - Medium Grip',
+  'Incline Dumbbell Press',
+  'Dumbbell Flyes',
+  'Dips - Chest Version',
+  'Barbell Deadlift',
+  'Pullups',
+  'Bent Over Barbell Row',
+  'Wide-Grip Lat Pulldown',
+  'Barbell Shoulder Press',
+  'Side Lateral Raise',
+  'Cable Rear Delt Fly',
+  'Barbell Squat',
+  'Leg Press',
+  'Romanian Deadlift',
+  'Leg Extensions',
+  'Lying Leg Curls',
+  'Barbell Curl',
+  'Hammer Curls',
+  'Triceps Pushdown',
+  'EZ-Bar Skullcrusher',
+  'Hanging Leg Raise',
+  'Cable Crunch',
+  'Plank'
 ];
 
 export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
@@ -70,9 +89,7 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
   const sortedExercises = React.useMemo(() => {
     const scored = exercises.map(ex => {
       const freq = exerciseCounts[ex.id] || 0;
-      const isDefaultPopular = DEFAULT_POPULAR_KEYWORDS.some(keyword => 
-        ex.name.toLowerCase().includes(keyword)
-      );
+      const isDefaultPopular = POPULAR_EXERCISE_NAMES.includes(ex.name);
       const score = freq * 1000 + (isDefaultPopular ? 1 : 0);
       return { ex, score };
     });
@@ -88,13 +105,14 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
   }, [exercises, exerciseCounts]);
 
   const popularExercises = React.useMemo(() => {
-    return sortedExercises.slice(0, 20);
-  }, [sortedExercises]);
+    return sortedExercises.filter(ex => POPULAR_EXERCISE_NAMES.includes(ex.name) || (exerciseCounts[ex.id] || 0) > 0);
+  }, [sortedExercises, exerciseCounts]);
 
   const otherExercises = React.useMemo(() => {
-    const others = sortedExercises.slice(20);
+    const popularSet = new Set(popularExercises.map(e => e.id));
+    const others = sortedExercises.filter(ex => !popularSet.has(ex.id));
     return [...others].sort((a, b) => a.name.localeCompare(b.name));
-  }, [sortedExercises]);
+  }, [sortedExercises, popularExercises]);
 
   const listData = React.useMemo(() => {
     const isFiltered = search !== '' || selectedCategory !== 'All';

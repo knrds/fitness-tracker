@@ -54,6 +54,15 @@ describe('estimateOneRepMax', () => {
     expect(estimateOneRepMax(100, 10)).toBe(100 * (1 + 10 / 30));
   });
 
+  it('uses realistic divisors based on exercise name', () => {
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Squat')).toBe(100 * (1 + 10 / 35));
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Romanian Deadlift')).toBe(100 * (1 + 10 / 35));
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Curl')).toBe(100 * (1 + 10 / 45));
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Plank')).toBe(100 * (1 + 10 / 45));
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Bench Press - Medium Grip')).toBe(100 * (1 + 10 / 38));
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Dips - Chest Version')).toBe(100 * (1 + 10 / 38));
+  });
+
   it('takes RPE and RIR into account', () => {
     // 10 reps at RPE 8 -> 10 + 2 = 12 effective reps
     expect(estimateOneRepMax(100, 10, 8)).toBe(100 * (1 + 12 / 30));

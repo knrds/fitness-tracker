@@ -10,6 +10,7 @@ import {
 } from '@fitness-tracker/domain';
 import { z } from 'zod';
 import { createHydratedStorage } from './storage';
+import { useExerciseStore } from './exerciseStore';
 
 export interface HistoryStore {
   sessions: WorkoutSession[];
@@ -57,13 +58,15 @@ export const useHistoryStore = create<HistoryStore>()(
       },
 
       getPRs: () => {
+        const exercises = useExerciseStore.getState().exercises;
         const prs: Record<string, number> = {};
         get().sessions.forEach(session => {
           session.exercises.forEach(ex => {
+            const exerciseName = exercises.find(e => e.id === ex.exerciseId)?.name;
             ex.sets.forEach(set => {
               // Exclude warmup sets and verify weight and reps are set
               if (set.completed && set.weight && set.reps && set.type !== 'warmup') {
-                const e1rm = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir);
+                const e1rm = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir, exerciseName);
                 if (!prs[ex.exerciseId] || e1rm > prs[ex.exerciseId]!) {
                   prs[ex.exerciseId] = e1rm;
                 }

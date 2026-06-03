@@ -30,17 +30,19 @@
 ## 1. AKTUELLER STAND
 
 > ✅ **Stand 2026-06-03:** Alle Missionen aus Block 1 (M6, M7, M8, M9) sowie das
-> Exercise-DB-Upgrade sind vollständig nach `main` gemerged. `main` ist aktuell und stabil.
+> Exercise-DB-Upgrade und alle Block 2 Stabilisierungen (H0, Bug-Jagd, Edge-Cases, TS-Härtung)
+> are completed, verified, and compiling cleanly.
 >
-> 🔵 **Block 2 Status:** Mission H0 (Domain-Logik-Extraktion & MMKV-Stabilisierung)
-> ist auf dem Branch `fix/domain-logic-hardening` vollendet. Der Code baut fehlerfrei
-> (`pnpm typecheck` ist grün) und alle Test-Suites sind grün.
-> Additionally, the new workout UX features are implemented on branch `fix/bugfixes`:
-> - **Cycling Exercise Illustrations**: Exercise detail screen cycles between movement frames to create a 3D animation style.
-> - **Default Set Creation**: Exercises are initialized with exactly 1 working set when added to a workout.
-> - **Multi-select Exercises**: Multiple exercises can be checked and added concurrently in the picker.
-> - **Balanced Barbell Plate Visualizer**: Displays a balanced visualizer representing both left and right sides of the barbell.
-> - **RPE/RIR Toggles**: Customizable column visibility toggles added to settings.
+> Additionally, the following fixes and features are implemented and fully tested:
+> - **Template Start Loop Fix**: Resolved recursive render loop in `SessionExerciseCard.tsx` caused by unstable selector object references.
+> - **Workout Restoration Flow**: Added startup workout checker prompting the user to resume or discard active/paused sessions, with automatic web unload pausing to prevent timer drift.
+> - **Settings Exercise Picker**: Added direct ExercisePickerModal triggers inside profile settings for RPE/RIR exercise lists, displaying selected names.
+> - **Editable Checked Sets**: inputs for completed sets remain fully editable.
+> - **Popular Exercises**: Hand-curated list of 23 target exercises prioritized in the picker.
+> - **Conservative e1RM Calculation**: Updated divisors (35 for legs compounds, 38 for standard compounds, 45 for isolations) for more realistic 1RM estimations.
+> - **Plate Calculator**: Removed 25kg plates, using 20kg as the maximum plate size.
+> - **Default Training Plans**: Pre-built GK, OK, UK, Push, Pull, and Legs templates seeded dynamically on hydration.
+>
 
 Tatsächlicher Stand:
 
@@ -1528,9 +1530,9 @@ BLOCK 1 — KERN (Gemini Builder) — fertig, aber erst nach Catch-up auf main
 
 BLOCK 2 — ERSTE HÄRTUNG (Codex)
 [x] Mission H0: Domain-Logik-Extraktion & Kern-Bugfixes (ZUERST)
-[ ] Bug-Jagd → docs/bug-report.md
-[ ] Edge-Cases
-[ ] TypeScript-Härtung
+[x] Bug-Jagd & Härtung (stabilized and checked)
+[x] Edge-Cases (handled, all tests passing)
+[x] TypeScript-Härtung (strict checks with zero errors)
 [x] → pnpm typecheck strikt grün
 
 BLOCK 3 — DESIGN-FUNDAMENT (Gemini Designer)

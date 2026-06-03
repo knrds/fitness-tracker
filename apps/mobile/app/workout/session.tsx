@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Share } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { useRouter } from 'expo-router';
 
-import { TemplateExercise, SessionExercise, summarizeWorkout } from '@fitness-tracker/domain';
+import { TemplateExercise, SessionExercise } from '@fitness-tracker/domain';
 
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { SessionExerciseCard } from '../../src/components/workout/SessionExerciseCard';
@@ -11,7 +11,6 @@ import { RestTimer } from '../../src/components/workout/RestTimer';
 import { ExercisePickerModal } from '../../src/components/workout/ExercisePickerModal';
 import { SaveTemplateModal } from '../../src/components/workout/SaveTemplateModal';
 import { useProgramStore } from '../../src/stores/programStore';
-import { useProfileStore } from '../../src/stores/profileStore';
 
 export default function WorkoutSessionScreen() {
   const router = useRouter();

@@ -324,12 +324,15 @@ export const useWorkoutStore = create<WorkoutStore>()(
             if (s.id === setId) {
               wasCompleted = s.completed;
               const nextCompleted = !s.completed;
-              const { completedAt, ...rest } = s;
               const updatedSet: ExerciseSet = {
-                ...rest,
+                ...s,
                 completed: nextCompleted,
-                ...(nextCompleted ? { completedAt: new Date() } : {}),
               };
+              if (nextCompleted) {
+                updatedSet.completedAt = new Date();
+              } else {
+                delete updatedSet.completedAt;
+              }
               return updatedSet;
             }
             return s;

@@ -1,4 +1,4 @@
-export function estimateOneRepMax(weight: number, reps: number, rpe?: number, rir?: number): number {
+export function estimateOneRepMax(weight: number, reps: number, rpe?: number, rir?: number, exerciseName?: string): number {
   if (reps <= 0) return 0;
   
   let additionalReps = 0;
@@ -10,5 +10,31 @@ export function estimateOneRepMax(weight: number, reps: number, rpe?: number, ri
   
   const effectiveReps = reps + additionalReps;
   if (effectiveReps === 1) return weight;
-  return weight * (1 + effectiveReps / 30);
+
+  let divisor = 30; // legacy default
+  if (exerciseName) {
+    const name = exerciseName.toLowerCase();
+    if (
+      name.includes('squat') ||
+      name.includes('deadlift') ||
+      name.includes('leg press')
+    ) {
+      divisor = 35; // heavy compound leg/hip movements
+    } else if (
+      name.includes('fly') ||
+      name.includes('raise') ||
+      name.includes('curl') ||
+      name.includes('extension') ||
+      name.includes('pushdown') ||
+      name.includes('skull') ||
+      name.includes('plank') ||
+      name.includes('crunch')
+    ) {
+      divisor = 45; // isolations & core
+    } else {
+      divisor = 38; // standard compounds
+    }
+  }
+  
+  return weight * (1 + effectiveReps / divisor);
 }

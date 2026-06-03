@@ -1,5 +1,6 @@
 import { WorkoutSession } from '../types';
 import { estimateOneRepMax } from './estimateOneRepMax';
+import { EXERCISES } from '../data/exercises';
 
 export interface PRDelta {
   exerciseId: string;
@@ -21,7 +22,8 @@ export function detectPRs(session: WorkoutSession, history: WorkoutSession[]): P
     s.exercises.forEach((ex) => {
       ex.sets.forEach((set) => {
         if (set.completed && set.weight && set.reps && set.type !== 'warmup') {
-          const e1rm = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir);
+          const exerciseName = EXERCISES.find(e => e.id === ex.exerciseId)?.name;
+          const e1rm = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir, exerciseName);
           if (!historicalMaxE1RM[ex.exerciseId] || e1rm > historicalMaxE1RM[ex.exerciseId]!) {
             historicalMaxE1RM[ex.exerciseId] = e1rm;
           }
@@ -36,7 +38,8 @@ export function detectPRs(session: WorkoutSession, history: WorkoutSession[]): P
 
     for (const set of ex.sets) {
       if (set.completed && set.weight && set.reps && set.type !== 'warmup') {
-        const e1rm = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir);
+        const exerciseName = EXERCISES.find(e => e.id === ex.exerciseId)?.name;
+        const e1rm = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir, exerciseName);
         if (!maxSessionSet || e1rm > maxSessionSet.e1rm) {
           maxSessionSet = { weight: set.weight, reps: set.reps, e1rm };
         }

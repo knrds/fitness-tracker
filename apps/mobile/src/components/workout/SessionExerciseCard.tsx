@@ -16,14 +16,21 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
   const { addSet, updateSet, completeSet, removeExercise, removeSet, calculateWarmupSets, toggleSuperset } = useWorkoutStore();
   const { profile } = useProfileStore();
   const isImperial = profile.preferredUnits === 'imperial';
-  const showRpe = profile.showRpe !== false;
-  const showRir = profile.showRir !== false;
 
-  const lastPerformance = useHistoryStore(state => state.getPreviousPerformance(sessionExercise.exerciseId));
+  const getPreviousPerformance = useHistoryStore(state => state.getPreviousPerformance);
+  const lastPerformance = React.useMemo(() => getPreviousPerformance(sessionExercise.exerciseId), [getPreviousPerformance, sessionExercise.exerciseId]);
   const [plateCalcVisible, setPlateCalcVisible] = useState(false);
 
   const exercise = exercises.find(e => e.id === sessionExercise.exerciseId);
   if (!exercise) return null;
+
+  const rpeMode = profile.rpeMode || 'always_on';
+  const rirMode = profile.rirMode || 'always_on';
+  const rpeEnabledExerciseIds = profile.rpeEnabledExerciseIds || [];
+  const rirEnabledExerciseIds = profile.rirEnabledExerciseIds || [];
+
+  const showRpe = rpeMode === 'always_on' || (rpeMode === 'selected_exercises' && rpeEnabledExerciseIds.includes(sessionExercise.exerciseId));
+  const showRir = rirMode === 'always_on' || (rirMode === 'selected_exercises' && rirEnabledExerciseIds.includes(sessionExercise.exerciseId));
 
   const confirmDeleteExercise = () => {
     if (Platform.OS === 'web') {
@@ -153,6 +160,7 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
           isImperial={isImperial}
           showRpe={showRpe}
           showRir={showRir}
+          exerciseName={exercise.name}
           onUpdate={(updates) => updateSet(sessionExercise.id, set.id, updates)}
           onComplete={() => completeSet(sessionExercise.id, set.id)}
           onDelete={() => removeSet(sessionExercise.id, set.id)}
@@ -190,12 +198,13 @@ interface SetRowProps {
   isImperial: boolean;
   showRpe: boolean;
   showRir: boolean;
+  exerciseName?: string;
   onUpdate: (updates: Partial<ExerciseSet>) => void;
   onComplete: () => void;
   onDelete: () => void;
 }
 
-const SetRow = ({ set, index, isImperial, showRpe, showRir, onUpdate, onComplete, onDelete }: SetRowProps) => {
+const SetRow = ({ set, index, isImperial, showRpe, showRir, exerciseName, onUpdate, onComplete, onDelete }: SetRowProps) => {
   const isDone = set.completed;
   
   // Format the display weight for imperial, round/clean it up
@@ -239,7 +248,7 @@ const SetRow = ({ set, index, isImperial, showRpe, showRir, onUpdate, onComplete
   const weightVal = set.weight || 0;
   const repsVal = set.reps || 0;
   const displayWeight = isImperial ? weightVal * 2.20462 : weightVal;
-  const e1rm = estimateOneRepMax(displayWeight, repsVal, set.rpe, set.rir);
+  const e1rm = estimateOneRepMax(displayWeight, repsVal, set.rpe, set.rir, exerciseName);
 
   return (
     <View style={styles.rowContainer}>
@@ -252,7 +261,6 @@ const SetRow = ({ set, index, isImperial, showRpe, showRir, onUpdate, onComplete
           keyboardType="numeric"
           value={getDisplayWeight()}
           onChangeText={handleWeightChange}
-          editable={!isDone}
           placeholder="-"
         />
         <TextInput
@@ -260,7 +268,6 @@ const SetRow = ({ set, index, isImperial, showRpe, showRir, onUpdate, onComplete
           keyboardType="numeric"
           value={set.reps ? set.reps.toString() : ''}
           onChangeText={(text) => onUpdate({ reps: parseInt(text, 10) || 0 })}
-          editable={!isDone}
           placeholder="-"
         />
         {showRpe && (
@@ -269,7 +276,6 @@ const SetRow = ({ set, index, isImperial, showRpe, showRir, onUpdate, onComplete
             keyboardType="numeric"
             value={set.rpe ? set.rpe.toString() : ''}
             onChangeText={(text) => onUpdate({ rpe: parseFloat(text) || 0 })}
-            editable={!isDone}
             placeholder="-"
           />
         )}
@@ -279,7 +285,6 @@ const SetRow = ({ set, index, isImperial, showRpe, showRir, onUpdate, onComplete
             keyboardType="numeric"
             value={set.rir !== undefined ? set.rir.toString() : ''}
             onChangeText={(text) => onUpdate({ rir: parseInt(text, 10) || 0 })}
-            editable={!isDone}
             placeholder="-"
           />
         )}

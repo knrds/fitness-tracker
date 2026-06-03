@@ -3,10 +3,9 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  ScrollView, 
-  Pressable, 
-  TextInput, 
-  Dimensions, 
+  ScrollView,
+  Pressable,
+  Dimensions,
   Alert,
   SafeAreaView
 } from 'react-native';
@@ -15,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BodyMetric, BodyMeasurements } from '@fitness-tracker/domain';
 import { useBodyMetricStore } from '../../src/stores/bodyMetricStore';
 import { useProfileStore } from '../../src/stores/profileStore';
-import { useTheme, Card, Button, Modal, Input, EmptyState } from '@fitness-tracker/ui';
+import { useTheme, Card, Modal, Input } from '@fitness-tracker/ui';
 
 export default function BodyTrackingScreen() {
   const theme = useTheme();
@@ -161,7 +160,7 @@ export default function BodyTrackingScreen() {
               return h.bodyFatPercentage || 0;
             }
           }),
-          color: (opacity = 1) => theme.colors.primary,
+          color: () => theme.colors.primary,
           strokeWidth: 2,
         }
       ]
@@ -180,8 +179,8 @@ export default function BodyTrackingScreen() {
             backgroundGradientFrom: theme.colors.surface,
             backgroundGradientTo: theme.colors.surface,
             decimalPlaces: 1,
-            color: (opacity = 1) => theme.colors.primary,
-            labelColor: (opacity = 1) => theme.colors.muted,
+            color: () => theme.colors.primary,
+            labelColor: () => theme.colors.muted,
             propsForDots: {
               r: '4',
               strokeWidth: '2',

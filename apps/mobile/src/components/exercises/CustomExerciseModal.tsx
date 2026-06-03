@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Modal, View, Text, StyleSheet, TextInput, Pressable, SafeAreaView, ScrollView, Alert } from 'react-native';
-import { useExerciseStore } from '../../stores/exerciseStore';
 import { MuscleGroup, Equipment, MovementPattern } from '@fitness-tracker/domain';
+import { useTheme } from '@fitness-tracker/ui';
+
+import { useExerciseStore } from '../../stores/exerciseStore';
 
 interface Props {
   visible: boolean;
@@ -9,6 +11,7 @@ interface Props {
 }
 
 export const CustomExerciseModal = ({ visible, onClose }: Props) => {
+  const theme = useTheme();
   const { addCustomExercise } = useExerciseStore();
   const [name, setName] = useState('');
   const [instructions, setInstructions] = useState('');
@@ -39,56 +42,63 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
     }
   };
 
+  const renderChip = (active: boolean, label: string, onPress: () => void, key: string) => (
+    <Pressable
+      key={key}
+      style={[styles.chip, { borderColor: active ? theme.colors.primary : theme.colors.border }]}
+      onPress={onPress}
+    >
+      <Text style={[styles.chipText, { color: active ? theme.colors.primary : theme.colors.muted }]}>
+        {label.replace(/_/g, ' ').toUpperCase()}
+      </Text>
+    </Pressable>
+  );
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>New Exercise</Text>
-          <Pressable onPress={onClose} style={styles.closeBtn}>
-            <Text style={styles.closeBtnText}>Cancel</Text>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+          <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>New Exercise</Text>
+          <Pressable onPress={onClose} hitSlop={8}>
+            <Text style={[styles.cancelText, { color: theme.colors.muted }]}>Cancel</Text>
           </Pressable>
         </View>
-        
-        <ScrollView style={styles.form} contentContainerStyle={styles.formContent}>
-          <Text style={styles.label}>Name</Text>
-          <TextInput 
-            style={styles.input} 
-            value={name} 
-            onChangeText={setName} 
-            placeholder="e.g. My Custom Lift" 
-            placeholderTextColor="#94a3b8"
+
+        <ScrollView style={styles.form} contentContainerStyle={styles.formContent} showsVerticalScrollIndicator={false}>
+          <Text style={[styles.label, { color: theme.colors.muted }]}>Name</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, color: theme.colors.text }]}
+            value={name}
+            onChangeText={setName}
+            placeholder="e.g. My Custom Lift"
+            placeholderTextColor={theme.colors.muted}
           />
 
-          <Text style={styles.label}>Muscle Group</Text>
+          <Text style={[styles.label, { color: theme.colors.muted }]}>Muscle Group</Text>
           <View style={styles.chipContainer}>
-            {Object.values(MuscleGroup).map(m => (
-              <Pressable key={m} style={[styles.chip, muscle === m && styles.chipActive]} onPress={() => setMuscle(m)}>
-                <Text style={[styles.chipText, muscle === m && styles.chipTextActive]}>{m.replace(/_/g, ' ')}</Text>
-              </Pressable>
-            ))}
+            {Object.values(MuscleGroup).map((m) => renderChip(muscle === m, m, () => setMuscle(m), m))}
           </View>
 
-          <Text style={styles.label}>Equipment</Text>
+          <Text style={[styles.label, { color: theme.colors.muted }]}>Equipment</Text>
           <View style={styles.chipContainer}>
-            {Object.values(Equipment).map(e => (
-              <Pressable key={e} style={[styles.chip, equipment === e && styles.chipActive]} onPress={() => setEq(e)}>
-                <Text style={[styles.chipText, equipment === e && styles.chipTextActive]}>{e.replace(/_/g, ' ')}</Text>
-              </Pressable>
-            ))}
+            {Object.values(Equipment).map((e) => renderChip(equipment === e, e, () => setEq(e), e))}
           </View>
 
-          <Text style={styles.label}>Instructions (Optional)</Text>
-          <TextInput 
-            style={[styles.input, styles.textArea]} 
-            value={instructions} 
-            onChangeText={setInstructions} 
-            placeholder="Add notes..." 
-            placeholderTextColor="#94a3b8"
-            multiline 
+          <Text style={[styles.label, { color: theme.colors.muted }]}>Instructions (Optional)</Text>
+          <TextInput
+            style={[styles.input, styles.textArea, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, color: theme.colors.text }]}
+            value={instructions}
+            onChangeText={setInstructions}
+            placeholder="Add notes..."
+            placeholderTextColor={theme.colors.muted}
+            multiline
           />
 
-          <Pressable style={styles.saveBtn} onPress={handleSave}>
-            <Text style={styles.saveBtnText}>Create Exercise</Text>
+          <Pressable
+            style={[styles.saveBtn, { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md }]}
+            onPress={handleSave}
+          >
+            <Text style={[styles.saveBtnText, { color: theme.colors.background, ...theme.typography.button }]}>Create Exercise</Text>
           </Pressable>
         </ScrollView>
       </SafeAreaView>
@@ -99,53 +109,44 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
   },
   title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontSize: 20,
   },
-  closeBtnText: {
-    color: '#64748b',
-    fontWeight: '600',
+  cancelText: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
     fontSize: 16,
-  },
-  closeBtn: {
-    padding: 4,
   },
   form: {
     flex: 1,
   },
   formContent: {
-    padding: 16,
+    padding: 20,
     paddingBottom: 40,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#334155',
+    fontFamily: 'SpaceGrotesk_400Regular',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
     marginBottom: 8,
-    marginTop: 16,
+    marginTop: 20,
   },
   input: {
-    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontFamily: 'Manrope_500Medium',
     fontSize: 16,
-    color: '#0f172a',
   },
   textArea: {
     height: 100,
@@ -157,33 +158,23 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chip: {
-    backgroundColor: '#e2e8f0',
-    paddingHorizontal: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 16,
-  },
-  chipActive: {
-    backgroundColor: '#3b82f6',
+    borderRadius: 9999,
   },
   chipText: {
-    color: '#475569',
-    fontSize: 14,
-    fontWeight: '500',
-    textTransform: 'capitalize',
-  },
-  chipTextActive: {
-    color: '#ffffff',
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 12,
+    letterSpacing: 0.5,
   },
   saveBtn: {
-    backgroundColor: '#10b981',
-    padding: 16,
-    borderRadius: 8,
+    height: 56,
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 32,
   },
   saveBtnText: {
-    color: '#ffffff',
     fontSize: 16,
-    fontWeight: '700',
   },
 });

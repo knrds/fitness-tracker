@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert, Platform, Share } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useHistoryStore } from '../../src/stores/historyStore';
-import { useTheme } from '@fitness-tracker/ui';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useProgramStore } from '../../src/stores/programStore';
@@ -14,7 +13,6 @@ import * as Crypto from 'expo-crypto';
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const theme = useTheme();
   const { sessions } = useHistoryStore();
   const { exercises } = useExerciseStore();
   const { status: activeWorkoutStatus, startWorkoutFromSession } = useWorkoutStore();

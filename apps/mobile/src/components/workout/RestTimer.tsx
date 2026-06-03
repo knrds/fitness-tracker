@@ -1,58 +1,31 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { useTheme } from '@fitness-tracker/ui';
+
 import { useWorkoutStore } from '../../stores/workoutStore';
-import { Audio } from 'expo-av';
 
 export const RestTimer = () => {
+  const theme = useTheme();
   const { restTimer, startRestTimer, stopRestTimer, tickRestTimer, resetRestTimer } = useWorkoutStore();
   const [timeLeft, setTimeLeft] = useState(restTimer.durationSeconds);
-  const soundRef = useRef<Audio.Sound | null>(null);
 
   useEffect(() => {
-    const loadSound = async () => {
-      try {
-        // Attempt to load a system or local sound if available, otherwise fallback.
-        // We catch errors so the app doesn't crash if there's no audio file.
-        // const { sound } = await Audio.Sound.createAsync(require('../../../assets/beep.mp3'));
-        // soundRef.current = sound;
-      } catch (e) {
-        console.warn('Could not load sound', e);
-      }
-    };
-    loadSound();
-    
-    return () => {
-      soundRef.current?.unloadAsync();
-    };
-  }, []);
+    let interval: ReturnType<typeof setInterval> | undefined;
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
     if (restTimer.isRunning && restTimer.endsAt) {
       const endsAt = restTimer.endsAt;
       interval = setInterval(() => {
         tickRestTimer();
-        const now = new Date();
-        const remaining = Math.ceil((endsAt.getTime() - now.getTime()) / 1000);
-        
-        if (remaining <= 0) {
-          setTimeLeft(0);
-          // Play sound
-          if (soundRef.current) {
-            soundRef.current.playAsync();
-          } else {
-            console.log('Beep! Timer done.');
-          }
-        } else {
-          setTimeLeft(remaining);
-        }
+        const remaining = Math.ceil((endsAt.getTime() - Date.now()) / 1000);
+        setTimeLeft(remaining <= 0 ? 0 : remaining);
       }, 250);
     } else {
       setTimeLeft(restTimer.durationSeconds);
     }
-    
-    return () => clearInterval(interval);
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [restTimer.isRunning, restTimer.endsAt, restTimer.durationSeconds, tickRestTimer]);
 
   const formatTime = (seconds: number) => {
@@ -61,27 +34,60 @@ export const RestTimer = () => {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  const remaining = Math.max(0, timeLeft);
+  const isLow = restTimer.isRunning && remaining <= 10;
+  const timerColor = isLow ? theme.colors.accent : theme.colors.primary;
+
   return (
-    <View style={styles.container} testID="rest-timer-container">
-      <Text style={styles.timerText}>{formatTime(Math.max(0, timeLeft))}</Text>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.colors.surface,
+          borderColor: timerColor,
+          borderRadius: theme.radius.lg,
+        },
+      ]}
+      testID="rest-timer-container"
+    >
+      <Text style={[styles.label, { color: theme.colors.muted }]}>Rest Timer</Text>
+      <Text style={[styles.timerText, { color: timerColor }]}>{formatTime(remaining)}</Text>
       <View style={styles.controls}>
         {restTimer.isRunning ? (
-          <Pressable style={styles.button} onPress={stopRestTimer} testID="stop-timer-btn">
-            <Text style={styles.buttonText}>Pause</Text>
+          <Pressable
+            style={[styles.btn, { borderColor: theme.colors.border }]}
+            onPress={stopRestTimer}
+            testID="stop-timer-btn"
+          >
+            <Text style={[styles.btnText, { color: theme.colors.text }]}>Pause</Text>
           </Pressable>
         ) : (
-          <Pressable style={styles.button} onPress={() => startRestTimer(timeLeft || 90)} testID="start-timer-btn">
-            <Text style={styles.buttonText}>Start</Text>
+          <Pressable
+            style={[styles.btn, { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]}
+            onPress={() => startRestTimer(timeLeft || 90)}
+            testID="start-timer-btn"
+          >
+            <Text style={[styles.btnText, { color: theme.colors.background }]}>Start</Text>
           </Pressable>
         )}
-        <Pressable style={styles.button} onPress={() => startRestTimer(Math.max(0, timeLeft - 10))}>
-          <Text style={styles.buttonText}>-10s</Text>
+        <Pressable
+          style={[styles.btn, { borderColor: theme.colors.border }]}
+          onPress={() => startRestTimer(Math.max(0, timeLeft - 10))}
+        >
+          <Text style={[styles.btnText, { color: theme.colors.text }]}>−10s</Text>
         </Pressable>
-        <Pressable style={styles.button} onPress={() => startRestTimer(timeLeft + 30)}>
-          <Text style={styles.buttonText}>+30s</Text>
+        <Pressable
+          style={[styles.btn, { borderColor: theme.colors.border }]}
+          onPress={() => startRestTimer(timeLeft + 30)}
+        >
+          <Text style={[styles.btnText, { color: theme.colors.text }]}>+30s</Text>
         </Pressable>
-        <Pressable style={[styles.button, styles.resetButton]} onPress={resetRestTimer} testID="reset-timer-btn">
-          <Text style={styles.buttonText}>Reset</Text>
+        <Pressable
+          style={[styles.btn, { borderColor: theme.colors.border }]}
+          onPress={resetRestTimer}
+          testID="reset-timer-btn"
+        >
+          <Text style={[styles.btnText, { color: theme.colors.accent }]}>Reset</Text>
         </Pressable>
       </View>
     </View>
@@ -90,17 +96,22 @@ export const RestTimer = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1e293b',
-    padding: 16,
-    borderRadius: 12,
+    borderWidth: 1,
+    padding: 20,
     alignItems: 'center',
-    marginHorizontal: 16,
+    marginHorizontal: 20,
     marginVertical: 8,
   },
+  label: {
+    fontFamily: 'SpaceGrotesk_400Regular',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
   timerText: {
-    fontSize: 48,
-    fontWeight: '800',
-    color: '#ffffff',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 52,
     marginBottom: 16,
     fontVariant: ['tabular-nums'],
   },
@@ -110,20 +121,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
   },
-  button: {
-    backgroundColor: '#3b82f6',
+  btn: {
+    borderWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 9999,
     minWidth: 64,
     alignItems: 'center',
   },
-  resetButton: {
-    backgroundColor: '#ef4444',
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 16,
+  btnText: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 14,
   },
 });

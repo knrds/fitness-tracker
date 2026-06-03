@@ -1,13 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, Pressable, Alert, Platform } from 'react-native';
-import { useTheme } from '@fitness-tracker/ui';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { WorkoutTemplate } from '@fitness-tracker/domain';
 
 export default function ProgramBuilderScreen() {
-  const theme = useTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { programs, updateProgram, templates } = useProgramStore();

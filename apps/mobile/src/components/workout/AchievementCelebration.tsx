@@ -1,59 +1,75 @@
 import React from 'react';
 import { Modal, View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
-import { useAchievementStore } from '../../stores/achievementStore';
-import { ACHIEVEMENTS } from '@fitness-tracker/domain';
 import { Ionicons } from '@expo/vector-icons';
+import { ACHIEVEMENTS } from '@fitness-tracker/domain';
+import { useTheme } from '@fitness-tracker/ui';
+
+import { useAchievementStore } from '../../stores/achievementStore';
+
+const GOLD = '#FFB020';
 
 export const AchievementCelebration = () => {
   const { newlyUnlocked, levelUpTo, clearCelebrations } = useAchievementStore();
+  const theme = useTheme();
 
   const isVisible = newlyUnlocked.length > 0 || levelUpTo !== null;
-
   if (!isVisible) return null;
 
   return (
-    <Modal
-      visible={isVisible}
-      animationType="fade"
-      transparent={true}
-      onRequestClose={clearCelebrations}
-    >
+    <Modal visible={isVisible} animationType="fade" transparent onRequestClose={clearCelebrations}>
       <View style={styles.overlay}>
-        <View style={styles.celebrationCard}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+              borderRadius: theme.radius.lg,
+            },
+          ]}
+        >
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            {/* Level Up Celebration */}
             {levelUpTo !== null && (
               <View style={styles.levelUpContainer}>
-                <View style={styles.levelBadge}>
-                  <Ionicons name="sparkles" size={48} color="#eab308" />
+                <View style={[styles.iconBadge, { backgroundColor: 'rgba(198,255,0,0.12)', borderColor: theme.colors.primary }]}>
+                  <Ionicons name="trophy" size={44} color={theme.colors.primary} />
                 </View>
-                <Text style={styles.title}>LEVEL UP!</Text>
-                <Text style={styles.subtitle}>You reached Level {levelUpTo}</Text>
-                <Text style={styles.desc}>Your dedication is paying off. Keep crushing it!</Text>
+                <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>Level Up</Text>
+                <Text style={[styles.levelValue, { color: theme.colors.primary }]}>LEVEL {levelUpTo}</Text>
+                <Text style={[styles.desc, { color: theme.colors.muted }]}>
+                  Your dedication is paying off. Keep crushing it.
+                </Text>
               </View>
             )}
 
-            {/* Divider if both Level Up and Achievements unlocked */}
             {levelUpTo !== null && newlyUnlocked.length > 0 && (
-              <View style={styles.divider} />
+              <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
             )}
 
-            {/* Achievement Unlocked Celebration */}
             {newlyUnlocked.length > 0 && (
               <View style={styles.achievementsContainer}>
-                <Text style={styles.title}>ACHIEVEMENT UNLOCKED!</Text>
-                {newlyUnlocked.map(id => {
-                  const ach = ACHIEVEMENTS.find(a => a.id === id);
+                <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
+                  Achievement Unlocked
+                </Text>
+                {newlyUnlocked.map((id) => {
+                  const ach = ACHIEVEMENTS.find((a) => a.id === id);
                   if (!ach) return null;
                   return (
-                    <View key={id} style={styles.achCard}>
-                      <View style={styles.achIconContainer}>
-                        <Ionicons name={ach.icon as React.ComponentProps<typeof Ionicons>['name']} size={32} color="#eab308" />
+                    <View
+                      key={id}
+                      style={[styles.achCard, { backgroundColor: theme.colors.background, borderColor: GOLD }]}
+                    >
+                      <View style={[styles.achIcon, { backgroundColor: 'rgba(255,176,32,0.12)' }]}>
+                        <Ionicons
+                          name={ach.icon as React.ComponentProps<typeof Ionicons>['name']}
+                          size={28}
+                          color={GOLD}
+                        />
                       </View>
                       <View style={styles.achInfo}>
-                        <Text style={styles.achName}>{ach.name}</Text>
-                        <Text style={styles.achDesc}>{ach.description}</Text>
-                        <Text style={styles.achReward}>+{ach.xpReward} XP Reward</Text>
+                        <Text style={[styles.achName, { color: theme.colors.text }]}>{ach.name}</Text>
+                        <Text style={[styles.achDesc, { color: theme.colors.muted }]}>{ach.description}</Text>
+                        <Text style={[styles.achReward, { color: GOLD }]}>+{ach.xpReward} XP</Text>
                       </View>
                     </View>
                   );
@@ -61,8 +77,13 @@ export const AchievementCelebration = () => {
               </View>
             )}
 
-            <Pressable style={styles.button} onPress={clearCelebrations}>
-              <Text style={styles.buttonText}>Awesome!</Text>
+            <Pressable
+              style={[styles.button, { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md }]}
+              onPress={clearCelebrations}
+            >
+              <Text style={[styles.buttonText, { color: theme.colors.background, ...theme.typography.button }]}>
+                Let&apos;s Go
+              </Text>
             </Pressable>
           </ScrollView>
         </View>
@@ -74,69 +95,54 @@ export const AchievementCelebration = () => {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    backgroundColor: 'rgba(11, 11, 15, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
-  celebrationCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 24,
+  card: {
+    borderWidth: 1,
     width: '100%',
+    maxWidth: 400,
     maxHeight: '80%',
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 15,
-    elevation: 10,
   },
   scrollContent: {
     alignItems: 'center',
   },
   levelUpContainer: {
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 8,
   },
-  levelBadge: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: '#fef9c3',
+  iconBadge: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
-    shadowColor: '#eab308',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
   },
   title: {
     fontSize: 22,
-    fontWeight: '900',
-    color: '#1e293b',
     textAlign: 'center',
+    marginBottom: 8,
+  },
+  levelValue: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 32,
     letterSpacing: 1,
     marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#3b82f6',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
   desc: {
+    fontFamily: 'Manrope_500Medium',
     fontSize: 14,
-    color: '#64748b',
     textAlign: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     lineHeight: 20,
   },
   divider: {
     height: 1,
-    backgroundColor: '#e2e8f0',
     width: '90%',
     marginVertical: 20,
   },
@@ -146,8 +152,6 @@ const styles = StyleSheet.create({
   },
   achCard: {
     flexDirection: 'row',
-    backgroundColor: '#fefce8',
-    borderColor: '#fef08a',
     borderWidth: 1,
     borderRadius: 16,
     padding: 16,
@@ -155,11 +159,10 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
   },
-  achIconContainer: {
+  achIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#fef9c3',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -168,38 +171,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   achName: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
     fontSize: 16,
-    fontWeight: '700',
-    color: '#1e293b',
     marginBottom: 4,
   },
   achDesc: {
-    fontSize: 14,
-    color: '#64748b',
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 13,
     marginBottom: 6,
   },
   achReward: {
+    fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 12,
-    fontWeight: '700',
-    color: '#ca8a04',
   },
   button: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 12,
-    paddingVertical: 14,
+    height: 52,
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 24,
-    shadowColor: '#3b82f6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
   },
   buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
   },
 });

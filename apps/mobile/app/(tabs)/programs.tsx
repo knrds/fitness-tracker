@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, Modal, TextInput, Alert, Platform, ScrollView } from 'react-native';
-import { useTheme } from '@fitness-tracker/ui';
-
 import { useRouter } from 'expo-router';
 import * as Crypto from 'expo-crypto';
 
@@ -11,7 +9,6 @@ import { useProgramStore } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 
 export default function ProgramListScreen() {
-  const theme = useTheme();
   const router = useRouter();
   const { programs, templates, setActiveProgram, deleteProgram, createProgram } = useProgramStore();
 

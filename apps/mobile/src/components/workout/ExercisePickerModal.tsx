@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, FlatList, TextInput, Pressable, SafeAreaView, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { UUID, Exercise } from '@fitness-tracker/domain';
+import { useTheme } from '@fitness-tracker/ui';
+
 import { useExerciseStore } from '../../stores/exerciseStore';
 import { useHistoryStore } from '../../stores/historyStore';
-import { UUID, Exercise } from '@fitness-tracker/domain';
 
 interface Props {
   visible: boolean;
@@ -33,10 +36,11 @@ const POPULAR_EXERCISE_NAMES = [
   'EZ-Bar Skullcrusher',
   'Hanging Leg Raise',
   'Cable Crunch',
-  'Plank'
+  'Plank',
 ];
 
 export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
+  const theme = useTheme();
   const { exercises } = useExerciseStore();
   const { sessions } = useHistoryStore();
   const [search, setSearch] = useState('');
@@ -55,22 +59,22 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
 
   const matchesCategory = (ex: Exercise, category: string): boolean => {
     if (category === 'All') return true;
-    
-    const muscles = ex.primaryMuscles.map(m => m.toLowerCase());
-    
+
+    const muscles = ex.primaryMuscles.map((m) => m.toLowerCase());
+
     switch (category) {
       case 'Chest':
         return muscles.includes('chest');
       case 'Back':
-        return muscles.some(m => ['upper_back', 'lats', 'lower_back', 'traps'].includes(m));
+        return muscles.some((m) => ['upper_back', 'lats', 'lower_back', 'traps'].includes(m));
       case 'Legs':
-        return muscles.some(m => ['quads', 'hamstrings', 'glutes', 'calves'].includes(m));
+        return muscles.some((m) => ['quads', 'hamstrings', 'glutes', 'calves'].includes(m));
       case 'Shoulders':
-        return muscles.some(m => ['front_delts', 'side_delts', 'rear_delts', 'neck'].includes(m));
+        return muscles.some((m) => ['front_delts', 'side_delts', 'rear_delts', 'neck'].includes(m));
       case 'Arms':
-        return muscles.some(m => ['biceps', 'triceps', 'forearms'].includes(m));
+        return muscles.some((m) => ['biceps', 'triceps', 'forearms'].includes(m));
       case 'Core':
-        return muscles.some(m => ['abs', 'obliques'].includes(m));
+        return muscles.some((m) => ['abs', 'obliques'].includes(m));
       default:
         return false;
     }
@@ -78,8 +82,8 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
 
   const exerciseCounts = React.useMemo(() => {
     const counts: Record<string, number> = {};
-    sessions.forEach(session => {
-      session.exercises.forEach(ex => {
+    sessions.forEach((session) => {
+      session.exercises.forEach((ex) => {
         counts[ex.exerciseId] = (counts[ex.exerciseId] || 0) + 1;
       });
     });
@@ -87,7 +91,7 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
   }, [sessions]);
 
   const sortedExercises = React.useMemo(() => {
-    const scored = exercises.map(ex => {
+    const scored = exercises.map((ex) => {
       const freq = exerciseCounts[ex.id] || 0;
       const isDefaultPopular = POPULAR_EXERCISE_NAMES.includes(ex.name);
       const score = freq * 1000 + (isDefaultPopular ? 1 : 0);
@@ -101,25 +105,27 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
       return a.ex.name.localeCompare(b.ex.name);
     });
 
-    return scored.map(item => item.ex);
+    return scored.map((item) => item.ex);
   }, [exercises, exerciseCounts]);
 
   const popularExercises = React.useMemo(() => {
-    return sortedExercises.filter(ex => POPULAR_EXERCISE_NAMES.includes(ex.name) || (exerciseCounts[ex.id] || 0) > 0);
+    return sortedExercises.filter(
+      (ex) => POPULAR_EXERCISE_NAMES.includes(ex.name) || (exerciseCounts[ex.id] || 0) > 0
+    );
   }, [sortedExercises, exerciseCounts]);
 
   const otherExercises = React.useMemo(() => {
-    const popularSet = new Set(popularExercises.map(e => e.id));
-    const others = sortedExercises.filter(ex => !popularSet.has(ex.id));
+    const popularSet = new Set(popularExercises.map((e) => e.id));
+    const others = sortedExercises.filter((ex) => !popularSet.has(ex.id));
     return [...others].sort((a, b) => a.name.localeCompare(b.name));
   }, [sortedExercises, popularExercises]);
 
   const listData = React.useMemo(() => {
     const isFiltered = search !== '' || selectedCategory !== 'All';
     if (isFiltered) {
-      return sortedExercises.filter(ex => 
-        ex.name.toLowerCase().includes(search.toLowerCase()) &&
-        matchesCategory(ex, selectedCategory)
+      return sortedExercises.filter(
+        (ex) =>
+          ex.name.toLowerCase().includes(search.toLowerCase()) && matchesCategory(ex, selectedCategory)
       );
     }
 
@@ -127,12 +133,12 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
       { type: 'header' as const, name: 'Popular Exercises' },
       ...popularExercises,
       { type: 'header' as const, name: 'All Exercises' },
-      ...otherExercises
+      ...otherExercises,
     ];
   }, [search, selectedCategory, sortedExercises, popularExercises, otherExercises]);
 
   const toggleSelection = (id: UUID) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -146,69 +152,78 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
   const renderItem = ({ item }: { item: Exercise | { type: 'header'; name: string } }) => {
     if ('type' in item && item.type === 'header') {
       return (
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionHeaderText}>{item.name}</Text>
-        </View>
+        <Text style={[styles.sectionHeaderText, { color: theme.colors.muted }]}>{item.name}</Text>
       );
     }
     const ex = item as Exercise;
     const isSelected = selectedIds.has(ex.id);
     return (
-      <Pressable 
-        style={[styles.exerciseRow, isSelected && styles.exerciseRowSelected]} 
+      <Pressable
+        style={[
+          styles.exerciseRow,
+          { borderColor: theme.colors.border },
+          isSelected && { backgroundColor: 'rgba(198,255,0,0.08)' },
+        ]}
         onPress={() => toggleSelection(ex.id)}
       >
-        <View style={styles.exerciseRowContent}>
-          <View style={styles.exerciseTextContainer}>
-            <Text style={styles.exerciseName}>{ex.name}</Text>
-            <Text style={styles.exerciseMeta}>{ex.primaryMuscles.join(', ').replace(/_/g, ' ')} • {ex.equipment.replace(/_/g, ' ')}</Text>
-          </View>
-          <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-            {isSelected && <Text style={styles.checkboxCheck}>✓</Text>}
-          </View>
+        <View style={styles.exerciseTextContainer}>
+          <Text style={[styles.exerciseName, { color: theme.colors.text }]}>{ex.name}</Text>
+          <Text style={[styles.exerciseMeta, { color: theme.colors.muted }]}>
+            {ex.primaryMuscles.join(', ').replace(/_/g, ' ')} • {ex.equipment.replace(/_/g, ' ')}
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.checkbox,
+            { borderColor: isSelected ? theme.colors.primary : theme.colors.border },
+            isSelected && { backgroundColor: theme.colors.primary },
+          ]}
+        >
+          {isSelected && <Ionicons name="checkmark" size={16} color={theme.colors.background} />}
         </View>
       </Pressable>
     );
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Select Exercises</Text>
-          <Pressable style={styles.closeBtn} onPress={onClose}>
-            <Text style={styles.closeBtnText}>Close</Text>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+          <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>Add Exercises</Text>
+          <Pressable hitSlop={8} onPress={onClose}>
+            <Ionicons name="close" size={26} color={theme.colors.muted} />
           </Pressable>
         </View>
-        
+
         <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search exercises..."
-            value={search}
-            onChangeText={setSearch}
-            placeholderTextColor="#94a3b8"
-            autoFocus
-          />
+          <View style={[styles.searchField, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <Ionicons name="search" size={18} color={theme.colors.muted} />
+            <TextInput
+              style={[styles.searchInput, { color: theme.colors.text }]}
+              placeholder="Search exercises..."
+              value={search}
+              onChangeText={setSearch}
+              placeholderTextColor={theme.colors.muted}
+              autoFocus
+            />
+          </View>
         </View>
 
         <View style={styles.filterContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-            {categories.map(cat => {
+            {categories.map((cat) => {
               const isSelected = selectedCategory === cat;
               return (
                 <Pressable
                   key={cat}
-                  style={[styles.chip, isSelected && styles.chipSelected]}
+                  style={[
+                    styles.chip,
+                    { borderColor: isSelected ? theme.colors.primary : theme.colors.border },
+                  ]}
                   onPress={() => setSelectedCategory(cat)}
                 >
-                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                    {cat}
+                  <Text style={[styles.chipText, { color: isSelected ? theme.colors.primary : theme.colors.muted }]}>
+                    {cat.toUpperCase()}
                   </Text>
                 </Pressable>
               );
@@ -218,22 +233,23 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
 
         <FlatList
           data={listData}
-          keyExtractor={item => 'type' in item ? `header-${item.name}` : item.id}
+          keyExtractor={(item) => ('type' in item ? `header-${item.name}` : item.id)}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
           initialNumToRender={20}
         />
 
         {selectedIds.size > 0 && (
-          <View style={styles.addBtnContainer}>
-            <Pressable 
-              style={styles.addSelectedBtn}
+          <View style={[styles.addBtnContainer, { borderTopColor: theme.colors.border, backgroundColor: theme.colors.background }]}>
+            <Pressable
+              style={[styles.addSelectedBtn, { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md }]}
               onPress={() => {
                 onSelect(Array.from(selectedIds));
                 onClose();
               }}
             >
-              <Text style={styles.addSelectedBtnText}>
+              <Text style={[styles.addSelectedBtnText, { color: theme.colors.background, ...theme.typography.button }]}>
                 Add {selectedIds.size} Exercise{selectedIds.size > 1 ? 's' : ''}
               </Text>
             </Pressable>
@@ -247,153 +263,107 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
   },
   title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  closeBtnText: {
-    color: '#3b82f6',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  closeBtn: {
-    padding: 4,
+    fontSize: 20,
   },
   searchContainer: {
-    padding: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  searchField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
   },
   searchInput: {
-    backgroundColor: '#f1f5f9',
-    height: 40,
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    flex: 1,
+    fontFamily: 'Manrope_500Medium',
     fontSize: 16,
-    color: '#0f172a',
   },
   listContent: {
     paddingBottom: 40,
   },
   exerciseRow: {
-    padding: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  exerciseRowSelected: {
-    backgroundColor: '#f0f7ff',
-  },
-  exerciseRowContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
   },
   exerciseTextContainer: {
     flex: 1,
     paddingRight: 16,
   },
   exerciseName: {
+    fontFamily: 'Manrope_500Medium',
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
     marginBottom: 4,
   },
   exerciseMeta: {
-    fontSize: 13,
-    color: '#64748b',
-    textTransform: 'capitalize',
+    fontFamily: 'SpaceGrotesk_400Regular',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
+    width: 28,
+    height: 28,
+    borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#cbd5e1',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  checkboxSelected: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
-  },
-  checkboxCheck: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
   filterContainer: {
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    paddingVertical: 12,
+    paddingVertical: 16,
   },
   chipScroll: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     gap: 8,
   },
   chip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f1f5f9',
+    borderRadius: 9999,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  chipSelected: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
   },
   chipText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748b',
-  },
-  chipTextSelected: {
-    color: '#ffffff',
-  },
-  sectionHeader: {
-    backgroundColor: '#f1f5f9',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
-  sectionHeaderText: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
     fontSize: 12,
-    fontWeight: '800',
-    color: '#64748b',
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  sectionHeaderText: {
+    fontFamily: 'SpaceGrotesk_400Regular',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 8,
+  },
   addBtnContainer: {
-    padding: 16,
-    backgroundColor: '#ffffff',
+    padding: 20,
     borderTopWidth: 1,
-    borderColor: '#e2e8f0',
   },
   addSelectedBtn: {
-    backgroundColor: '#3b82f6',
-    padding: 14,
-    borderRadius: 10,
+    height: 56,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   addSelectedBtnText: {
-    color: '#ffffff',
     fontSize: 16,
-    fontWeight: '700',
   },
 });

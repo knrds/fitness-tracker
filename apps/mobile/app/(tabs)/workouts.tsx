@@ -2,13 +2,11 @@ import React from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProgramStore } from '../../src/stores/programStore';
-import { useTheme } from '@fitness-tracker/ui';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { WorkoutTemplate } from '@fitness-tracker/domain';
 
 export default function WorkoutsScreen() {
   const router = useRouter();
-  const theme = useTheme();
   const { templates, deleteTemplate } = useProgramStore();
   const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
 

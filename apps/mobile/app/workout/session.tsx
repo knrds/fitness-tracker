@@ -12,7 +12,7 @@ import { RestTimer } from '../../src/components/workout/RestTimer';
 import { ExercisePickerModal } from '../../src/components/workout/ExercisePickerModal';
 import { SaveTemplateModal } from '../../src/components/workout/SaveTemplateModal';
 import { useProgramStore } from '../../src/stores/programStore';
-import { useTheme, Button, Card, Input } from '@fitness-tracker/ui';
+import { useTheme, Button, Card } from '@fitness-tracker/ui';
 
 export default function WorkoutSessionScreen() {
   const router = useRouter();
@@ -22,8 +22,6 @@ export default function WorkoutSessionScreen() {
     name,
     exercises,
     notes,
-    pauseWorkout,
-    resumeWorkout,
     finishWorkout,
     addExercise,
     updateWorkoutNotes,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, ScrollView, Dimensions } from 'react-native';
 
 import { useRouter } from 'expo-router';
@@ -12,8 +12,7 @@ import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { useAchievementStore } from '../../src/stores/achievementStore';
 import { useAchievementCheck } from '../../src/hooks/useAchievementCheck';
 import { useProfileStore } from '../../src/stores/profileStore';
-import { useTheme, Card, Badge, EmptyState } from '@fitness-tracker/ui';
-import Animated, { useAnimatedStyle, withTiming, useSharedValue } from 'react-native-reanimated';
+import { useTheme, Card, EmptyState } from '@fitness-tracker/ui';
 
 export default function HistoryScreen() {
   const [activeTab, setActiveTab] = useState<'history' | 'progress' | 'achievements'>('history');
@@ -126,7 +125,7 @@ function HistoryView() {
 function ProgressView() {
   const theme = useTheme();
   useHistoryStore((state) => state.sessions);
-  const { getStreak, getPRs, getExerciseVolumeHistory } = useHistoryStore();
+  const { getPRs, getExerciseVolumeHistory } = useHistoryStore();
   const { exercises } = useExerciseStore();
   const { profile } = useProfileStore();
   const isImperial = profile.preferredUnits === 'imperial';
@@ -153,7 +152,7 @@ function ProgressView() {
     const data = {
       labels: history.map(h => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(h.date))),
       datasets: [
-        { data: history.map(h => isImperial ? Math.round(h.volume * 2.20462) : h.volume), color: (opacity = 1) => theme.colors.primary, strokeWidth: 2 }
+        { data: history.map(h => isImperial ? Math.round(h.volume * 2.20462) : h.volume), color: () => theme.colors.primary, strokeWidth: 2 }
       ],
     };
     return (
@@ -165,8 +164,8 @@ function ProgressView() {
           withOuterLines={false}
           chartConfig={{
             backgroundColor: theme.colors.surface, backgroundGradientFrom: theme.colors.surface, backgroundGradientTo: theme.colors.surface,
-            decimalPlaces: 0, color: (opacity = 1) => theme.colors.primary,
-            labelColor: (opacity = 1) => theme.colors.muted,
+            decimalPlaces: 0, color: () => theme.colors.primary,
+            labelColor: () => theme.colors.muted,
             propsForDots: { r: '4', strokeWidth: '2', stroke: theme.colors.surface }
           }}
           bezier style={{ marginVertical: 8, borderRadius: 16 }}
@@ -220,14 +219,6 @@ function AchievementsView() {
 
   const currentLevelXp = xp % 500;
   const xpProgressPercent = Math.min(100, Math.floor((currentLevelXp / 500) * 100));
-
-  const formatDate = (dateInput: string | Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    }).format(new Date(dateInput));
-  };
 
   const unlockedList = ACHIEVEMENTS.filter(a => unlockedAchievements[a.id] !== undefined);
   const lockedList = ACHIEVEMENTS.filter(a => unlockedAchievements[a.id] === undefined);

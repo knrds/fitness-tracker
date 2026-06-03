@@ -208,7 +208,7 @@ interface SetRowProps {
   onDelete: () => void;
 }
 
-const SetRow = ({ set, index, isImperial, showRpe, showRir, exerciseName, onUpdate, onComplete, onDelete }: SetRowProps) => {
+const SetRow = ({ set, index, isImperial, showRpe, showRir, exerciseName, onUpdate, onComplete }: SetRowProps) => {
   const theme = useTheme();
   const isDone = set.completed;
   
@@ -279,7 +279,7 @@ const SetRow = ({ set, index, isImperial, showRpe, showRir, exerciseName, onUpda
         />
         {showRpe && (
           <TextInput
-            style={[styles.input, styles.inputCol, { color: theme.colors.text, backgroundColor: theme.colors.background }, isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface }]}
+            style={[styles.input, styles.inputCol, { color: theme.colors.text, backgroundColor: theme.colors.background, borderColor: theme.colors.border }, isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface }]}
             keyboardType="numeric"
             value={set.rpe ? set.rpe.toString() : ''}
             onChangeText={(text) => onUpdate({ rpe: parseFloat(text) || 0 })}
@@ -289,7 +289,7 @@ const SetRow = ({ set, index, isImperial, showRpe, showRir, exerciseName, onUpda
         )}
         {showRir && (
           <TextInput
-            style={[styles.input, styles.inputCol, { color: theme.colors.text, backgroundColor: theme.colors.background }, isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface }]}
+            style={[styles.input, styles.inputCol, { color: theme.colors.text, backgroundColor: theme.colors.background, borderColor: theme.colors.border }, isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface }]}
             keyboardType="numeric"
             value={set.rir !== undefined ? set.rir.toString() : ''}
             onChangeText={(text) => onUpdate({ rir: parseInt(text, 10) || 0 })}
@@ -298,7 +298,7 @@ const SetRow = ({ set, index, isImperial, showRpe, showRir, exerciseName, onUpda
           />
         )}
         <Pressable 
-          style={[styles.doneBtn, styles.doneCol, { backgroundColor: isDone ? theme.colors.primary : theme.colors.surface }]} 
+          style={[styles.doneBtn, styles.doneCol, { backgroundColor: isDone ? theme.colors.primary : theme.colors.background, borderWidth: 1, borderColor: isDone ? theme.colors.primary : theme.colors.border }]}
           onPress={onComplete}
         >
           <Ionicons name="checkmark" size={20} color={isDone ? theme.colors.background : theme.colors.muted} />

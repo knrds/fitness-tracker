@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, Pressable } from 'react-native';
-import { useTheme } from '@fitness-tracker/ui';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
@@ -9,7 +8,6 @@ import { TemplateExercise } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
 
 export default function WorkoutTemplateBuilderScreen() {
-  const theme = useTheme();
   const router = useRouter();
   const { programId, templateId, dayOfWeek } = useLocalSearchParams<{ programId?: string, templateId?: string, dayOfWeek?: string }>();
   

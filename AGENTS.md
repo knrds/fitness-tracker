@@ -199,3 +199,75 @@ A feature task is complete only when **all** of the following hold:
   ignores to "make it pass".
 - ❌ Run destructive git or filesystem commands (`reset --hard`, force-push,
   bulk deletes) without being explicitly asked.
+
+---
+
+## App Architecture
+
+### Zustand Stores (`apps/mobile/src/stores/`)
+- **`workoutStore.ts`**: Manages the active workout session logging state, elapsed time, set logs, rest timer countdown, superset groupings, and warmup set calculations.
+- **`historyStore.ts`**: Manages the completed workout sessions history, streak tracking, personal records (PRs), exercise volume history, and previous performance retrieval.
+- **`exerciseStore.ts`**: Manages the exercise library (built-in + custom), muscle/equipment filters, favorite exercise IDs, and custom default rest timer durations.
+- **`profileStore.ts`**: Manages the user profile settings (display name, units, sex, height, strength maxes), overall statistics, and data export/clear functionality.
+- **`bodyMetricStore.ts`**: Manages body metric records (weight, body fat %, heart rate, and body circumferences) over time.
+- **`achievementStore.ts`**: Manages XP tracking, level calculations, locked/unlocked achievements, and achievement checks.
+- **`programStore.ts`**: Manages structured training programs and reusable workout templates.
+
+### Expo Router Screens (`apps/mobile/app/`)
+- **`/app/(tabs)/index.tsx`**: Home tab showing the welcome dashboard, current streak, active program workout preview, and upcoming achievements.
+- **`/app/(tabs)/workouts.tsx`**: Screen to start an empty workout, quick-start from templates, or go to template/program creation.
+- **`/app/(tabs)/exercises.tsx`**: Searchable exercise library with filtering by muscle group and equipment.
+- **`/app/(tabs)/history.tsx`**: List of all past workout sessions, streaks, and PR counters.
+- **`/app/(tabs)/body.tsx`**: Body metrics entry, weight/body fat charts, and measurements overview.
+- **`/app/(tabs)/programs.tsx`**: Active program overview and week-by-week calendar of scheduled templates.
+- **`/app/profile.tsx`**: Setup and edit settings for display name, biological sex, height, units, and strength maxes.
+- **`/app/exercise/[id].tsx`**: Detailed view of an exercise with category tags, instructions, and default rest timer configuration.
+- **`/app/history/[id].tsx`**: Summary detail view of a completed workout session.
+- **`/app/workout/quick-start.tsx`**: Template picker list to start a workout session from a template.
+- **`/app/workout/session.tsx`**: Active workout sheet logging page containing multiline workout notes.
+- **`/app/programs/builder.tsx`**: Multi-week program builder interface.
+- **`/app/programs/template-builder.tsx`**: Reusable workout template designer.
+
+### Core Components (`apps/mobile/src/components/`)
+- **`SessionExerciseCard.tsx`**: Renders exercise sets list in the active session, displaying previous performance, real-time e1RM estimates, RIR inputs, set type selectors (Warmup, Drop-set, Failure, Normal), superset connections, and the warmup calculator button.
+- **`RestTimer.tsx`**: Countdown overlay rest timer.
+- **`SaveTemplateModal.tsx`**: Modal requesting to save the completed session as a template.
+- **`PlateCalculatorModal.tsx`**: Visual barbell plate loading calculator for a standard 20kg bar.
+- **`AchievementCelebration.tsx`**: Confetti overlay screen celebrating unlocked achievements and level-ups.
+- **`ExercisePickerModal.tsx`**: Modal picker to add exercises to the active session.
+
+---
+
+## Project Status
+
+### Completed Missions (on `main`)
+- **✅ Mission 6: Stabilisierung + Templates**
+- **✅ Mission 7: Achievements + Gamification**
+- **✅ Mission 8: Body Tracking + Profil**
+- **✅ Mission 9: Workout-Verbesserungen**
+
+### Mission 9 Features
+- **Set Types (Set-Typen)**: Cycle through Normal, Warmup (`W`), Drop-set (`D`), and Failure (`F`) set types with distinct color badges.
+- **Previous Performance**: Displays details of the previous completed sets and date for that exercise.
+- **e1RM & RIR**: Displays real-time estimated 1-Rep Max (Epley) and includes an RIR input next to RPE.
+- **Plate Calculator**: Barbell icon trigger opening a visual 20kg bar plate combination visualizer.
+- **Warmup Rechner**: Prepopulates and prepends 3 warmup sets (50% x 10, 70% x 5, 90% x 2) based on the first set's weight.
+- **Supersätze**: Links consecutive exercises visually with a left-edge blue border bar and "SUPERSET" badge.
+- **Share Summary**: Triggers system-wide sharing with a text summary of the finished workout.
+- **Workout-Notiz**: Adds a text area for general notes about the workout session.
+
+---
+
+## Architectural Debt (To Be Addressed by Codex in Mission H0)
+
+> [!WARNING]
+> The Debugger Agent (Codex) must address the following debts during the Block 2 stabilization/hardening phase (Mission H0):
+
+1. **Business Logic Location**: Volume, PR, and Streak calculations are currently duplicated across `historyStore`, `achievementStore`, and `profileStore`. They must be extracted into pure TS functions under [`packages/domain/src/logic/`](./packages/domain/src/logic/) and tested with Vitest.
+2. **Warmups & Analytics**: Volume and PR calculations currently count warmup sets. Warmups must be filtered out (`set.type !== 'warmup'`).
+3. **e1RM-based PRs**: Personal records are currently calculated purely on max weight. They must be transitioned to e1RM-based (using Epley formula).
+4. **Timezone Bug**: Streak tracker uses UTC (`Date.toISOString()`) which causes shifting issues across days. It must use local `YYYY-MM-DD` date keys.
+5. **MMKV Persistent Stores**: Persistent stores copy `reviveDates` and custom storage logic. This should be refactored into a single helper (`apps/mobile/src/stores/storage.ts`) that validates stored data against Zod schemas on hydration, and includes versioning + migration paths.
+6. **Timer Drift**: The elapsed active workout timer counts up using `setInterval` (prone to drift when backgrounded). It should derive elapsed seconds dynamically from `startedAt` + accumulated pause durations.
+7. **finishWorkout Guard**: Guard against saving sessions without any completed sets (should not record in history or award XP).
+

@@ -170,7 +170,7 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
       <View style={styles.footerRow}>
         <Pressable 
           style={styles.addSetBtn} 
-          onPress={() => addSet(sessionExercise.id, { weight: 0, reps: 0 })}
+          onPress={() => addSet(sessionExercise.id)}
         >
           <Text style={styles.addSetText}>+ Add Set</Text>
         </Pressable>

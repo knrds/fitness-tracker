@@ -67,6 +67,6 @@ describe('historyStore', () => {
     useHistoryStore.getState().addSession(session);
     const prs = useHistoryStore.getState().getPRs();
     
-    expect(prs['ex-1']).toBeCloseTo(121, 2);
+    expect(prs['ex-1']).toBe(110);
   });
 });

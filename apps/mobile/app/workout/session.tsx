@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Platform, Alert } from 'react-native';
 import * as Crypto from 'expo-crypto';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { TemplateExercise, SessionExercise } from '@fitness-tracker/domain';
 
@@ -27,6 +28,7 @@ export default function WorkoutSessionScreen() {
     startedAt,
     pausedAt,
     accumulatedPauseMs,
+    resetWorkout,
   } = useWorkoutStore();
   const { createTemplate } = useProgramStore();
 
@@ -140,8 +142,48 @@ export default function WorkoutSessionScreen() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  const handleBackAction = () => {
+    if (Platform.OS === 'web') {
+      const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
+      if (confirmFn?.("Möchtest du das aktuelle Training abbrechen (löschen) oder weiter trainieren?\n\n[OK] = Abbrechen, [Abbrechen] = Weiter trainieren")) {
+        resetWorkout();
+        router.replace('/');
+      }
+      return;
+    }
+
+    Alert.alert(
+      "Training verlassen",
+      "Möchtest du das aktuelle Training abbrechen (löschen) oder weiter trainieren?",
+      [
+        {
+          text: "Weiter trainieren",
+          style: "cancel",
+          onPress: () => {}
+        },
+        {
+          text: "Abbrechen",
+          style: "destructive",
+          onPress: () => {
+            resetWorkout();
+            router.replace('/');
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
+      <Stack.Screen
+        options={{
+          headerLeft: () => (
+            <Pressable onPress={handleBackAction} style={{ paddingLeft: 4, paddingRight: 20, paddingVertical: 8 }}>
+              <Ionicons name="arrow-back" size={24} color="#3b82f6" />
+            </Pressable>
+          )
+        }}
+      />
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>{name}</Text>

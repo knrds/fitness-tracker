@@ -205,12 +205,12 @@ function AchievementsView() {
   const currentLevelXp = xp % 500;
   const xpProgressPercent = Math.min(100, Math.floor((currentLevelXp / 500) * 100));
 
-  const formatDate = (isoStr: string) => {
+  const formatDate = (dateInput: string | Date) => {
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
-    }).format(new Date(isoStr));
+    }).format(new Date(dateInput));
   };
 
   const unlockedList = ACHIEVEMENTS.filter(a => unlockedAchievements[a.id] !== undefined);

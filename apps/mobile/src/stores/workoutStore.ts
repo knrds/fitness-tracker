@@ -73,7 +73,7 @@ export interface WorkoutActions {
   resetWorkout: () => void;
   addExercise: (exerciseId: UUID) => void;
   removeExercise: (sessionExerciseId: UUID) => void;
-  addSet: (sessionExerciseId: UUID, set: Partial<ExerciseSet>) => void;
+  addSet: (sessionExerciseId: UUID, set?: Partial<ExerciseSet>) => void;
   updateSet: (sessionExerciseId: UUID, setId: UUID, updates: Partial<ExerciseSet>) => void;
   completeSet: (sessionExerciseId: UUID, setId: UUID) => void;
   removeSet: (sessionExerciseId: UUID, setId: UUID) => void;
@@ -291,7 +291,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
         lastUpdatedAt: new Date(),
       })),
 
-      addSet: (sessionExerciseId, setPartial) => set((state) => {
+      addSet: (sessionExerciseId, setPartial = {}) => set((state) => {
         const exercises = state.exercises.map(ex => {
           if (ex.id !== sessionExerciseId) return ex;
           

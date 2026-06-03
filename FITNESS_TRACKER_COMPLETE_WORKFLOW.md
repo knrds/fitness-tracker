@@ -36,10 +36,12 @@
 > Additionally, the following fixes and features are implemented and fully tested:
 > - **In-App Restoration Modal**: Replaced standard browser confirm and Alert.alert popups with a beautiful, styled custom in-app `<Modal>` overlay.
 > - **12-Hour Workout Timeout**: Silently cancels/discards active workouts started more than 12 hours ago on startup to avoid background timer drift.
-> - **Copy previous set values**: Tapping "+ Add Set" automatically inherits weight, reps, RPE, RIR, and set type from the previous set of that exercise.
+> - **Copy previous set values**: Tapping "+ Add Set" automatically inherits weight, reps, RPE, RIR, and set type from the previous set of that exercise (preventing zero overrides).
 > - **Realistic e1RM Divisors**: Updated divisors (45 leg compounds, 50 standard compounds, 60 isolations) to make predicted maxes realistic (e.g. 100kg x 10 reps -> 120kg e1RM).
-> - **Personal Record Decimals**: PR best weights in history/progress are rounded down to 2 decimal places using Math.floor and displayed with .toFixed(2).
-> - **Pre-built Splits (Programs)**: Seeded 3 default structured splits (Ganzkörper, Push/Pull/Legs, OK/UK) in `programStore` on storage hydration.
+> - **Personal Record Decimals & Actual Weight**: PR best weights are rounded down to 2 decimals using Math.floor and track the actual maximum weight lifted rather than estimated 1RM.
+> - **Pre-built Splits (Programs) & Calendar**: Seeded 3 default structured splits (Ganzkörper, Push/Pull/Legs, OK/UK). When a program is active, displays a gorgeous week-by-week calendar of training and rest days with template quick-start and plan deactivation.
+> - **Workout Session Back Navigation**: Custom back arrow in active workout header triggers a confirmation dialog to abort (delete session) or continue training.
+> - **Achievements Validation & Expansion**: Added 11 new achievements (dedicated streaks, milestone workouts, variety explorers). Updated Zod record schemas to accept Date objects from the MMKV custom storage reviver to prevent data loss on page reloads.
 > - **Template Start Loop Fix**: Resolved recursive render loop in `SessionExerciseCard.tsx` caused by unstable selector object references.
 > - **Plate Calculator**: Removed 25kg plates, using 20kg as the maximum plate size.
 > - **Default Training Plans**: Pre-built GK, OK, UK, Push, Pull, and Legs templates seeded dynamically on hydration.

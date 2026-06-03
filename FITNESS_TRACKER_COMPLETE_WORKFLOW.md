@@ -34,8 +34,13 @@
 >
 > 🔵 **Block 2 Status:** Mission H0 (Domain-Logik-Extraktion & MMKV-Stabilisierung)
 > ist auf dem Branch `fix/domain-logic-hardening` vollendet. Der Code baut fehlerfrei
-> (`pnpm typecheck` ist grün) und alle Test-Suites sind grün. Bereit für Codex
-> (Terminal / ft-debugger worktree), um mit der Bug-Jagd, Edge-Case-Härtung und TS-Härtung fortzufahren.
+> (`pnpm typecheck` ist grün) und alle Test-Suites sind grün.
+> Additionally, the new workout UX features are implemented on branch `fix/bugfixes`:
+> - **Cycling Exercise Illustrations**: Exercise detail screen cycles between movement frames to create a 3D animation style.
+> - **Default Set Creation**: Exercises are initialized with exactly 1 working set when added to a workout.
+> - **Multi-select Exercises**: Multiple exercises can be checked and added concurrently in the picker.
+> - **Balanced Barbell Plate Visualizer**: Displays a balanced visualizer representing both left and right sides of the barbell.
+> - **RPE/RIR Toggles**: Customizable column visibility toggles added to settings.
 
 Tatsächlicher Stand:
 

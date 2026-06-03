@@ -16,6 +16,8 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
   const { addSet, updateSet, completeSet, removeExercise, removeSet, calculateWarmupSets, toggleSuperset } = useWorkoutStore();
   const { profile } = useProfileStore();
   const isImperial = profile.preferredUnits === 'imperial';
+  const showRpe = profile.showRpe !== false;
+  const showRir = profile.showRir !== false;
 
   const lastPerformance = useHistoryStore(state => state.getPreviousPerformance(sessionExercise.exerciseId));
   const [plateCalcVisible, setPlateCalcVisible] = useState(false);
@@ -78,6 +80,31 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
     return `Last: ${setsStrUnits} on ${dateStr}`;
   };
 
+  const handleToggleSuperset = () => {
+    const currentIdx = useWorkoutStore.getState().exercises.findIndex(ex => ex.id === sessionExercise.id);
+    const totalEx = useWorkoutStore.getState().exercises.length;
+    
+    if (sessionExercise.supersetGroup) {
+      toggleSuperset(sessionExercise.id);
+      Alert.alert("Superset", "Exercise unlinked from superset.");
+    } else {
+      if (currentIdx === totalEx - 1) {
+        Alert.alert(
+          "Superset",
+          "Supersets link this exercise with the next one. Please add another exercise first to create a superset."
+        );
+      } else {
+        toggleSuperset(sessionExercise.id);
+        const nextExId = useWorkoutStore.getState().exercises[currentIdx + 1]?.exerciseId;
+        const nextEx = exercises.find(e => e.id === nextExId);
+        Alert.alert(
+          "Superset Created",
+          `Linked this exercise with "${nextEx?.name || 'the next exercise'}" as a superset.`
+        );
+      }
+    }
+  };
+
   return (
     <View style={[styles.card, sessionExercise.supersetGroup ? styles.cardSuperset : null]}>
       {sessionExercise.supersetGroup && (
@@ -96,7 +123,7 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
           <Pressable onPress={() => setPlateCalcVisible(true)} style={styles.iconBtn}>
             <Text style={styles.iconText}>🏋️</Text>
           </Pressable>
-          <Pressable onPress={() => toggleSuperset(sessionExercise.id)} style={styles.iconBtn}>
+          <Pressable onPress={handleToggleSuperset} style={styles.iconBtn}>
             <Text style={[styles.iconText, sessionExercise.supersetGroup && styles.iconTextLinked]}>
               {sessionExercise.supersetGroup ? '🔗' : '⛓️'}
             </Text>
@@ -111,8 +138,8 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
         <Text style={[styles.columnHeader, styles.setCol]}>Set</Text>
         <Text style={[styles.columnHeader, styles.inputCol]}>{isImperial ? 'lbs' : 'kg'}</Text>
         <Text style={[styles.columnHeader, styles.inputCol]}>Reps</Text>
-        <Text style={[styles.columnHeader, styles.inputCol]}>RPE</Text>
-        <Text style={[styles.columnHeader, styles.inputCol]}>RIR</Text>
+        {showRpe && <Text style={[styles.columnHeader, styles.inputCol]}>RPE</Text>}
+        {showRir && <Text style={[styles.columnHeader, styles.inputCol]}>RIR</Text>}
         <Text style={[styles.columnHeader, styles.doneCol]}>✓</Text>
         <Text style={[styles.columnHeader, styles.delCol]}></Text>
       </View>
@@ -124,6 +151,8 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
           index={idx}
           sessionExerciseId={sessionExercise.id}
           isImperial={isImperial}
+          showRpe={showRpe}
+          showRir={showRir}
           onUpdate={(updates) => updateSet(sessionExercise.id, set.id, updates)}
           onComplete={() => completeSet(sessionExercise.id, set.id)}
           onDelete={() => removeSet(sessionExercise.id, set.id)}
@@ -159,12 +188,14 @@ interface SetRowProps {
   index: number;
   sessionExerciseId: string;
   isImperial: boolean;
+  showRpe: boolean;
+  showRir: boolean;
   onUpdate: (updates: Partial<ExerciseSet>) => void;
   onComplete: () => void;
   onDelete: () => void;
 }
 
-const SetRow = ({ set, index, isImperial, onUpdate, onComplete, onDelete }: SetRowProps) => {
+const SetRow = ({ set, index, isImperial, showRpe, showRir, onUpdate, onComplete, onDelete }: SetRowProps) => {
   const isDone = set.completed;
   
   // Format the display weight for imperial, round/clean it up
@@ -232,22 +263,26 @@ const SetRow = ({ set, index, isImperial, onUpdate, onComplete, onDelete }: SetR
           editable={!isDone}
           placeholder="-"
         />
-        <TextInput
-          style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
-          keyboardType="numeric"
-          value={set.rpe ? set.rpe.toString() : ''}
-          onChangeText={(text) => onUpdate({ rpe: parseFloat(text) || 0 })}
-          editable={!isDone}
-          placeholder="-"
-        />
-        <TextInput
-          style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
-          keyboardType="numeric"
-          value={set.rir !== undefined ? set.rir.toString() : ''}
-          onChangeText={(text) => onUpdate({ rir: parseInt(text, 10) || 0 })}
-          editable={!isDone}
-          placeholder="-"
-        />
+        {showRpe && (
+          <TextInput
+            style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
+            keyboardType="numeric"
+            value={set.rpe ? set.rpe.toString() : ''}
+            onChangeText={(text) => onUpdate({ rpe: parseFloat(text) || 0 })}
+            editable={!isDone}
+            placeholder="-"
+          />
+        )}
+        {showRir && (
+          <TextInput
+            style={[styles.input, styles.inputCol, isDone && styles.inputDone]}
+            keyboardType="numeric"
+            value={set.rir !== undefined ? set.rir.toString() : ''}
+            onChangeText={(text) => onUpdate({ rir: parseInt(text, 10) || 0 })}
+            editable={!isDone}
+            placeholder="-"
+          />
+        )}
         <Pressable 
           style={[styles.doneBtn, styles.doneCol, isDone && styles.doneBtnActive]} 
           onPress={onComplete}

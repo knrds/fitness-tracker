@@ -98,30 +98,6 @@ export default function WorkoutSessionScreen() {
       return;
     }
 
-    const summary = summarizeWorkout(finishedSession);
-    const durationMin = Math.round(summary.durationSeconds / 60);
-    const preferredUnits = useProfileStore.getState().profile.preferredUnits;
-    const isImperial = preferredUnits === 'imperial';
-    const displayVolume = isImperial
-      ? Math.round(summary.totalVolume * 2.20462)
-      : Math.round(summary.totalVolume);
-    const volumeUnit = isImperial ? 'lbs' : 'kg';
-
-    let shareMessage = `Workout completed: ${finishedSession.name}\n`;
-    shareMessage += `Duration: ${durationMin} min\n`;
-    shareMessage += `Total Volume: ${displayVolume} ${volumeUnit}\n`;
-    shareMessage += `Total Sets: ${summary.setCount}\n`;
-    if (finishedSession.notes) {
-      shareMessage += `Note: ${finishedSession.notes}\n`;
-    }
-    shareMessage += `\nTracked with Fitness Tracker App!`;
-
-    try {
-      await Share.share({ message: shareMessage });
-    } catch (e) {
-      console.log('Sharing failed', e);
-    }
-
     router.replace('/');
   };
 
@@ -216,7 +192,7 @@ export default function WorkoutSessionScreen() {
       <ExercisePickerModal
         visible={pickerVisible}
         onClose={() => setPickerVisible(false)}
-        onSelect={(id) => addExercise(id)}
+        onSelect={(ids) => ids.forEach(id => addExercise(id))}
       />
 
       <SaveTemplateModal

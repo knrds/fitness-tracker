@@ -269,7 +269,16 @@ export const useWorkoutStore = create<WorkoutStore>()(
           id: Crypto.randomUUID(),
           exerciseId,
           order: state.exercises.length,
-          sets: [],
+          sets: [
+            {
+              id: Crypto.randomUUID(),
+              setNumber: 1,
+              type: 'working',
+              completed: false,
+              weight: 0,
+              reps: 0,
+            }
+          ],
         };
         return { 
           exercises: [...state.exercises, newExercise],
@@ -308,13 +317,32 @@ export const useWorkoutStore = create<WorkoutStore>()(
       }),
 
       completeSet: (sessionExerciseId, setId) => set((state) => {
+        let wasCompleted = false;
         const exercises = state.exercises.map(ex => {
           if (ex.id !== sessionExerciseId) return ex;
-          const sets = ex.sets.map(s => 
-            s.id === setId ? { ...s, completed: true, completedAt: new Date() } : s
-          );
+          const sets = ex.sets.map(s => {
+            if (s.id === setId) {
+              wasCompleted = s.completed;
+              const nextCompleted = !s.completed;
+              const { completedAt, ...rest } = s;
+              const updatedSet: ExerciseSet = {
+                ...rest,
+                completed: nextCompleted,
+                ...(nextCompleted ? { completedAt: new Date() } : {}),
+              };
+              return updatedSet;
+            }
+            return s;
+          });
           return { ...ex, sets };
         });
+        
+        if (wasCompleted) {
+          return {
+            exercises,
+            lastUpdatedAt: new Date(),
+          };
+        }
         
         // Auto-start rest timer
         const exercise = state.exercises.find(ex => ex.id === sessionExerciseId);

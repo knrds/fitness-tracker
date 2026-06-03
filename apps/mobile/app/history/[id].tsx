@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert, Platform, Share } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
@@ -7,7 +7,7 @@ import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { SaveTemplateModal } from '../../src/components/workout/SaveTemplateModal';
-import { TemplateExercise, SessionExercise } from '@fitness-tracker/domain';
+import { TemplateExercise, SessionExercise, summarizeWorkout } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
 
 export default function WorkoutDetailScreen() {
@@ -95,6 +95,30 @@ export default function WorkoutDetailScreen() {
     }
   };
 
+  const handleShareWorkout = async () => {
+    const summary = summarizeWorkout(session);
+    const durationMin = Math.round(summary.durationSeconds / 60);
+    const displayVolume = isImperial
+      ? Math.round(summary.totalVolume * 2.20462)
+      : Math.round(summary.totalVolume);
+    const volumeUnit = isImperial ? 'lbs' : 'kg';
+
+    let shareMessage = `Workout completed: ${session.name}\n`;
+    shareMessage += `Duration: ${durationMin} min\n`;
+    shareMessage += `Total Volume: ${displayVolume} ${volumeUnit}\n`;
+    shareMessage += `Total Sets: ${summary.setCount}\n`;
+    if (session.notes) {
+      shareMessage += `Note: ${session.notes}\n`;
+    }
+    shareMessage += `\nTracked with Fitness Tracker App!`;
+
+    try {
+      await Share.share({ message: shareMessage });
+    } catch (e) {
+      console.log('Sharing failed', e);
+    }
+  };
+
   const handleSaveTemplate = (templateName: string) => {
     createTemplate({
       name: templateName,
@@ -129,10 +153,13 @@ export default function WorkoutDetailScreen() {
           
           <View style={styles.actionRow}>
             <Pressable style={styles.actionBtn} onPress={handleRepeatWorkout}>
-              <Text style={styles.actionBtnText}>Repeat Workout</Text>
+              <Text style={styles.actionBtnText}>Repeat</Text>
             </Pressable>
             <Pressable style={[styles.actionBtn, styles.saveBtn]} onPress={() => setSaveModalVisible(true)}>
-              <Text style={styles.saveBtnText}>Save as Template</Text>
+              <Text style={styles.saveBtnText}>Template</Text>
+            </Pressable>
+            <Pressable style={[styles.actionBtn, styles.shareBtn]} onPress={handleShareWorkout}>
+              <Text style={styles.shareBtnText}>Share</Text>
             </Pressable>
           </View>
         </View>
@@ -224,6 +251,16 @@ const styles = StyleSheet.create({
   },
   saveBtnText: {
     color: '#0f172a',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  shareBtn: {
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+  },
+  shareBtnText: {
+    color: '#475569',
     fontWeight: '600',
     fontSize: 14,
   },

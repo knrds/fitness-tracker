@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Image } from 'expo-image';
@@ -12,8 +12,29 @@ export default function ExerciseDetailScreen() {
   const { status, addExercise, startWorkout } = useWorkoutStore();
   
   const [imageLoading, setImageLoading] = useState(true);
-
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+ 
   const exercise = exercises.find(e => e.id === id);
+
+  useEffect(() => {
+    if (!exercise?.imageUrl) return;
+    
+    if (exercise.imageUrl.endsWith('0.jpg')) {
+      const interval = setInterval(() => {
+        setCurrentImageIndex(prev => (prev === 0 ? 1 : 0));
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [exercise?.imageUrl]);
+
+  const getDisplayedImageUri = () => {
+    if (!exercise?.imageUrl) return undefined;
+    if (currentImageIndex === 1 && exercise.imageUrl.endsWith('0.jpg')) {
+      return exercise.imageUrl.replace('/0.jpg', '/1.jpg');
+    }
+    return exercise.imageUrl;
+  };
   const isFavorite = favoriteIds.includes(id || '');
   const customRestDuration = exerciseRestDurations[id || ''] || 90;
 
@@ -74,13 +95,16 @@ export default function ExerciseDetailScreen() {
       {exercise.imageUrl ? (
         <View style={styles.imageContainer}>
           <Image
-            source={{ uri: exercise.imageUrl }}
+            source={{ uri: getDisplayedImageUri() }}
             style={styles.image}
             contentFit="cover"
             onLoadStart={() => setImageLoading(true)}
-            onLoadEnd={() => setImageLoading(false)}
+            onLoadEnd={() => {
+              setImageLoading(false);
+              setHasLoadedOnce(true);
+            }}
           />
-          {imageLoading && (
+          {imageLoading && !hasLoadedOnce && (
             <View style={styles.imageLoader}>
               <ActivityIndicator size="large" color="#3b82f6" />
             </View>

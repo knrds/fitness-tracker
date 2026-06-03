@@ -1,18 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, FlatList, TextInput, Pressable, SafeAreaView, ScrollView } from 'react-native';
 import { useExerciseStore } from '../../stores/exerciseStore';
+import { useHistoryStore } from '../../stores/historyStore';
 import { UUID, Exercise } from '@fitness-tracker/domain';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
-  onSelect: (exerciseId: UUID) => void;
+  onSelect: (exerciseIds: UUID[]) => void;
 }
+
+const DEFAULT_POPULAR_KEYWORDS = [
+  'bench press', 'squat', 'deadlift', 'overhead press', 'bicep curl',
+  'pushdown', 'lateral raise', 'lat pulldown', 'pull-up', 'push-up',
+  'hammer curl', 'face pull', 'leg press', 'leg curl', 'leg extension',
+  'calf raise', 'crunch', 'plank'
+];
 
 export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
   const { exercises } = useExerciseStore();
+  const { sessions } = useHistoryStore();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedIds, setSelectedIds] = useState<Set<UUID>>(new Set());
 
   const categories = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core'];
 
@@ -20,6 +30,7 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
     if (!visible) {
       setSearch('');
       setSelectedCategory('All');
+      setSelectedIds(new Set());
     }
   }, [visible]);
 
@@ -46,23 +57,101 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
     }
   };
 
-  const filtered = exercises.filter(ex => 
-    ex.name.toLowerCase().includes(search.toLowerCase()) &&
-    matchesCategory(ex, selectedCategory)
-  );
+  const exerciseCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    sessions.forEach(session => {
+      session.exercises.forEach(ex => {
+        counts[ex.exerciseId] = (counts[ex.exerciseId] || 0) + 1;
+      });
+    });
+    return counts;
+  }, [sessions]);
 
-  const renderItem = ({ item }: { item: Exercise }) => (
-    <Pressable 
-      style={styles.exerciseRow} 
-      onPress={() => {
-        onSelect(item.id);
-        onClose();
-      }}
-    >
-      <Text style={styles.exerciseName}>{item.name}</Text>
-      <Text style={styles.exerciseMeta}>{item.primaryMuscles.join(', ').replace(/_/g, ' ')} • {item.equipment.replace(/_/g, ' ')}</Text>
-    </Pressable>
-  );
+  const sortedExercises = React.useMemo(() => {
+    const scored = exercises.map(ex => {
+      const freq = exerciseCounts[ex.id] || 0;
+      const isDefaultPopular = DEFAULT_POPULAR_KEYWORDS.some(keyword => 
+        ex.name.toLowerCase().includes(keyword)
+      );
+      const score = freq * 1000 + (isDefaultPopular ? 1 : 0);
+      return { ex, score };
+    });
+
+    scored.sort((a, b) => {
+      if (b.score !== a.score) {
+        return b.score - a.score;
+      }
+      return a.ex.name.localeCompare(b.ex.name);
+    });
+
+    return scored.map(item => item.ex);
+  }, [exercises, exerciseCounts]);
+
+  const popularExercises = React.useMemo(() => {
+    return sortedExercises.slice(0, 20);
+  }, [sortedExercises]);
+
+  const otherExercises = React.useMemo(() => {
+    const others = sortedExercises.slice(20);
+    return [...others].sort((a, b) => a.name.localeCompare(b.name));
+  }, [sortedExercises]);
+
+  const listData = React.useMemo(() => {
+    const isFiltered = search !== '' || selectedCategory !== 'All';
+    if (isFiltered) {
+      return sortedExercises.filter(ex => 
+        ex.name.toLowerCase().includes(search.toLowerCase()) &&
+        matchesCategory(ex, selectedCategory)
+      );
+    }
+
+    return [
+      { type: 'header' as const, name: 'Popular Exercises' },
+      ...popularExercises,
+      { type: 'header' as const, name: 'All Exercises' },
+      ...otherExercises
+    ];
+  }, [search, selectedCategory, sortedExercises, popularExercises, otherExercises]);
+
+  const toggleSelection = (id: UUID) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const renderItem = ({ item }: { item: Exercise | { type: 'header'; name: string } }) => {
+    if ('type' in item && item.type === 'header') {
+      return (
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionHeaderText}>{item.name}</Text>
+        </View>
+      );
+    }
+    const ex = item as Exercise;
+    const isSelected = selectedIds.has(ex.id);
+    return (
+      <Pressable 
+        style={[styles.exerciseRow, isSelected && styles.exerciseRowSelected]} 
+        onPress={() => toggleSelection(ex.id)}
+      >
+        <View style={styles.exerciseRowContent}>
+          <View style={styles.exerciseTextContainer}>
+            <Text style={styles.exerciseName}>{ex.name}</Text>
+            <Text style={styles.exerciseMeta}>{ex.primaryMuscles.join(', ').replace(/_/g, ' ')} • {ex.equipment.replace(/_/g, ' ')}</Text>
+          </View>
+          <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+            {isSelected && <Text style={styles.checkboxCheck}>✓</Text>}
+          </View>
+        </View>
+      </Pressable>
+    );
+  };
 
   return (
     <Modal
@@ -73,8 +162,8 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
     >
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Select Exercise</Text>
-          <Pressable onPress={onClose} style={styles.closeBtn}>
+          <Text style={styles.title}>Select Exercises</Text>
+          <Pressable style={styles.closeBtn} onPress={onClose}>
             <Text style={styles.closeBtnText}>Close</Text>
           </Pressable>
         </View>
@@ -110,12 +199,28 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
         </View>
 
         <FlatList
-          data={filtered}
-          keyExtractor={item => item.id}
+          data={listData}
+          keyExtractor={item => 'type' in item ? `header-${item.name}` : item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           initialNumToRender={20}
         />
+
+        {selectedIds.size > 0 && (
+          <View style={styles.addBtnContainer}>
+            <Pressable 
+              style={styles.addSelectedBtn}
+              onPress={() => {
+                onSelect(Array.from(selectedIds));
+                onClose();
+              }}
+            >
+              <Text style={styles.addSelectedBtnText}>
+                Add {selectedIds.size} Exercise{selectedIds.size > 1 ? 's' : ''}
+              </Text>
+            </Pressable>
+          </View>
+        )}
       </SafeAreaView>
     </Modal>
   );
@@ -171,6 +276,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
   },
+  exerciseRowSelected: {
+    backgroundColor: '#f0f7ff',
+  },
+  exerciseRowContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  exerciseTextContainer: {
+    flex: 1,
+    paddingRight: 16,
+  },
   exerciseName: {
     fontSize: 16,
     fontWeight: '600',
@@ -181,6 +298,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#64748b',
     textTransform: 'capitalize',
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#cbd5e1',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  checkboxCheck: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
   },
   filterContainer: {
     backgroundColor: '#ffffff',
@@ -211,5 +346,36 @@ const styles = StyleSheet.create({
   },
   chipTextSelected: {
     color: '#ffffff',
+  },
+  sectionHeader: {
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  sectionHeaderText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  addBtnContainer: {
+    padding: 16,
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  addSelectedBtn: {
+    backgroundColor: '#3b82f6',
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  addSelectedBtnText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

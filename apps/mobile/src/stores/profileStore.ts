@@ -31,6 +31,8 @@ export interface Profile {
   benchPressMaxKg?: number;
   squatMaxKg?: number;
   deadliftMaxKg?: number;
+  showRpe?: boolean;
+  showRir?: boolean;
 }
 
 export interface ProfileState {
@@ -49,6 +51,8 @@ export interface ProfileState {
 const defaultProfile: Profile = {
   displayName: 'User',
   preferredUnits: 'metric',
+  showRpe: true,
+  showRir: true,
 };
 
 const profileStateSchema = z.object({
@@ -62,6 +66,8 @@ const profileStateSchema = z.object({
   benchPressMaxKg: z.number().optional(),
   squatMaxKg: z.number().optional(),
   deadliftMaxKg: z.number().optional(),
+  showRpe: z.boolean().optional(),
+  showRir: z.boolean().optional(),
 });
 
 const profilePersistedSchema = z.object({

@@ -9,7 +9,9 @@ import {
   Alert, 
   Share,
   Modal,
-  SafeAreaView
+  SafeAreaView,
+  Switch,
+  Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -130,35 +132,35 @@ export default function ProfileScreen() {
 
     const isNowImperial = nextUnit === 'imperial';
 
-    setHeight(prev => {
+    setHeight((prev: string) => {
       if (!prev) return '';
       const val = parseFloat(prev);
       if (isNaN(val)) return '';
       return isNowImperial ? (val / 2.54).toFixed(1) : (val * 2.54).toFixed(1);
     });
 
-    setWeight(prev => {
+    setWeight((prev: string) => {
       if (!prev) return '';
       const val = parseFloat(prev);
       if (isNaN(val)) return '';
       return isNowImperial ? (val * 2.20462).toFixed(1) : (val / 2.20462).toFixed(1);
     });
 
-    setBenchPressMax(prev => {
+    setBenchPressMax((prev: string) => {
       if (!prev) return '';
       const val = parseFloat(prev);
       if (isNaN(val)) return '';
       return isNowImperial ? (val * 2.20462).toFixed(1) : (val / 2.20462).toFixed(1);
     });
 
-    setSquatMax(prev => {
+    setSquatMax((prev: string) => {
       if (!prev) return '';
       const val = parseFloat(prev);
       if (isNaN(val)) return '';
       return isNowImperial ? (val * 2.20462).toFixed(1) : (val / 2.20462).toFixed(1);
     });
 
-    setDeadliftMax(prev => {
+    setDeadliftMax((prev: string) => {
       if (!prev) return '';
       const val = parseFloat(prev);
       if (isNaN(val)) return '';
@@ -398,6 +400,32 @@ export default function ProfileScreen() {
               <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
             </View>
           </Pressable>
+
+          <View style={styles.settingsRow}>
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="eye-outline" size={22} color="#475569" />
+              <Text style={styles.settingsLabel}>Show RPE Column</Text>
+            </View>
+            <Switch
+              value={profile.showRpe !== false}
+              onValueChange={(val) => updateProfile({ showRpe: val })}
+              trackColor={{ false: '#cbd5e1', true: '#3b82f6' }}
+              thumbColor={Platform.OS === 'android' ? '#ffffff' : undefined}
+            />
+          </View>
+
+          <View style={styles.settingsRow}>
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="eye-outline" size={22} color="#475569" />
+              <Text style={styles.settingsLabel}>Show RIR Column</Text>
+            </View>
+            <Switch
+              value={profile.showRir !== false}
+              onValueChange={(val) => updateProfile({ showRir: val })}
+              trackColor={{ false: '#cbd5e1', true: '#3b82f6' }}
+              thumbColor={Platform.OS === 'android' ? '#ffffff' : undefined}
+            />
+          </View>
 
           <Pressable style={styles.settingsRow} onPress={handleExport}>
             <View style={styles.settingsRowLeft}>

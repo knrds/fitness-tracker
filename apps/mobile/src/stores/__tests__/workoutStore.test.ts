@@ -43,15 +43,42 @@ describe('workoutStore', () => {
     useWorkoutStore.getState().addExercise('ex-1');
     const exId = useWorkoutStore.getState().exercises[0]!.id;
     
-    useWorkoutStore.getState().addSet(exId, { weight: 100, reps: 10 });
+    const setId = useWorkoutStore.getState().exercises[0]!.sets[0]!.id;
+    useWorkoutStore.getState().updateSet(exId, setId, { weight: 100, reps: 10 });
     let state = useWorkoutStore.getState();
     expect(state.exercises[0]!.sets.length).toBe(1);
-    const setId = state.exercises[0]!.sets[0]!.id;
     
     useWorkoutStore.getState().completeSet(exId, setId);
     state = useWorkoutStore.getState();
     expect(state.exercises[0]!.sets[0]!.completed).toBe(true);
     expect(state.restTimer.isRunning).toBe(true);
+  });
+
+  it('should add, complete and then uncomplete a set', () => {
+    useWorkoutStore.getState().startWorkout();
+    useWorkoutStore.getState().addExercise('ex-1');
+    const exId = useWorkoutStore.getState().exercises[0]!.id;
+    
+    const setId = useWorkoutStore.getState().exercises[0]!.sets[0]!.id;
+    useWorkoutStore.getState().updateSet(exId, setId, { weight: 100, reps: 10 });
+    let state = useWorkoutStore.getState();
+    
+    // Complete the set
+    useWorkoutStore.getState().completeSet(exId, setId);
+    state = useWorkoutStore.getState();
+    expect(state.exercises[0]!.sets[0]!.completed).toBe(true);
+    expect(state.exercises[0]!.sets[0]!.completedAt).toBeDefined();
+    
+    // Turn off rest timer so we can check if it stays off
+    useWorkoutStore.getState().stopRestTimer();
+    
+    // Uncomplete the set
+    useWorkoutStore.getState().completeSet(exId, setId);
+    state = useWorkoutStore.getState();
+    expect(state.exercises[0]!.sets[0]!.completed).toBe(false);
+    expect(state.exercises[0]!.sets[0]!.completedAt).toBeUndefined();
+    // Rest timer should NOT have been started again
+    expect(state.restTimer.isRunning).toBe(false);
   });
 
   it('should finish a workout and add it to the history store', () => {
@@ -191,13 +218,14 @@ describe('workoutStore', () => {
     useWorkoutStore.getState().startWorkout('Chest Day');
     useWorkoutStore.getState().addExercise('ex-bench');
     const exId = useWorkoutStore.getState().exercises[0]!.id;
-
-    // Add a working set
-    useWorkoutStore.getState().addSet(exId, { weight: 100, reps: 5, type: 'working' });
+ 
+    // Update the default working set
+    const setId = useWorkoutStore.getState().exercises[0]!.sets[0]!.id;
+    useWorkoutStore.getState().updateSet(exId, setId, { weight: 100, reps: 5, type: 'working' });
     
     // Calculate warmups based on 100kg target weight
     useWorkoutStore.getState().calculateWarmupSets(exId, 100);
-
+ 
     const exercise = useWorkoutStore.getState().exercises[0]!;
     // Should have 3 warmup sets prepended, and 1 working set (total 4)
     expect(exercise.sets.length).toBe(4);

@@ -156,7 +156,17 @@ export default function WorkoutTemplateBuilderScreen() {
       <ExercisePickerModal
         visible={isExerciseModalVisible}
         onClose={() => setExerciseModalVisible(false)}
-        onSelect={(exerciseId) => addExercise(exerciseId)}
+        onSelect={(exerciseIds) => {
+          const newExercises = exerciseIds.map((exerciseId, idx) => ({
+            id: Crypto.randomUUID(),
+            exerciseId,
+            order: templateExercises.length + idx,
+            targetSets: 3,
+            targetReps: 10,
+          }));
+          setTemplateExercises([...templateExercises, ...newExercises]);
+          setExerciseModalVisible(false);
+        }}
       />
     </View>
   );

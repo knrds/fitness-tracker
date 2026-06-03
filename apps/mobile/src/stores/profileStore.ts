@@ -18,7 +18,7 @@ import { useHistoryStore } from './historyStore';
 import { useWorkoutStore } from './workoutStore';
 import { useExerciseStore } from './exerciseStore';
 import { useBodyMetricStore } from './bodyMetricStore';
-import { useProgramStore, getDefaultTemplates } from './programStore';
+import { useProgramStore, getDefaultTemplates, getDefaultPrograms } from './programStore';
 import { createHydratedStorage } from './storage';
 
 export interface Profile {
@@ -180,7 +180,7 @@ export const useProfileStore = create<ProfileState>()(
 
         // 6. Program Store
         useProgramStore.setState({
-          programs: [],
+          programs: getDefaultPrograms(),
           templates: getDefaultTemplates(),
         });
       },

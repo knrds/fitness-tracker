@@ -55,12 +55,12 @@ describe('estimateOneRepMax', () => {
   });
 
   it('uses realistic divisors based on exercise name', () => {
-    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Squat')).toBe(100 * (1 + 10 / 35));
-    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Romanian Deadlift')).toBe(100 * (1 + 10 / 35));
-    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Curl')).toBe(100 * (1 + 10 / 45));
-    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Plank')).toBe(100 * (1 + 10 / 45));
-    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Bench Press - Medium Grip')).toBe(100 * (1 + 10 / 38));
-    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Dips - Chest Version')).toBe(100 * (1 + 10 / 38));
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Squat')).toBe(100 * (1 + 10 / 45));
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Romanian Deadlift')).toBe(100 * (1 + 10 / 45));
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Curl')).toBe(100 * (1 + 10 / 60));
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Plank')).toBe(100 * (1 + 10 / 60));
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Bench Press - Medium Grip')).toBe(100 * (1 + 10 / 50));
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Dips - Chest Version')).toBe(100 * (1 + 10 / 50));
   });
 
   it('takes RPE and RIR into account', () => {

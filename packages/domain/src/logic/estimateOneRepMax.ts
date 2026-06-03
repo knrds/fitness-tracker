@@ -19,7 +19,7 @@ export function estimateOneRepMax(weight: number, reps: number, rpe?: number, ri
       name.includes('deadlift') ||
       name.includes('leg press')
     ) {
-      divisor = 35; // heavy compound leg/hip movements
+      divisor = 45; // heavy compound leg/hip movements
     } else if (
       name.includes('fly') ||
       name.includes('raise') ||
@@ -30,9 +30,9 @@ export function estimateOneRepMax(weight: number, reps: number, rpe?: number, ri
       name.includes('plank') ||
       name.includes('crunch')
     ) {
-      divisor = 45; // isolations & core
+      divisor = 60; // isolations & core
     } else {
-      divisor = 38; // standard compounds
+      divisor = 50; // standard compounds
     }
   }
   

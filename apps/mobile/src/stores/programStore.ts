@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Program, WorkoutTemplate, UUID, ProgramSchema, WorkoutTemplateSchema, EXERCISES, TemplateExercise } from '@fitness-tracker/domain';
+import { Program, ProgramWorkout, WorkoutTemplate, UUID, ProgramSchema, WorkoutTemplateSchema, EXERCISES, TemplateExercise } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
 import { z } from 'zod';
 
@@ -128,6 +128,74 @@ export function getDefaultTemplates(): WorkoutTemplate[] {
   ];
 }
 
+export function getDefaultPrograms(): Program[] {
+  const now = new Date('2026-06-01T00:00:00.000Z');
+  
+  const gkWorkouts: ProgramWorkout[] = [];
+  const pplWorkouts: ProgramWorkout[] = [];
+  const okukWorkouts: ProgramWorkout[] = [];
+  
+  for (let w = 1; w <= 4; w++) {
+    // GK (Mon, Wed, Fri)
+    gkWorkouts.push(
+      { id: `gk-w${w}-d1`, templateId: 'template-gk-gk-gk-gk-gk-gk-gk-gk-gk-gk', week: w, dayOfWeek: 1, order: 0 },
+      { id: `gk-w${w}-d3`, templateId: 'template-gk-gk-gk-gk-gk-gk-gk-gk-gk-gk', week: w, dayOfWeek: 3, order: 0 },
+      { id: `gk-w${w}-d5`, templateId: 'template-gk-gk-gk-gk-gk-gk-gk-gk-gk-gk', week: w, dayOfWeek: 5, order: 0 }
+    );
+    
+    // PPL (Mon, Wed, Fri)
+    pplWorkouts.push(
+      { id: `ppl-w${w}-d1`, templateId: 'template-push-push-push-push-push-push', week: w, dayOfWeek: 1, order: 0 },
+      { id: `ppl-w${w}-d3`, templateId: 'template-pull-pull-pull-pull-pull-pull', week: w, dayOfWeek: 3, order: 0 },
+      { id: `ppl-w${w}-d5`, templateId: 'template-legs-legs-legs-legs-legs-legs', week: w, dayOfWeek: 5, order: 0 }
+    );
+    
+    // OK/UK (Mon, Tue, Thu, Fri)
+    okukWorkouts.push(
+      { id: `okuk-w${w}-d1`, templateId: 'template-ok-ok-ok-ok-ok-ok-ok-ok-ok-ok', week: w, dayOfWeek: 1, order: 0 },
+      { id: `okuk-w${w}-d2`, templateId: 'template-uk-uk-uk-uk-uk-uk-uk-uk-uk-uk', week: w, dayOfWeek: 2, order: 0 },
+      { id: `okuk-w${w}-d4`, templateId: 'template-ok-ok-ok-ok-ok-ok-ok-ok-ok-ok', week: w, dayOfWeek: 4, order: 0 },
+      { id: `okuk-w${w}-d5`, templateId: 'template-uk-uk-uk-uk-uk-uk-uk-uk-uk-uk', week: w, dayOfWeek: 5, order: 0 }
+    );
+  }
+  
+  return [
+    {
+      id: 'program-gk-gk-gk-gk-gk-gk-gk-gk-gk-gk',
+      userId: LOCAL_USER_ID,
+      name: 'Ganzkörper Routine (3x/Woche)',
+      description: 'Ein klassischer Ganzkörpertrainingsplan für optimalen Muskel- und Kraftaufbau, 3 Mal pro Woche durchgeführt.',
+      durationWeeks: 4,
+      workouts: gkWorkouts,
+      isActive: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'program-ppl-ppl-ppl-ppl-ppl-ppl-ppl-ppl',
+      userId: LOCAL_USER_ID,
+      name: 'Push / Pull / Legs Split',
+      description: 'Ein dreitägiger Split, aufgeteilt in Drück- (Push), Zug- (Pull) und Beinmuskulatur (Legs). Ideal für 3-6 Einheiten pro Woche.',
+      durationWeeks: 4,
+      workouts: pplWorkouts,
+      isActive: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'program-okuk-okuk-okuk-okuk-okuk-okuk-ok',
+      userId: LOCAL_USER_ID,
+      name: 'Oberkörper / Unterkörper Split (4x/Woche)',
+      description: 'Ein hochgradig bewährter Vier-Tage-Split für Fortgeschrittene zur Maximierung von Hypertrophie und Erholung.',
+      durationWeeks: 4,
+      workouts: okukWorkouts,
+      isActive: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+}
+
 export interface ProgramState {
   programs: Program[];
   templates: WorkoutTemplate[];
@@ -238,6 +306,13 @@ export const useProgramStore = create<ProgramState>()(
           const templatesToSeed = defaultTemplates.filter(t => !existingNames.has(t.name));
           if (templatesToSeed.length > 0) {
             state.templates = [...(state.templates || []), ...templatesToSeed];
+          }
+
+          const defaultPrograms = getDefaultPrograms();
+          const existingProgNames = new Set((state.programs || []).map(p => p.name));
+          const programsToSeed = defaultPrograms.filter(p => !existingProgNames.has(p.name));
+          if (programsToSeed.length > 0) {
+            state.programs = [...(state.programs || []), ...programsToSeed];
           }
         }
       }

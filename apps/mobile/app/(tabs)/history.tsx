@@ -182,7 +182,12 @@ function ProgressView() {
             <View style={styles.prHighlight}>
               <Text style={styles.prHighlightLabel}>Best Weight</Text>
               <Text style={styles.prHighlightValue}>
-                {isImperial ? Math.round(prs[selectedExId]! * 2.20462) : prs[selectedExId]} {isImperial ? 'lbs' : 'kg'}
+                {(() => {
+                  const rawVal = prs[selectedExId]!;
+                  const converted = isImperial ? rawVal * 2.20462 : rawVal;
+                  const roundedDown = Math.floor(converted * 100) / 100;
+                  return roundedDown.toFixed(2);
+                })()} {isImperial ? 'lbs' : 'kg'}
               </Text>
             </View>
           )}

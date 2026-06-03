@@ -34,12 +34,13 @@
 > are completed, verified, and compiling cleanly.
 >
 > Additionally, the following fixes and features are implemented and fully tested:
+> - **In-App Restoration Modal**: Replaced standard browser confirm and Alert.alert popups with a beautiful, styled custom in-app `<Modal>` overlay.
+> - **12-Hour Workout Timeout**: Silently cancels/discards active workouts started more than 12 hours ago on startup to avoid background timer drift.
+> - **Copy previous set values**: Tapping "+ Add Set" automatically inherits weight, reps, RPE, RIR, and set type from the previous set of that exercise.
+> - **Realistic e1RM Divisors**: Updated divisors (45 leg compounds, 50 standard compounds, 60 isolations) to make predicted maxes realistic (e.g. 100kg x 10 reps -> 120kg e1RM).
+> - **Personal Record Decimals**: PR best weights in history/progress are rounded down to 2 decimal places using Math.floor and displayed with .toFixed(2).
+> - **Pre-built Splits (Programs)**: Seeded 3 default structured splits (Ganzkörper, Push/Pull/Legs, OK/UK) in `programStore` on storage hydration.
 > - **Template Start Loop Fix**: Resolved recursive render loop in `SessionExerciseCard.tsx` caused by unstable selector object references.
-> - **Workout Restoration Flow**: Added startup workout checker prompting the user to resume or discard active/paused sessions, with automatic web unload pausing to prevent timer drift.
-> - **Settings Exercise Picker**: Added direct ExercisePickerModal triggers inside profile settings for RPE/RIR exercise lists, displaying selected names.
-> - **Editable Checked Sets**: inputs for completed sets remain fully editable.
-> - **Popular Exercises**: Hand-curated list of 23 target exercises prioritized in the picker.
-> - **Conservative e1RM Calculation**: Updated divisors (35 for legs compounds, 38 for standard compounds, 45 for isolations) for more realistic 1RM estimations.
 > - **Plate Calculator**: Removed 25kg plates, using 20kg as the maximum plate size.
 > - **Default Training Plans**: Pre-built GK, OK, UK, Push, Pull, and Legs templates seeded dynamically on hydration.
 >

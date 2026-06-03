@@ -295,11 +295,22 @@ export const useWorkoutStore = create<WorkoutStore>()(
         const exercises = state.exercises.map(ex => {
           if (ex.id !== sessionExerciseId) return ex;
           
+          const lastSet = ex.sets[ex.sets.length - 1];
+          const defaults: Partial<ExerciseSet> = {};
+          if (lastSet) {
+            if (lastSet.weight !== undefined) defaults.weight = lastSet.weight;
+            if (lastSet.reps !== undefined) defaults.reps = lastSet.reps;
+            if (lastSet.rpe !== undefined) defaults.rpe = lastSet.rpe;
+            if (lastSet.rir !== undefined) defaults.rir = lastSet.rir;
+            if (lastSet.type !== undefined) defaults.type = lastSet.type;
+          }
+
           const newSet: ExerciseSet = {
             id: Crypto.randomUUID(),
             setNumber: ex.sets.length + 1,
             type: 'working',
             completed: false,
+            ...defaults,
             ...setPartial,
           };
           return { ...ex, sets: [...ex.sets, newSet] };

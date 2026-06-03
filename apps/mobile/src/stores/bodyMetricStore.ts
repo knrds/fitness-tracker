@@ -1,29 +1,11 @@
 import { create } from 'zustand';
-import { persist, PersistStorage } from 'zustand/middleware';
-import { MMKV } from 'react-native-mmkv';
-import { BodyMetric, UUID } from '@fitness-tracker/domain';
+import { persist } from 'zustand/middleware';
+import { BodyMetric, UUID, BodyMetricSchema } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
+import { z } from 'zod';
 
-const storage = new MMKV({ id: 'body-metric-storage' });
-
-const reviveDates = (key: string, value: unknown) => {
-  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
-    return new Date(value);
-  }
-  return value;
-};
-
-const customStorage: PersistStorage<BodyMetricStore> = {
-  getItem: (name: string) => {
-    const str = storage.getString(name);
-    if (!str) return null;
-    return JSON.parse(str, reviveDates as (key: string, value: unknown) => unknown);
-  },
-  setItem: (name: string, value: unknown) => {
-    storage.set(name, JSON.stringify(value));
-  },
-  removeItem: (name: string) => storage.delete(name),
-};
+import { LOCAL_USER_ID } from './local-user';
+import { createHydratedStorage } from './storage';
 
 export interface BodyMetricStore {
   metrics: BodyMetric[];
@@ -34,6 +16,16 @@ export interface BodyMetricStore {
   clearMetrics: () => void;
 }
 
+const bodyMetricPersistedSchema = z.object({
+  metrics: z.array(BodyMetricSchema),
+});
+
+type BodyMetricPersistedState = z.infer<typeof bodyMetricPersistedSchema>;
+
+const defaultPersistedState: BodyMetricPersistedState = {
+  metrics: [],
+};
+
 export const useBodyMetricStore = create<BodyMetricStore>()(
   persist(
     (set, get) => ({
@@ -43,7 +35,7 @@ export const useBodyMetricStore = create<BodyMetricStore>()(
         const newMetric: BodyMetric = {
           ...metric,
           id: Crypto.randomUUID(),
-          userId: 'local-user',
+          userId: LOCAL_USER_ID,
           createdAt: new Date(),
         };
         // Sort descending: newest first
@@ -80,8 +72,12 @@ export const useBodyMetricStore = create<BodyMetricStore>()(
     }),
     {
       name: 'body-metric-storage',
-      storage: customStorage,
+      storage: createHydratedStorage('body-metric-storage', bodyMetricPersistedSchema, defaultPersistedState),
       version: 1,
+      migrate: (persistedState) => {
+        const parsed = bodyMetricPersistedSchema.safeParse(persistedState);
+        return parsed.success ? parsed.data : defaultPersistedState;
+      },
     }
   )
 );

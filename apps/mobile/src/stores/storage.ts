@@ -1,4 +1,4 @@
-import { PersistStorage } from 'zustand/middleware';
+import { PersistStorage, StorageValue } from 'zustand/middleware';
 import { MMKV } from 'react-native-mmkv';
 import { z } from 'zod';
 
@@ -13,7 +13,7 @@ export function createHydratedStorage<T extends object>(
   storageId: string,
   schema: z.ZodType<T>,
   defaultPersistedState: T
-): PersistStorage<any> {
+): PersistStorage<T> {
   const storage = new MMKV({ id: storageId });
 
   return {
@@ -22,7 +22,7 @@ export function createHydratedStorage<T extends object>(
       if (!str) return null;
 
       try {
-        const parsed = JSON.parse(str, reviveDates);
+        const parsed = JSON.parse(str, reviveDates) as StorageValue<T>;
         if (parsed && parsed.state) {
           const validation = schema.safeParse(parsed.state);
           if (!validation.success) {
@@ -45,7 +45,7 @@ export function createHydratedStorage<T extends object>(
         return null;
       }
     },
-    setItem: (name: string, value: any) => {
+    setItem: (name: string, value: StorageValue<T>) => {
       storage.set(name, JSON.stringify(value));
     },
     removeItem: (name: string) => {

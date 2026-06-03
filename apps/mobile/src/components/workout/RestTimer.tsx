@@ -30,10 +30,11 @@ export const RestTimer = () => {
     let interval: NodeJS.Timeout;
     
     if (restTimer.isRunning && restTimer.endsAt) {
+      const endsAt = restTimer.endsAt;
       interval = setInterval(() => {
         tickRestTimer();
         const now = new Date();
-        const remaining = Math.ceil((restTimer.endsAt!.getTime() - now.getTime()) / 1000);
+        const remaining = Math.ceil((endsAt.getTime() - now.getTime()) / 1000);
         
         if (remaining <= 0) {
           setTimeLeft(0);

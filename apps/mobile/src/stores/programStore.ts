@@ -1,29 +1,11 @@
 import { create } from 'zustand';
-import { persist, PersistStorage } from 'zustand/middleware';
-import { MMKV } from 'react-native-mmkv';
-import { Program, WorkoutTemplate, UUID } from '@fitness-tracker/domain';
+import { persist } from 'zustand/middleware';
+import { Program, WorkoutTemplate, UUID, ProgramSchema, WorkoutTemplateSchema } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
+import { z } from 'zod';
 
-const storage = new MMKV({ id: 'program-storage' });
-
-const reviveDates = (key: string, value: unknown) => {
-  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
-    return new Date(value);
-  }
-  return value;
-};
-
-const customStorage: PersistStorage<ProgramState> = {
-  getItem: (name: string) => {
-    const str = storage.getString(name);
-    if (!str) return null;
-    return JSON.parse(str, reviveDates as (key: string, value: unknown) => unknown);
-  },
-  setItem: (name: string, value: unknown) => {
-    storage.set(name, JSON.stringify(value));
-  },
-  removeItem: (name: string) => storage.delete(name),
-};
+import { LOCAL_USER_ID } from './local-user';
+import { createHydratedStorage } from './storage';
 
 export interface ProgramState {
   programs: Program[];
@@ -39,6 +21,18 @@ export interface ProgramState {
   deleteTemplate: (id: UUID) => void;
 }
 
+const programPersistedSchema = z.object({
+  programs: z.array(ProgramSchema),
+  templates: z.array(WorkoutTemplateSchema),
+});
+
+type ProgramPersistedState = z.infer<typeof programPersistedSchema>;
+
+const defaultPersistedState: ProgramPersistedState = {
+  programs: [],
+  templates: [],
+};
+
 export const useProgramStore = create<ProgramState>()(
   persist(
     (set) => ({
@@ -46,17 +40,17 @@ export const useProgramStore = create<ProgramState>()(
       templates: [],
 
       createProgram: (programPartial) => set((state) => {
+        const now = new Date();
         const newProgram = {
+          ...programPartial,
           id: programPartial.id || Crypto.randomUUID(),
-          userId: 'local-user', // MVP scope
+          userId: LOCAL_USER_ID, // MVP scope
           name: programPartial.name || 'New Program',
-          description: programPartial.description,
           durationWeeks: programPartial.durationWeeks || 4,
           workouts: programPartial.workouts || [],
-          isActive: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          ...programPartial,
+          isActive: programPartial.isActive ?? false,
+          createdAt: programPartial.createdAt || now,
+          updatedAt: now,
         } as Program;
         return { programs: [...state.programs, newProgram] };
       }),
@@ -84,16 +78,16 @@ export const useProgramStore = create<ProgramState>()(
       })),
 
       createTemplate: (templatePartial) => set((state) => {
+        const now = new Date();
         const newTemplate = {
-          id: Crypto.randomUUID(),
-          userId: 'local-user',
-          name: templatePartial.name || 'New Template',
-          description: templatePartial.description,
-          exercises: templatePartial.exercises || [],
-          isArchived: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
           ...templatePartial,
+          id: templatePartial.id || Crypto.randomUUID(),
+          userId: LOCAL_USER_ID,
+          name: templatePartial.name || 'New Template',
+          exercises: templatePartial.exercises || [],
+          isArchived: templatePartial.isArchived ?? false,
+          createdAt: templatePartial.createdAt || now,
+          updatedAt: now,
         } as WorkoutTemplate;
         return { templates: [...state.templates, newTemplate] };
       }),
@@ -110,8 +104,12 @@ export const useProgramStore = create<ProgramState>()(
     }),
     {
       name: 'program-storage',
-      storage: customStorage,
+      storage: createHydratedStorage('program-storage', programPersistedSchema, defaultPersistedState),
       version: 1,
+      migrate: (persistedState) => {
+        const parsed = programPersistedSchema.safeParse(persistedState);
+        return parsed.success ? parsed.data : defaultPersistedState;
+      },
     }
   )
 );

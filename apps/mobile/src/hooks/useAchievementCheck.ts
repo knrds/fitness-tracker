@@ -1,6 +1,6 @@
 import { useHistoryStore } from '../stores/historyStore';
 import { useExerciseStore } from '../stores/exerciseStore';
-import { ACHIEVEMENTS, MuscleGroup } from '@fitness-tracker/domain';
+import { ACHIEVEMENTS, MuscleGroup, calculateVolume } from '@fitness-tracker/domain';
 
 export const useAchievementCheck = () => {
   const { sessions, getStreak, getPRs } = useHistoryStore();
@@ -30,17 +30,10 @@ export const useAchievementCheck = () => {
         break;
       case 'volume_10k':
       case 'volume_50k':
-        // Calculate total volume
-        current = sessions.reduce((total, s) => {
-          return total + s.exercises.reduce((exTotal, ex) => {
-            return exTotal + ex.sets.reduce((setTotal, set) => {
-              if (set.completed && set.weight && set.reps) {
-                return setTotal + set.weight * set.reps;
-              }
-              return setTotal;
-            }, 0);
-          }, 0);
-        }, 0);
+        current = sessions.reduce(
+          (total, session) => total + calculateVolume(session, { includeWarmups: false }),
+          0
+        );
         break;
       case 'muscles_all': {
         // Unique muscle groups trained

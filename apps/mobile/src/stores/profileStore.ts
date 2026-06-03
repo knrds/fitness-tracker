@@ -126,7 +126,13 @@ export const useProfileStore = create<ProfileState>()(
         // 3. Workout Store
         useWorkoutStore.setState({
           status: 'idle',
+          sessionId: undefined,
+          templateId: undefined,
+          programId: undefined,
           name: '',
+          startedAt: undefined,
+          pausedAt: undefined,
+          accumulatedPauseMs: 0,
           elapsedSeconds: 0,
           currentExerciseIndex: 0,
           currentSetIndex: 0,
@@ -170,6 +176,10 @@ export const useProfileStore = create<ProfileState>()(
       name: 'profile-storage',
       storage: createHydratedStorage('profile-storage', profilePersistedSchema, defaultPersistedState),
       version: 1,
+      migrate: (persistedState) => {
+        const parsed = profilePersistedSchema.safeParse(persistedState);
+        return parsed.success ? parsed.data : defaultPersistedState;
+      },
     }
   )
 );

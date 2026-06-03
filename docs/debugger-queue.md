@@ -1,48 +1,66 @@
 # Debugger Queue
 
-This queue tracks bugs, architectural violations, and other technical debt to be resolved by the Debugger Agent (Codex).
+This queue tracks bugs, architectural violations, and technical debt for the Debugger Agent.
 
-## Architecture Violations (to be fixed in Mission H0 / Block 2)
+## H0 Audit
 
-The following violations against the Architecture Guidelines (Section 1b of `FITNESS_TRACKER_COMPLETE_WORKFLOW.md`) were identified:
+### 1. Timezone Bug with `toISOString()` - [FIXED by H0]
+- **Original file**: `apps/mobile/src/stores/historyStore.ts`
+- **Result**: `historyStore.getStreak()` now delegates to `calculateStreak()` from `@fitness-tracker/domain`, which uses local `YYYY-MM-DD` keys via `formatDateLocal()`.
+- **Evidence**: `packages/domain/src/logic/calculateStreak.ts`; `packages/domain/src/__tests__/logic.test.ts`.
 
-### 1. Timezone Bug with `toISOString()`
-- **File**: `apps/mobile/src/stores/historyStore.ts`
-- **Location**: `getStreak()` function
-- **Violation**: Uses `d.toISOString()` (UTC) to generate date comparison keys after setting hours to 0 local time. This causes incorrect streak calculations for users in non-UTC time zones because UTC midnight shifts the day key.
-- **Guideline Ref**: Rule 4: Datumsvergleiche immer in lokaler Zeit (lokale Keys `YYYY-MM-DD`, kein `toISOString()`).
+### 2. Warmups Included in Volume Calculations - [FIXED by H0 + fix/bugfixes]
+- **Original files**: `historyStore`, `profileStore`, `achievementStore`.
+- **Result**: Store-level total volume uses `calculateVolume(..., { includeWarmups: false })`. `useAchievementCheck` still had a copied volume loop after H0 and was fixed in `fix/bugfixes`.
+- **Evidence**: `packages/domain/src/logic/calculateVolume.ts`; `apps/mobile/src/hooks/useAchievementCheck.ts`.
 
-### 2. Warmups Included in Volume Calculations
-- **Files**:
-  - `apps/mobile/src/stores/historyStore.ts` (in `getExerciseVolumeHistory`)
-  - `apps/mobile/src/stores/profileStore.ts` (in `getStatistics` total volume loop)
-  - `apps/mobile/src/stores/achievementStore.ts` (in `calculateTotalVolume` and `sessionVolume` loop)
-- **Violation**: The calculation loops do not filter out sets where `set.type === 'warmup'`. Warmup sets are counted toward the user's workload volume.
-- **Guideline Ref**: Rule 2: Warmups zählen nie als Arbeitsvolumen oder PR.
+### 3. Warmups Included in PR Calculations - [FIXED by H0]
+- **Original files**: `historyStore`, `achievementStore`.
+- **Result**: PR calculation paths exclude `set.type === 'warmup'`.
+- **Evidence**: `packages/domain/src/logic/detectPRs.ts`; `apps/mobile/src/stores/historyStore.ts`.
 
-### 3. Warmups Included in PR Calculations
-- **Files**:
-  - `apps/mobile/src/stores/historyStore.ts` (in `getPRs`)
-  - `apps/mobile/src/stores/achievementStore.ts` (in `calculatePRs`)
-- **Violation**: Does not filter out warmup sets (`set.type === 'warmup'`). If a user lifts a heavy weight during a warmup, it can be flagged as a PR.
-- **Guideline Ref**: Rule 2: Warmups zählen nie als Arbeitsvolumen oder PR.
+### 4. PRs are Weight-Based instead of e1RM-Based - [FIXED by H0]
+- **Original files**: `historyStore`, `achievementStore`.
+- **Result**: PR calculations use e1RM through `estimateOneRepMax()`.
+- **Evidence**: `packages/domain/src/logic/estimateOneRepMax.ts`; `packages/domain/src/logic/detectPRs.ts`.
 
-### 4. PRs are Weight-Based instead of e1RM-Based
-- **Files**:
-  - `apps/mobile/src/stores/historyStore.ts` (in `getPRs`)
-  - `apps/mobile/src/stores/achievementStore.ts` (in `calculatePRs` / PR updates)
-- **Violation**: PRs are tracked simply by comparing max weight (`weight > prs[id]`), ignoring the reps completed. The guidelines mandate that PRs are tracked via estimated One-Rep Max (e1RM) using the Epley formula.
-- **Guideline Ref**: Rule 3: PRs sind e1RM-basiert.
+### 5. Duplicated Business & Calculation Logic - [PARTIALLY FIXED]
+- **Fixed**: `profileStore`, `achievementStore`, and `useAchievementCheck` no longer duplicate total-volume logic.
+- **Still open**: `historyStore.getPRs()` and `historyStore.getExerciseVolumeHistory()` still contain local aggregation loops, and `SessionExerciseCard` still calculates display e1RM directly for the row preview.
+- **Next branch**: `fix/typescript-hardening` or a follow-up domain-logic cleanup should either justify these as view-specific aggregations or add missing domain helpers.
 
-### 5. Duplicated Business & Calculation Logic
-- **Files**:
-  - `apps/mobile/src/stores/historyStore.ts`
-  - `apps/mobile/src/stores/profileStore.ts`
-  - `apps/mobile/src/stores/achievementStore.ts`
-- **Violation**: Calculation logic for Volume, PRs, and Streaks is implemented and duplicated across multiple store files.
-- **Guideline Ref**: Rule 1: Geschäftslogik gehört in `packages/domain/src/logic/` — nicht in Stores/UI.
+### 6. Workout Timer Drift - [FIXED by H0]
+- **Original file**: `apps/mobile/app/workout/session.tsx`.
+- **Result**: active workout elapsed display is derived from `startedAt`, `pausedAt`, and `accumulatedPauseMs`; the interval only refreshes derived UI.
+- **Evidence**: `apps/mobile/app/workout/session.tsx`.
 
-### 6. Workout Timer Drift
-- **File**: `apps/mobile/app/workout/session.tsx` (and `apps/mobile/src/stores/workoutStore.ts`)
-- **Violation**: Elapsed time is accumulated using `setInterval` ticking `tickWorkoutTimer(1)` every second in a React `useEffect`, which drifts when backgrounded. It should be derived from `startedAt` + accumulated pause duration.
-- **Guideline Ref**: Rule 6: Zeitmessung driftfrei.
+## Fixed After H0
+
+### 7. Persistent Stores Missing Shared MMKV Helper / Migration - [FIXED by fix/bugfixes]
+- **Files**: `bodyMetricStore`, `programStore`, `exerciseStore`, plus H0 stores.
+- **Result**: all persistent stores use `createHydratedStorage(...)`, Zod validation, `version: 1`, and `migrate`.
+
+### 8. Finish Workout Double Action / Share Before Guard - [FIXED by fix/bugfixes]
+- **Files**: `workoutStore`, `app/workout/session.tsx`.
+- **Result**: `finishWorkout()` is idempotent and returns `WorkoutSession | null`; the UI shares only a returned, saved session and uses `summarizeWorkout()`.
+
+### 9. Rest Timer Non-null Assertion - [FIXED by fix/bugfixes]
+- **File**: `apps/mobile/src/components/workout/RestTimer.tsx`.
+- **Result**: `endsAt` is captured after the guard; no `restTimer.endsAt!` access remains.
+
+## Open Follow-up Queue
+
+### A. Numeric Input Edge Cases
+- **Files**: `SessionExerciseCard`, `workoutStore`.
+- **Issue**: empty, text, negative, and zero values need explicit tests and central sanitization.
+- **Target branch**: `fix/edge-cases`.
+
+### B. Hydration Edge Cases
+- **Files**: persistent stores and tests.
+- **Issue**: active session hydration and invalid persisted payload fallback need explicit Jest coverage.
+- **Target branch**: `fix/edge-cases`.
+
+### C. TypeScript Hardening
+- **Files**: `storage.ts`, `SessionExerciseCard`, tests, route casts.
+- **Issue**: remove remaining production `any` casts, review non-null assertions, and add explicit public return types.
+- **Target branch**: `fix/typescript-hardening`.

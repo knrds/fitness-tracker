@@ -6,16 +6,24 @@ import {
   calculateLongestStreak,
   detectPRs,
   summarizeWorkout,
-  WorkoutSession,
-  UUID
+  WorkoutSession
 } from '../index';
 
-const UUID_1 = '11111111-1111-4111-8111-111111111111';
-const UUID_2 = '22222222-2222-4222-8222-222222222222';
 const EX_UUID_1 = '33333333-3333-4333-8333-333333333333';
-const EX_UUID_2 = '44444444-4444-4444-8444-444444444444';
 
-function createMockSession(id: string, startedAt: Date, exercises: any[]): WorkoutSession {
+type MockSet = {
+  weight?: number;
+  reps?: number;
+  type?: WorkoutSession['exercises'][number]['sets'][number]['type'];
+  completed?: boolean;
+};
+
+type MockExercise = {
+  exerciseId: string;
+  sets: MockSet[];
+};
+
+function createMockSession(id: string, startedAt: Date, exercises: MockExercise[]): WorkoutSession {
   return {
     id,
     userId: 'test-user',
@@ -25,7 +33,7 @@ function createMockSession(id: string, startedAt: Date, exercises: any[]): Worko
       id: `${id}-ex-${order}`,
       exerciseId: ex.exerciseId,
       order,
-      sets: ex.sets.map((set: any, setNumber: number) => ({
+      sets: ex.sets.map((set, setNumber) => ({
         id: `${id}-ex-${order}-set-${setNumber}`,
         setNumber: setNumber + 1,
         type: set.type || 'working',

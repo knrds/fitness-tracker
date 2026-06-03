@@ -1,18 +1,11 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import { MMKV } from 'react-native-mmkv';
-import { Exercise, MuscleGroup, Equipment, EXERCISES } from '@fitness-tracker/domain';
+import { persist } from 'zustand/middleware';
+import { Exercise, MuscleGroup, Equipment, EXERCISES, ExerciseSchema } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
+import { z } from 'zod';
 
-const storage = new MMKV();
-const zustandStorage = {
-  setItem: (name: string, value: string) => storage.set(name, value),
-  getItem: (name: string) => {
-    const value = storage.getString(name);
-    return value ?? null;
-  },
-  removeItem: (name: string) => storage.delete(name),
-};
+import { LOCAL_USER_ID } from './local-user';
+import { createHydratedStorage } from './storage';
 
 function filterExercises(
   exercises: Exercise[], 
@@ -47,6 +40,20 @@ export interface ExerciseState {
   exerciseRestDurations: Record<string, number>;
   setExerciseRestDuration: (exerciseId: string, durationSeconds: number) => void;
 }
+
+const exercisePersistedSchema = z.object({
+  favoriteIds: z.array(z.string()),
+  customExercises: z.array(ExerciseSchema),
+  exerciseRestDurations: z.record(z.number().int().nonnegative()),
+});
+
+type ExercisePersistedState = z.infer<typeof exercisePersistedSchema>;
+
+const defaultPersistedState: ExercisePersistedState = {
+  favoriteIds: [],
+  customExercises: [],
+  exerciseRestDurations: {},
+};
 
 export const useExerciseStore = create<ExerciseState>()(
   persist(
@@ -101,7 +108,7 @@ export const useExerciseStore = create<ExerciseState>()(
             ...data,
             id: Crypto.randomUUID(),
             isCustom: true,
-            ownerId: 'local-user',
+            ownerId: LOCAL_USER_ID,
             createdAt: new Date(),
             updatedAt: new Date(),
           };
@@ -125,12 +132,17 @@ export const useExerciseStore = create<ExerciseState>()(
     }),
     {
       name: 'exercise-storage',
-      storage: createJSONStorage(() => zustandStorage),
+      storage: createHydratedStorage('exercise-storage', exercisePersistedSchema, defaultPersistedState),
       partialize: (state) => ({ 
         favoriteIds: state.favoriteIds, 
         customExercises: state.customExercises,
         exerciseRestDurations: state.exerciseRestDurations 
       }),
+      version: 1,
+      migrate: (persistedState) => {
+        const parsed = exercisePersistedSchema.safeParse(persistedState);
+        return parsed.success ? parsed.data : defaultPersistedState;
+      },
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.exercises = [...EXERCISES, ...(state.customExercises || [])];

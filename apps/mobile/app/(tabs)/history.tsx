@@ -13,6 +13,7 @@ import { useAchievementStore } from '../../src/stores/achievementStore';
 import { useAchievementCheck } from '../../src/hooks/useAchievementCheck';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { useTheme, Card, EmptyState } from '@fitness-tracker/ui';
+import { getLevelBadge } from '../../src/utils/level';
 
 export default function HistoryScreen() {
   const [activeTab, setActiveTab] = useState<'history' | 'progress' | 'achievements'>('history');
@@ -325,7 +326,9 @@ function AchievementsView() {
       {/* Level Card */}
       <Card style={styles.levelCard} padding="lg">
         <View style={styles.levelHeader}>
-          <Text style={[styles.levelTitle, { color: theme.colors.text, ...theme.typography.heading, fontSize: 24 }]}>LEVEL {level}</Text>
+          <Text style={[styles.levelTitle, { color: theme.colors.text, ...theme.typography.heading, fontSize: 22 }]}>
+            LEVEL {level} • {getLevelBadge(level).title} {getLevelBadge(level).icon}
+          </Text>
           <Text style={[styles.xpText, { color: theme.colors.primary, ...theme.typography.heading }]}>{currentLevelXp} / 500 XP</Text>
         </View>
         <View style={[styles.progressBarBg, { backgroundColor: theme.colors.surface }]}>

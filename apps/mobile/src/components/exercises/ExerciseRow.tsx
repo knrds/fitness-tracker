@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { Exercise } from '@fitness-tracker/domain';
-import { Link, Href } from 'expo-router';
+import { useRouter, Href } from 'expo-router';
 import { useTheme, Badge } from '@fitness-tracker/ui';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -14,48 +14,50 @@ interface Props {
 
 export const ExerciseRow = ({ exercise, isFavorite, onToggleFavorite }: Props) => {
   const theme = useTheme();
+  const router = useRouter();
 
   return (
-    <Link href={`/exercise/${exercise.id}` as Href} asChild>
-      <Pressable style={styles.container}>
-        <View style={[styles.thumbnail, { backgroundColor: theme.colors.surface }]}>
-          {exercise.imageUrl ? (
-            <Image
-              source={{ uri: exercise.imageUrl }}
-              style={styles.image}
-              contentFit="cover"
-            />
-          ) : (
-            <Ionicons name="barbell-outline" size={24} color={theme.colors.muted} />
-          )}
-        </View>
-
-        <View style={styles.infoContainer}>
-          <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.body }]} numberOfLines={1}>
-            {exercise.name}
-          </Text>
-          <View style={styles.badges}>
-            {exercise.primaryMuscles.slice(0, 2).map(m => (
-              <Badge key={m} label={m.replace('_', ' ')} style={{ marginRight: 4, height: 20 }} />
-            ))}
-          </View>
-        </View>
-
-        {onToggleFavorite && (
-          <Pressable 
-            onPress={() => onToggleFavorite(exercise.id)} 
-            hitSlop={10} 
-            style={styles.favoriteBtn}
-          >
-            <Ionicons 
-              name={isFavorite ? 'star' : 'star-outline'} 
-              size={24} 
-              color={isFavorite ? theme.colors.primary : theme.colors.muted} 
-            />
-          </Pressable>
+    <Pressable 
+      style={styles.container}
+      onPress={() => router.push(`/exercise/${exercise.id}` as Href)}
+    >
+      <View style={[styles.thumbnail, { backgroundColor: theme.colors.surface }]}>
+        {exercise.imageUrl ? (
+          <Image
+            source={{ uri: exercise.imageUrl }}
+            style={styles.image}
+            contentFit="cover"
+          />
+        ) : (
+          <Ionicons name="barbell-outline" size={24} color={theme.colors.muted} />
         )}
-      </Pressable>
-    </Link>
+      </View>
+
+      <View style={styles.infoContainer}>
+        <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.body }]} numberOfLines={1}>
+          {exercise.name}
+        </Text>
+        <View style={styles.badges}>
+          {exercise.primaryMuscles.slice(0, 2).map(m => (
+            <Badge key={m} label={m.replace('_', ' ')} style={{ marginRight: 4, height: 20 }} />
+          ))}
+        </View>
+      </View>
+
+      {onToggleFavorite && (
+        <Pressable 
+          onPress={() => onToggleFavorite(exercise.id)} 
+          hitSlop={10} 
+          style={styles.favoriteBtn}
+        >
+          <Ionicons 
+            name={isFavorite ? 'star' : 'star-outline'} 
+            size={24} 
+            color={isFavorite ? theme.colors.primary : theme.colors.muted} 
+          />
+        </Pressable>
+      )}
+    </Pressable>
   );
 };
 

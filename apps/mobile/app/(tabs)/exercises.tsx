@@ -9,6 +9,7 @@ import { MuscleGroup } from '@fitness-tracker/domain';
 
 const MUSCLE_FILTERS = [
   { id: 'all', label: 'All Muscles' },
+  { id: 'favorites', label: '★ Favorites' },
   { id: MuscleGroup.Chest, label: 'Chest' },
   { id: MuscleGroup.UpperBack, label: 'Back' }, // We'll map 'Back' to upper back for the filter
   { id: MuscleGroup.Quads, label: 'Legs' },
@@ -22,11 +23,14 @@ export default function ExercisesScreen() {
   const theme = useTheme();
   const { filteredExercises, favoriteIds, toggleFavorite, searchQuery, setSearchQuery } = useExerciseStore();
   const [showCustomModal, setShowCustomModal] = useState(false);
-  const [selectedMuscle, setSelectedMuscle] = useState<MuscleGroup | null>(null);
+  const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
 
-  const displayExercises = filteredExercises.filter(ex => 
-    selectedMuscle ? ex.primaryMuscles.includes(selectedMuscle) : true
-  );
+  const displayExercises = filteredExercises.filter(ex => {
+    if (selectedMuscle === 'favorites') {
+      return favoriteIds.includes(ex.id);
+    }
+    return selectedMuscle ? ex.primaryMuscles.includes(selectedMuscle as MuscleGroup) : true;
+  });
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -70,7 +74,7 @@ export default function ExercisesScreen() {
                     borderColor: isSelected ? theme.colors.primary : theme.colors.muted,
                   }
                 ]}
-                onPress={() => setSelectedMuscle(item.id === 'all' ? null : item.id as MuscleGroup)}
+                onPress={() => setSelectedMuscle(item.id === 'all' ? null : item.id)}
               >
                 <Text
                   style={[

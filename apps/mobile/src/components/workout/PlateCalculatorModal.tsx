@@ -107,9 +107,12 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
             </Pressable>
           </View>
 
-          <Text style={[styles.subtitle, { color: theme.colors.muted }]}>
-            Plates needed per side on a 20 kg (44 lbs) bar.
-          </Text>
+          <View style={[styles.barbellAlert, { backgroundColor: theme.colors.background, borderColor: theme.colors.primary + '33' }]}>
+            <Ionicons name="information-circle-outline" size={18} color={theme.colors.primary} />
+            <Text style={[styles.barbellAlertText, { color: theme.colors.text }]}>
+              Calculations are based on a standard <Text style={{ color: theme.colors.primary, fontFamily: 'SpaceGrotesk_700Bold' }}>20 kg (44 lbs)</Text> barbell.
+            </Text>
+          </View>
 
           <View style={styles.inputContainer}>
             <Text style={[styles.inputLabel, { color: theme.colors.muted }]}>Target Weight</Text>
@@ -330,5 +333,19 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 15,
+  },
+  barbellAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 16,
+    gap: 8,
+  },
+  barbellAlertText: {
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 13,
+    flex: 1,
   },
 });

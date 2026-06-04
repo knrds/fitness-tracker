@@ -1,17 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, Pressable, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { WorkoutTemplate } from '@fitness-tracker/domain';
+import { useTheme } from '@fitness-tracker/ui';
 
 export default function ProgramBuilderScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { programs, updateProgram, templates } = useProgramStore();
   
   const program = programs.find(p => p.id === id);
   const { status: activeWorkoutStatus, startWorkoutFromTemplate } = useWorkoutStore();
+  const [selectedWeek, setSelectedWeek] = useState(1);
 
   const handleStartTemplate = (template: WorkoutTemplate | undefined, programId: string) => {
     if (!template) return;
@@ -47,7 +50,7 @@ export default function ProgramBuilderScreen() {
   if (!program) {
     return (
       <View style={styles.centered}>
-        <Text>Program not found.</Text>
+        <Text style={{ color: '#F4F5F7' }}>Program not found.</Text>
       </View>
     );
   }
@@ -69,7 +72,7 @@ export default function ProgramBuilderScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.label}>Program Name</Text>
         <TextInput 
@@ -77,6 +80,7 @@ export default function ProgramBuilderScreen() {
           value={program.name} 
           onChangeText={(text) => handleChange({ name: text })} 
           placeholder="e.g. 5/3/1 Boring But Big" 
+          placeholderTextColor="#8A8D9F"
         />
         
         <Text style={styles.label}>Description</Text>
@@ -85,6 +89,7 @@ export default function ProgramBuilderScreen() {
           value={program.description || ''} 
           onChangeText={(text) => handleChange({ description: text })} 
           placeholder="Optional description" 
+          placeholderTextColor="#8A8D9F"
           multiline 
         />
         
@@ -94,11 +99,31 @@ export default function ProgramBuilderScreen() {
           value={program.durationWeeks.toString()} 
           onChangeText={(text) => handleChange({ durationWeeks: parseInt(text, 10) || 1 })} 
           keyboardType="numeric" 
+          placeholderTextColor="#8A8D9F"
         />
 
         <Text style={styles.sectionTitle}>Weekly Schedule</Text>
+        
+        {/* Week Selector Tabs */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.weekTabsScroll}>
+          {Array.from({ length: program.durationWeeks }, (_, i) => i + 1).map(w => {
+            const isSelected = w === selectedWeek;
+            return (
+              <Pressable 
+                key={w} 
+                style={[styles.weekTab, isSelected && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]}
+                onPress={() => setSelectedWeek(w)}
+              >
+                <Text style={[styles.weekTabText, isSelected && { color: theme.colors.background, fontFamily: 'SpaceGrotesk_700Bold' }]}>
+                  Week {w}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
         {[1, 2, 3, 4, 5, 6, 7].map((day) => {
-          const dayWorkouts = program.workouts.filter(w => w.dayOfWeek === day);
+          const dayWorkouts = program.workouts.filter(w => w.week === selectedWeek && w.dayOfWeek === day);
           return (
             <View key={day} style={styles.dayContainer}>
               <Text style={styles.dayName}>{getDayName(day)}</Text>
@@ -112,7 +137,7 @@ export default function ProgramBuilderScreen() {
                       <Pressable onPress={() => handleStartTemplate(template, program.id)}>
                         <Text style={styles.startText}>Start</Text>
                       </Pressable>
-                      <Pressable onPress={() => router.push(`/programs/template-builder?programId=${program.id}&templateId=${template?.id}&dayOfWeek=${day}`)}>
+                      <Pressable onPress={() => router.push(`/programs/template-builder?programId=${program.id}&templateId=${template?.id}&dayOfWeek=${day}&week=${selectedWeek}`)}>
                         <Text style={styles.editText}>Edit</Text>
                       </Pressable>
                       <Pressable onPress={() => removeWorkout(w.id)}>
@@ -125,7 +150,7 @@ export default function ProgramBuilderScreen() {
               
               <Pressable 
                 style={styles.addWorkoutBtn} 
-                onPress={() => router.push(`/programs/template-builder?programId=${program.id}&dayOfWeek=${day}`)}
+                onPress={() => router.push(`/programs/template-builder?programId=${program.id}&dayOfWeek=${day}&week=${selectedWeek}`)}
               >
                 <Text style={styles.addWorkoutText}>+ Add Workout</Text>
               </Pressable>
@@ -143,7 +168,7 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 40 },
   label: { fontSize: 14, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#8A8D9F', marginBottom: 8, textTransform: 'uppercase' },
   input: {
-    backgroundColor: '#0B0B0F',
+    backgroundColor: '#1A1C23',
     borderWidth: 1,
     borderColor: '#2A2B31',
     borderRadius: 12,
@@ -154,7 +179,24 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   textArea: { minHeight: 80, textAlignVertical: 'top' },
-  sectionTitle: { fontSize: 20, fontFamily: 'SpaceGrotesk_700Bold', color: '#90D5FF', marginTop: 16, marginBottom: 16, textTransform: 'uppercase' },
+  sectionTitle: { fontSize: 20, fontFamily: 'SpaceGrotesk_700Bold', color: '#90D5FF', marginTop: 16, marginBottom: 8, textTransform: 'uppercase' },
+  weekTabsScroll: {
+    marginBottom: 16,
+  },
+  weekTab: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#2A2B31',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#2A2B31',
+  },
+  weekTabText: {
+    color: '#8A8D9F',
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 14,
+  },
   dayContainer: {
     backgroundColor: '#1A1C23',
     borderRadius: 16,

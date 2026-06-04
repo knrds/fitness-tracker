@@ -14,6 +14,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useTheme } from '@fitness-tracker/ui';
 
 import { AchievementCelebration } from '../src/components/workout/AchievementCelebration';
+import { WorkoutCompleteModal } from '../src/components/workout/WorkoutCompleteModal';
 import { useWorkoutStore } from '../src/stores/workoutStore';
 
 SplashScreen.preventAutoHideAsync();
@@ -144,6 +145,7 @@ function RootNavigator() {
       </Stack>
       <StatusBar style="light" />
       <AchievementCelebration />
+      <WorkoutCompleteModal />
       <StartupWorkoutChecker />
     </>
   );

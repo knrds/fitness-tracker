@@ -267,4 +267,26 @@ describe('workoutStore', () => {
     expect(state.exercises[0]!.supersetGroup).toBeUndefined();
     expect(state.exercises[1]!.supersetGroup).toBeUndefined();
   });
+
+  it('should copy previous set values when adding a new set without arguments', () => {
+    useWorkoutStore.getState().startWorkout();
+    useWorkoutStore.getState().addExercise('ex-1');
+    const exId = useWorkoutStore.getState().exercises[0]!.id;
+    const setId = useWorkoutStore.getState().exercises[0]!.sets[0]!.id;
+    
+    // Update first set
+    useWorkoutStore.getState().updateSet(exId, setId, { weight: 85, reps: 8, rpe: 9, rir: 1, type: 'drop' });
+    
+    // Add new set
+    useWorkoutStore.getState().addSet(exId);
+    
+    const sets = useWorkoutStore.getState().exercises[0]!.sets;
+    expect(sets.length).toBe(2);
+    expect(sets[1]!.weight).toBe(85);
+    expect(sets[1]!.reps).toBe(8);
+    expect(sets[1]!.rpe).toBe(9);
+    expect(sets[1]!.rir).toBe(1);
+    expect(sets[1]!.type).toBe('drop');
+    expect(sets[1]!.completed).toBe(false);
+  });
 });

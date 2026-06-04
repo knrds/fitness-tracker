@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert, Platform, Share } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
@@ -145,6 +145,7 @@ export default function WorkoutDetailScreen() {
 
   return (
     <View style={styles.outerContainer}>
+      <Stack.Screen options={{ title: session.name || 'Workout Details' }} />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>{session.name}</Text>

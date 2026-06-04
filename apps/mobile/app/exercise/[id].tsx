@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Switch, Modal } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
@@ -11,7 +11,7 @@ import { useTheme } from '@fitness-tracker/ui';
 
 export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { exercises, favoriteIds, toggleFavorite, exerciseRestDurations, setExerciseRestDuration } = useExerciseStore();
+  const { exercises, favoriteIds, toggleFavorite } = useExerciseStore();
   const { status, addExercise, startWorkout } = useWorkoutStore();
   const { profile, updateProfile } = useProfileStore();
   const theme = useTheme();
@@ -46,24 +46,6 @@ export default function ExerciseDetailScreen() {
     return exercise.imageUrl;
   };
   const isFavorite = favoriteIds.includes(id || '');
-  const customRestDuration = exerciseRestDurations[id || ''] || 90;
-
-  const handleAdjustRest = (amount: number) => {
-    const newDuration = Math.max(0, customRestDuration + amount);
-    if (id) {
-      setExerciseRestDuration(id, newDuration);
-    }
-  };
-
-  const formatRestTime = (seconds: number) => {
-    if (seconds === 0) return 'Disabled';
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    if (m > 0) {
-      return `${m}m ${s > 0 ? `${s}s` : ''}`;
-    }
-    return `${s}s`;
-  };
 
   if (!exercise) {
     return (
@@ -102,6 +84,7 @@ export default function ExerciseDetailScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Stack.Screen options={{ title: exercise.name }} />
       {exercise.imageUrl ? (
         <Pressable onPress={() => { setIsPlaying(true); setFullscreen(true); }} style={styles.imageContainer}>
           <Image
@@ -206,29 +189,7 @@ export default function ExerciseDetailScreen() {
           )}
         </View>
 
-        {/* Rest Timer Configuration */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Default Rest Timer</Text>
-          <View style={styles.restTimerConfig}>
-            <Pressable 
-              onPress={() => handleAdjustRest(-15)} 
-              style={styles.adjustRestBtn}
-              testID="adjust-rest-minus"
-            >
-              <Text style={styles.adjustRestBtnText}>-15s</Text>
-            </Pressable>
-            <View style={styles.restDurationDisplay}>
-              <Text style={styles.restDurationVal}>{formatRestTime(customRestDuration)}</Text>
-            </View>
-            <Pressable 
-              onPress={() => handleAdjustRest(15)} 
-              style={styles.adjustRestBtn}
-              testID="adjust-rest-plus"
-            >
-              <Text style={styles.adjustRestBtnText}>+15s</Text>
-            </Pressable>
-          </View>
-        </View>
+        {/* Removed Default Rest Timer section as requested */}
 
         {/* Exercise Settings (conditional on RPE/RIR modes) */}
         {(profile.rpeMode === 'selected_exercises' || profile.rirMode === 'selected_exercises') && (

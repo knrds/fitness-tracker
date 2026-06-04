@@ -55,6 +55,7 @@ const defaultState = {
   startedAt: undefined as Date | undefined,
   pausedAt: undefined as Date | undefined,
   accumulatedPauseMs: 0,
+  lastFinishedSession: undefined as WorkoutSession | undefined,
 };
 
 const removeSupersetGroup = (exercise: SessionExercise): SessionExercise => {
@@ -89,6 +90,7 @@ export interface WorkoutActions {
   updateWorkoutNotes: (notes: string) => void;
   calculateWarmupSets: (sessionExerciseId: UUID, targetWeight: number) => void;
   toggleSuperset: (sessionExerciseId: UUID) => void;
+  clearLastFinishedSession: () => void;
 }
 
 export type WorkoutStore = Omit<
@@ -102,6 +104,7 @@ export type WorkoutStore = Omit<
   startedAt: Date | undefined;
   pausedAt: Date | undefined;
   accumulatedPauseMs: number;
+  lastFinishedSession: WorkoutSession | undefined;
 } & WorkoutActions;
 
 export const useWorkoutStore = create<WorkoutStore>()(
@@ -256,11 +259,18 @@ export const useWorkoutStore = create<WorkoutStore>()(
           updatedAt: new Date(),
         };
 
-        set({ ...defaultState, status: 'finished', lastUpdatedAt: completedAt });
+        set({ 
+          ...defaultState, 
+          status: 'finished', 
+          lastUpdatedAt: completedAt, 
+          lastFinishedSession: session 
+        });
         useHistoryStore.getState().addSession(session);
         useAchievementStore.getState().awardXpAndCheckAchievements(session);
         return session;
       },
+      
+      clearLastFinishedSession: () => set({ lastFinishedSession: undefined }),
       
       resetWorkout: () => set({ ...defaultState, lastUpdatedAt: new Date() }),
 

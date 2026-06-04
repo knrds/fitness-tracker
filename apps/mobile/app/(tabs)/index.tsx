@@ -6,6 +6,7 @@ import { useProfileStore } from '../../src/stores/profileStore';
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { useAchievementStore } from '../../src/stores/achievementStore';
 import { useProgramStore } from '../../src/stores/programStore';
+import { getLevelBadge } from '../../src/utils/level';
 import { Button, Card, useTheme } from '@fitness-tracker/ui';
 
 export default function HomeScreen() {
@@ -95,7 +96,9 @@ export default function HomeScreen() {
       </Pressable>
 
       <View style={styles.levelContainer}>
-        <Text style={[styles.levelText, { color: theme.colors.text, ...theme.typography.caption }]}>LEVEL {level}</Text>
+        <Text style={[styles.levelText, { color: theme.colors.text, ...theme.typography.caption }]}>
+          LEVEL {level} • {getLevelBadge(level).title} {getLevelBadge(level).icon}
+        </Text>
         <View style={[styles.xpBarBackground, { backgroundColor: theme.colors.border }]}>
           <View style={[styles.xpBarFill, { backgroundColor: theme.colors.primary, width: `${(xp % 500) / 5}%` }]} />
         </View>

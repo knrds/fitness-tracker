@@ -8,13 +8,7 @@ export interface InputProps extends TextInputProps {
   helperText?: string;
 }
 
-export const Input: React.FC<InputProps> = ({
-  label,
-  error,
-  helperText,
-  style,
-  ...props
-}) => {
+export const Input: React.FC<InputProps> = ({ label, error, helperText, style, ...props }) => {
   const theme = useTheme();
 
   const borderColor = error ? theme.colors.accent : theme.colors.border;
@@ -42,12 +36,16 @@ export const Input: React.FC<InputProps> = ({
         {...props}
       />
       {error && (
-        <Text style={[styles.errorText, { color: theme.colors.accent, ...theme.typography.caption }]}>
+        <Text
+          style={[styles.errorText, { color: theme.colors.accent, ...theme.typography.caption }]}
+        >
           {error}
         </Text>
       )}
       {helperText && !error && (
-        <Text style={[styles.helperText, { color: theme.colors.muted, ...theme.typography.caption }]}>
+        <Text
+          style={[styles.helperText, { color: theme.colors.muted, ...theme.typography.caption }]}
+        >
           {helperText}
         </Text>
       )}

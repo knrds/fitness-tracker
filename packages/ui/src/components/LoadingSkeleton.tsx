@@ -22,10 +22,10 @@ export const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({ style }) => {
     opacity.value = withRepeat(
       withSequence(
         withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.5, { duration: 1000, easing: Easing.inOut(Easing.ease) })
+        withTiming(0.5, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
       ),
       -1,
-      true
+      true,
     );
   }, [opacity]);
 

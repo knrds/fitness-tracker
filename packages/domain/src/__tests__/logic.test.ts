@@ -6,7 +6,7 @@ import {
   calculateLongestStreak,
   detectPRs,
   summarizeWorkout,
-  WorkoutSession
+  WorkoutSession,
 } from '../index';
 
 const EX_UUID_1 = '33333333-3333-4333-8333-333333333333';
@@ -55,21 +55,31 @@ describe('estimateOneRepMax', () => {
   });
 
   it('uses realistic divisors based on exercise name', () => {
-    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Squat')).toBe(100 * (1 + 10 / 45));
-    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Romanian Deadlift')).toBe(100 * (1 + 10 / 45));
-    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Curl')).toBe(100 * (1 + 10 / 60));
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Squat')).toBe(
+      100 * (1 + 10 / 45),
+    );
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Romanian Deadlift')).toBe(
+      100 * (1 + 10 / 45),
+    );
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Curl')).toBe(
+      100 * (1 + 10 / 60),
+    );
     expect(estimateOneRepMax(100, 10, undefined, undefined, 'Plank')).toBe(100 * (1 + 10 / 60));
-    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Bench Press - Medium Grip')).toBe(100 * (1 + 10 / 50));
-    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Dips - Chest Version')).toBe(100 * (1 + 10 / 50));
+    expect(
+      estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Bench Press - Medium Grip'),
+    ).toBe(100 * (1 + 10 / 50));
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Dips - Chest Version')).toBe(
+      100 * (1 + 10 / 50),
+    );
   });
 
   it('takes RPE and RIR into account', () => {
     // 10 reps at RPE 8 -> 10 + 2 = 12 effective reps
     expect(estimateOneRepMax(100, 10, 8)).toBe(100 * (1 + 12 / 30));
-    
+
     // 10 reps at RIR 3 -> 10 + 3 = 13 effective reps
     expect(estimateOneRepMax(100, 10, undefined, 3)).toBe(100 * (1 + 13 / 30));
-    
+
     // When both are provided, RIR is preferred
     expect(estimateOneRepMax(100, 10, 8, 3)).toBe(100 * (1 + 13 / 30));
   });
@@ -152,9 +162,7 @@ describe('detectPRs', () => {
     const pastSession = createMockSession('s1', new Date(Date.now() - 86400000), [
       {
         exerciseId: EX_UUID_1,
-        sets: [
-          { weight: 100, reps: 5, type: 'working' },
-        ],
+        sets: [{ weight: 100, reps: 5, type: 'working' }],
       },
     ]);
 

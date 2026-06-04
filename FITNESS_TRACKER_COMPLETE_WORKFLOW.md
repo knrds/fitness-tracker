@@ -1,12 +1,15 @@
 # FITNESS TRACKER — KOMPLETTER WORKFLOW
+
 ## Von aktuellem Stand bis zur fertigen App
+
 ### Alle Prompts, Schritte und Anweisungen
 
 ---
 
 ## INHALT
+
 1. Aktueller Stand
-1b. Architektur-Leitplanken (für ALLE Agenten verbindlich)
+   1b. Architektur-Leitplanken (für ALLE Agenten verbindlich)
 2. Setup: Multi-Agent-System (Worktrees + Rollen)
 3. Standard-Workflow (gilt für jede Mission)
 4. Rollen-Prompts (dauerhaft speichern)
@@ -32,6 +35,7 @@
 > ✅ **Stand 2026-06-04:** All core tasks from Block 1 (M6–M9), Block 2 (H0, bug fixes, TS hardening), and the UI/UX polish additions (modals, reordering, cardio metrics, recent summaries) are complete.
 >
 > 🔀 **Branch & UI Polish updates (2026-06-04):**
+>
 > - **Smooth Animated Modals:** Custom `<Modal>` component rewritten to use `Animated` for backdrop fade and container slide translations on open and close.
 > - **PR highlights on Progress Charts:** Volume history Progress charts now calculate historical PRs using e1RM and highlight PR workouts with gold dots (`#FFB020`). Tapping dots reveals volume details alongside a "★ NEW PR!" indicator.
 > - **Interactive XP Tooltip:** Level card on the Home Screen shows the exact numerical XP progress (`X / 500 XP`) when hovered (web) or pressed (mobile).
@@ -43,6 +47,7 @@
 > - **Compiles & Passes:** `pnpm typecheck` ✅, `pnpm test` (all tests passed) ✅, `pnpm lint` ✅.
 >
 > ⚠️ **Potential Issues / Notes for Codex:**
+>
 > 1. **Progress Chart Performance:** The `getProgressHistory` calculation on the progress chart loops chronologically through all sessions on every render/tab click. If a user logs 500+ workouts, this may cause a frame drop. Codex should implement memoization for this logic.
 > 2. **ScrollView rendering overhead:** Changing the list of programs in `(tabs)/programs.tsx` from `FlatList` to `ScrollView` allows measuring Y positions for reordering. For long program lists (e.g. 50+ programs), rendering them all at once could introduce minor performance overhead. Codex should check if this needs windowing/optimization.
 > 3. **Cardio custom exercise validation:** The new tracking mode maps "duration" to `MovementPattern.Cardio`. Codex should verify that when exporting workouts or syncing, cardio sets (where `weight` stores the Level and duration is tracked in `durationSeconds`) do not trigger standard volume validation logic that assumes weight in kg/lbs.
@@ -54,6 +59,7 @@
 Tatsächlicher Stand:
 
 **Auf `main` gemerged:**
+
 - ✅ Monorepo (Expo 52, pnpm workspaces, TypeScript strict)
 - ✅ Datenmodell (11 Tabellen, alle Types, Zod-Schemas)
 - ✅ AGENTS.md + CLAUDE.md + GEMINI.md
@@ -98,52 +104,54 @@ verbindlich, damit sie nicht zurückkehren:
 > Architektur-Schulden wiederholen. Verstoß = Branch ist NICHT merge-ready.
 
 **1. Geschäftslogik gehört in `packages/domain/src/logic/` — nicht in Stores/UI.**
-   Reine, pflanzbare Funktionen (kein React, kein RN, kein MMKV) leben dort und
-   werden mit Vitest getestet. Stores/Hooks/Screens rufen sie nur auf.
-   Kanonische Helfer (nach Mission H0 vorhanden — vorher NICHT neu erfinden,
-   sondern H0 abwarten oder dort ergänzen):
-   - `calculateVolume(session, { includeWarmups: false })`
-   - `estimateOneRepMax(weight, reps)` (Epley: `weight * (1 + reps / 30)`)
-   - `calculateStreak(sessions)` (lokales Datum, **kein** `toISOString()`)
-   - `detectPRs(session, history)` (e1RM-basiert, Warmups ausgeschlossen)
-   - `summarizeWorkout(session)` (Dauer, Volumen, Sätze, PRs)
-   **Niemals** dieselbe Berechnung in zwei Dateien duplizieren.
+Reine, pflanzbare Funktionen (kein React, kein RN, kein MMKV) leben dort und
+werden mit Vitest getestet. Stores/Hooks/Screens rufen sie nur auf.
+Kanonische Helfer (nach Mission H0 vorhanden — vorher NICHT neu erfinden,
+sondern H0 abwarten oder dort ergänzen):
+
+- `calculateVolume(session, { includeWarmups: false })`
+- `estimateOneRepMax(weight, reps)` (Epley: `weight * (1 + reps / 30)`)
+- `calculateStreak(sessions)` (lokales Datum, **kein** `toISOString()`)
+- `detectPRs(session, history)` (e1RM-basiert, Warmups ausgeschlossen)
+- `summarizeWorkout(session)` (Dauer, Volumen, Sätze, PRs)
+  **Niemals** dieselbe Berechnung in zwei Dateien duplizieren.
 
 **2. Warmups zählen nie als Arbeitsvolumen oder PR.** Jede Volumen-/PR-/
-   Statistik-Berechnung MUSS `set.type` berücksichtigen (`warmup` ausschließen).
+Statistik-Berechnung MUSS `set.type` berücksichtigen (`warmup` ausschließen).
 
 **3. PRs sind e1RM-basiert** (geschätztes 1RM via Epley), nicht „max Gewicht".
 
 **4. Datumsvergleiche immer in lokaler Zeit.** Tages-Keys als `YYYY-MM-DD`
-   (lokal), nie `Date.toISOString()` (UTC verschiebt den Tag).
+(lokal), nie `Date.toISOString()` (UTC verschiebt den Tag).
 
 **5. MMKV-Persistenz:**
-   - Genau **ein** gemeinsamer Storage-Helper
-     (`apps/mobile/src/stores/storage.ts`, z.B. `createMMKVStorage<T>(id)`).
-     `reviveDates`/`customStorage` NICHT mehr pro Store kopieren.
-   - Beim Hydrieren wird der State gegen das passende **Zod-Schema** aus
-     `@fitness-tracker/domain` validiert (DoD #3). Ungültige Daten → sauberer
-     Fallback, kein stiller Crash.
-   - Jeder persistente Store hat eine `version` und eine `migrate`-Funktion;
-     bei jeder Feldänderung wird `version` erhöht + Migration ergänzt.
+
+- Genau **ein** gemeinsamer Storage-Helper
+  (`apps/mobile/src/stores/storage.ts`, z.B. `createMMKVStorage<T>(id)`).
+  `reviveDates`/`customStorage` NICHT mehr pro Store kopieren.
+- Beim Hydrieren wird der State gegen das passende **Zod-Schema** aus
+  `@fitness-tracker/domain` validiert (DoD #3). Ungültige Daten → sauberer
+  Fallback, kein stiller Crash.
+- Jeder persistente Store hat eine `version` und eine `migrate`-Funktion;
+  bei jeder Feldänderung wird `version` erhöht + Migration ergänzt.
 
 **6. Zeitmessung driftfrei.** Verstrichene Zeit (`elapsedSeconds`) wird aus
-   `startedAt` + akkumulierter Pausenzeit **abgeleitet**, nicht per
-   `setInterval` hochgezählt. Timer per Wanduhr (`endsAt`), damit Hintergrund/
-   Neustart korrekt bleiben.
+`startedAt` + akkumulierter Pausenzeit **abgeleitet**, nicht per
+`setInterval` hochgezählt. Timer per Wanduhr (`endsAt`), damit Hintergrund/
+Neustart korrekt bleiben.
 
 **7. Guards gegen Unsinn.** `finishWorkout` ignoriert Sessions ohne einen
-   einzigen abgeschlossenen Satz (kein History-Eintrag, kein XP). Zahlenfelder
-   akzeptieren keine negativen Werte.
+einzigen abgeschlossenen Satz (kein History-Eintrag, kein XP). Zahlenfelder
+akzeptieren keine negativen Werte.
 
 **8. Tests entstehen MIT dem Code, nicht erst in Block 9.** Jede neue Domain-
-   Funktion bekommt einen Vitest-Test im selben Branch. Kritische Store-Flows
-   bekommen mindestens einen Integrationstest.
+Funktion bekommt einen Vitest-Test im selben Branch. Kritische Store-Flows
+bekommen mindestens einen Integrationstest.
 
 **9. MVP-Scope respektieren.** Social (Block 6) und Marketplace/Coaching
-   (Block 7) stehen in AGENTS.md als **OUT OF SCOPE**. Diese Blöcke erst
-   starten, wenn der Scope ausdrücklich (vom Menschen) freigegeben wurde —
-   siehe Hinweis zu Beginn von Block 6.
+(Block 7) stehen in AGENTS.md als **OUT OF SCOPE**. Diese Blöcke erst
+starten, wenn der Scope ausdrücklich (vom Menschen) freigegeben wurde —
+siehe Hinweis zu Beginn von Block 6.
 
 ---
 
@@ -159,6 +167,7 @@ git worktree add ../ft-debugger fix/debugger-work
 ```
 
 Du hast danach drei Ordner:
+
 - `fitness-tracker` → Builder (Gemini #1, Antigravity Fenster 1)
 - `ft-designer` → Designer (Gemini #2, Antigravity Fenster 2)
 - `ft-debugger` → Debugger (Codex, Terminal Fenster 3)
@@ -166,6 +175,7 @@ Du hast danach drei Ordner:
 ### In Antigravity
 
 Drei separate Fenster öffnen:
+
 - Fenster 1: `File → Open Folder → fitness-tracker`
 - Fenster 2: `File → Open Folder → ft-designer`
 - Fenster 3: Terminal für Codex
@@ -208,24 +218,29 @@ Committe mit: chore: add mission board and agent coordination files
 ## 3. STANDARD-WORKFLOW (JEDE MISSION)
 
 ### Vor jeder Mission
+
 ```powershell
 git checkout main
 git pull
 ```
 
 ### Nach jeder Mission
+
 ```powershell
 git add .
 git commit -m "feat: [mission-name]"
 git push origin [branch-name]
 ```
+
 → GitHub: PR erstellen → kurz Diff prüfen → Merge
+
 ```powershell
 git checkout main
 git pull
 ```
 
 ### Testen vor jedem Merge
+
 ```powershell
 pnpm dev     # App starten, manuell testen
 pnpm test    # alle Tests grün?
@@ -233,9 +248,10 @@ pnpm typecheck  # TypeScript sauber?
 ```
 
 ### AGENTS.md aktuell halten (alle 3-4 Missionen)
+
 ```
 Aktualisiere AGENTS.md mit dem aktuellen Projektstand.
-Was ist neu hinzugekommen? Welche Stores, Screens, 
+Was ist neu hinzugekommen? Welche Stores, Screens,
 Dependencies gibt es jetzt?
 ```
 
@@ -246,6 +262,7 @@ Dependencies gibt es jetzt?
 Diese Prompts am Anfang jeder neuen Session für den jeweiligen Agenten.
 
 ### BUILDER-ROLLEN-PROMPT (Gemini #1)
+
 ```
 Du bist der Builder-Agent für das Fitness-Tracker-Projekt.
 
@@ -277,6 +294,7 @@ weitermachen mit der nächsten Mission.
 ```
 
 ### DESIGNER-ROLLEN-PROMPT (Gemini #2)
+
 ```
 Du bist der Designer-Agent für das Fitness-Tracker-Projekt.
 
@@ -308,6 +326,7 @@ Grundsätze:
 ```
 
 ### DEBUGGER-ROLLEN-PROMPT (Codex)
+
 ```
 Du bist der Debugger-Agent für das Fitness-Tracker-Projekt.
 
@@ -340,6 +359,7 @@ Dein Workflow:
 ```
 
 ### OVERSEER-ROLLEN-PROMPT (Claude)
+
 ```
 Du bist der Overseer für das Fitness-Tracker-Projekt.
 Du schreibst KEINEN Code. Du planst, koordinierst und reviewst.
@@ -399,6 +419,7 @@ Committe mit: chore: add mission briefings
 ## 6. BLOCK 1 — KERN VERVOLLSTÄNDIGEN
 
 ### Mission 6: Stabilisierung + Templates (läuft, falls nicht fertig)
+
 ```
 Lies AGENTS.md. Branch: feat/stabilization
 
@@ -422,6 +443,7 @@ pnpm test + pnpm typecheck. Merge nicht nach main.
 ```
 
 ### Mission 7: Achievements + Gamification
+
 ```
 Lies AGENTS.md. Branch: feat/achievements
 
@@ -456,6 +478,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Mission 8: Body Tracking + Profil
+
 ```
 Lies AGENTS.md. Branch: feat/body-tracking
 
@@ -485,6 +508,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Mission 9: Workout-Verbesserungen
+
 ```
 Lies AGENTS.md UND Section 1b (Architektur-Leitplanken). Branch: feat/workout-improvements
 
@@ -526,18 +550,18 @@ LEITPLANKEN für diese Mission:
    Rest Timer startet automatisch nach Set-Abschluss.
 
 7. Aufwärmsatz-Rechner (Warmup Calculator):
-   Option im Übungsmenü: Berechne basierend auf dem Arbeitsgewicht automatisch 
+   Option im Übungsmenü: Berechne basierend auf dem Arbeitsgewicht automatisch
    die Aufwärmsätze (z.B. 50% x 10, 70% x 5, 90% x 2) und füge sie als W-Sätze hinzu.
 
 8. Echtzeit e1RM-Schätzer:
-   Berechne für jeden Satz beim Eintragen das geschätzte 1-Rep Max 
+   Berechne für jeden Satz beim Eintragen das geschätzte 1-Rep Max
    (Epley-Formel: weight * (1 + reps / 30)) und zeige es als kleine Muted-Info an.
 
 9. RIR (Reps in Reserve) Erfassung:
    Neben RPE auch RIR (0 bis 5+) als alternatives/ergänzendes Tracking-Feld ermöglichen.
 
 10. Share Workout Summary (Teilen):
-    Nach Abschluss des Workouts eine formatisierte Textzusammenfassung generieren, 
+    Nach Abschluss des Workouts eine formatisierte Textzusammenfassung generieren,
     die über den systemweiten Share-Dialog geteilt werden kann (Dauer, Volumen, Sätze, PRs).
 
 Tests. pnpm test. Merge nicht nach main.
@@ -548,12 +572,14 @@ Tests. pnpm test. Merge nicht nach main.
 ## 7. BLOCK 2 — ERSTE STABILISIERUNG (Codex)
 
 **Starte Codex im Terminal:**
+
 ```powershell
 cd C:\Users\Konrad\ft-debugger
 codex
 ```
 
 ### Mission H0: Domain-Logik-Extraktion & Kern-Bugfixes (ZUERST, vor allem anderen in Block 2)
+
 ```
 Lies AGENTS.md UND Section 1b (Architektur-Leitplanken). Branch: fix/domain-logic-hardening
 
@@ -600,6 +626,7 @@ pnpm test + pnpm typecheck MÜSSEN strikt grün sein. Merge nicht nach main.
 ```
 
 ### Codex: Bug-Jagd
+
 ```
 Lies AGENTS.md. Branch: fix/codex-bugfixes
 
@@ -623,6 +650,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Codex: Edge-Case-Härtung
+
 ```
 Lies AGENTS.md und docs/bug-report.md. Branch: fix/edge-cases
 
@@ -642,6 +670,7 @@ Tests müssen bestehen. pnpm test. Merge nicht nach main.
 ```
 
 ### Codex: TypeScript-Härtung
+
 ```
 Lies AGENTS.md. Branch: fix/typescript-hardening
 
@@ -664,6 +693,7 @@ Merge nicht nach main.
 ## 8. BLOCK 3 — DESIGN-FUNDAMENT (Gemini #2)
 
 ### Designer: Design-Konzept
+
 ```
 Lies AGENTS.md. Branch: feat/design-concept
 
@@ -701,6 +731,7 @@ Zeige mir das Konzept als Markdown. Warte auf mein "Go".
 ```
 
 ### Mission 18: Design-System implementieren (nach Go)
+
 ```
 Lies AGENTS.md und docs/design-system.md. Branch: feat/design-system
 
@@ -734,6 +765,7 @@ pnpm test + pnpm typecheck. Merge nicht nach main.
 ## 9. BLOCK 4 — PREMIUM UI (Gemini #2)
 
 ### Premium Workout-Screen
+
 ```
 Lies AGENTS.md und docs/design-system.md.
 Branch: feat/ui-premium-workout
@@ -769,6 +801,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Home-Dashboard
+
 ```
 Lies AGENTS.md und docs/design-system.md.
 Branch: feat/ui-home-dashboard
@@ -808,6 +841,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Progress-Charts aufwerten
+
 ```
 Lies AGENTS.md und docs/design-system.md.
 Branch: feat/ui-premium-charts
@@ -836,6 +870,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Micro-Interactions
+
 ```
 Lies AGENTS.md und docs/design-system.md.
 Branch: feat/ui-micro-interactions
@@ -883,6 +918,7 @@ pnpm test. Merge nicht nach main.
 ## 10. BLOCK 5 — BACKEND & SYNC
 
 ### MANUELL VOR MISSION 10:
+
 1. Auf supabase.com: Neues Projekt anlegen
 2. SQL Editor: Inhalt von `docs/schema.sql` ausführen
 3. Settings → API: URL und anon key kopieren
@@ -894,6 +930,7 @@ pnpm test. Merge nicht nach main.
    ```
 
 ### Mission 10: Supabase Auth
+
 ```
 Lies AGENTS.md und docs/schema.sql. Branch: feat/supabase-auth
 
@@ -935,6 +972,7 @@ pnpm test. .env nicht committen. Merge nicht nach main.
 ```
 
 ### Mission 11: Cloud Sync
+
 ```
 Lies AGENTS.md. Branch: feat/cloud-sync
 
@@ -986,6 +1024,7 @@ pnpm test. Merge nicht nach main.
 > ist". Bis zur Freigabe gilt: Block 5 (Backend) ist das Ende des MVP.
 
 ### Mission 12: Profile + Follows
+
 ```
 Lies AGENTS.md. Branch: feat/social-profiles
 
@@ -1017,6 +1056,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Mission 13: Activity Feed
+
 ```
 Lies AGENTS.md. Branch: feat/activity-feed
 
@@ -1050,6 +1090,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Mission 14: Challenges + Leaderboards
+
 ```
 Lies AGENTS.md. Branch: feat/challenges
 
@@ -1087,9 +1128,11 @@ pnpm test. Merge nicht nach main.
 
 > 🚧 **SCOPE-GATE** — wie Block 6: Marketplace, bezahlte Programme und Coaching
 > sind in AGENTS.md **OUT OF SCOPE**. Nur nach expliziter menschlicher Freigabe
-> + AGENTS.md-Update starten.
+>
+> - AGENTS.md-Update starten.
 
 ### Mission 15: Programm-Marketplace
+
 ```
 Lies AGENTS.md. Branch: feat/marketplace-browse
 
@@ -1126,6 +1169,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Mission 16: Creator-Profile
+
 ```
 Lies AGENTS.md. Branch: feat/creator-profiles
 
@@ -1157,6 +1201,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Mission 17: Bezahlung (Stripe Test-Modus)
+
 ```
 Lies AGENTS.md. Branch: feat/payments
 
@@ -1190,6 +1235,7 @@ pnpm test. Merge nicht nach main.
 ## 13. BLOCK 8 — ZWEITE HÄRTUNG (Codex)
 
 ### Performance-Profiling
+
 ```
 Lies AGENTS.md. Branch: fix/performance
 
@@ -1216,11 +1262,12 @@ Analysiere und optimiere Performance:
 
 5. Ergebnis:
    docs/performance-report.md mit Vorher/Nachher
-   
+
 pnpm test. Merge nicht nach main.
 ```
 
 ### Security-Audit (nach Social/Marketplace)
+
 ```
 Lies AGENTS.md. Branch: fix/security-audit
 
@@ -1257,6 +1304,7 @@ pnpm test. Merge nicht nach main.
 ## 14. BLOCK 9 — QUALITÄT & KONSISTENZ
 
 ### End-to-End-Durchlauf
+
 ```
 Lies AGENTS.md. Branch: test/e2e-flows
 
@@ -1288,6 +1336,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Konsistenz-Audit
+
 ```
 Lies AGENTS.md. Branch: fix/consistency
 
@@ -1319,6 +1368,7 @@ Fixe alles. pnpm test. Merge nicht nach main.
 ```
 
 ### Test-Coverage erhöhen
+
 ```
 Lies AGENTS.md. Branch: feat/test-coverage
 
@@ -1337,14 +1387,14 @@ packages/domain:
 - Achievement-Bedingungen
 
 apps/mobile Stores:
-- workoutStore: kompletter Workout-Flow (start → addExercise → 
+- workoutStore: kompletter Workout-Flow (start → addExercise →
   logSet → completeSet → finishWorkout → historyStore aktualisiert)
 - historyStore: PRs korrekt gespeichert?
 - achievementStore: alle Achievement-Bedingungen
 - syncStore: Queue-Logik, Conflict Resolution
 
 Integration Tests:
-- workoutStore + historyStore + achievementStore 
+- workoutStore + historyStore + achievementStore
   zusammen nach finishWorkout()
 
 Coverage-Report:
@@ -1359,6 +1409,7 @@ pnpm test. Merge nicht nach main.
 ## 15. BLOCK 10 — RELEASE-VORBEREITUNG
 
 ### Mission 19: Onboarding
+
 ```
 Lies AGENTS.md. Branch: feat/onboarding
 
@@ -1390,6 +1441,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Mission 22: Release-Vorbereitung
+
 ```
 Lies AGENTS.md. Branch: feat/release-prep
 
@@ -1431,6 +1483,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### MANUELL VOR MISSION 23:
+
 ```powershell
 npm install -g eas-cli
 eas login
@@ -1441,6 +1494,7 @@ eas login
 ```
 
 ### Mission 23: Erster Build
+
 ```
 Lies AGENTS.md und eas.json. Branch: feat/first-build
 
@@ -1477,6 +1531,7 @@ Merge nicht nach main.
 ## 16. NOTFALL-PROMPTS
 
 ### Bug: Agent findet ihn nicht
+
 ```
 Zeige mir den vollständigen aktuellen Inhalt von [Dateiname].
 Erkläre Zeile für Zeile was beim Drücken von [Button/Aktion] passiert.
@@ -1484,6 +1539,7 @@ Finde wo genau der Fehler liegt.
 ```
 
 ### CI/Build bricht
+
 ```
 Hier ist der vollständige Fehler-Log:
 [LOG EINFÜGEN]
@@ -1491,12 +1547,14 @@ Was ist die Ursache? Fixe es konkret.
 ```
 
 ### Mission zu groß / Agent blockiert
+
 ```
 Lass uns das aufteilen. Mache NUR diesen einen Schritt:
 [EINEN SCHRITT]. Fange mit nichts anderem an.
 ```
 
 ### Agent baut in falsche Richtung
+
 ```
 Stopp. Lies AGENTS.md Section [X] nochmal.
 Das was du gebaut hast entspricht nicht den Anforderungen weil:
@@ -1504,6 +1562,7 @@ Das was du gebaut hast entspricht nicht den Anforderungen weil:
 ```
 
 ### Nach Verlust von Claude — Overseer-Ersatz mit Gemini
+
 ```
 Du übernimmst die Rolle des Overseers zusätzlich zur Builder-Rolle.
 Lies docs/mission-board.md und plane die nächsten Missionen selbst.
@@ -1512,6 +1571,7 @@ Priorisiere: Kern → Stabilisierung → Design → Backend → Social.
 ```
 
 ### AGENTS.md veraltet
+
 ```
 Lies alle aktuellen Stores in apps/mobile/src/stores/
 und alle Screens in apps/mobile/app/.
@@ -1594,6 +1654,7 @@ FERTIG: Testbare App auf echten Geräten ✅
 ---
 
 **GOLDENE REGELN:**
+
 1. Jede Mission beginnt mit: `Lies AGENTS.md` **und Section 1b (Leitplanken)**
 2. Jede Mission auf eigenem Branch — nie direkt auf main
 3. Immer testen: `pnpm dev` + `pnpm test` + `pnpm typecheck`
@@ -1614,6 +1675,7 @@ FERTIG: Testbare App auf echten Geräten ✅
 ## 18. BRANCH-HYGIENE (Stand 2026-06-03)
 
 ### Lage (aktualisiert 2026-06-03, Konsolidierung)
+
 `main` ist vollständig konsolidiert und grün. Die komplette Bugfix-/Feature-Arbeit
 aus `fix/bugfixes` wurde nach `main` gemerged. Hintergrund: PR #9 hatte durch eine
 veraltete Branch-Referenz nur den ersten der fünf Commits erfasst — der Rest
@@ -1622,20 +1684,24 @@ Programm-Kalender, Achievement-Expansion u.a.) wurde per `git merge fix/bugfixes
 nachgezogen. Verifiziert: `pnpm typecheck` ✅ · `pnpm test` (67) ✅ · `pnpm lint` ✅.
 
 ### Bereinigte Branches
+
 Gelöscht (lokal + GitHub), da vollständig in `main` enthalten:
 `feat/stabilization`, `feat/achievements`, `feat/body-tracking`,
 `feat/workout-improvements`, `fix/domain-logic-hardening`, `chore/update-agents-md`.
 
 ### Aktive Branches
+
 - `main` — konsolidiert, grün, Single Source of Truth.
 - `fix/bugfixes` — Gemini arbeitet hier weiter; wird nach Abschluss erneut nach
   `main` gemerged (dann als FF / sauberer Merge, da `main` jetzt synchron ist).
 
 ### Regel ab jetzt
+
 Fertige Missionen **zeitnah** nach `main` mergen statt Branches aufeinander zu
 stapeln. Stacking war die Ursache des veralteten `main` und potenzieller
 Merge-Konflikte. Pro Mission ein kurzlebiger Branch → PR → Merge → Branch weg.
 
 ---
-*Erstellt: Juni 2026 · zuletzt aktualisiert: 2026-06-03 (Branch-Konsolidierung,
-H0-Schulden als behoben markiert, Block-3-Stitch-Prompt) | Fitness-Tracker Projekt*
+
+_Erstellt: Juni 2026 · zuletzt aktualisiert: 2026-06-03 (Branch-Konsolidierung,
+H0-Schulden als behoben markiert, Block-3-Stitch-Prompt) | Fitness-Tracker Projekt_

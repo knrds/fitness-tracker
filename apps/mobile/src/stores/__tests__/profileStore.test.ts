@@ -7,7 +7,7 @@ jest.mock('react-native-mmkv', () => ({
     set: jest.fn(),
     getString: jest.fn(),
     delete: jest.fn(),
-  }))
+  })),
 }));
 
 describe('profileStore', () => {
@@ -16,7 +16,7 @@ describe('profileStore', () => {
       profile: {
         displayName: 'User',
         preferredUnits: 'metric',
-      }
+      },
     });
     useHistoryStore.getState().clearHistory();
   });
@@ -38,7 +38,7 @@ describe('profileStore', () => {
       weightKg: 85,
       benchPressMaxKg: 120,
       squatMaxKg: 140,
-      deadliftMaxKg: 180
+      deadliftMaxKg: 180,
     });
 
     const state = useProfileStore.getState();
@@ -71,10 +71,10 @@ describe('profileStore', () => {
           exerciseId: 'ex-1',
           order: 0,
           sets: [
-            { id: 'set-1', setNumber: 1, type: 'working', completed: true, weight: 100, reps: 10 }
-          ]
-        }
-      ]
+            { id: 'set-1', setNumber: 1, type: 'working', completed: true, weight: 100, reps: 10 },
+          ],
+        },
+      ],
     };
 
     const mockSession2: WorkoutSession = {
@@ -92,10 +92,10 @@ describe('profileStore', () => {
           exerciseId: 'ex-2',
           order: 0,
           sets: [
-            { id: 'set-2', setNumber: 1, type: 'working', completed: true, weight: 80, reps: 8 }
-          ]
-        }
-      ]
+            { id: 'set-2', setNumber: 1, type: 'working', completed: true, weight: 80, reps: 8 },
+          ],
+        },
+      ],
     };
 
     // Push sessions to history
@@ -104,7 +104,7 @@ describe('profileStore', () => {
 
     // Get statistics
     const stats = store.getStatistics();
-    
+
     // Workouts: 2
     expect(stats.totalWorkouts).toBe(2);
     // Volume: (100 * 10) + (80 * 8) = 1000 + 640 = 1640 kg
@@ -133,10 +133,10 @@ describe('profileStore', () => {
           exerciseId: 'ex-1',
           order: 0,
           sets: [
-            { id: 'set-1', setNumber: 1, type: 'working', completed: true, weight: 100, reps: 10 }
-          ]
-        }
-      ]
+            { id: 'set-1', setNumber: 1, type: 'working', completed: true, weight: 100, reps: 10 },
+          ],
+        },
+      ],
     };
 
     useHistoryStore.getState().addSession(mockSession);

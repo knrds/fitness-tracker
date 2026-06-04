@@ -80,15 +80,22 @@ function StartupWorkoutChecker() {
             },
           ]}
         >
-          <Text style={[styles.modalTitle, { color: theme.colors.text, ...theme.typography.heading }]}>
+          <Text
+            style={[styles.modalTitle, { color: theme.colors.text, ...theme.typography.heading }]}
+          >
             Unfinished Workout
           </Text>
-          <Text style={[styles.modalMessage, { color: theme.colors.muted, ...theme.typography.body }]}>
+          <Text
+            style={[styles.modalMessage, { color: theme.colors.muted, ...theme.typography.body }]}
+          >
             You have an active workout session in progress. Resume it or start fresh?
           </Text>
           <View style={styles.modalActions}>
             <Pressable
-              style={[styles.modalBtn, { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md }]}
+              style={[
+                styles.modalBtn,
+                { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md },
+              ]}
               onPress={() => {
                 if (status === 'paused') {
                   resumeWorkout();
@@ -97,7 +104,12 @@ function StartupWorkoutChecker() {
                 router.push('/workout/session');
               }}
             >
-              <Text style={[styles.modalBtnText, { color: theme.colors.background, ...theme.typography.button }]}>
+              <Text
+                style={[
+                  styles.modalBtnText,
+                  { color: theme.colors.background, ...theme.typography.button },
+                ]}
+              >
                 Resume Workout
               </Text>
             </Pressable>
@@ -116,7 +128,12 @@ function StartupWorkoutChecker() {
                 setModalVisible(false);
               }}
             >
-              <Text style={[styles.modalBtnText, { color: theme.colors.accent, ...theme.typography.button }]}>
+              <Text
+                style={[
+                  styles.modalBtnText,
+                  { color: theme.colors.accent, ...theme.typography.button },
+                ]}
+              >
                 Discard &amp; Start New
               </Text>
             </Pressable>

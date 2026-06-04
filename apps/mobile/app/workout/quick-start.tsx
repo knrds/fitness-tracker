@@ -25,18 +25,22 @@ export default function QuickStartScreen() {
       if (Platform.OS === 'web') {
         if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
           const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-          if (confirmFn?.("An active workout is already in progress. Do you want to discard it and start a new empty workout?")) {
+          if (
+            confirmFn?.(
+              'An active workout is already in progress. Do you want to discard it and start a new empty workout?',
+            )
+          ) {
             start();
           }
         }
       } else {
         Alert.alert(
-          "Workout In Progress",
-          "An active workout is already in progress. Do you want to discard it and start a new empty workout?",
+          'Workout In Progress',
+          'An active workout is already in progress. Do you want to discard it and start a new empty workout?',
           [
-            { text: "Cancel", style: "cancel" },
-            { text: "Discard & Start", style: "destructive", onPress: start }
-          ]
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Discard & Start', style: 'destructive', onPress: start },
+          ],
         );
       }
     } else {
@@ -54,18 +58,22 @@ export default function QuickStartScreen() {
       if (Platform.OS === 'web') {
         if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
           const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-          if (confirmFn?.("An active workout is already in progress. Do you want to discard it and start this template instead?")) {
+          if (
+            confirmFn?.(
+              'An active workout is already in progress. Do you want to discard it and start this template instead?',
+            )
+          ) {
             start();
           }
         }
       } else {
         Alert.alert(
-          "Workout In Progress",
-          "An active workout is already in progress. Do you want to discard it and start this template instead?",
+          'Workout In Progress',
+          'An active workout is already in progress. Do you want to discard it and start this template instead?',
           [
-            { text: "Cancel", style: "cancel" },
-            { text: "Discard & Start", style: "destructive", onPress: start }
-          ]
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Discard & Start', style: 'destructive', onPress: start },
+          ],
         );
       }
     } else {
@@ -77,19 +85,15 @@ export default function QuickStartScreen() {
     if (Platform.OS === 'web') {
       if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
         const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-        if (confirmFn?.("Are you sure you want to delete this template?")) {
+        if (confirmFn?.('Are you sure you want to delete this template?')) {
           deleteTemplate(templateId);
         }
       }
     } else {
-      Alert.alert(
-        "Delete Template",
-        "Are you sure you want to delete this template?",
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Delete", style: "destructive", onPress: () => deleteTemplate(templateId) }
-        ]
-      );
+      Alert.alert('Delete Template', 'Are you sure you want to delete this template?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => deleteTemplate(templateId) },
+      ]);
     }
   };
 
@@ -99,10 +103,22 @@ export default function QuickStartScreen() {
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>{item.name}</Text>
           <View style={styles.templateActions}>
-            <Pressable style={[styles.actionBtn, styles.startBtn]} onPress={() => handleStartTemplate(item)}>
+            <Pressable
+              style={[styles.actionBtn, styles.startBtn]}
+              onPress={() => handleStartTemplate(item)}
+            >
               <Text style={styles.startBtnText}>Start</Text>
             </Pressable>
-            <Pressable style={styles.actionBtn} onPress={() => router.push(`/programs/template-builder?templateId=${item.id}` as unknown as Parameters<typeof router.push>[0])}>
+            <Pressable
+              style={styles.actionBtn}
+              onPress={() =>
+                router.push(
+                  `/programs/template-builder?templateId=${item.id}` as unknown as Parameters<
+                    typeof router.push
+                  >[0],
+                )
+              }
+            >
               <Text style={styles.editBtnText}>Edit</Text>
             </Pressable>
             <Pressable style={styles.actionBtn} onPress={() => handleDeleteTemplate(item.id)}>
@@ -110,14 +126,12 @@ export default function QuickStartScreen() {
             </Pressable>
           </View>
         </View>
-        
-        {item.description ? (
-          <Text style={styles.cardDesc}>{item.description}</Text>
-        ) : null}
+
+        {item.description ? <Text style={styles.cardDesc}>{item.description}</Text> : null}
 
         <View style={styles.exercisePreview}>
           {item.exercises.map((ex, idx) => {
-            const exerciseDetail = allExercises.find(e => e.id === ex.exerciseId);
+            const exerciseDetail = allExercises.find((e) => e.id === ex.exerciseId);
             return (
               <Text key={ex.id || idx} style={styles.exerciseText}>
                 • {ex.targetSets}x {exerciseDetail?.name || 'Unknown Exercise'}
@@ -137,7 +151,9 @@ export default function QuickStartScreen() {
         </Pressable>
         <View style={styles.headerTextContainer}>
           <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Quick Start</Text>
-          <Text style={[styles.headerSub, { color: theme.colors.muted }]}>Start an empty workout or choose a template below.</Text>
+          <Text style={[styles.headerSub, { color: theme.colors.muted }]}>
+            Start an empty workout or choose a template below.
+          </Text>
         </View>
       </View>
 
@@ -149,13 +165,15 @@ export default function QuickStartScreen() {
 
       <FlatList
         data={templates}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         renderItem={renderTemplateItem}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No templates saved yet.</Text>
-            <Text style={styles.emptySubtext}>Save templates at the end of workouts, or add them via Programs.</Text>
+            <Text style={styles.emptySubtext}>
+              Save templates at the end of workouts, or add them via Programs.
+            </Text>
           </View>
         }
       />

@@ -31,33 +31,37 @@ export const useBodyMetricStore = create<BodyMetricStore>()(
     (set, get) => ({
       metrics: [],
 
-      addMetric: (metric) => set((state) => {
-        const newMetric: BodyMetric = {
-          ...metric,
-          id: Crypto.randomUUID(),
-          userId: LOCAL_USER_ID,
-          createdAt: new Date(),
-        };
-        // Sort descending: newest first
-        const updated = [...state.metrics, newMetric].sort((a, b) => b.recordedAt.getTime() - a.recordedAt.getTime());
-        return { metrics: updated };
-      }),
+      addMetric: (metric) =>
+        set((state) => {
+          const newMetric: BodyMetric = {
+            ...metric,
+            id: Crypto.randomUUID(),
+            userId: LOCAL_USER_ID,
+            createdAt: new Date(),
+          };
+          // Sort descending: newest first
+          const updated = [...state.metrics, newMetric].sort(
+            (a, b) => b.recordedAt.getTime() - a.recordedAt.getTime(),
+          );
+          return { metrics: updated };
+        }),
 
-      deleteMetric: (id) => set((state) => ({
-        metrics: state.metrics.filter(m => m.id !== id)
-      })),
+      deleteMetric: (id) =>
+        set((state) => ({
+          metrics: state.metrics.filter((m) => m.id !== id),
+        })),
 
       getMetricHistory: (type) => {
         const metrics = get().metrics;
         // Return metrics filtered by the presence of specific attributes, sorted oldest first (for charts)
         if (type === 'weight') {
-          return [...metrics].filter(m => m.weightKg !== undefined).reverse();
+          return [...metrics].filter((m) => m.weightKg !== undefined).reverse();
         }
         if (type === 'fat') {
-          return [...metrics].filter(m => m.bodyFatPercentage !== undefined).reverse();
+          return [...metrics].filter((m) => m.bodyFatPercentage !== undefined).reverse();
         }
         if (type === 'measurements') {
-          return [...metrics].filter(m => m.measurements !== undefined).reverse();
+          return [...metrics].filter((m) => m.measurements !== undefined).reverse();
         }
         return metrics;
       },
@@ -72,12 +76,16 @@ export const useBodyMetricStore = create<BodyMetricStore>()(
     }),
     {
       name: 'body-metric-storage',
-      storage: createHydratedStorage('body-metric-storage', bodyMetricPersistedSchema, defaultPersistedState),
+      storage: createHydratedStorage(
+        'body-metric-storage',
+        bodyMetricPersistedSchema,
+        defaultPersistedState,
+      ),
       version: 1,
       migrate: (persistedState) => {
         const parsed = bodyMetricPersistedSchema.safeParse(persistedState);
         return parsed.success ? parsed.data : defaultPersistedState;
       },
-    }
-  )
+    },
+  ),
 );

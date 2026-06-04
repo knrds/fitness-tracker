@@ -3,6 +3,7 @@
 ## Context
 
 You are working on `apps/mobile`, an Expo 52 React Native app using:
+
 - **Expo Router v4** — file-based routing under `app/`
 - **Zustand** — global state management
 - **react-hook-form + zod** — form validation (use `@hookform/resolvers/zod`)

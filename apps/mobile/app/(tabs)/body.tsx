@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  StyleSheet,
   ScrollView,
   Pressable,
   Dimensions,
   Alert,
   SafeAreaView,
   Animated,
-  Platform
+  Platform,
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
@@ -48,7 +48,7 @@ export default function BodyTrackingScreen() {
         toValue: 0,
         duration: 500,
         useNativeDriver: Platform.OS !== 'web',
-      })
+      }),
     ]).start();
   }, [activeChartTab]);
 
@@ -65,7 +65,15 @@ export default function BodyTrackingScreen() {
   const latest = getLatestMetric();
 
   const handleSave = () => {
-    if (!weight.trim() && !bodyFat.trim() && !chest.trim() && !waist.trim() && !hips.trim() && !arms.trim() && !legs.trim()) {
+    if (
+      !weight.trim() &&
+      !bodyFat.trim() &&
+      !chest.trim() &&
+      !waist.trim() &&
+      !hips.trim() &&
+      !arms.trim() &&
+      !legs.trim()
+    ) {
       return Alert.alert('Error', 'Please enter at least one metric.');
     }
 
@@ -81,7 +89,8 @@ export default function BodyTrackingScreen() {
     // Weight conversion: store canonically in kg
     if (weight.trim()) {
       const wVal = parseFloat(weight);
-      if (isNaN(wVal) || wVal <= 0) return Alert.alert('Error', 'Weight must be a positive number.');
+      if (isNaN(wVal) || wVal <= 0)
+        return Alert.alert('Error', 'Weight must be a positive number.');
       updates.weightKg = isImperial ? wVal / 2.20462 : wVal;
     }
 
@@ -95,7 +104,8 @@ export default function BodyTrackingScreen() {
     }
 
     // Measurements conversion: store canonically in cm
-    const hasMeasurements = chest.trim() || waist.trim() || hips.trim() || arms.trim() || legs.trim();
+    const hasMeasurements =
+      chest.trim() || waist.trim() || hips.trim() || arms.trim() || legs.trim();
     if (hasMeasurements) {
       const parseMeasurement = (val: string, label: string) => {
         if (!val.trim()) return undefined;
@@ -132,7 +142,7 @@ export default function BodyTrackingScreen() {
     }
 
     addMetric(updates);
-    
+
     // Clear form and close modal
     setWeight('');
     setBodyFat('');
@@ -166,20 +176,33 @@ export default function BodyTrackingScreen() {
     if (history.length < 2) {
       return (
         <Card padding="lg" style={{ alignItems: 'center' }}>
-          <Text style={[{ color: theme.colors.text, ...theme.typography.heading, fontSize: 16, marginBottom: 4 }]}>Not enough data</Text>
-          <Text style={[{ color: theme.colors.muted, ...theme.typography.body }]}>Log at least 2 data points.</Text>
+          <Text
+            style={[
+              {
+                color: theme.colors.text,
+                ...theme.typography.heading,
+                fontSize: 16,
+                marginBottom: 4,
+              },
+            ]}
+          >
+            Not enough data
+          </Text>
+          <Text style={[{ color: theme.colors.muted, ...theme.typography.body }]}>
+            Log at least 2 data points.
+          </Text>
         </Card>
       );
     }
 
     const data = {
-      labels: history.slice(-6).map(h => {
+      labels: history.slice(-6).map((h) => {
         const d = new Date(h.recordedAt);
         return `${d.getMonth() + 1}/${d.getDate()}`;
       }),
       datasets: [
         {
-          data: history.slice(-6).map(h => {
+          data: history.slice(-6).map((h) => {
             if (activeChartTab === 'weight') {
               const kg = h.weightKg || 0;
               return isImperial ? kg * 2.20462 : kg;
@@ -189,18 +212,43 @@ export default function BodyTrackingScreen() {
           }),
           color: () => theme.colors.primary,
           strokeWidth: 2,
-        }
-      ]
+        },
+      ],
     };
 
     return (
-      <Animated.View style={[styles.chartContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.muted, opacity: chartFadeAnim, transform: [{ translateY: chartSlideAnim }] }]}>
-        <Text style={[styles.chartTitle, { color: theme.colors.text, ...theme.typography.heading, fontSize: 16, marginBottom: 4 }]}>
+      <Animated.View
+        style={[
+          styles.chartContainer,
+          {
+            backgroundColor: theme.colors.surface,
+            borderColor: theme.colors.muted,
+            opacity: chartFadeAnim,
+            transform: [{ translateY: chartSlideAnim }],
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.chartTitle,
+            {
+              color: theme.colors.text,
+              ...theme.typography.heading,
+              fontSize: 16,
+              marginBottom: 4,
+            },
+          ]}
+        >
           {activeChartTab === 'weight' ? 'Weight History' : 'Body Fat History'}
         </Text>
 
         {selectedPoint ? (
-          <View style={[styles.tooltipContainer, { backgroundColor: theme.colors.background, borderColor: theme.colors.primary }]}>
+          <View
+            style={[
+              styles.tooltipContainer,
+              { backgroundColor: theme.colors.background, borderColor: theme.colors.primary },
+            ]}
+          >
             <Ionicons name="stats-chart" size={16} color={theme.colors.primary} />
             <Text style={[styles.tooltipText, { color: theme.colors.text }]}>
               <Text style={{ fontFamily: 'SpaceGrotesk_700Bold' }}>{selectedPoint.date}</Text>:{' '}
@@ -231,7 +279,11 @@ export default function BodyTrackingScreen() {
               const dateStr = new Date(item.recordedAt).toLocaleDateString();
               let valStr = '';
               if (activeChartTab === 'weight') {
-                const w = item.weightKg ? (isImperial ? item.weightKg * 2.20462 : item.weightKg) : 0;
+                const w = item.weightKg
+                  ? isImperial
+                    ? item.weightKg * 2.20462
+                    : item.weightKg
+                  : 0;
                 valStr = `${w.toFixed(1)} ${isImperial ? 'lbs' : 'kg'}`;
               } else {
                 valStr = `${(item.bodyFatPercentage || 0).toFixed(1)}%`;
@@ -253,7 +305,7 @@ export default function BodyTrackingScreen() {
               r: '5',
               strokeWidth: '2',
               stroke: theme.colors.surface,
-            }
+            },
           }}
           bezier
           style={styles.chart}
@@ -265,8 +317,16 @@ export default function BodyTrackingScreen() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
       <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
-        <Text style={[styles.headerTitle, { color: theme.colors.text, ...theme.typography.heading }]}>BODY METRICS</Text>
-        <Pressable style={[styles.addBtn, { backgroundColor: theme.colors.primary }]} onPress={() => setModalVisible(true)} testID="add-metric-btn">
+        <Text
+          style={[styles.headerTitle, { color: theme.colors.text, ...theme.typography.heading }]}
+        >
+          BODY METRICS
+        </Text>
+        <Pressable
+          style={[styles.addBtn, { backgroundColor: theme.colors.primary }]}
+          onPress={() => setModalVisible(true)}
+          testID="add-metric-btn"
+        >
           <Ionicons name="add" size={24} color={theme.colors.background} />
         </Pressable>
       </View>
@@ -275,14 +335,44 @@ export default function BodyTrackingScreen() {
         {/* Latest Overview Cards */}
         <View style={styles.overviewRow}>
           <Card style={styles.overviewCard} padding="md">
-            <Ionicons name="scale-outline" size={24} color={theme.colors.muted} style={styles.cardIcon} />
-            <Text style={[styles.cardLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>CURRENT WEIGHT</Text>
-            <Text style={[styles.cardValue, { color: theme.colors.text, ...theme.typography.heading, fontSize: 24 }]}>{displayWeight(latest?.weightKg)}</Text>
+            <Ionicons
+              name="scale-outline"
+              size={24}
+              color={theme.colors.muted}
+              style={styles.cardIcon}
+            />
+            <Text
+              style={[styles.cardLabel, { color: theme.colors.muted, ...theme.typography.caption }]}
+            >
+              CURRENT WEIGHT
+            </Text>
+            <Text
+              style={[
+                styles.cardValue,
+                { color: theme.colors.text, ...theme.typography.heading, fontSize: 24 },
+              ]}
+            >
+              {displayWeight(latest?.weightKg)}
+            </Text>
           </Card>
           <Card style={styles.overviewCard} padding="md">
-            <Ionicons name="water-outline" size={24} color={theme.colors.muted} style={styles.cardIcon} />
-            <Text style={[styles.cardLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>BODY FAT</Text>
-            <Text style={[styles.cardValue, { color: theme.colors.text, ...theme.typography.heading, fontSize: 24 }]}>
+            <Ionicons
+              name="water-outline"
+              size={24}
+              color={theme.colors.muted}
+              style={styles.cardIcon}
+            />
+            <Text
+              style={[styles.cardLabel, { color: theme.colors.muted, ...theme.typography.caption }]}
+            >
+              BODY FAT
+            </Text>
+            <Text
+              style={[
+                styles.cardValue,
+                { color: theme.colors.text, ...theme.typography.heading, fontSize: 24 },
+              ]}
+            >
               {latest?.bodyFatPercentage ? latest.bodyFatPercentage.toFixed(1) + '%' : '--'}
             </Text>
           </Card>
@@ -290,24 +380,63 @@ export default function BodyTrackingScreen() {
 
         {/* Charts Section */}
         <View style={styles.chartToggleContainer}>
-          <Pressable 
-            style={[styles.toggleBtn, activeChartTab === 'weight' && { borderBottomColor: theme.colors.primary, borderBottomWidth: 2 }]}
+          <Pressable
+            style={[
+              styles.toggleBtn,
+              activeChartTab === 'weight' && {
+                borderBottomColor: theme.colors.primary,
+                borderBottomWidth: 2,
+              },
+            ]}
             onPress={() => setActiveChartTab('weight')}
           >
-            <Text style={[styles.toggleText, { color: activeChartTab === 'weight' ? theme.colors.primary : theme.colors.muted, ...theme.typography.caption }]}>WEIGHT</Text>
+            <Text
+              style={[
+                styles.toggleText,
+                {
+                  color: activeChartTab === 'weight' ? theme.colors.primary : theme.colors.muted,
+                  ...theme.typography.caption,
+                },
+              ]}
+            >
+              WEIGHT
+            </Text>
           </Pressable>
-          <Pressable 
-            style={[styles.toggleBtn, activeChartTab === 'fat' && { borderBottomColor: theme.colors.primary, borderBottomWidth: 2 }]}
+          <Pressable
+            style={[
+              styles.toggleBtn,
+              activeChartTab === 'fat' && {
+                borderBottomColor: theme.colors.primary,
+                borderBottomWidth: 2,
+              },
+            ]}
             onPress={() => setActiveChartTab('fat')}
           >
-            <Text style={[styles.toggleText, { color: activeChartTab === 'fat' ? theme.colors.primary : theme.colors.muted, ...theme.typography.caption }]}>BODY FAT</Text>
+            <Text
+              style={[
+                styles.toggleText,
+                {
+                  color: activeChartTab === 'fat' ? theme.colors.primary : theme.colors.muted,
+                  ...theme.typography.caption,
+                },
+              ]}
+            >
+              BODY FAT
+            </Text>
           </Pressable>
         </View>
 
         {renderChart()}
 
         {/* Measurements Section */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 }]}>LATEST MEASUREMENTS</Text>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
+          ]}
+        >
+          LATEST MEASUREMENTS
+        </Text>
         <Card padding="md" style={styles.measurementsList}>
           {[
             { label: 'Chest', val: latest?.measurements?.chest },
@@ -316,9 +445,24 @@ export default function BodyTrackingScreen() {
             { label: 'Arms', val: latest?.measurements?.leftArm },
             { label: 'Legs', val: latest?.measurements?.leftThigh },
           ].map((item, idx, arr) => (
-            <View key={item.label} style={[styles.measurementItem, idx < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.colors.muted }]}>
-              <Text style={[{ color: theme.colors.muted, ...theme.typography.body }]}>{item.label}</Text>
-              <Text style={[{ color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>{displayMeasurement(item.val)}</Text>
+            <View
+              key={item.label}
+              style={[
+                styles.measurementItem,
+                idx < arr.length - 1 && {
+                  borderBottomWidth: 1,
+                  borderBottomColor: theme.colors.muted,
+                },
+              ]}
+            >
+              <Text style={[{ color: theme.colors.muted, ...theme.typography.body }]}>
+                {item.label}
+              </Text>
+              <Text
+                style={[{ color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}
+              >
+                {displayMeasurement(item.val)}
+              </Text>
             </View>
           ))}
         </Card>
@@ -363,31 +507,66 @@ export default function BodyTrackingScreen() {
             </View>
           </View>
 
-          <Text style={[styles.sectionDivider, { color: theme.colors.primary, ...theme.typography.caption }]}>
+          <Text
+            style={[
+              styles.sectionDivider,
+              { color: theme.colors.primary, ...theme.typography.caption },
+            ]}
+          >
             CIRCUMFERENCES ({isImperial ? 'INCHES' : 'CM'})
           </Text>
 
           <View style={styles.inputGrid}>
             <View style={styles.gridField}>
-              <Input label="Chest" value={chest} onChangeText={setChest} placeholder="Chest" keyboardType="numeric" />
+              <Input
+                label="Chest"
+                value={chest}
+                onChangeText={setChest}
+                placeholder="Chest"
+                keyboardType="numeric"
+              />
             </View>
             <View style={styles.gridField}>
-              <Input label="Waist" value={waist} onChangeText={setWaist} placeholder="Waist" keyboardType="numeric" />
+              <Input
+                label="Waist"
+                value={waist}
+                onChangeText={setWaist}
+                placeholder="Waist"
+                keyboardType="numeric"
+              />
             </View>
           </View>
 
           <View style={styles.inputGrid}>
             <View style={styles.gridField}>
-              <Input label="Hips" value={hips} onChangeText={setHips} placeholder="Hips" keyboardType="numeric" />
+              <Input
+                label="Hips"
+                value={hips}
+                onChangeText={setHips}
+                placeholder="Hips"
+                keyboardType="numeric"
+              />
             </View>
             <View style={styles.gridField}>
-              <Input label="Arms" value={arms} onChangeText={setArms} placeholder="Arms" keyboardType="numeric" />
+              <Input
+                label="Arms"
+                value={arms}
+                onChangeText={setArms}
+                placeholder="Arms"
+                keyboardType="numeric"
+              />
             </View>
           </View>
 
           <View style={styles.inputGrid}>
             <View style={styles.gridField}>
-              <Input label="Legs" value={legs} onChangeText={setLegs} placeholder="Legs" keyboardType="numeric" />
+              <Input
+                label="Legs"
+                value={legs}
+                onChangeText={setLegs}
+                placeholder="Legs"
+                keyboardType="numeric"
+              />
             </View>
             <View style={styles.gridField} />
           </View>
@@ -409,8 +588,7 @@ const styles = StyleSheet.create({
     paddingTop: 48,
     paddingBottom: 16,
   },
-  headerTitle: {
-  },
+  headerTitle: {},
   addBtn: {
     width: 38,
     height: 38,
@@ -439,8 +617,7 @@ const styles = StyleSheet.create({
   cardLabel: {
     marginBottom: 4,
   },
-  cardValue: {
-  },
+  cardValue: {},
   chartToggleContainer: {
     flexDirection: 'row',
     marginBottom: 16,
@@ -449,8 +626,7 @@ const styles = StyleSheet.create({
     marginRight: 24,
     paddingVertical: 8,
   },
-  toggleText: {
-  },
+  toggleText: {},
   chartContainer: {
     borderRadius: 16,
     paddingVertical: 12,
@@ -464,8 +640,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginBottom: 16,
   },
-  measurementsList: {
-  },
+  measurementsList: {},
   measurementItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -475,8 +650,7 @@ const styles = StyleSheet.create({
   modalForm: {
     maxHeight: 400,
   },
-  modalFormContent: {
-  },
+  modalFormContent: {},
   inputGrid: {
     flexDirection: 'row',
     gap: 12,

@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Switch, Modal } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+  Alert,
+  Switch,
+  Modal,
+} from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,24 +25,24 @@ export default function ExerciseDetailScreen() {
   const { status, addExercise, startWorkout } = useWorkoutStore();
   const { profile, updateProfile } = useProfileStore();
   const theme = useTheme();
-  
+
   const [imageLoading, setImageLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
- 
-  const exercise = exercises.find(e => e.id === id);
+
+  const exercise = exercises.find((e) => e.id === id);
 
   useEffect(() => {
     if (!exercise?.imageUrl || !isPlaying) {
       setCurrentImageIndex(0);
       return;
     }
-    
+
     if (exercise.imageUrl.endsWith('0.jpg')) {
       const interval = setInterval(() => {
-        setCurrentImageIndex(prev => (prev === 0 ? 1 : 0));
+        setCurrentImageIndex((prev) => (prev === 0 ? 1 : 0));
       }, 1000);
       return () => clearInterval(interval);
     }
@@ -59,14 +69,10 @@ export default function ExerciseDetailScreen() {
     try {
       if (status === 'active' || status === 'paused') {
         addExercise(exercise.id);
-        Alert.alert(
-          'Success', 
-          `${exercise.name} added to your active workout!`,
-          [
-            { text: 'Go to Workout', onPress: () => router.push('/workout/session') },
-            { text: 'OK', style: 'cancel' }
-          ]
-        );
+        Alert.alert('Success', `${exercise.name} added to your active workout!`, [
+          { text: 'Go to Workout', onPress: () => router.push('/workout/session') },
+          { text: 'OK', style: 'cancel' },
+        ]);
       } else {
         startWorkout('Quick Start');
         // Retrieve the store state again to ensure it was created, then add exercise
@@ -79,35 +85,41 @@ export default function ExerciseDetailScreen() {
   };
 
   const instructionLines = exercise.instructions
-    ? exercise.instructions.split('\n').filter(line => line.trim().length > 0)
+    ? exercise.instructions.split('\n').filter((line) => line.trim().length > 0)
     : [];
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Stack.Screen 
-        options={{ 
+      <Stack.Screen
+        options={{
           title: exercise.name,
           headerShown: true,
           headerLeft: () => (
-            <Pressable 
+            <Pressable
               onPress={() => {
                 if (router.canGoBack()) {
                   router.back();
                 } else {
                   router.replace('/(tabs)/exercises');
                 }
-              }} 
-              hitSlop={15} 
+              }}
+              hitSlop={15}
               style={{ paddingRight: 12 }}
             >
               <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
             </Pressable>
           ),
-        }} 
+        }}
       />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {exercise.imageUrl ? (
-          <Pressable onPress={() => { setIsPlaying(true); setFullscreen(true); }} style={styles.imageContainer}>
+          <Pressable
+            onPress={() => {
+              setIsPlaying(true);
+              setFullscreen(true);
+            }}
+            style={styles.imageContainer}
+          >
             <Image
               source={{ uri: getDisplayedImageUri() }}
               style={styles.image}
@@ -142,9 +154,9 @@ export default function ExerciseDetailScreen() {
             <View style={styles.titleRow}>
               <Text style={styles.title}>{exercise.name}</Text>
               {id && (
-                <Pressable 
-                  onPress={() => toggleFavorite(id)} 
-                  hitSlop={15} 
+                <Pressable
+                  onPress={() => toggleFavorite(id)}
+                  hitSlop={15}
                   style={styles.favoriteButton}
                   testID="detail-favorite-btn"
                 >
@@ -163,9 +175,7 @@ export default function ExerciseDetailScreen() {
             <View style={styles.infoCard}>
               <Text style={styles.infoLabel}>Difficulty</Text>
               <Text style={styles.infoValue}>
-                {exercise.experienceLevel 
-                  ? formatName(exercise.experienceLevel) 
-                  : 'Beginner'}
+                {exercise.experienceLevel ? formatName(exercise.experienceLevel) : 'Beginner'}
               </Text>
             </View>
           </View>
@@ -174,7 +184,7 @@ export default function ExerciseDetailScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Primary Muscles</Text>
             <View style={styles.badges}>
-              {exercise.primaryMuscles.map(m => (
+              {exercise.primaryMuscles.map((m) => (
                 <MuscleGroupBadge key={m} muscleGroup={m} />
               ))}
             </View>
@@ -184,7 +194,7 @@ export default function ExerciseDetailScreen() {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Secondary Muscles</Text>
               <View style={styles.badges}>
-                {exercise.secondaryMuscles.map(m => (
+                {exercise.secondaryMuscles.map((m) => (
                   <MuscleGroupBadge key={m} muscleGroup={m} />
                 ))}
               </View>
@@ -206,14 +216,17 @@ export default function ExerciseDetailScreen() {
                 ))}
               </View>
             ) : (
-              <Text style={styles.noInstructionsText}>No instructions available for this exercise.</Text>
+              <Text style={styles.noInstructionsText}>
+                No instructions available for this exercise.
+              </Text>
             )}
           </View>
 
           {/* Removed Default Rest Timer section as requested */}
 
           {/* Exercise Settings (conditional on RPE/RIR modes) */}
-          {(profile.rpeMode === 'selected_exercises' || profile.rirMode === 'selected_exercises') && (
+          {(profile.rpeMode === 'selected_exercises' ||
+            profile.rirMode === 'selected_exercises') && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Exercise Options</Text>
               <View style={styles.exerciseOptionsContainer}>
@@ -226,7 +239,7 @@ export default function ExerciseDetailScreen() {
                         const current = profile.rpeEnabledExerciseIds || [];
                         const updated = val
                           ? [...current, exercise.id]
-                          : current.filter(id => id !== exercise.id);
+                          : current.filter((id) => id !== exercise.id);
                         updateProfile({ rpeEnabledExerciseIds: updated });
                       }}
                       trackColor={{ false: '#2A2B31', true: theme.colors.primary }}
@@ -242,7 +255,7 @@ export default function ExerciseDetailScreen() {
                         const current = profile.rirEnabledExerciseIds || [];
                         const updated = val
                           ? [...current, exercise.id]
-                          : current.filter(id => id !== exercise.id);
+                          : current.filter((id) => id !== exercise.id);
                         updateProfile({ rirEnabledExerciseIds: updated });
                       }}
                       trackColor={{ false: '#2A2B31', true: theme.colors.primary }}
@@ -254,32 +267,48 @@ export default function ExerciseDetailScreen() {
           )}
 
           {/* Action Button */}
-          <Pressable 
+          <Pressable
             style={({ pressed }) => [
               styles.actionButton,
-              (status === 'active' || status === 'paused') ? styles.actionButtonActive : styles.actionButtonStart,
-              pressed && styles.actionButtonPressed
+              status === 'active' || status === 'paused'
+                ? styles.actionButtonActive
+                : styles.actionButtonStart,
+              pressed && styles.actionButtonPressed,
             ]}
             onPress={handleAddToWorkout}
           >
             <Text style={styles.actionButtonText}>
-              {(status === 'active' || status === 'paused')
+              {status === 'active' || status === 'paused'
                 ? 'Zu aktivem Workout hinzufügen'
                 : 'Neues Workout mit dieser Übung starten'}
             </Text>
           </Pressable>
         </View>
 
-        <Modal visible={fullscreen} animationType="fade" onRequestClose={() => setFullscreen(false)}>
+        <Modal
+          visible={fullscreen}
+          animationType="fade"
+          onRequestClose={() => setFullscreen(false)}
+        >
           <View style={styles.fullscreenContainer}>
-            <Pressable style={styles.fullscreenClose} hitSlop={12} onPress={() => setFullscreen(false)}>
+            <Pressable
+              style={styles.fullscreenClose}
+              hitSlop={12}
+              onPress={() => setFullscreen(false)}
+            >
               <Ionicons name="close" size={30} color="#F4F5F7" />
             </Pressable>
             <Pressable style={styles.fullscreenImageWrap} onPress={() => setIsPlaying((p) => !p)}>
-              <Image source={{ uri: getDisplayedImageUri() }} style={styles.fullscreenImage} contentFit="contain" />
+              <Image
+                source={{ uri: getDisplayedImageUri() }}
+                style={styles.fullscreenImage}
+                contentFit="contain"
+              />
             </Pressable>
             <View style={styles.fullscreenHint}>
-              <Text style={styles.playOverlayText}>{isPlaying ? '⏸ Tap to pause' : '▶ Tap to play'}</Text>
+              <Text style={styles.playOverlayText}>
+                {isPlaying ? '⏸ Tap to pause' : '▶ Tap to play'}
+              </Text>
             </View>
           </View>
         </Modal>
@@ -289,7 +318,10 @@ export default function ExerciseDetailScreen() {
 }
 
 const formatName = (str: string) => {
-  return str.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  return str
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 };
 
 const styles = StyleSheet.create({

@@ -1,5 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Modal as RNModal, TouchableOpacity, Pressable, Animated, Easing, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal as RNModal,
+  TouchableOpacity,
+  Pressable,
+  Animated,
+  Easing,
+  Platform,
+} from 'react-native';
 import { useTheme } from '../ThemeProvider';
 import { Button } from './Button';
 import { Ionicons } from '@expo/vector-icons'; // Assuming expo/vector-icons is available since it's an Expo app
@@ -27,7 +37,7 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   const theme = useTheme();
   const [shouldRender, setShouldRender] = useState(visible);
-  
+
   // Animated values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(15)).current;
@@ -70,12 +80,7 @@ export const Modal: React.FC<ModalProps> = ({
   }, [visible]);
 
   return (
-    <RNModal
-      visible={shouldRender}
-      transparent
-      animationType="none"
-      onRequestClose={onClose}
-    >
+    <RNModal visible={shouldRender} transparent animationType="none" onRequestClose={onClose}>
       <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
         <Pressable style={styles.overlayPressable} onPress={onClose}>
           <Animated.View
@@ -91,7 +96,9 @@ export const Modal: React.FC<ModalProps> = ({
           >
             <Pressable style={styles.innerPressable} onPress={(e) => e.stopPropagation()}>
               <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
-                <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
+                <Text
+                  style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}
+                >
                   {title}
                 </Text>
                 <TouchableOpacity onPress={onClose} style={styles.closeButton}>

@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 'react-native-reanimated';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@fitness-tracker/ui';
@@ -10,7 +15,8 @@ import { useWorkoutStore } from '../../stores/workoutStore';
 
 export const RestTimer = () => {
   const theme = useTheme();
-  const { restTimer, startRestTimer, stopRestTimer, tickRestTimer, resetRestTimer } = useWorkoutStore();
+  const { restTimer, startRestTimer, stopRestTimer, tickRestTimer, resetRestTimer } =
+    useWorkoutStore();
   const [timeLeft, setTimeLeft] = useState(restTimer.durationSeconds);
   const [collapsed, setCollapsed] = useState(false);
   const translateY = useSharedValue(0);
@@ -82,7 +88,8 @@ export const RestTimer = () => {
   const timerColor = isLow ? theme.colors.accent : theme.colors.primary;
 
   const totalDuration = restTimer.durationSeconds || 90;
-  const elapsedPct = restTimer.isRunning && totalDuration > 0 ? (totalDuration - remaining) / totalDuration : 0;
+  const elapsedPct =
+    restTimer.isRunning && totalDuration > 0 ? (totalDuration - remaining) / totalDuration : 0;
   const angle = `${elapsedPct * 360}deg`;
 
   const R = 54;
@@ -94,7 +101,11 @@ export const RestTimer = () => {
       <Animated.View
         style={[
           styles.container,
-          { backgroundColor: theme.colors.surface, borderColor: timerColor, borderRadius: theme.radius.lg },
+          {
+            backgroundColor: theme.colors.surface,
+            borderColor: timerColor,
+            borderRadius: theme.radius.lg,
+          },
           animatedStyle,
         ]}
         testID="rest-timer-container"
@@ -106,14 +117,20 @@ export const RestTimer = () => {
         {collapsed ? (
           <Pressable style={styles.collapsedRow} onPress={() => setCollapsed(false)}>
             <Text style={[styles.collapsedLabel, { color: theme.colors.muted }]}>REST</Text>
-            <Text style={[styles.collapsedTime, { color: theme.colors.text }]}>{formatTime(remaining)}</Text>
+            <Text style={[styles.collapsedTime, { color: theme.colors.text }]}>
+              {formatTime(remaining)}
+            </Text>
             <View style={styles.collapsedControls}>
               {restTimer.isRunning ? (
                 <Pressable hitSlop={8} onPress={stopRestTimer} testID="stop-timer-btn">
                   <Ionicons name="pause" size={22} color={theme.colors.text} />
                 </Pressable>
               ) : (
-                <Pressable hitSlop={8} onPress={() => startRestTimer(timeLeft || 90)} testID="start-timer-btn">
+                <Pressable
+                  hitSlop={8}
+                  onPress={() => startRestTimer(timeLeft || 90)}
+                  testID="start-timer-btn"
+                >
                   <Ionicons name="play" size={22} color={theme.colors.primary} />
                 </Pressable>
               )}
@@ -123,10 +140,14 @@ export const RestTimer = () => {
         ) : (
           <>
             <Text style={[styles.label, { color: theme.colors.muted }]}>Rest Timer</Text>
-            
+
             {/* Circular Clock Face */}
             <View style={[styles.clockFace, { borderColor: theme.colors.border }]}>
-              <Svg width={140} height={140} style={{ transform: [{ rotate: '-90deg' }], position: 'absolute' }}>
+              <Svg
+                width={140}
+                height={140}
+                style={{ transform: [{ rotate: '-90deg' }], position: 'absolute' }}
+              >
                 <Circle
                   cx="70"
                   cy="70"
@@ -153,7 +174,7 @@ export const RestTimer = () => {
                 <View style={[styles.needle, { backgroundColor: timerColor }]} />
               </View>
               <View style={[styles.clockDot, { backgroundColor: timerColor }]} />
-              
+
               {isEditing ? (
                 <TextInput
                   style={[
@@ -164,7 +185,7 @@ export const RestTimer = () => {
                       borderBottomColor: theme.colors.primary,
                       textAlign: 'center',
                       minWidth: 90,
-                    }
+                    },
                   ]}
                   value={editVal}
                   onChangeText={setEditVal}
@@ -174,12 +195,14 @@ export const RestTimer = () => {
                   onBlur={handleFinishEdit}
                 />
               ) : (
-                <Pressable onPress={() => {
-                  if (!restTimer.isRunning) {
-                    setIsEditing(true);
-                    setEditVal(formatTime(remaining));
-                  }
-                }}>
+                <Pressable
+                  onPress={() => {
+                    if (!restTimer.isRunning) {
+                      setIsEditing(true);
+                      setEditVal(formatTime(remaining));
+                    }
+                  }}
+                >
                   <Text style={[styles.timerText, { color: theme.colors.text }]}>
                     {formatTime(remaining)}
                   </Text>
@@ -189,38 +212,64 @@ export const RestTimer = () => {
 
             <View style={styles.controls}>
               {restTimer.isRunning ? (
-                <Pressable style={[styles.btn, { backgroundColor: '#ea580c', borderColor: '#ea580c' }]} onPress={stopRestTimer} testID="stop-timer-btn">
+                <Pressable
+                  style={[styles.btn, { backgroundColor: '#ea580c', borderColor: '#ea580c' }]}
+                  onPress={stopRestTimer}
+                  testID="stop-timer-btn"
+                >
                   <Text style={[styles.btnText, { color: '#ffffff' }]}>Pause</Text>
                 </Pressable>
               ) : (
                 <Pressable
-                  style={[styles.btn, { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]}
+                  style={[
+                    styles.btn,
+                    { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+                  ]}
                   onPress={() => startRestTimer(timeLeft || 90)}
                   testID="start-timer-btn"
                 >
                   <Text style={[styles.btnText, { color: theme.colors.background }]}>Start</Text>
                 </Pressable>
               )}
-              <Pressable style={[styles.btn, { borderColor: theme.colors.border }]} onPress={resetRestTimer} testID="reset-timer-btn">
+              <Pressable
+                style={[styles.btn, { borderColor: theme.colors.border }]}
+                onPress={resetRestTimer}
+                testID="reset-timer-btn"
+              >
                 <Text style={[styles.btnText, { color: theme.colors.accent }]}>Reset</Text>
               </Pressable>
             </View>
 
             {/* Time Adjustments Grid */}
             <View style={styles.gridControls}>
-              <Pressable style={[styles.miniBtn, { borderColor: theme.colors.border }]} onPress={() => startRestTimer(Math.max(0, timeLeft - 30))}>
+              <Pressable
+                style={[styles.miniBtn, { borderColor: theme.colors.border }]}
+                onPress={() => startRestTimer(Math.max(0, timeLeft - 30))}
+              >
                 <Text style={[styles.miniBtnText, { color: theme.colors.text }]}>−30s</Text>
               </Pressable>
-              <Pressable style={[styles.miniBtn, { borderColor: theme.colors.border }]} onPress={() => startRestTimer(Math.max(0, timeLeft - 10))}>
+              <Pressable
+                style={[styles.miniBtn, { borderColor: theme.colors.border }]}
+                onPress={() => startRestTimer(Math.max(0, timeLeft - 10))}
+              >
                 <Text style={[styles.miniBtnText, { color: theme.colors.text }]}>−10s</Text>
               </Pressable>
-              <Pressable style={[styles.miniBtn, { borderColor: theme.colors.border }]} onPress={() => startRestTimer(timeLeft + 10)}>
+              <Pressable
+                style={[styles.miniBtn, { borderColor: theme.colors.border }]}
+                onPress={() => startRestTimer(timeLeft + 10)}
+              >
                 <Text style={[styles.miniBtnText, { color: theme.colors.text }]}>+10s</Text>
               </Pressable>
-              <Pressable style={[styles.miniBtn, { borderColor: theme.colors.border }]} onPress={() => startRestTimer(timeLeft + 30)}>
+              <Pressable
+                style={[styles.miniBtn, { borderColor: theme.colors.border }]}
+                onPress={() => startRestTimer(timeLeft + 30)}
+              >
                 <Text style={[styles.miniBtnText, { color: theme.colors.text }]}>+30s</Text>
               </Pressable>
-              <Pressable style={[styles.miniBtn, { borderColor: theme.colors.border }]} onPress={() => startRestTimer(timeLeft + 60)}>
+              <Pressable
+                style={[styles.miniBtn, { borderColor: theme.colors.border }]}
+                onPress={() => startRestTimer(timeLeft + 60)}
+              >
                 <Text style={[styles.miniBtnText, { color: theme.colors.text }]}>+1m</Text>
               </Pressable>
             </View>

@@ -40,16 +40,22 @@ export const ExerciseCard = ({ exercise, isFavorite, onToggleFavorite }: Props) 
         )}
 
         <View style={styles.header}>
-          <Text style={styles.title} testID="exercise-title">{exercise.name}</Text>
+          <Text style={styles.title} testID="exercise-title">
+            {exercise.name}
+          </Text>
           {onToggleFavorite && (
-            <Pressable onPress={() => onToggleFavorite(exercise.id)} hitSlop={10} testID="favorite-btn">
+            <Pressable
+              onPress={() => onToggleFavorite(exercise.id)}
+              hitSlop={10}
+              testID="favorite-btn"
+            >
               <Text style={styles.favoriteIcon}>{isFavorite ? '★' : '☆'}</Text>
             </Pressable>
           )}
         </View>
-        
+
         <View style={styles.badges}>
-          {exercise.primaryMuscles.map(m => (
+          {exercise.primaryMuscles.map((m) => (
             <MuscleGroupBadge key={m} muscleGroup={m} />
           ))}
           <View style={styles.equipmentBadge}>
@@ -62,7 +68,10 @@ export const ExerciseCard = ({ exercise, isFavorite, onToggleFavorite }: Props) 
 };
 
 const formatEquipmentName = (eq: string) => {
-  return eq.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  return eq
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 };
 
 const styles = StyleSheet.create({

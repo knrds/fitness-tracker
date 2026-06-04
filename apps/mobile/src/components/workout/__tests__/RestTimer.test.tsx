@@ -7,10 +7,10 @@ jest.mock('expo-av', () => ({
   Audio: {
     Sound: {
       createAsync: jest.fn().mockResolvedValue({
-        sound: { playAsync: jest.fn(), unloadAsync: jest.fn() }
-      })
-    }
-  }
+        sound: { playAsync: jest.fn(), unloadAsync: jest.fn() },
+      }),
+    },
+  },
 }));
 
 describe('RestTimer', () => {

@@ -1,5 +1,15 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable, Image, Animated, Platform, Modal } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  Pressable,
+  Image,
+  Animated,
+  Platform,
+  Modal,
+} from 'react-native';
 import { useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { WorkoutSession } from '@fitness-tracker/domain';
@@ -15,7 +25,7 @@ import { Button, Card, useTheme } from '@fitness-tracker/ui';
 export default function HomeScreen() {
   const router = useRouter();
   const theme = useTheme();
-  
+
   const { startWorkout, status } = useWorkoutStore();
   const { profile } = useProfileStore();
   const { getStreak, getSessionsByDateDesc } = useHistoryStore();
@@ -39,13 +49,13 @@ export default function HomeScreen() {
         toValue: 0,
         duration: 500,
         useNativeDriver: Platform.OS !== 'web',
-      })
+      }),
     ]).start();
   }, []);
 
   const streak = getStreak();
   const sessions = getSessionsByDateDesc();
-  const activeProgram = programs.find(p => p.isActive);
+  const activeProgram = programs.find((p) => p.isActive);
 
   const handleStartWorkout = () => {
     if (status === 'idle' || status === 'finished') {
@@ -57,7 +67,7 @@ export default function HomeScreen() {
   // Profile avatar initials
   const initials = (profile.displayName || 'U')
     .split(' ')
-    .map(w => w.charAt(0))
+    .map((w) => w.charAt(0))
     .join('')
     .toUpperCase()
     .slice(0, 2);
@@ -72,203 +82,310 @@ export default function HomeScreen() {
   });
 
   const getIsDayTrained = (date: Date) => {
-    return sessions.some(s => {
+    return sessions.some((s) => {
       const sessionDate = new Date(s.startedAt);
-      return sessionDate.getDate() === date.getDate() &&
-             sessionDate.getMonth() === date.getMonth() &&
-             sessionDate.getFullYear() === date.getFullYear();
+      return (
+        sessionDate.getDate() === date.getDate() &&
+        sessionDate.getMonth() === date.getMonth() &&
+        sessionDate.getFullYear() === date.getFullYear()
+      );
     });
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      contentContainerStyle={styles.content}
+    >
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }], gap: 16 }}>
         {/* Top Header — entire row tappable to navigate to profile */}
-        <Pressable 
-        style={styles.headerRow} 
-        onPress={() => router.push('/profile' as Href)}
-      >
-        {/* Profile Avatar */}
-        <View style={styles.headerLeft}>
-          {profile.profileImageUri ? (
-            <Image 
-              source={{ uri: profile.profileImageUri }} 
-              style={[styles.avatar, { borderColor: theme.colors.primary }]} 
+        <Pressable style={styles.headerRow} onPress={() => router.push('/profile' as Href)}>
+          {/* Profile Avatar */}
+          <View style={styles.headerLeft}>
+            {profile.profileImageUri ? (
+              <Image
+                source={{ uri: profile.profileImageUri }}
+                style={[styles.avatar, { borderColor: theme.colors.primary }]}
+              />
+            ) : (
+              <View
+                style={[
+                  styles.avatar,
+                  styles.avatarFallback,
+                  { borderColor: theme.colors.primary, backgroundColor: theme.colors.surface },
+                ]}
+              >
+                <Text style={[styles.avatarInitials, { color: theme.colors.primary }]}>
+                  {initials}
+                </Text>
+              </View>
+            )}
+            <View>
+              <Text
+                style={[{ color: theme.colors.muted, marginBottom: 2 }, theme.typography.caption]}
+              >
+                READY TO GRIND,
+              </Text>
+              <Text style={[{ color: theme.colors.text }, theme.typography.heading]}>
+                {profile.displayName || 'ATHLETE'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.readinessContainer}>
+            <Text
+              style={[
+                { color: theme.colors.primary, fontSize: 32, lineHeight: 36 },
+                theme.typography.display,
+              ]}
+            >
+              {streak}
+            </Text>
+            <Text style={[{ color: theme.colors.muted }, theme.typography.caption]}>STREAK 🔥</Text>
+          </View>
+        </Pressable>
+
+        <Pressable
+          style={styles.levelWrapper}
+          onPress={() => setShowXpTooltip((prev) => !prev)}
+          onPointerEnter={() => setShowXpTooltip(true)}
+          onPointerLeave={() => setShowXpTooltip(false)}
+        >
+          <View style={styles.levelHeaderRow}>
+            <Text
+              style={[styles.levelText, { color: theme.colors.text, ...theme.typography.caption }]}
+            >
+              LEVEL {level} • {getLevelBadge(level).title} {getLevelBadge(level).icon}
+            </Text>
+            <Text
+              style={[
+                styles.xpTextInline,
+                {
+                  color: theme.colors.primary,
+                  ...theme.typography.caption,
+                  opacity: showXpTooltip ? 1 : 0,
+                },
+              ]}
+            >
+              {xp % 500} / 500 XP
+            </Text>
+          </View>
+          <View style={[styles.xpBarBackground, { backgroundColor: theme.colors.border }]}>
+            <View
+              style={[
+                styles.xpBarFill,
+                { backgroundColor: theme.colors.primary, width: `${(xp % 500) / 5}%` },
+              ]}
             />
+          </View>
+        </Pressable>
+
+        {/* "Today" Card */}
+        <Text
+          style={[
+            { color: theme.colors.text, fontSize: 20, marginTop: 16, marginBottom: 16 },
+            theme.typography.heading,
+          ]}
+        >
+          TODAY
+        </Text>
+        <Card style={styles.todayCard} padding="lg">
+          {activeProgram ? (
+            <View>
+              <Text
+                style={[
+                  { color: theme.colors.text, fontSize: 24, marginBottom: 8 },
+                  theme.typography.heading,
+                ]}
+              >
+                {activeProgram.name}
+              </Text>
+              <Text
+                style={[{ color: theme.colors.muted, ...theme.typography.body, marginBottom: 24 }]}
+              >
+                Ready for the next workout
+              </Text>
+            </View>
           ) : (
-            <View style={[styles.avatar, styles.avatarFallback, { borderColor: theme.colors.primary, backgroundColor: theme.colors.surface }]}>
-              <Text style={[styles.avatarInitials, { color: theme.colors.primary }]}>{initials}</Text>
+            <View>
+              <Text
+                style={[
+                  { color: theme.colors.text, fontSize: 24, marginBottom: 8 },
+                  theme.typography.heading,
+                ]}
+              >
+                FREE TRAINING
+              </Text>
+              <Text
+                style={[{ color: theme.colors.muted, ...theme.typography.body, marginBottom: 24 }]}
+              >
+                No program active. Time to build the baseline.
+              </Text>
             </View>
           )}
-          <View>
-            <Text style={[{ color: theme.colors.muted, marginBottom: 2 }, theme.typography.caption]}>
-              READY TO GRIND,
-            </Text>
-            <Text style={[{ color: theme.colors.text }, theme.typography.heading]}>
-              {profile.displayName || 'ATHLETE'}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.readinessContainer}>
-          <Text style={[{ color: theme.colors.primary, fontSize: 32, lineHeight: 36 }, theme.typography.display]}>
-            {streak}
-          </Text>
-          <Text style={[{ color: theme.colors.muted }, theme.typography.caption]}>
-            STREAK 🔥
-          </Text>
-        </View>
-      </Pressable>
-
-      <Pressable 
-        style={styles.levelWrapper}
-        onPress={() => setShowXpTooltip(prev => !prev)}
-        onPointerEnter={() => setShowXpTooltip(true)}
-        onPointerLeave={() => setShowXpTooltip(false)}
-      >
-        <View style={styles.levelHeaderRow}>
-          <Text style={[styles.levelText, { color: theme.colors.text, ...theme.typography.caption }]}>
-            LEVEL {level} • {getLevelBadge(level).title} {getLevelBadge(level).icon}
-          </Text>
-          <Text style={[styles.xpTextInline, { color: theme.colors.primary, ...theme.typography.caption, opacity: showXpTooltip ? 1 : 0 }]}>
-            {xp % 500} / 500 XP
-          </Text>
-        </View>
-        <View style={[styles.xpBarBackground, { backgroundColor: theme.colors.border }]}>
-          <View style={[styles.xpBarFill, { backgroundColor: theme.colors.primary, width: `${(xp % 500) / 5}%` }]} />
-        </View>
-      </Pressable>
-
-      {/* "Today" Card */}
-      <Text style={[{ color: theme.colors.text, fontSize: 20, marginTop: 16, marginBottom: 16 }, theme.typography.heading]}>TODAY</Text>
-      <Card style={styles.todayCard} padding="lg">
-        {activeProgram ? (
-          <View>
-            <Text style={[{ color: theme.colors.text, fontSize: 24, marginBottom: 8 }, theme.typography.heading]}>
-              {activeProgram.name}
-            </Text>
-            <Text style={[{ color: theme.colors.muted, ...theme.typography.body, marginBottom: 24 }]}>
-              Ready for the next workout
-            </Text>
-          </View>
-        ) : (
-          <View>
-            <Text style={[{ color: theme.colors.text, fontSize: 24, marginBottom: 8 }, theme.typography.heading]}>
-              FREE TRAINING
-            </Text>
-            <Text style={[{ color: theme.colors.muted, ...theme.typography.body, marginBottom: 24 }]}>
-              No program active. Time to build the baseline.
-            </Text>
-          </View>
-        )}
-        <Button 
-          title={status === 'active' || status === 'paused' ? 'RESUME WORKOUT' : 'START WORKOUT'}
-          variant="primary"
-          onPress={handleStartWorkout}
-        />
-        {!activeProgram && (
-          <Button 
-            title="BROWSE PROGRAMS"
-            variant="ghost"
-            style={{ marginTop: 16 }}
-            onPress={() => router.push('/programs')}
+          <Button
+            title={status === 'active' || status === 'paused' ? 'RESUME WORKOUT' : 'START WORKOUT'}
+            variant="primary"
+            onPress={handleStartWorkout}
           />
-        )}
-      </Card>
+          {!activeProgram && (
+            <Button
+              title="BROWSE PROGRAMS"
+              variant="ghost"
+              style={{ marginTop: 16 }}
+              onPress={() => router.push('/programs')}
+            />
+          )}
+        </Card>
 
-      {/* Recent Workouts */}
-      {sessions.length > 0 && (
-        <>
-          <Text style={[{ color: theme.colors.text, fontSize: 20, marginTop: 16, marginBottom: 16 }, theme.typography.heading]}>RECENT WORKOUTS</Text>
-          <View style={{ gap: 12, marginBottom: 16 }}>
-            {sessions.slice(0, 4).map(session => {
-              const exerciseNames = session.exercises
-                .map(se => exercises.find(e => e.id === se.exerciseId)?.name)
-                .filter(Boolean)
-                .join(', ');
-              
-              const totalSets = session.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0);
-              const totalVolume = session.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed && s.weight).reduce((sSum, s) => sSum + s.weight! * (s.reps || 0), 0), 0);
-              
+        {/* Recent Workouts */}
+        {sessions.length > 0 && (
+          <>
+            <Text
+              style={[
+                { color: theme.colors.text, fontSize: 20, marginTop: 16, marginBottom: 16 },
+                theme.typography.heading,
+              ]}
+            >
+              RECENT WORKOUTS
+            </Text>
+            <View style={{ gap: 12, marginBottom: 16 }}>
+              {sessions.slice(0, 4).map((session) => {
+                const exerciseNames = session.exercises
+                  .map((se) => exercises.find((e) => e.id === se.exerciseId)?.name)
+                  .filter(Boolean)
+                  .join(', ');
+
+                const totalSets = session.exercises.reduce(
+                  (sum, ex) => sum + ex.sets.filter((s) => s.completed).length,
+                  0,
+                );
+                const totalVolume = session.exercises.reduce(
+                  (sum, ex) =>
+                    sum +
+                    ex.sets
+                      .filter((s) => s.completed && s.weight)
+                      .reduce((sSum, s) => sSum + s.weight! * (s.reps || 0), 0),
+                  0,
+                );
+
+                return (
+                  <Card
+                    key={session.id}
+                    padding="md"
+                    onPress={() => setSelectedSession(session)}
+                    style={styles.recentActivityCard}
+                  >
+                    <View style={styles.recentActivityHeader}>
+                      <Text
+                        style={[
+                          {
+                            color: theme.colors.text,
+                            ...theme.typography.body,
+                            fontWeight: 'bold',
+                          },
+                        ]}
+                      >
+                        {session.name || 'Workout'}
+                      </Text>
+                      <Text style={[{ color: theme.colors.muted, ...theme.typography.caption }]}>
+                        {new Date(session.startedAt).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        {
+                          color: theme.colors.muted,
+                          fontSize: 14,
+                          fontFamily: 'Manrope_500Medium',
+                          marginVertical: 6,
+                        },
+                      ]}
+                      numberOfLines={2}
+                      ellipsizeMode="tail"
+                    >
+                      {exerciseNames || `${session.exercises.length} Exercises`}
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 16, marginTop: 4 }}>
+                      <Text style={[{ color: theme.colors.muted }, theme.typography.caption]}>
+                        Sets: <Text style={{ color: theme.colors.text }}>{totalSets}</Text>
+                      </Text>
+                      <Text style={[{ color: theme.colors.muted }, theme.typography.caption]}>
+                        Vol:{' '}
+                        <Text style={{ color: theme.colors.text }}>
+                          {Math.round(totalVolume)} kg
+                        </Text>
+                      </Text>
+                    </View>
+                  </Card>
+                );
+              })}
+            </View>
+          </>
+        )}
+
+        {/* Weekly Consistency */}
+        <Text
+          style={[
+            { color: theme.colors.text, fontSize: 20, marginTop: 16, marginBottom: 16 },
+            theme.typography.heading,
+          ]}
+        >
+          CONSISTENCY
+        </Text>
+        <Card padding="md" style={styles.consistencyCard}>
+          <View style={styles.weekContainer}>
+            {last7Days.map((date, idx) => {
+              const isToday = date.toDateString() === today.toDateString();
+              const isTrained = getIsDayTrained(date);
               return (
-                <Card 
-                  key={session.id}
-                  padding="md" 
-                  onPress={() => setSelectedSession(session)}
-                  style={styles.recentActivityCard}
-                >
-                  <View style={styles.recentActivityHeader}>
-                    <Text style={[{ color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>
-                      {session.name || 'Workout'}
-                    </Text>
-                    <Text style={[{ color: theme.colors.muted, ...theme.typography.caption }]}>
-                      {new Date(session.startedAt).toLocaleDateString()}
-                    </Text>
+                <View key={idx} style={styles.dayColumn}>
+                  <View
+                    style={[
+                      styles.dayCircle,
+                      isTrained
+                        ? { backgroundColor: theme.colors.primary }
+                        : {
+                            backgroundColor: 'transparent',
+                            borderColor: theme.colors.border,
+                            borderWidth: 2,
+                          },
+                      isToday && {
+                        borderColor: '#ffffff',
+                        borderWidth: 2,
+                        shadowColor: theme.colors.primary,
+                        shadowOffset: { width: 0, height: 0 },
+                        shadowOpacity: 0.8,
+                        shadowRadius: 6,
+                        elevation: 5,
+                        ...(!isTrained && { backgroundColor: 'rgba(144, 213, 255, 0.15)' }),
+                      },
+                    ]}
+                  >
+                    {isTrained && (
+                      <Ionicons name="checkmark" size={14} color={theme.colors.background} />
+                    )}
                   </View>
-                  <Text style={[{ color: theme.colors.muted, fontSize: 14, fontFamily: 'Manrope_500Medium', marginVertical: 6 }]} numberOfLines={2} ellipsizeMode="tail">
-                    {exerciseNames || `${session.exercises.length} Exercises`}
+                  <Text
+                    style={[
+                      { ...theme.typography.caption, fontSize: 10, marginTop: 8 },
+                      { color: isToday ? theme.colors.primary : theme.colors.muted },
+                      isToday && { fontFamily: 'SpaceGrotesk_700Bold', fontWeight: 'bold' },
+                    ]}
+                  >
+                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'][date.getDay()]}
                   </Text>
-                  <View style={{ flexDirection: 'row', gap: 16, marginTop: 4 }}>
-                    <Text style={[{ color: theme.colors.muted }, theme.typography.caption]}>
-                      Sets: <Text style={{ color: theme.colors.text }}>{totalSets}</Text>
-                    </Text>
-                    <Text style={[{ color: theme.colors.muted }, theme.typography.caption]}>
-                      Vol: <Text style={{ color: theme.colors.text }}>{Math.round(totalVolume)} kg</Text>
-                    </Text>
-                  </View>
-                </Card>
+                </View>
               );
             })}
           </View>
-        </>
-      )}
-
-      {/* Weekly Consistency */}
-      <Text style={[{ color: theme.colors.text, fontSize: 20, marginTop: 16, marginBottom: 16 }, theme.typography.heading]}>CONSISTENCY</Text>
-      <Card padding="md" style={styles.consistencyCard}>
-        <View style={styles.weekContainer}>
-          {last7Days.map((date, idx) => {
-            const isToday = date.toDateString() === today.toDateString();
-            const isTrained = getIsDayTrained(date);
-            return (
-              <View key={idx} style={styles.dayColumn}>
-                <View style={[
-                  styles.dayCircle,
-                  isTrained 
-                    ? { backgroundColor: theme.colors.primary }
-                    : { backgroundColor: 'transparent', borderColor: theme.colors.border, borderWidth: 2 },
-                  isToday && { 
-                    borderColor: '#ffffff',
-                    borderWidth: 2,
-                    shadowColor: theme.colors.primary,
-                    shadowOffset: { width: 0, height: 0 },
-                    shadowOpacity: 0.8,
-                    shadowRadius: 6,
-                    elevation: 5,
-                    ...(!isTrained && { backgroundColor: 'rgba(144, 213, 255, 0.15)' }),
-                  },
-                ]}>
-                  {isTrained && <Ionicons name="checkmark" size={14} color={theme.colors.background} />}
-                </View>
-                <Text style={[
-                  { ...theme.typography.caption, fontSize: 10, marginTop: 8 },
-                  { color: isToday ? theme.colors.primary : theme.colors.muted },
-                  isToday && { fontFamily: 'SpaceGrotesk_700Bold', fontWeight: 'bold' },
-                ]}>
-                  {['S', 'M', 'T', 'W', 'T', 'F', 'S'][date.getDay()]}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
-      </Card>
-
+        </Card>
       </Animated.View>
 
       {/* Workout Summary Popup */}
-      <Modal 
-        visible={selectedSession !== null} 
-        transparent 
-        animationType="slide" 
+      <Modal
+        visible={selectedSession !== null}
+        transparent
+        animationType="slide"
         onRequestClose={() => setSelectedSession(null)}
       >
         <Pressable style={styles.summaryOverlay} onPress={() => setSelectedSession(null)}>
@@ -278,52 +395,128 @@ export default function HomeScreen() {
                 <View style={styles.summaryGripArea}>
                   <View style={[styles.summaryGrip, { backgroundColor: theme.colors.border }]} />
                 </View>
-                <Text style={[styles.summaryTitle, { color: theme.colors.text, ...theme.typography.heading }]}>
+                <Text
+                  style={[
+                    styles.summaryTitle,
+                    { color: theme.colors.text, ...theme.typography.heading },
+                  ]}
+                >
                   {selectedSession.name}
                 </Text>
-                <Text style={[styles.summaryDate, { color: theme.colors.muted, ...theme.typography.caption }]}>
-                  {new Date(selectedSession.startedAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                <Text
+                  style={[
+                    styles.summaryDate,
+                    { color: theme.colors.muted, ...theme.typography.caption },
+                  ]}
+                >
+                  {new Date(selectedSession.startedAt).toLocaleDateString(undefined, {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
                 </Text>
-                
+
                 <View style={styles.summaryStatsRow}>
                   <View style={styles.summaryStat}>
-                    <Text style={[styles.summaryStatValue, { color: theme.colors.primary, ...theme.typography.display }]}>
-                      {selectedSession.durationSeconds ? `${Math.floor(selectedSession.durationSeconds / 60)}m` : '--'}
+                    <Text
+                      style={[
+                        styles.summaryStatValue,
+                        { color: theme.colors.primary, ...theme.typography.display },
+                      ]}
+                    >
+                      {selectedSession.durationSeconds
+                        ? `${Math.floor(selectedSession.durationSeconds / 60)}m`
+                        : '--'}
                     </Text>
-                    <Text style={[styles.summaryStatLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>DURATION</Text>
+                    <Text
+                      style={[
+                        styles.summaryStatLabel,
+                        { color: theme.colors.muted, ...theme.typography.caption },
+                      ]}
+                    >
+                      DURATION
+                    </Text>
                   </View>
                   <View style={styles.summaryStat}>
-                    <Text style={[styles.summaryStatValue, { color: theme.colors.primary, ...theme.typography.display }]}>
-                      {Math.round(selectedSession.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed && s.weight).reduce((sSum, s) => sSum + s.weight! * (s.reps || 0), 0), 0))}
+                    <Text
+                      style={[
+                        styles.summaryStatValue,
+                        { color: theme.colors.primary, ...theme.typography.display },
+                      ]}
+                    >
+                      {Math.round(
+                        selectedSession.exercises.reduce(
+                          (sum, ex) =>
+                            sum +
+                            ex.sets
+                              .filter((s) => s.completed && s.weight)
+                              .reduce((sSum, s) => sSum + s.weight! * (s.reps || 0), 0),
+                          0,
+                        ),
+                      )}
                     </Text>
-                    <Text style={[styles.summaryStatLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>VOLUME</Text>
+                    <Text
+                      style={[
+                        styles.summaryStatLabel,
+                        { color: theme.colors.muted, ...theme.typography.caption },
+                      ]}
+                    >
+                      VOLUME
+                    </Text>
                   </View>
                   <View style={styles.summaryStat}>
-                    <Text style={[styles.summaryStatValue, { color: theme.colors.primary, ...theme.typography.display }]}>
-                      {selectedSession.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0)}
+                    <Text
+                      style={[
+                        styles.summaryStatValue,
+                        { color: theme.colors.primary, ...theme.typography.display },
+                      ]}
+                    >
+                      {selectedSession.exercises.reduce(
+                        (sum, ex) => sum + ex.sets.filter((s) => s.completed).length,
+                        0,
+                      )}
                     </Text>
-                    <Text style={[styles.summaryStatLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>SETS</Text>
+                    <Text
+                      style={[
+                        styles.summaryStatLabel,
+                        { color: theme.colors.muted, ...theme.typography.caption },
+                      ]}
+                    >
+                      SETS
+                    </Text>
                   </View>
                 </View>
-                
+
                 <ScrollView style={styles.summaryExercises} showsVerticalScrollIndicator={false}>
                   {selectedSession.exercises.map((ex) => {
-                    const exInfo = exercises.find(e => e.id === ex.exerciseId);
-                    const completedSets = ex.sets.filter(s => s.completed);
+                    const exInfo = exercises.find((e) => e.id === ex.exerciseId);
+                    const completedSets = ex.sets.filter((s) => s.completed);
                     return (
                       <View key={ex.id} style={styles.summaryExRow}>
-                        <Text style={[styles.summaryExName, { color: theme.colors.text, ...theme.typography.body }]}>
+                        <Text
+                          style={[
+                            styles.summaryExName,
+                            { color: theme.colors.text, ...theme.typography.body },
+                          ]}
+                        >
                           {exInfo?.name || 'Unknown'}
                         </Text>
-                        <Text style={[styles.summaryExDetail, { color: theme.colors.muted, ...theme.typography.caption }]}>
+                        <Text
+                          style={[
+                            styles.summaryExDetail,
+                            { color: theme.colors.muted, ...theme.typography.caption },
+                          ]}
+                        >
                           {completedSets.length} sets
-                          {completedSets[0]?.weight ? ` · ${completedSets[0].weight}kg × ${completedSets[0].reps ?? '?'}` : ''}
+                          {completedSets[0]?.weight
+                            ? ` · ${completedSets[0].weight}kg × ${completedSets[0].reps ?? '?'}`
+                            : ''}
                         </Text>
                       </View>
                     );
                   })}
                 </ScrollView>
-                
+
                 <Pressable
                   style={[styles.summaryDetailBtn, { backgroundColor: theme.colors.primary }]}
                   onPress={() => {
@@ -332,7 +525,12 @@ export default function HomeScreen() {
                     router.push(`/history/${id}` as unknown as Parameters<typeof router.push>[0]);
                   }}
                 >
-                  <Text style={[styles.summaryDetailBtnText, { color: theme.colors.background, ...theme.typography.button }]}>
+                  <Text
+                    style={[
+                      styles.summaryDetailBtnText,
+                      { color: theme.colors.background, ...theme.typography.button },
+                    ]}
+                  >
                     VIEW FULL DETAILS
                   </Text>
                 </Pressable>

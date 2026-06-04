@@ -17,7 +17,10 @@ interface PlateCount {
 }
 
 // Realistic gym plate colors (kept on purpose), tuned for a dark background.
-const PLATE_METADATA: Record<number, { color: string; labelColor: string; height: number; width: number }> = {
+const PLATE_METADATA: Record<
+  number,
+  { color: string; labelColor: string; height: number; width: number }
+> = {
   25: { color: '#ef4444', labelColor: '#ffffff', height: 80, width: 22 },
   20: { color: '#3b82f6', labelColor: '#ffffff', height: 74, width: 20 },
   15: { color: '#eab308', labelColor: '#0f172a', height: 68, width: 18 },
@@ -80,16 +83,28 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
   visualPlates.sort((a, b) => b - a);
 
   const renderPlate = (weight: number, key: string) => {
-    const meta = PLATE_METADATA[weight] || { color: '#94a3b8', labelColor: '#0f172a', height: 40, width: 12 };
+    const meta = PLATE_METADATA[weight] || {
+      color: '#94a3b8',
+      labelColor: '#0f172a',
+      height: 40,
+      width: 12,
+    };
     return (
       <View
         key={key}
         style={[
           styles.plateBlock,
-          { backgroundColor: meta.color, height: meta.height, width: meta.width, borderColor: 'rgba(0,0,0,0.25)' },
+          {
+            backgroundColor: meta.color,
+            height: meta.height,
+            width: meta.width,
+            borderColor: 'rgba(0,0,0,0.25)',
+          },
         ]}
       >
-        <Text style={[styles.plateLabel, { color: meta.labelColor, fontSize: meta.width < 14 ? 6 : 8 }]}>
+        <Text
+          style={[styles.plateLabel, { color: meta.labelColor, fontSize: meta.width < 14 ? 6 : 8 }]}
+        >
           {weight}
         </Text>
       </View>
@@ -100,26 +115,52 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable
-          style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderRadius: theme.radius.lg }]}
+          style={[
+            styles.card,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+              borderRadius: theme.radius.lg,
+            },
+          ]}
           onPress={(e) => e.stopPropagation()}
         >
           <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>Plate Calculator</Text>
+            <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
+              Plate Calculator
+            </Text>
             <Pressable onPress={onClose} hitSlop={15}>
               <Ionicons name="close" size={24} color={theme.colors.muted} />
             </Pressable>
           </View>
 
-          <View style={[styles.barbellAlert, { backgroundColor: theme.colors.background, borderColor: theme.colors.primary + '33' }]}>
+          <View
+            style={[
+              styles.barbellAlert,
+              {
+                backgroundColor: theme.colors.background,
+                borderColor: theme.colors.primary + '33',
+              },
+            ]}
+          >
             <Ionicons name="information-circle-outline" size={18} color={theme.colors.primary} />
             <Text style={[styles.barbellAlertText, { color: theme.colors.text }]}>
-              Calculations are based on a standard <Text style={{ color: theme.colors.primary, fontFamily: 'SpaceGrotesk_700Bold' }}>20 kg (44 lbs)</Text> barbell.
+              Calculations are based on a standard{' '}
+              <Text style={{ color: theme.colors.primary, fontFamily: 'SpaceGrotesk_700Bold' }}>
+                20 kg (44 lbs)
+              </Text>{' '}
+              barbell.
             </Text>
           </View>
 
           <View style={styles.inputContainer}>
             <Text style={[styles.inputLabel, { color: theme.colors.muted }]}>Target Weight</Text>
-            <View style={[styles.inputRow, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]}>
+            <View
+              style={[
+                styles.inputRow,
+                { backgroundColor: theme.colors.background, borderColor: theme.colors.border },
+              ]}
+            >
               <TextInput
                 style={[styles.input, { color: theme.colors.text }]}
                 value={inputWeight}
@@ -129,12 +170,19 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
                 placeholderTextColor={theme.colors.muted}
                 autoFocus
               />
-              <Text style={[styles.unitText, { color: theme.colors.muted }]}>{isImperial ? 'lbs' : 'kg'}</Text>
+              <Text style={[styles.unitText, { color: theme.colors.muted }]}>
+                {isImperial ? 'lbs' : 'kg'}
+              </Text>
             </View>
           </View>
 
           {targetWeightKg > 20 && (
-            <View style={[styles.visualizerContainer, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]}>
+            <View
+              style={[
+                styles.visualizerContainer,
+                { backgroundColor: theme.colors.background, borderColor: theme.colors.border },
+              ]}
+            >
               <View style={styles.barbellSleeve} />
               <View style={[styles.platesWrapper, { flexDirection: 'row-reverse' }]}>
                 {visualPlates.map((weight, idx) => renderPlate(weight, `left-${idx}`))}
@@ -153,18 +201,27 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
             {targetWeightKg <= 20 ? (
               <View style={styles.emptyState}>
                 <Text style={[styles.emptyText, { color: theme.colors.muted }]}>
-                  {targetWeightKg > 0 ? 'Barbell only (20 kg / 44 lbs).' : 'Enter a weight greater than 20 kg.'}
+                  {targetWeightKg > 0
+                    ? 'Barbell only (20 kg / 44 lbs).'
+                    : 'Enter a weight greater than 20 kg.'}
                 </Text>
               </View>
             ) : (
               <View style={styles.summaryContainer}>
-                <Text style={[styles.summaryHeader, { color: theme.colors.muted }]}>Plates per side</Text>
+                <Text style={[styles.summaryHeader, { color: theme.colors.muted }]}>
+                  Plates per side
+                </Text>
                 {platesPerSide.map((item, idx) => {
                   const displayWeight = isImperial ? item.weight * 2.20462 : item.weight;
                   const formattedWeight = displayWeight.toFixed(1).replace(/\.0$/, '');
                   return (
                     <View key={idx} style={styles.summaryRow}>
-                      <View style={[styles.colorIndicator, { backgroundColor: PLATE_METADATA[item.weight]?.color || '#94a3b8' }]} />
+                      <View
+                        style={[
+                          styles.colorIndicator,
+                          { backgroundColor: PLATE_METADATA[item.weight]?.color || '#94a3b8' },
+                        ]}
+                      />
                       <Text style={[styles.summaryText, { color: theme.colors.text }]}>
                         <Text style={styles.boldText}>{item.count}×</Text> {item.weight} kg{' '}
                         {isImperial ? `(${formattedWeight} lbs)` : ''}
@@ -177,10 +234,20 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
           </ScrollView>
 
           <Pressable
-            style={[styles.actionButton, { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md }]}
+            style={[
+              styles.actionButton,
+              { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md },
+            ]}
             onPress={onClose}
           >
-            <Text style={[styles.actionButtonText, { color: theme.colors.background, ...theme.typography.button }]}>Done</Text>
+            <Text
+              style={[
+                styles.actionButtonText,
+                { color: theme.colors.background, ...theme.typography.button },
+              ]}
+            >
+              Done
+            </Text>
           </Pressable>
         </Pressable>
       </Pressable>

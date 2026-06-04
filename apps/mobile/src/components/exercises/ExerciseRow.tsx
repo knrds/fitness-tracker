@@ -17,43 +17,42 @@ export const ExerciseRow = ({ exercise, isFavorite, onToggleFavorite }: Props) =
   const router = useRouter();
 
   return (
-    <Pressable 
+    <Pressable
       style={styles.container}
       onPress={() => router.push(`/exercise/${exercise.id}` as Href)}
     >
       <View style={[styles.thumbnail, { backgroundColor: theme.colors.surface }]}>
         {exercise.imageUrl ? (
-          <Image
-            source={{ uri: exercise.imageUrl }}
-            style={styles.image}
-            contentFit="cover"
-          />
+          <Image source={{ uri: exercise.imageUrl }} style={styles.image} contentFit="cover" />
         ) : (
           <Ionicons name="barbell-outline" size={24} color={theme.colors.muted} />
         )}
       </View>
 
       <View style={styles.infoContainer}>
-        <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.body }]} numberOfLines={1}>
+        <Text
+          style={[styles.title, { color: theme.colors.text, ...theme.typography.body }]}
+          numberOfLines={1}
+        >
           {exercise.name}
         </Text>
         <View style={styles.badges}>
-          {exercise.primaryMuscles.slice(0, 2).map(m => (
+          {exercise.primaryMuscles.slice(0, 2).map((m) => (
             <Badge key={m} label={m.replace('_', ' ')} style={{ marginRight: 4, height: 20 }} />
           ))}
         </View>
       </View>
 
       {onToggleFavorite && (
-        <Pressable 
-          onPress={() => onToggleFavorite(exercise.id)} 
-          hitSlop={10} 
+        <Pressable
+          onPress={() => onToggleFavorite(exercise.id)}
+          hitSlop={10}
           style={styles.favoriteBtn}
         >
-          <Ionicons 
-            name={isFavorite ? 'star' : 'star-outline'} 
-            size={24} 
-            color={isFavorite ? theme.colors.primary : theme.colors.muted} 
+          <Ionicons
+            name={isFavorite ? 'star' : 'star-outline'}
+            size={24}
+            color={isFavorite ? theme.colors.primary : theme.colors.muted}
           />
         </Pressable>
       )}

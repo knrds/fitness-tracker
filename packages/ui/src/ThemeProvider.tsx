@@ -35,7 +35,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       theme, // We use the imported theme which currently maps to the PRD dark spec.
       colorScheme,
     }),
-    [colorScheme]
+    [colorScheme],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

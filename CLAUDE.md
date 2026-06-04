@@ -5,6 +5,7 @@ Short guide for Claude Code. Full context: [AGENTS.md](./AGENTS.md).
 **Project:** pnpm monorepo — Expo 52 / React Native 0.76 fitness tracker with a pure-TypeScript domain layer.
 
 **Layout:**
+
 - `apps/mobile` — Expo app, Expo Router **v4** (file-based routes in `app/`).
 - `packages/domain` — types & Zod schemas; **no React**. Source of truth.
 - `packages/ui` — shared RN components (placeholder).

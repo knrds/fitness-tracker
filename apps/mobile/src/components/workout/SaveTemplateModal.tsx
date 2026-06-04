@@ -39,17 +39,33 @@ export const SaveTemplateModal = ({ visible, defaultName, onClose, onSave, onSki
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable
-          style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderRadius: theme.radius.lg }]}
+          style={[
+            styles.card,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+              borderRadius: theme.radius.lg,
+            },
+          ]}
           onPress={(e) => e.stopPropagation()}
         >
-          <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>Save as Template?</Text>
+          <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
+            Save as Template?
+          </Text>
           <Text style={[styles.subtitle, { color: theme.colors.muted }]}>
             Save this workout&apos;s exercises and sets to perform it again later.
           </Text>
 
           <Text style={[styles.label, { color: theme.colors.muted }]}>Template Name</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: theme.colors.background, borderColor: theme.colors.border, color: theme.colors.text }]}
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.colors.background,
+                borderColor: theme.colors.border,
+                color: theme.colors.text,
+              },
+            ]}
             value={name}
             onChangeText={setName}
             placeholder="e.g. Leg Day"
@@ -59,16 +75,33 @@ export const SaveTemplateModal = ({ visible, defaultName, onClose, onSave, onSki
 
           <View style={styles.actions}>
             <Pressable
-              style={[styles.btn, { borderColor: theme.colors.border, borderWidth: 1, borderRadius: theme.radius.md }]}
+              style={[
+                styles.btn,
+                { borderColor: theme.colors.border, borderWidth: 1, borderRadius: theme.radius.md },
+              ]}
               onPress={onSkip}
             >
-              <Text style={[styles.btnText, { color: theme.colors.muted, ...theme.typography.button }]}>Skip</Text>
+              <Text
+                style={[styles.btnText, { color: theme.colors.muted, ...theme.typography.button }]}
+              >
+                Skip
+              </Text>
             </Pressable>
             <Pressable
-              style={[styles.btn, { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md }]}
+              style={[
+                styles.btn,
+                { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md },
+              ]}
               onPress={handleSave}
             >
-              <Text style={[styles.btnText, { color: theme.colors.background, ...theme.typography.button }]}>Save</Text>
+              <Text
+                style={[
+                  styles.btnText,
+                  { color: theme.colors.background, ...theme.typography.button },
+                ]}
+              >
+                Save
+              </Text>
             </Pressable>
           </View>
         </Pressable>

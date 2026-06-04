@@ -6,7 +6,9 @@ export const useAchievementCheck = () => {
   const { sessions, getStreak, getPRs } = useHistoryStore();
   const { exercises } = useExerciseStore();
 
-  const getProgress = (achievementId: string): { current: number; target: number; percent: number } => {
+  const getProgress = (
+    achievementId: string,
+  ): { current: number; target: number; percent: number } => {
     const ach = ACHIEVEMENTS.find((a) => a.id === achievementId);
     if (!ach) return { current: 0, target: 1, percent: 0 };
 
@@ -29,7 +31,7 @@ export const useAchievementCheck = () => {
       case 'volume':
         current = sessions.reduce(
           (total, session) => total + calculateVolume(session, { includeWarmups: false }),
-          0
+          0,
         );
         break;
       case 'exercises': {

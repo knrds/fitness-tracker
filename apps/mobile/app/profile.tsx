@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  Pressable, 
-  TextInput, 
-  Alert, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  TextInput,
+  Alert,
   Share,
   Modal,
   SafeAreaView,
   Image,
-  Platform
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,14 +30,14 @@ export default function ProfileScreen() {
   const [goal, setGoal] = useState<FitnessGoal | ''>(profile.fitnessGoal || '');
   const [level, setLevel] = useState<ExperienceLevel | ''>(profile.experienceLevel || '');
   const [sex, setSex] = useState<BiologicalSex | ''>(profile.biologicalSex || '');
-  
+
   const [height, setHeight] = useState(() => {
     if (profile.heightCm === undefined) return '';
     return profile.preferredUnits === 'imperial'
       ? (profile.heightCm / 2.54).toFixed(1)
       : profile.heightCm.toFixed(1);
   });
-  
+
   const [weight, setWeight] = useState(() => {
     if (profile.weightKg === undefined) return '';
     return profile.preferredUnits === 'imperial'
@@ -93,16 +93,18 @@ export default function ProfileScreen() {
 
     if (height.trim()) {
       const hVal = parseFloat(height);
-      if (isNaN(hVal) || hVal <= 0) return Alert.alert('Error', 'Height must be a positive number.');
+      if (isNaN(hVal) || hVal <= 0)
+        return Alert.alert('Error', 'Height must be a positive number.');
       updates.heightCm = profile.preferredUnits === 'imperial' ? hVal * 2.54 : hVal;
     }
 
     if (weight.trim()) {
       const wVal = parseFloat(weight);
-      if (isNaN(wVal) || wVal <= 0) return Alert.alert('Error', 'Weight must be a positive number.');
+      if (isNaN(wVal) || wVal <= 0)
+        return Alert.alert('Error', 'Weight must be a positive number.');
       const canonicalWeight = profile.preferredUnits === 'imperial' ? wVal / 2.20462 : wVal;
       updates.weightKg = canonicalWeight;
-      
+
       // Sync to body metric tracker!
       useBodyMetricStore.getState().addMetric({
         recordedAt: new Date(),
@@ -112,19 +114,22 @@ export default function ProfileScreen() {
 
     if (benchPressMax.trim()) {
       const val = parseFloat(benchPressMax);
-      if (isNaN(val) || val <= 0) return Alert.alert('Error', 'Bench Press Max must be a positive number.');
+      if (isNaN(val) || val <= 0)
+        return Alert.alert('Error', 'Bench Press Max must be a positive number.');
       updates.benchPressMaxKg = profile.preferredUnits === 'imperial' ? val / 2.20462 : val;
     }
 
     if (squatMax.trim()) {
       const val = parseFloat(squatMax);
-      if (isNaN(val) || val <= 0) return Alert.alert('Error', 'Squat Max must be a positive number.');
+      if (isNaN(val) || val <= 0)
+        return Alert.alert('Error', 'Squat Max must be a positive number.');
       updates.squatMaxKg = profile.preferredUnits === 'imperial' ? val / 2.20462 : val;
     }
 
     if (deadliftMax.trim()) {
       const val = parseFloat(deadliftMax);
-      if (isNaN(val) || val <= 0) return Alert.alert('Error', 'Deadlift Max must be a positive number.');
+      if (isNaN(val) || val <= 0)
+        return Alert.alert('Error', 'Deadlift Max must be a positive number.');
       updates.deadliftMaxKg = profile.preferredUnits === 'imperial' ? val / 2.20462 : val;
     }
 
@@ -178,27 +183,23 @@ export default function ProfileScreen() {
     try {
       const dataStr = exportData();
       setExportedJson(dataStr);
-      
-      Alert.alert(
-        'Export Data',
-        'Would you like to share the backup JSON or view it on screen?',
-        [
-          {
-            text: 'Share / Save File',
-            onPress: async () => {
-              await Share.share({
-                message: dataStr,
-                title: 'Fitness Tracker Backup',
-              });
-            }
+
+      Alert.alert('Export Data', 'Would you like to share the backup JSON or view it on screen?', [
+        {
+          text: 'Share / Save File',
+          onPress: async () => {
+            await Share.share({
+              message: dataStr,
+              title: 'Fitness Tracker Backup',
+            });
           },
-          {
-            text: 'View on Screen',
-            onPress: () => setJsonModalVisible(true)
-          },
-          { text: 'Cancel', style: 'cancel' }
-        ]
-      );
+        },
+        {
+          text: 'View on Screen',
+          onPress: () => setJsonModalVisible(true),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
     } catch {
       Alert.alert('Error', 'Failed to export data.');
     }
@@ -210,8 +211,8 @@ export default function ProfileScreen() {
       'WARNING: This will permanently delete all your workouts, metrics, custom exercises, and settings. This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Reset Everything', 
+        {
+          text: 'Reset Everything',
           style: 'destructive',
           onPress: () => {
             clearAllData();
@@ -219,14 +220,17 @@ export default function ProfileScreen() {
             setGoal('');
             setLevel('');
             Alert.alert('Data Cleared', 'All local data has been reset.');
-          }
-        }
-      ]
+          },
+        },
+      ],
     );
   };
 
   const formatGoal = (g: FitnessGoal) => {
-    return g.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    return g
+      .split('_')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
   };
 
   const handlePickImage = async () => {
@@ -254,7 +258,7 @@ export default function ProfileScreen() {
 
   const profileInitials = (profile.displayName || 'U')
     .split(' ')
-    .map(w => w.charAt(0))
+    .map((w) => w.charAt(0))
     .join('')
     .toUpperCase()
     .slice(0, 2);
@@ -301,20 +305,24 @@ export default function ProfileScreen() {
 
           <Text style={styles.inputLabel}>Training Goal</Text>
           <View style={styles.chipRow}>
-            {(['build_muscle', 'gain_strength', 'lose_fat', 'general_fitness'] as FitnessGoal[]).map(g => (
+            {(
+              ['build_muscle', 'gain_strength', 'lose_fat', 'general_fitness'] as FitnessGoal[]
+            ).map((g) => (
               <Pressable
                 key={g}
                 style={[styles.chip, goal === g && styles.chipActive]}
                 onPress={() => setGoal(goal === g ? '' : g)}
               >
-                <Text style={[styles.chipText, goal === g && styles.chipTextActive]}>{formatGoal(g)}</Text>
+                <Text style={[styles.chipText, goal === g && styles.chipTextActive]}>
+                  {formatGoal(g)}
+                </Text>
               </Pressable>
             ))}
           </View>
 
           <Text style={styles.inputLabel}>Lifting Experience</Text>
           <View style={styles.chipRow}>
-            {(['beginner', 'intermediate', 'advanced'] as ExperienceLevel[]).map(l => (
+            {(['beginner', 'intermediate', 'advanced'] as ExperienceLevel[]).map((l) => (
               <Pressable
                 key={l}
                 style={[styles.chip, level === l && styles.chipActive]}
@@ -329,12 +337,14 @@ export default function ProfileScreen() {
 
           <Text style={styles.inputLabel}>Biological Sex</Text>
           <View style={styles.chipRow}>
-            {([
-              { value: 'male', label: 'Male' },
-              { value: 'female', label: 'Female' },
-              { value: 'other', label: 'Other' },
-              { value: 'prefer_not_to_say', label: 'Prefer not to say' }
-            ] as { value: BiologicalSex; label: string }[]).map(s => (
+            {(
+              [
+                { value: 'male', label: 'Male' },
+                { value: 'female', label: 'Female' },
+                { value: 'other', label: 'Other' },
+                { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+              ] as { value: BiologicalSex; label: string }[]
+            ).map((s) => (
               <Pressable
                 key={s.value}
                 style={[styles.chip, sex === s.value && styles.chipActive]}
@@ -349,7 +359,9 @@ export default function ProfileScreen() {
 
           <View style={styles.inputGrid}>
             <View style={styles.gridField}>
-              <Text style={styles.inputLabel}>Height ({profile.preferredUnits === 'imperial' ? 'in' : 'cm'})</Text>
+              <Text style={styles.inputLabel}>
+                Height ({profile.preferredUnits === 'imperial' ? 'in' : 'cm'})
+              </Text>
               <TextInput
                 style={styles.input}
                 value={height}
@@ -360,7 +372,9 @@ export default function ProfileScreen() {
               />
             </View>
             <View style={styles.gridField}>
-              <Text style={styles.inputLabel}>Weight ({profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'})</Text>
+              <Text style={styles.inputLabel}>
+                Weight ({profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'})
+              </Text>
               <TextInput
                 style={styles.input}
                 value={weight}
@@ -372,8 +386,10 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          <Text style={styles.sectionDivider}>Key Lift Maxes ({profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'})</Text>
-          
+          <Text style={styles.sectionDivider}>
+            Key Lift Maxes ({profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'})
+          </Text>
+
           <View style={styles.inputGrid}>
             <View style={styles.gridField}>
               <Text style={styles.inputLabel}>Bench Press</Text>
@@ -425,7 +441,8 @@ export default function ProfileScreen() {
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>Volume</Text>
             <Text style={styles.statValue}>
-              {stats.totalVolume.toLocaleString()} {profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'}
+              {stats.totalVolume.toLocaleString()}{' '}
+              {profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'}
             </Text>
           </View>
           <View style={styles.statCard}>
@@ -460,11 +477,13 @@ export default function ProfileScreen() {
               <Text style={styles.settingsLabel}>RPE Column Tracking</Text>
             </View>
             <View style={styles.chipRow}>
-              {([
-                { value: 'always_on', label: 'Always Show' },
-                { value: 'always_off', label: 'Always Hide' },
-                { value: 'selected_exercises', label: 'For Selected' }
-              ] as const).map(opt => {
+              {(
+                [
+                  { value: 'always_on', label: 'Always Show' },
+                  { value: 'always_off', label: 'Always Hide' },
+                  { value: 'selected_exercises', label: 'For Selected' },
+                ] as const
+              ).map((opt) => {
                 const isActive = (profile.rpeMode || 'always_on') === opt.value;
                 return (
                   <Pressable
@@ -472,7 +491,9 @@ export default function ProfileScreen() {
                     style={[styles.chip, isActive && styles.chipActive]}
                     onPress={() => updateProfile({ rpeMode: opt.value })}
                   >
-                    <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{opt.label}</Text>
+                    <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
+                      {opt.label}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -486,7 +507,11 @@ export default function ProfileScreen() {
                 </Pressable>
                 {profile.rpeEnabledExerciseIds && profile.rpeEnabledExerciseIds.length > 0 && (
                   <Text style={styles.selectedExercisesText}>
-                    Selected: {profile.rpeEnabledExerciseIds.map(id => exercises.find(e => e.id === id)?.name).filter(Boolean).join(', ')}
+                    Selected:{' '}
+                    {profile.rpeEnabledExerciseIds
+                      .map((id) => exercises.find((e) => e.id === id)?.name)
+                      .filter(Boolean)
+                      .join(', ')}
                   </Text>
                 )}
               </View>
@@ -499,11 +524,13 @@ export default function ProfileScreen() {
               <Text style={styles.settingsLabel}>RIR Column Tracking</Text>
             </View>
             <View style={styles.chipRow}>
-              {([
-                { value: 'always_on', label: 'Always Show' },
-                { value: 'always_off', label: 'Always Hide' },
-                { value: 'selected_exercises', label: 'For Selected' }
-              ] as const).map(opt => {
+              {(
+                [
+                  { value: 'always_on', label: 'Always Show' },
+                  { value: 'always_off', label: 'Always Hide' },
+                  { value: 'selected_exercises', label: 'For Selected' },
+                ] as const
+              ).map((opt) => {
                 const isActive = (profile.rirMode || 'always_on') === opt.value;
                 return (
                   <Pressable
@@ -511,7 +538,9 @@ export default function ProfileScreen() {
                     style={[styles.chip, isActive && styles.chipActive]}
                     onPress={() => updateProfile({ rirMode: opt.value })}
                   >
-                    <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{opt.label}</Text>
+                    <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
+                      {opt.label}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -525,7 +554,11 @@ export default function ProfileScreen() {
                 </Pressable>
                 {profile.rirEnabledExerciseIds && profile.rirEnabledExerciseIds.length > 0 && (
                   <Text style={styles.selectedExercisesText}>
-                    Selected: {profile.rirEnabledExerciseIds.map(id => exercises.find(e => e.id === id)?.name).filter(Boolean).join(', ')}
+                    Selected:{' '}
+                    {profile.rirEnabledExerciseIds
+                      .map((id) => exercises.find((e) => e.id === id)?.name)
+                      .filter(Boolean)
+                      .join(', ')}
                   </Text>
                 )}
               </View>
@@ -578,7 +611,9 @@ export default function ProfileScreen() {
               </Pressable>
             </View>
             <ScrollView style={styles.jsonScrollView}>
-              <Text selectable style={styles.jsonText}>{exportedJson}</Text>
+              <Text selectable style={styles.jsonText}>
+                {exportedJson}
+              </Text>
             </ScrollView>
           </View>
         </View>

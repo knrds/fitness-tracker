@@ -34,7 +34,7 @@ const SubtleConfetti = () => {
       animY: new Animated.Value(-20),
       animX: new Animated.Value(0),
       animRotate: new Animated.Value(0),
-    }))
+    })),
   ).current;
 
   React.useEffect(() => {
@@ -100,17 +100,17 @@ export const WorkoutCompleteModal = () => {
   if (!lastFinishedSession) return null;
 
   const totalSets = lastFinishedSession.exercises.reduce(
-    (sum, ex) => sum + ex.sets.filter(s => s.completed).length,
-    0
+    (sum, ex) => sum + ex.sets.filter((s) => s.completed).length,
+    0,
   );
 
   const totalVolume = lastFinishedSession.exercises.reduce(
     (sum, ex) =>
       sum +
       ex.sets
-        .filter(s => s.completed && s.weight)
+        .filter((s) => s.completed && s.weight)
         .reduce((sSum, s) => sSum + s.weight! * (s.reps || 0), 0),
-    0
+    0,
   );
 
   const formatDuration = (seconds?: number) => {
@@ -163,7 +163,12 @@ export const WorkoutCompleteModal = () => {
   const displayVolVal = isImperial ? Math.round(totalVolume * 2.20462) : Math.round(totalVolume);
 
   return (
-    <Modal visible={true} animationType="slide" transparent onRequestClose={clearLastFinishedSession}>
+    <Modal
+      visible={true}
+      animationType="slide"
+      transparent
+      onRequestClose={clearLastFinishedSession}
+    >
       <Pressable style={styles.overlay} onPress={clearLastFinishedSession}>
         <SubtleConfetti />
         <Pressable
@@ -191,19 +196,34 @@ export const WorkoutCompleteModal = () => {
           {/* Stats Grid */}
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
-              <Text style={[styles.statVal, { color: theme.colors.primary, ...theme.typography.display }]}>
+              <Text
+                style={[
+                  styles.statVal,
+                  { color: theme.colors.primary, ...theme.typography.display },
+                ]}
+              >
                 {formatDuration(lastFinishedSession.durationSeconds)}
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.muted }]}>TIME</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={[styles.statVal, { color: theme.colors.primary, ...theme.typography.display }]}>
+              <Text
+                style={[
+                  styles.statVal,
+                  { color: theme.colors.primary, ...theme.typography.display },
+                ]}
+              >
                 {totalSets}
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.muted }]}>SETS</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={[styles.statVal, { color: theme.colors.primary, ...theme.typography.display }]}>
+              <Text
+                style={[
+                  styles.statVal,
+                  { color: theme.colors.primary, ...theme.typography.display },
+                ]}
+              >
                 {displayVolVal}
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.muted }]}>
@@ -213,7 +233,12 @@ export const WorkoutCompleteModal = () => {
           </View>
 
           {/* Fun Fact Section */}
-          <View style={[styles.factContainer, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]}>
+          <View
+            style={[
+              styles.factContainer,
+              { backgroundColor: theme.colors.background, borderColor: theme.colors.border },
+            ]}
+          >
             <Text style={[styles.factTitle, { color: theme.colors.primary }]}>💡 FUN FACT</Text>
             <Text style={[styles.factText, { color: theme.colors.text }]}>
               {getVolumeFunFact(totalVolume)}
@@ -221,10 +246,18 @@ export const WorkoutCompleteModal = () => {
           </View>
 
           <Pressable
-            style={[styles.button, { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md }]}
+            style={[
+              styles.button,
+              { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md },
+            ]}
             onPress={clearLastFinishedSession}
           >
-            <Text style={[styles.buttonText, { color: theme.colors.background, ...theme.typography.button }]}>
+            <Text
+              style={[
+                styles.buttonText,
+                { color: theme.colors.background, ...theme.typography.button },
+              ]}
+            >
               AWESOME
             </Text>
           </Pressable>

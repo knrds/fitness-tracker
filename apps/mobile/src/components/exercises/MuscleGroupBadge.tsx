@@ -32,12 +32,15 @@ const getMuscleGroupColor = (muscle: MuscleGroup) => {
 };
 
 const formatMuscleName = (muscle: MuscleGroup) => {
-  return muscle.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  return muscle
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 };
 
 export const MuscleGroupBadge = ({ muscleGroup }: Props) => {
   const color = getMuscleGroupColor(muscleGroup);
-  
+
   return (
     <View style={[styles.badge, { backgroundColor: color + '20' }]}>
       <Text style={[styles.text, { color }]}>{formatMuscleName(muscleGroup)}</Text>

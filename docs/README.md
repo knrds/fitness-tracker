@@ -33,12 +33,16 @@ pnpm --filter @fitness-tracker/mobile ios
 ## Packages
 
 ### `@fitness-tracker/domain`
+
 Pure TypeScript business logic — no React, no platform dependencies.
+
 - **Types**: `WorkoutSession`, `Exercise`, `WorkoutSet`, `UserProfile`, …
 - **Schemas**: Zod validators for all domain types
 
 ### `@fitness-tracker/ui`
+
 Shared React Native component library. Currently a placeholder.
 
 ### `@fitness-tracker/mobile`
+
 The main Expo app with Expo Router for file-based navigation.

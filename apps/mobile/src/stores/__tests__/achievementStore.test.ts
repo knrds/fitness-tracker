@@ -8,7 +8,7 @@ jest.mock('react-native-mmkv', () => ({
     set: jest.fn(),
     getString: jest.fn(),
     delete: jest.fn(),
-  }))
+  })),
 }));
 
 describe('achievementStore', () => {
@@ -28,8 +28,8 @@ describe('achievementStore', () => {
           isCustom: false,
           createdAt: new Date(),
           updatedAt: new Date(),
-        }
-      ]
+        },
+      ],
     });
   });
 
@@ -65,10 +65,10 @@ describe('achievementStore', () => {
               completed: true,
               weight: 100,
               reps: 10, // 1000 kg volume = 10 XP bonus
-            }
-          ]
-        }
-      ]
+            },
+          ],
+        },
+      ],
     };
 
     // Add session to history store as it's required for calculation
@@ -126,10 +126,10 @@ describe('achievementStore', () => {
               completed: true,
               weight: 100,
               reps: 10, // 10 XP volume bonus
-            }
-          ]
-        }
-      ]
+            },
+          ],
+        },
+      ],
     };
 
     // Add to history store

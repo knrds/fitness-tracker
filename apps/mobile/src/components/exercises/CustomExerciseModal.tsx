@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { Modal, View, Text, StyleSheet, TextInput, Pressable, SafeAreaView, ScrollView, Alert } from 'react-native';
+import {
+  Modal,
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  Alert,
+} from 'react-native';
 import { MuscleGroup, Equipment, MovementPattern } from '@fitness-tracker/domain';
 import { useTheme } from '@fitness-tracker/ui';
 
@@ -31,7 +41,8 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
         primaryMuscles: [muscle as MuscleGroup],
         secondaryMuscles: [],
         equipment: equipment as Equipment,
-        movementPattern: trackMode === 'duration' ? MovementPattern.Cardio : MovementPattern.Isolation,
+        movementPattern:
+          trackMode === 'duration' ? MovementPattern.Cardio : MovementPattern.Isolation,
       });
       setName('');
       setInstructions('');
@@ -50,26 +61,46 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
       style={[styles.chip, { borderColor: active ? theme.colors.primary : theme.colors.border }]}
       onPress={onPress}
     >
-      <Text style={[styles.chipText, { color: active ? theme.colors.primary : theme.colors.muted }]}>
+      <Text
+        style={[styles.chipText, { color: active ? theme.colors.primary : theme.colors.muted }]}
+      >
         {label.replace(/_/g, ' ').toUpperCase()}
       </Text>
     </Pressable>
   );
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
-          <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>New Exercise</Text>
+          <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
+            New Exercise
+          </Text>
           <Pressable onPress={onClose} hitSlop={8}>
             <Text style={[styles.cancelText, { color: theme.colors.muted }]}>Cancel</Text>
           </Pressable>
         </View>
 
-        <ScrollView style={styles.form} contentContainerStyle={styles.formContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.form}
+          contentContainerStyle={styles.formContent}
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={[styles.label, { color: theme.colors.muted }]}>Name</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, color: theme.colors.text }]}
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+                color: theme.colors.text,
+              },
+            ]}
             value={name}
             onChangeText={setName}
             placeholder="e.g. My Custom Lift"
@@ -78,13 +109,25 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
 
           <Text style={[styles.label, { color: theme.colors.muted }]}>Tracking Mode</Text>
           <View style={styles.chipContainer}>
-            {renderChip(trackMode === 'reps', 'Reps & Weight', () => setTrackMode('reps'), 'mode-reps')}
-            {renderChip(trackMode === 'duration', 'Duration & Level', () => setTrackMode('duration'), 'mode-duration')}
+            {renderChip(
+              trackMode === 'reps',
+              'Reps & Weight',
+              () => setTrackMode('reps'),
+              'mode-reps',
+            )}
+            {renderChip(
+              trackMode === 'duration',
+              'Duration & Level',
+              () => setTrackMode('duration'),
+              'mode-duration',
+            )}
           </View>
 
           <Text style={[styles.label, { color: theme.colors.muted }]}>Muscle Group</Text>
           <View style={styles.chipContainer}>
-            {Object.values(MuscleGroup).map((m) => renderChip(muscle === m, m, () => setMuscle(m), m))}
+            {Object.values(MuscleGroup).map((m) =>
+              renderChip(muscle === m, m, () => setMuscle(m), m),
+            )}
           </View>
 
           <Text style={[styles.label, { color: theme.colors.muted }]}>Equipment</Text>
@@ -94,7 +137,15 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
 
           <Text style={[styles.label, { color: theme.colors.muted }]}>Instructions (Optional)</Text>
           <TextInput
-            style={[styles.input, styles.textArea, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, color: theme.colors.text }]}
+            style={[
+              styles.input,
+              styles.textArea,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+                color: theme.colors.text,
+              },
+            ]}
             value={instructions}
             onChangeText={setInstructions}
             placeholder="Add notes..."
@@ -103,10 +154,20 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
           />
 
           <Pressable
-            style={[styles.saveBtn, { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md }]}
+            style={[
+              styles.saveBtn,
+              { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md },
+            ]}
             onPress={handleSave}
           >
-            <Text style={[styles.saveBtnText, { color: theme.colors.background, ...theme.typography.button }]}>Create Exercise</Text>
+            <Text
+              style={[
+                styles.saveBtnText,
+                { color: theme.colors.background, ...theme.typography.button },
+              ]}
+            >
+              Create Exercise
+            </Text>
           </Pressable>
         </ScrollView>
       </SafeAreaView>

@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Platform, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  TextInput,
+  Platform,
+  Alert,
+} from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,7 +50,11 @@ export default function WorkoutSessionScreen() {
     const calculateElapsed = () => {
       if (!startedAt) return 0;
       const startedTime = startedAt instanceof Date ? startedAt : new Date(startedAt);
-      const pausedTime = pausedAt ? (pausedAt instanceof Date ? pausedAt : new Date(pausedAt)) : null;
+      const pausedTime = pausedAt
+        ? pausedAt instanceof Date
+          ? pausedAt
+          : new Date(pausedAt)
+        : null;
       const endTime = pausedTime || new Date();
       return Math.floor((endTime.getTime() - startedTime.getTime() - accumulatedPauseMs) / 1000);
     };
@@ -73,7 +86,7 @@ export default function WorkoutSessionScreen() {
   }
 
   const mapToTemplateExercises = (sessionExercises: SessionExercise[]): TemplateExercise[] => {
-    return sessionExercises.map(ex => {
+    return sessionExercises.map((ex) => {
       const firstSet = ex.sets[0];
       return {
         id: Crypto.randomUUID(),
@@ -104,7 +117,7 @@ export default function WorkoutSessionScreen() {
 
   const handleFinish = () => {
     if (isFinishing) return;
-    const hasCompletedSet = exercises.some(ex => ex.sets.some(set => set.completed));
+    const hasCompletedSet = exercises.some((ex) => ex.sets.some((set) => set.completed));
     if (!hasCompletedSet) {
       finalizeWorkout();
       return;
@@ -145,7 +158,11 @@ export default function WorkoutSessionScreen() {
   const handleBackAction = () => {
     if (Platform.OS === 'web') {
       const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-      if (confirmFn?.("Möchtest du das aktuelle Training abbrechen (löschen) oder weiter trainieren?\n\n[OK] = Abbrechen, [Abbrechen] = Weiter trainieren")) {
+      if (
+        confirmFn?.(
+          'Möchtest du das aktuelle Training abbrechen (löschen) oder weiter trainieren?\n\n[OK] = Abbrechen, [Abbrechen] = Weiter trainieren',
+        )
+      ) {
         resetWorkout();
         router.replace('/');
       }
@@ -153,23 +170,23 @@ export default function WorkoutSessionScreen() {
     }
 
     Alert.alert(
-      "Training verlassen",
-      "Möchtest du das aktuelle Training abbrechen (löschen) oder weiter trainieren?",
+      'Training verlassen',
+      'Möchtest du das aktuelle Training abbrechen (löschen) oder weiter trainieren?',
       [
         {
-          text: "Weiter trainieren",
-          style: "cancel",
-          onPress: () => {}
+          text: 'Weiter trainieren',
+          style: 'cancel',
+          onPress: () => {},
         },
         {
-          text: "Abbrechen",
-          style: "destructive",
+          text: 'Abbrechen',
+          style: 'destructive',
           onPress: () => {
             resetWorkout();
             router.replace('/');
-          }
-        }
-      ]
+          },
+        },
+      ],
     );
   };
 
@@ -181,7 +198,12 @@ export default function WorkoutSessionScreen() {
         }}
       />
       {/* Sticky Header */}
-      <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.muted }]}>
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.muted },
+        ]}
+      >
         <View style={styles.headerLeft}>
           <Pressable onPress={handleBackAction} style={{ paddingRight: 16 }}>
             <Ionicons name="close" size={24} color={theme.colors.muted} />
@@ -195,28 +217,39 @@ export default function WorkoutSessionScreen() {
             </Text>
           </View>
         </View>
-        <Button 
-          title="FINISH" 
-          variant="primary" 
-          onPress={handleFinish} 
+        <Button
+          title="FINISH"
+          variant="primary"
+          onPress={handleFinish}
           style={{ height: 40, paddingHorizontal: 16 }}
         />
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        {exercises.map(ex => (
+        {exercises.map((ex) => (
           <SessionExerciseCard key={ex.id} sessionExercise={ex} />
         ))}
 
-        <Button 
-          title="+ ADD EXERCISE" 
-          variant="secondary" 
-          onPress={handleAddExercise} 
+        <Button
+          title="+ ADD EXERCISE"
+          variant="secondary"
+          onPress={handleAddExercise}
           style={{ marginBottom: 24 }}
         />
 
         <Card padding="md" style={styles.notesContainer}>
-          <Text style={[{ color: theme.colors.text, ...theme.typography.heading, fontSize: 16, marginBottom: 8 }]}>WORKOUT NOTES</Text>
+          <Text
+            style={[
+              {
+                color: theme.colors.text,
+                ...theme.typography.heading,
+                fontSize: 16,
+                marginBottom: 8,
+              },
+            ]}
+          >
+            WORKOUT NOTES
+          </Text>
           <TextInput
             style={[styles.notesInput, { color: theme.colors.text, ...theme.typography.body }]}
             value={notes}
@@ -234,7 +267,7 @@ export default function WorkoutSessionScreen() {
       <ExercisePickerModal
         visible={pickerVisible}
         onClose={() => setPickerVisible(false)}
-        onSelect={(ids) => ids.forEach(id => addExercise(id))}
+        onSelect={(ids) => ids.forEach((id) => addExercise(id))}
       />
 
       <SaveTemplateModal

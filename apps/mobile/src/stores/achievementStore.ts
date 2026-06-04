@@ -64,7 +64,7 @@ export const useAchievementStore = create<AchievementState>()(
         const sessionPrCount = newPRs.length;
         const sessionSetCount = session.exercises.reduce(
           (sum, ex) => sum + ex.sets.filter((s) => s.completed && s.type !== 'warmup').length,
-          0
+          0,
         );
 
         // --- Base session XP ---
@@ -92,7 +92,7 @@ export const useAchievementStore = create<AchievementState>()(
         });
 
         const uniqueExercisesCount = new Set(
-          historyStore.sessions.flatMap((s) => s.exercises.map((ex) => ex.exerciseId))
+          historyStore.sessions.flatMap((s) => s.exercises.map((ex) => ex.exerciseId)),
         ).size;
 
         const trainedMuscles = new Set<MuscleGroup>();
@@ -125,14 +125,18 @@ export const useAchievementStore = create<AchievementState>()(
                   if (!s.completedAt) return false;
                   const date = new Date(s.completedAt);
                   return date.getHours() < 8;
-                }) ? 1 : 0;
+                })
+                  ? 1
+                  : 0;
               }
               if (achId === 'night_owl') {
                 return historyStore.sessions.some((s) => {
                   if (!s.completedAt) return false;
                   const date = new Date(s.completedAt);
                   return date.getHours() >= 21;
-                }) ? 1 : 0;
+                })
+                  ? 1
+                  : 0;
               }
               if (achId === 'weekend_warrior') {
                 return historyStore.sessions.some((s) => {
@@ -140,7 +144,9 @@ export const useAchievementStore = create<AchievementState>()(
                   const date = new Date(s.completedAt);
                   const day = date.getDay(); // 0 = Sunday, 6 = Saturday
                   return day === 0 || day === 6;
-                }) ? 1 : 0;
+                })
+                  ? 1
+                  : 0;
               }
               return 0;
             }
@@ -148,27 +154,36 @@ export const useAchievementStore = create<AchievementState>()(
               if (achId === 'mind_over_matter') {
                 return historyStore.sessions.filter((s) => {
                   const hasSessionNote = typeof s.notes === 'string' && s.notes.trim().length > 0;
-                  const hasExNote = s.exercises.some((ex) => typeof ex.notes === 'string' && ex.notes.trim().length > 0);
+                  const hasExNote = s.exercises.some(
+                    (ex) => typeof ex.notes === 'string' && ex.notes.trim().length > 0,
+                  );
                   return hasSessionNote || hasExNote;
                 }).length;
               }
               if (achId === 'superset_enthusiast') {
                 return historyStore.sessions.filter((s) =>
-                  s.exercises.some((ex) => typeof ex.supersetGroup === 'string' && ex.supersetGroup.trim().length > 0)
+                  s.exercises.some(
+                    (ex) =>
+                      typeof ex.supersetGroup === 'string' && ex.supersetGroup.trim().length > 0,
+                  ),
                 ).length;
               }
               if (achId === 'warmup_champion') {
                 return historyStore.sessions.filter((s) =>
-                  s.exercises.some((ex) => ex.sets.some((set) => set.completed && set.type === 'warmup'))
+                  s.exercises.some((ex) =>
+                    ex.sets.some((set) => set.completed && set.type === 'warmup'),
+                  ),
                 ).length;
               }
               if (achId === 'cardio_lover') {
                 return historyStore.sessions.filter((s) =>
                   s.exercises.some((ex) => {
                     const def = exerciseStore.exercises.find((e) => e.id === ex.exerciseId);
-                    const isCardio = def && (def.movementPattern === 'cardio' || def.equipment === 'cardio_machine');
+                    const isCardio =
+                      def &&
+                      (def.movementPattern === 'cardio' || def.equipment === 'cardio_machine');
                     return isCardio && ex.sets.some((set) => set.completed);
-                  })
+                  }),
                 ).length;
               }
               return 0;
@@ -243,11 +258,22 @@ export const useAchievementStore = create<AchievementState>()(
       clearCelebrations: () => set({ newlyUnlocked: [], levelUpTo: null }),
 
       resetAchievements: () =>
-        set({ xp: 0, level: 1, unlockedAchievements: {}, repeatCounts: {}, newlyUnlocked: [], levelUpTo: null }),
+        set({
+          xp: 0,
+          level: 1,
+          unlockedAchievements: {},
+          repeatCounts: {},
+          newlyUnlocked: [],
+          levelUpTo: null,
+        }),
     }),
     {
       name: 'achievement-storage',
-      storage: createHydratedStorage('achievement-storage', achievementPersistedSchema, defaultPersistedState),
+      storage: createHydratedStorage(
+        'achievement-storage',
+        achievementPersistedSchema,
+        defaultPersistedState,
+      ),
       version: 2,
       migrate: (persistedState) => {
         const parsed = achievementPersistedSchema.safeParse(persistedState);
@@ -260,6 +286,6 @@ export const useAchievementStore = create<AchievementState>()(
           repeatCounts: legacy.repeatCounts ?? {},
         };
       },
-    }
-  )
+    },
+  ),
 );

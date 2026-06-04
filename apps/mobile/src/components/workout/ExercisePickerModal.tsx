@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, FlatList, TextInput, Pressable, SafeAreaView, ScrollView } from 'react-native';
+import {
+  Modal,
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { UUID, Exercise } from '@fitness-tracker/domain';
 import { useTheme } from '@fitness-tracker/ui';
@@ -115,7 +125,7 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
 
   const popularExercises = React.useMemo(() => {
     return sortedExercises.filter(
-      (ex) => POPULAR_EXERCISE_NAMES.includes(ex.name) || (exerciseCounts[ex.id] || 0) > 0
+      (ex) => POPULAR_EXERCISE_NAMES.includes(ex.name) || (exerciseCounts[ex.id] || 0) > 0,
     );
   }, [sortedExercises, exerciseCounts]);
 
@@ -130,7 +140,8 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
     if (isFiltered) {
       return sortedExercises.filter(
         (ex) =>
-          ex.name.toLowerCase().includes(search.toLowerCase()) && matchesCategory(ex, selectedCategory)
+          ex.name.toLowerCase().includes(search.toLowerCase()) &&
+          matchesCategory(ex, selectedCategory),
       );
     }
 
@@ -173,11 +184,7 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
       >
         <View style={[styles.thumbnail, { backgroundColor: theme.colors.surface }]}>
           {ex.imageUrl ? (
-            <Image
-              source={{ uri: ex.imageUrl }}
-              style={styles.image}
-              contentFit="cover"
-            />
+            <Image source={{ uri: ex.imageUrl }} style={styles.image} contentFit="cover" />
           ) : (
             <Ionicons name="barbell-outline" size={20} color={theme.colors.muted} />
           )}
@@ -193,7 +200,7 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
         </View>
 
         <View style={styles.actionContainer}>
-          <Pressable 
+          <Pressable
             style={styles.infoBtn}
             hitSlop={8}
             onPress={() => {
@@ -219,12 +226,23 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
-          <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>Add Exercises</Text>
+          <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
+            Add Exercises
+          </Text>
           <View style={styles.headerRight}>
-            <Pressable hitSlop={8} onPress={() => setCustomExVisible(true)} style={{ marginRight: 16 }}>
+            <Pressable
+              hitSlop={8}
+              onPress={() => setCustomExVisible(true)}
+              style={{ marginRight: 16 }}
+            >
               <Ionicons name="add" size={28} color={theme.colors.primary} />
             </Pressable>
             <Pressable hitSlop={8} onPress={onClose}>
@@ -234,7 +252,12 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
         </View>
 
         <View style={styles.searchContainer}>
-          <View style={[styles.searchField, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <View
+            style={[
+              styles.searchField,
+              { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+            ]}
+          >
             <Ionicons name="search" size={18} color={theme.colors.muted} />
             <TextInput
               style={[styles.searchInput, { color: theme.colors.text }]}
@@ -248,7 +271,11 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
         </View>
 
         <View style={styles.filterContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipScroll}
+          >
             {categories.map((cat) => {
               const isSelected = selectedCategory === cat;
               return (
@@ -260,7 +287,12 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
                   ]}
                   onPress={() => setSelectedCategory(cat)}
                 >
-                  <Text style={[styles.chipText, { color: isSelected ? theme.colors.primary : theme.colors.muted }]}>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      { color: isSelected ? theme.colors.primary : theme.colors.muted },
+                    ]}
+                  >
                     {cat.toUpperCase()}
                   </Text>
                 </Pressable>
@@ -279,15 +311,28 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
         />
 
         {selectedIds.size > 0 && (
-          <View style={[styles.addBtnContainer, { borderTopColor: theme.colors.border, backgroundColor: theme.colors.background }]}>
+          <View
+            style={[
+              styles.addBtnContainer,
+              { borderTopColor: theme.colors.border, backgroundColor: theme.colors.background },
+            ]}
+          >
             <Pressable
-              style={[styles.addSelectedBtn, { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md }]}
+              style={[
+                styles.addSelectedBtn,
+                { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md },
+              ]}
               onPress={() => {
                 onSelect(Array.from(selectedIds));
                 onClose();
               }}
             >
-              <Text style={[styles.addSelectedBtnText, { color: theme.colors.background, ...theme.typography.button }]}>
+              <Text
+                style={[
+                  styles.addSelectedBtnText,
+                  { color: theme.colors.background, ...theme.typography.button },
+                ]}
+              >
                 Add {selectedIds.size} Exercise{selectedIds.size > 1 ? 's' : ''}
               </Text>
             </Pressable>

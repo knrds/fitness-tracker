@@ -1,17 +1,17 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { 
-  FitnessGoal, 
-  ExperienceLevel, 
-  UnitSystem, 
-  EXERCISES, 
+import {
+  FitnessGoal,
+  ExperienceLevel,
+  UnitSystem,
+  EXERCISES,
   BiologicalSex,
   FitnessGoalSchema,
   ExperienceLevelSchema,
   UnitSystemSchema,
   BiologicalSexSchema,
   calculateVolume,
-  calculateLongestStreak
+  calculateLongestStreak,
 } from '@fitness-tracker/domain';
 import { z } from 'zod';
 import { useHistoryStore } from './historyStore';
@@ -99,9 +99,10 @@ export const useProfileStore = create<ProfileState>()(
     (set, get) => ({
       profile: defaultProfile,
 
-      updateProfile: (updates) => set((state) => ({
-        profile: { ...state.profile, ...updates }
-      })),
+      updateProfile: (updates) =>
+        set((state) => ({
+          profile: { ...state.profile, ...updates },
+        })),
 
       getStatistics: () => {
         const sessions = useHistoryStore.getState().sessions;
@@ -115,9 +116,10 @@ export const useProfileStore = create<ProfileState>()(
 
         // Convert volume based on user's preferred units
         const preferredUnits = get().profile.preferredUnits;
-        const totalVolume = preferredUnits === 'imperial'
-          ? Math.round(totalVolumeKg * 2.20462)
-          : Math.round(totalVolumeKg);
+        const totalVolume =
+          preferredUnits === 'imperial'
+            ? Math.round(totalVolumeKg * 2.20462)
+            : Math.round(totalVolumeKg);
 
         // Longest Streak (derived from unique local dates)
         // Longest Streak (derived from unique local dates)
@@ -136,7 +138,7 @@ export const useProfileStore = create<ProfileState>()(
 
       clearAllData: () => {
         // Reset all MMKV persisted stores by setting their Zustand state directly
-        
+
         // 1. Profile Store
         set({ profile: defaultProfile });
 
@@ -202,12 +204,16 @@ export const useProfileStore = create<ProfileState>()(
     }),
     {
       name: 'profile-storage',
-      storage: createHydratedStorage('profile-storage', profilePersistedSchema, defaultPersistedState),
+      storage: createHydratedStorage(
+        'profile-storage',
+        profilePersistedSchema,
+        defaultPersistedState,
+      ),
       version: 1,
       migrate: (persistedState) => {
         const parsed = profilePersistedSchema.safeParse(persistedState);
         return parsed.success ? parsed.data : defaultPersistedState;
       },
-    }
-  )
+    },
+  ),
 );

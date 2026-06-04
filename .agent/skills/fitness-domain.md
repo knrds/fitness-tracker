@@ -20,7 +20,7 @@ Used to autoregulate load day-to-day. In the model: `ExerciseSet.rpe`
 
 ## RIR — Reps In Reserve
 
-The inverse, more concrete framing: how many more reps you *could* have done.
+The inverse, more concrete framing: how many more reps you _could_ have done.
 
 - `RIR 0` = went to failure (≈ RPE 10).
 - `RIR 2` = could have done 2 more (≈ RPE 8).
@@ -75,12 +75,12 @@ slots; performing one produces a `WorkoutSession`.
 
 ## Quick term → field map
 
-| Term            | Where it lives                                  |
-| --------------- | ----------------------------------------------- |
-| RPE             | `ExerciseSet.rpe`, `TemplateExercise.targetRpe` |
-| RIR             | `ExerciseSet.rir`, `TemplateExercise.targetRir` |
-| Working set     | `ExerciseSet.type === 'working'`                |
-| Volume load     | derived: `Σ weight × reps`                      |
-| PR              | `PersonalRecord` + `PersonalRecordType`         |
-| Mesocycle       | `Program` (`durationWeeks`, `ProgramWorkout`)   |
-| Session         | `WorkoutSession` (the performed record)         |
+| Term        | Where it lives                                  |
+| ----------- | ----------------------------------------------- |
+| RPE         | `ExerciseSet.rpe`, `TemplateExercise.targetRpe` |
+| RIR         | `ExerciseSet.rir`, `TemplateExercise.targetRir` |
+| Working set | `ExerciseSet.type === 'working'`                |
+| Volume load | derived: `Σ weight × reps`                      |
+| PR          | `PersonalRecord` + `PersonalRecordType`         |
+| Mesocycle   | `Program` (`durationWeeks`, `ProgramWorkout`)   |
+| Session     | `WorkoutSession` (the performed record)         |

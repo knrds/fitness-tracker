@@ -1,5 +1,18 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, Pressable, Modal, TextInput, Alert, Platform, ScrollView, Share, PanResponder, Animated } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Modal,
+  TextInput,
+  Alert,
+  Platform,
+  ScrollView,
+  Share,
+  PanResponder,
+  Animated,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Crypto from 'expo-crypto';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,7 +26,14 @@ import { useWorkoutStore } from '../../src/stores/workoutStore';
 export default function ProgramListScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { programs, templates, setActiveProgram, deleteProgram, createProgram, updateProgramsOrder } = useProgramStore();
+  const {
+    programs,
+    templates,
+    setActiveProgram,
+    deleteProgram,
+    createProgram,
+    updateProgramsOrder,
+  } = useProgramStore();
 
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
   const [menuProgramId, setMenuProgramId] = useState<string | null>(null);
@@ -50,7 +70,7 @@ export default function ProgramListScreen() {
           const layout = itemLayouts.current[p.id];
           if (layout) {
             const dropY = layout.y + gestureState.dy;
-            const otherPrograms = programs.filter(item => item.id !== p.id);
+            const otherPrograms = programs.filter((item) => item.id !== p.id);
             let insertIndex = 0;
             for (let i = 0; i < otherPrograms.length; i++) {
               const otherProg = otherPrograms[i];
@@ -65,7 +85,7 @@ export default function ProgramListScreen() {
                 }
               }
             }
-            
+
             const reordered = [...otherPrograms];
             reordered.splice(insertIndex, 0, p);
             updateProgramsOrder(reordered);
@@ -79,7 +99,7 @@ export default function ProgramListScreen() {
         setActiveDragId(null);
         setScrollEnabled(true);
         dragY.setValue(0);
-      }
+      },
     });
   }, [programs, updateProgramsOrder]);
 
@@ -103,22 +123,22 @@ export default function ProgramListScreen() {
       ...(description.trim() ? { description: description.trim() } : {}),
       durationWeeks: parseInt(durationWeeks, 10) || 4,
     });
-    
+
     setCreateModalVisible(false);
     setName('');
     setDescription('');
     setDurationWeeks('4');
-    
+
     router.push(`/programs/builder?id=${newId}` as unknown as Parameters<typeof router.push>[0]);
   };
 
-  const activeProgram = programs.find(p => p.isActive);
+  const activeProgram = programs.find((p) => p.isActive);
   const { status: activeWorkoutStatus, startWorkoutFromTemplate } = useWorkoutStore();
   const [selectedWeek, setSelectedWeek] = useState(1);
 
   const handleStartTemplate = (template: WorkoutTemplate | undefined, programId: string) => {
     if (!template) return;
-    
+
     const start = () => {
       startWorkoutFromTemplate(template, programId);
       router.push('/workout/session');
@@ -127,17 +147,21 @@ export default function ProgramListScreen() {
     if (activeWorkoutStatus === 'active' || activeWorkoutStatus === 'paused') {
       if (Platform.OS === 'web') {
         const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-        if (confirmFn?.("An active workout is already in progress. Do you want to discard it and start this template instead?")) {
+        if (
+          confirmFn?.(
+            'An active workout is already in progress. Do you want to discard it and start this template instead?',
+          )
+        ) {
           start();
         }
       } else {
         Alert.alert(
-          "Workout In Progress",
-          "An active workout is already in progress. Do you want to discard it and start this template instead?",
+          'Workout In Progress',
+          'An active workout is already in progress. Do you want to discard it and start this template instead?',
           [
-            { text: "Cancel", style: "cancel" },
-            { text: "Discard & Start", style: "destructive", onPress: start }
-          ]
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Discard & Start', style: 'destructive', onPress: start },
+          ],
         );
       }
     } else {
@@ -164,23 +188,27 @@ export default function ProgramListScreen() {
             ) : null}
             <Text style={styles.activeDuration}>Duration: {activeProgram.durationWeeks} Weeks</Text>
           </View>
-          <Pressable 
-            style={styles.deactivateBtn} 
+          <Pressable
+            style={styles.deactivateBtn}
             onPress={() => {
               if (Platform.OS === 'web') {
                 const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-                if (confirmFn?.("Are you sure you want to deactivate this program?")) {
+                if (confirmFn?.('Are you sure you want to deactivate this program?')) {
                   setActiveProgram(null);
                 }
                 return;
               }
               Alert.alert(
-                "Deactivate Program",
-                "Are you sure you want to deactivate this program?",
+                'Deactivate Program',
+                'Are you sure you want to deactivate this program?',
                 [
-                  { text: "Cancel", style: "cancel" },
-                  { text: "Deactivate", style: "destructive", onPress: () => setActiveProgram(null) }
-                ]
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Deactivate',
+                    style: 'destructive',
+                    onPress: () => setActiveProgram(null),
+                  },
+                ],
               );
             }}
           >
@@ -191,11 +219,11 @@ export default function ProgramListScreen() {
         {/* Week Selector Tabs */}
         <Text style={styles.calendarTitle}>Weekly Schedule</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.weekTabsScroll}>
-          {Array.from({ length: activeProgram.durationWeeks }, (_, i) => i + 1).map(w => {
+          {Array.from({ length: activeProgram.durationWeeks }, (_, i) => i + 1).map((w) => {
             const isSelected = w === selectedWeek;
             return (
-              <Pressable 
-                key={w} 
+              <Pressable
+                key={w}
                 style={[styles.weekTab, isSelected && styles.weekTabSelected]}
                 onPress={() => setSelectedWeek(w)}
               >
@@ -209,9 +237,9 @@ export default function ProgramListScreen() {
 
         {/* Days List */}
         <View style={styles.daysList}>
-          {[1, 2, 3, 4, 5, 6, 7].map(day => {
+          {[1, 2, 3, 4, 5, 6, 7].map((day) => {
             const dayWorkouts = activeProgram.workouts.filter(
-              w => w.week === selectedWeek && w.dayOfWeek === day
+              (w) => w.week === selectedWeek && w.dayOfWeek === day,
             );
 
             return (
@@ -219,14 +247,14 @@ export default function ProgramListScreen() {
                 <View style={styles.dayInfo}>
                   <Text style={styles.dayLabel}>{getDayName(day)}</Text>
                   {dayWorkouts.length > 0 ? (
-                    dayWorkouts.map(w => {
-                      const template = templates.find(t => t.id === w.templateId);
+                    dayWorkouts.map((w) => {
+                      const template = templates.find((t) => t.id === w.templateId);
                       return (
                         <View key={w.id} style={styles.scheduledWorkout}>
                           <Text style={styles.workoutTemplateName}>
                             🏋️ {template?.name || 'Unknown Template'}
                           </Text>
-                          <Pressable 
+                          <Pressable
                             style={styles.startWorkoutBtn}
                             onPress={() => handleStartTemplate(template, activeProgram.id)}
                           >
@@ -243,7 +271,7 @@ export default function ProgramListScreen() {
             );
           })}
         </View>
-        
+
         <View style={styles.divider} />
         <Text style={styles.sectionHeaderTitle}>All Programs</Text>
       </View>
@@ -279,18 +307,32 @@ export default function ProgramListScreen() {
   };
 
   const handleShareProgram = async (program: Program) => {
-    const weeksText = Array.from({ length: program.durationWeeks }).map((_, wIdx) => {
-      const week = wIdx + 1;
-      const weekWorkouts = program.workouts.filter(ww => ww.week === week);
-      if (weekWorkouts.length === 0) return null;
-      const workoutsText = weekWorkouts.map(ww => {
-        const template = templates.find(t => t.id === ww.templateId);
-        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-        const dayName = days[ww.dayOfWeek - 1] || `Day ${ww.dayOfWeek}`;
-        return `  • ${dayName}: ${template?.name || 'Workout'}`;
-      }).filter(Boolean).join('\n');
-      return `Week ${week}:\n${workoutsText}`;
-    }).filter(Boolean).join('\n\n');
+    const weeksText = Array.from({ length: program.durationWeeks })
+      .map((_, wIdx) => {
+        const week = wIdx + 1;
+        const weekWorkouts = program.workouts.filter((ww) => ww.week === week);
+        if (weekWorkouts.length === 0) return null;
+        const workoutsText = weekWorkouts
+          .map((ww) => {
+            const template = templates.find((t) => t.id === ww.templateId);
+            const days = [
+              'Monday',
+              'Tuesday',
+              'Wednesday',
+              'Thursday',
+              'Friday',
+              'Saturday',
+              'Sunday',
+            ];
+            const dayName = days[ww.dayOfWeek - 1] || `Day ${ww.dayOfWeek}`;
+            return `  • ${dayName}: ${template?.name || 'Workout'}`;
+          })
+          .filter(Boolean)
+          .join('\n');
+        return `Week ${week}:\n${workoutsText}`;
+      })
+      .filter(Boolean)
+      .join('\n\n');
 
     const message = `📋 ${program.name}\n${program.description ? `${program.description}\n\n` : ''}${weeksText}\n\n— Shared from Volt Performance`;
 
@@ -305,10 +347,7 @@ export default function ProgramListScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.list}
-        scrollEnabled={scrollEnabled}
-      >
+      <ScrollView contentContainerStyle={styles.list} scrollEnabled={scrollEnabled}>
         {renderHeader()}
         {programs.map((item) => {
           const isDraggingThis = item.id === activeDragId;
@@ -334,7 +373,7 @@ export default function ProgramListScreen() {
                   shadowOpacity: 0.35,
                   shadowRadius: 6,
                   elevation: 5,
-                }
+                },
               ]}
             >
               <View style={styles.cardTopRow}>
@@ -347,36 +386,53 @@ export default function ProgramListScreen() {
                 >
                   <Ionicons name="reorder-two" size={24} color={theme.colors.primary} />
                 </View>
-                
-                <Pressable 
-                  style={styles.cardInfo} 
+
+                <Pressable
+                  style={styles.cardInfo}
                   onPress={() => router.push(`/programs/builder?id=${item.id}`)}
                 >
                   <Text style={styles.cardTitle}>{item.name}</Text>
                   <Text style={styles.cardSubtitle}>{item.durationWeeks} Weeks</Text>
                 </Pressable>
-                
+
                 <View style={styles.cardActionsContainer}>
                   {item.isActive ? (
-                    <Pressable 
-                      style={[styles.smallActiveBtn, { backgroundColor: 'rgba(144, 213, 255, 0.15)', borderColor: '#90D5FF' }]}
-                      onPress={(e) => { e.stopPropagation(); confirmDeactivate(); }}
+                    <Pressable
+                      style={[
+                        styles.smallActiveBtn,
+                        { backgroundColor: 'rgba(144, 213, 255, 0.15)', borderColor: '#90D5FF' },
+                      ]}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        confirmDeactivate();
+                      }}
                     >
                       <Ionicons name="checkmark-circle" size={12} color="#90D5FF" />
                       <Text style={[styles.smallActiveBtnText, { color: '#90D5FF' }]}>ACTIVE</Text>
                     </Pressable>
                   ) : (
-                    <Pressable 
-                      style={[styles.smallActivateBtn, { backgroundColor: '#1A1C23', borderColor: '#2A2B31' }]}
-                      onPress={(e) => { e.stopPropagation(); setActiveProgram(item.id); }}
+                    <Pressable
+                      style={[
+                        styles.smallActivateBtn,
+                        { backgroundColor: '#1A1C23', borderColor: '#2A2B31' },
+                      ]}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setActiveProgram(item.id);
+                      }}
                     >
-                      <Text style={[styles.smallActivateBtnText, { color: '#F4F5F7' }]}>ACTIVATE</Text>
+                      <Text style={[styles.smallActivateBtnText, { color: '#F4F5F7' }]}>
+                        ACTIVATE
+                      </Text>
                     </Pressable>
                   )}
-                  <Pressable 
-                    style={styles.kebabBtn} 
-                    hitSlop={10} 
-                    onPress={(e) => { e.stopPropagation(); setMenuProgramId(item.id); }}
+                  <Pressable
+                    style={styles.kebabBtn}
+                    hitSlop={10}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setMenuProgramId(item.id);
+                    }}
                   >
                     <Ionicons name="ellipsis-vertical" size={20} color="#8A8D9F" />
                   </Pressable>
@@ -393,11 +449,16 @@ export default function ProgramListScreen() {
         <Text style={styles.fabText}>+</Text>
       </Pressable>
 
-      <Modal visible={isCreateModalVisible} animationType="slide" transparent={true} onRequestClose={() => setCreateModalVisible(false)}>
+      <Modal
+        visible={isCreateModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setCreateModalVisible(false)}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Create Program</Text>
-            
+
             <Text style={styles.label}>Program Name</Text>
             <TextInput
               style={styles.input}
@@ -428,7 +489,10 @@ export default function ProgramListScreen() {
             />
 
             <View style={styles.modalActions}>
-              <Pressable style={[styles.modalBtn, styles.cancelBtn]} onPress={() => setCreateModalVisible(false)}>
+              <Pressable
+                style={[styles.modalBtn, styles.cancelBtn]}
+                onPress={() => setCreateModalVisible(false)}
+              >
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </Pressable>
               <Pressable style={[styles.modalBtn, styles.createBtn]} onPress={handleCreateProgram}>
@@ -440,19 +504,45 @@ export default function ProgramListScreen() {
       </Modal>
 
       {/* Program action menu */}
-      <Modal visible={menuProgram !== null} transparent animationType="fade" onRequestClose={() => setMenuProgramId(null)}>
+      <Modal
+        visible={menuProgram !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuProgramId(null)}
+      >
         <Pressable style={styles.menuOverlay} onPress={() => setMenuProgramId(null)}>
           <View style={styles.menuSheet}>
             <Text style={styles.menuTitle}>{menuProgram?.name}</Text>
-            <Pressable style={styles.menuItem} onPress={() => { const id = menuProgram?.id; setMenuProgramId(null); if (id) router.push(`/programs/builder?id=${id}`); }}>
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                const id = menuProgram?.id;
+                setMenuProgramId(null);
+                if (id) router.push(`/programs/builder?id=${id}`);
+              }}
+            >
               <Ionicons name="create-outline" size={20} color="#F4F5F7" />
               <Text style={styles.menuItemText}>Edit</Text>
             </Pressable>
-            <Pressable style={styles.menuItem} onPress={() => { const p = menuProgram; setMenuProgramId(null); if (p) handleShareProgram(p); }}>
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                const p = menuProgram;
+                setMenuProgramId(null);
+                if (p) handleShareProgram(p);
+              }}
+            >
               <Ionicons name="share-outline" size={20} color="#F4F5F7" />
               <Text style={styles.menuItemText}>Share</Text>
             </Pressable>
-            <Pressable style={styles.menuItem} onPress={() => { const p = menuProgram; setMenuProgramId(null); if (p) confirmDelete(p.id, p.name); }}>
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                const p = menuProgram;
+                setMenuProgramId(null);
+                if (p) confirmDelete(p.id, p.name);
+              }}
+            >
               <Ionicons name="trash-outline" size={20} color="#ef4444" />
               <Text style={[styles.menuItemText, { color: '#ef4444' }]}>Delete</Text>
             </Pressable>
@@ -487,7 +577,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 9999,
   },
-  activePillText: { color: '#0B0B0F', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 11, letterSpacing: 0.5 },
+  activePillText: {
+    color: '#0B0B0F',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 11,
+    letterSpacing: 0.5,
+  },
   kebabBtn: { padding: 4 },
   menuOverlay: {
     flex: 1,
@@ -524,13 +619,36 @@ const styles = StyleSheet.create({
   menuItemText: { color: '#F4F5F7', fontFamily: 'SpaceGrotesk_600SemiBold', fontSize: 16 },
   cardActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   btn: { backgroundColor: '#90D5FF', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-  editBtn: { backgroundColor: '#2A2B31', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-  deleteBtn: { backgroundColor: 'rgba(239, 68, 68, 0.1)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#ef4444' },
+  editBtn: {
+    backgroundColor: '#2A2B31',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  deleteBtn: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ef4444',
+  },
   btnText: { color: '#0B0B0F', fontFamily: 'SpaceGrotesk_700Bold' },
   editBtnText: { color: '#F4F5F7', fontFamily: 'SpaceGrotesk_700Bold' },
   deleteBtnText: { color: '#ef4444', fontFamily: 'SpaceGrotesk_700Bold' },
-  activeLabel: { color: '#90D5FF', fontFamily: 'SpaceGrotesk_700Bold', paddingVertical: 8, paddingHorizontal: 4 },
-  empty: { textAlign: 'center', marginTop: 40, color: '#8A8D9F', fontFamily: 'Manrope_500Medium', fontSize: 16 },
+  activeLabel: {
+    color: '#90D5FF',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  empty: {
+    textAlign: 'center',
+    marginTop: 40,
+    color: '#8A8D9F',
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 16,
+  },
   fab: {
     position: 'absolute',
     bottom: 24,

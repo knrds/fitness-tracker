@@ -12,7 +12,7 @@ const reviveDates = (key: string, value: unknown) => {
 export function createHydratedStorage<T extends object>(
   storageId: string,
   schema: z.ZodType<T>,
-  defaultPersistedState: T
+  defaultPersistedState: T,
 ): PersistStorage<T> {
   const storage = new MMKV({ id: storageId });
 
@@ -28,7 +28,7 @@ export function createHydratedStorage<T extends object>(
           if (!validation.success) {
             console.warn(
               `[Storage Hydration] Zod validation failed for store "${storageId}", resetting data fields to defaults. Error:`,
-              validation.error
+              validation.error,
             );
             return {
               ...parsed,

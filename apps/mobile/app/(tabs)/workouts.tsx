@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Alert, Platform, Modal, Share, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Pressable,
+  Alert,
+  Platform,
+  Modal,
+  Share,
+  ScrollView,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@fitness-tracker/ui';
@@ -34,18 +45,22 @@ export default function WorkoutsScreen() {
       if (Platform.OS === 'web') {
         if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
           const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-          if (confirmFn?.("An active workout is already in progress. Do you want to discard it and start this template instead?")) {
+          if (
+            confirmFn?.(
+              'An active workout is already in progress. Do you want to discard it and start this template instead?',
+            )
+          ) {
             start();
           }
         }
       } else {
         Alert.alert(
-          "Workout In Progress",
-          "An active workout is already in progress. Do you want to discard it and start this template instead?",
+          'Workout In Progress',
+          'An active workout is already in progress. Do you want to discard it and start this template instead?',
           [
-            { text: "Cancel", style: "cancel" },
-            { text: "Discard & Start", style: "destructive", onPress: start }
-          ]
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Discard & Start', style: 'destructive', onPress: start },
+          ],
         );
       }
     } else {
@@ -57,26 +72,22 @@ export default function WorkoutsScreen() {
     if (Platform.OS === 'web') {
       if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
         const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-        if (confirmFn?.("Are you sure you want to delete this template?")) {
+        if (confirmFn?.('Are you sure you want to delete this template?')) {
           deleteTemplate(templateId);
         }
       }
     } else {
-      Alert.alert(
-        "Delete Template",
-        "Are you sure you want to delete this template?",
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Delete", style: "destructive", onPress: () => deleteTemplate(templateId) }
-        ]
-      );
+      Alert.alert('Delete Template', 'Are you sure you want to delete this template?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => deleteTemplate(templateId) },
+      ]);
     }
   };
 
   const handleShareTemplate = async (template: WorkoutTemplate) => {
     const exerciseLines = template.exercises
-      .map(te => {
-        const ex = exercises.find(e => e.id === te.exerciseId);
+      .map((te) => {
+        const ex = exercises.find((e) => e.id === te.exerciseId);
         const name = ex?.name || 'Unknown';
         return `• ${name} — ${te.targetSets} sets × ${te.targetReps ?? '?'} reps`;
       })
@@ -91,12 +102,12 @@ export default function WorkoutsScreen() {
     }
   };
 
-  const menuTemplate = templates.find(t => t.id === menuTemplateId) || null;
-  const summaryTemplate = templates.find(t => t.id === summaryTemplateId) || null;
+  const menuTemplate = templates.find((t) => t.id === menuTemplateId) || null;
+  const summaryTemplate = templates.find((t) => t.id === summaryTemplateId) || null;
 
   const renderTemplate = ({ item }: { item: WorkoutTemplate }) => {
     const exerciseNames = item.exercises
-      .map(te => exercises.find(e => e.id === te.exerciseId)?.name)
+      .map((te) => exercises.find((e) => e.id === te.exerciseId)?.name)
       .filter(Boolean)
       .join(', ');
 
@@ -121,7 +132,9 @@ export default function WorkoutsScreen() {
         <Text style={styles.sectionTitle}>Quick Start</Text>
         <Pressable style={styles.emptyWorkoutBtn} onPress={handleStartEmpty}>
           <Text style={styles.emptyWorkoutBtnText}>
-            {status === 'active' || status === 'paused' ? 'Resume Current Workout' : '+ Start Empty Workout'}
+            {status === 'active' || status === 'paused'
+              ? 'Resume Current Workout'
+              : '+ Start Empty Workout'}
           </Text>
         </Pressable>
       </View>
@@ -129,32 +142,74 @@ export default function WorkoutsScreen() {
       <Text style={[styles.sectionTitle, { paddingHorizontal: 16 }]}>My Templates</Text>
       <FlatList
         data={templates}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         renderItem={renderTemplate}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No templates saved yet. Finish a workout and save it as a template.</Text>
+          <Text style={styles.emptyText}>
+            No templates saved yet. Finish a workout and save it as a template.
+          </Text>
         }
       />
 
       {/* Template Action Menu */}
-      <Modal visible={menuTemplate !== null} transparent animationType="fade" onRequestClose={() => setMenuTemplateId(null)}>
+      <Modal
+        visible={menuTemplate !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuTemplateId(null)}
+      >
         <Pressable style={styles.menuOverlay} onPress={() => setMenuTemplateId(null)}>
           <View style={styles.menuSheet}>
             <Text style={styles.menuTitle}>{menuTemplate?.name}</Text>
-            <Pressable style={styles.menuItem} onPress={() => { if (menuTemplate) { setMenuTemplateId(null); handleStartTemplate(menuTemplate); } }}>
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                if (menuTemplate) {
+                  setMenuTemplateId(null);
+                  handleStartTemplate(menuTemplate);
+                }
+              }}
+            >
               <Ionicons name="play-circle-outline" size={20} color="#90D5FF" />
               <Text style={[styles.menuItemText, { color: '#90D5FF' }]}>Start Workout</Text>
             </Pressable>
-            <Pressable style={styles.menuItem} onPress={() => { const id = menuTemplate?.id; setMenuTemplateId(null); if (id) router.push(`/programs/template-builder?templateId=${id}` as unknown as Parameters<typeof router.push>[0]); }}>
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                const id = menuTemplate?.id;
+                setMenuTemplateId(null);
+                if (id)
+                  router.push(
+                    `/programs/template-builder?templateId=${id}` as unknown as Parameters<
+                      typeof router.push
+                    >[0],
+                  );
+              }}
+            >
               <Ionicons name="create-outline" size={20} color="#F4F5F7" />
               <Text style={styles.menuItemText}>Edit</Text>
             </Pressable>
-            <Pressable style={styles.menuItem} onPress={() => { if (menuTemplate) { setMenuTemplateId(null); handleShareTemplate(menuTemplate); } }}>
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                if (menuTemplate) {
+                  setMenuTemplateId(null);
+                  handleShareTemplate(menuTemplate);
+                }
+              }}
+            >
               <Ionicons name="share-outline" size={20} color="#F4F5F7" />
               <Text style={styles.menuItemText}>Share</Text>
             </Pressable>
-            <Pressable style={styles.menuItem} onPress={() => { const id = menuTemplate?.id; setMenuTemplateId(null); if (id) handleDeleteTemplate(id); }}>
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                const id = menuTemplate?.id;
+                setMenuTemplateId(null);
+                if (id) handleDeleteTemplate(id);
+              }}
+            >
               <Ionicons name="trash-outline" size={20} color="#ef4444" />
               <Text style={[styles.menuItemText, { color: '#ef4444' }]}>Delete</Text>
             </Pressable>
@@ -171,18 +226,26 @@ export default function WorkoutsScreen() {
         >
           <Pressable style={styles.modalOverlay} onPress={() => setSummaryTemplateId(null)}>
             <Pressable
-              style={[styles.modalCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+              style={[
+                styles.modalCard,
+                { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+              ]}
               onPress={(e) => e.stopPropagation()}
             >
               <View style={styles.modalHeaderRow}>
-                <Text style={[styles.modalTitle, { color: theme.colors.text, ...theme.typography.heading }]}>
+                <Text
+                  style={[
+                    styles.modalTitle,
+                    { color: theme.colors.text, ...theme.typography.heading },
+                  ]}
+                >
                   {summaryTemplate.name}
                 </Text>
                 <Pressable onPress={() => setSummaryTemplateId(null)} hitSlop={10}>
                   <Ionicons name="close" size={24} color={theme.colors.muted} />
                 </Pressable>
               </View>
-              
+
               <View style={styles.modalSummaryStatsRow}>
                 <View style={styles.modalStatItem}>
                   <Ionicons name="barbell-outline" size={16} color={theme.colors.primary} />
@@ -193,16 +256,20 @@ export default function WorkoutsScreen() {
                 <View style={styles.modalStatItem}>
                   <Ionicons name="repeat-outline" size={16} color={theme.colors.primary} />
                   <Text style={[styles.modalStatText, { color: theme.colors.muted }]}>
-                    {summaryTemplate.exercises.reduce((acc, curr) => acc + curr.targetSets, 0)} Total Sets
+                    {summaryTemplate.exercises.reduce((acc, curr) => acc + curr.targetSets, 0)}{' '}
+                    Total Sets
                   </Text>
                 </View>
               </View>
 
               <ScrollView style={styles.summaryExerciseList} showsVerticalScrollIndicator={false}>
                 {summaryTemplate.exercises.map((te, idx) => {
-                  const ex = exercises.find(e => e.id === te.exerciseId);
+                  const ex = exercises.find((e) => e.id === te.exerciseId);
                   return (
-                    <View key={te.id || idx} style={[styles.summaryExRow, { borderColor: theme.colors.border }]}>
+                    <View
+                      key={te.id || idx}
+                      style={[styles.summaryExRow, { borderColor: theme.colors.border }]}
+                    >
                       <Text style={[styles.summaryExName, { color: theme.colors.text }]}>
                         {ex?.name || 'Unknown Exercise'}
                       </Text>
@@ -215,14 +282,22 @@ export default function WorkoutsScreen() {
               </ScrollView>
 
               <Pressable
-                style={[styles.modalStartBtn, { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md }]}
+                style={[
+                  styles.modalStartBtn,
+                  { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md },
+                ]}
                 onPress={() => {
                   const tmpl = summaryTemplate;
                   setSummaryTemplateId(null);
                   handleStartTemplate(tmpl);
                 }}
               >
-                <Text style={[styles.modalStartBtnText, { color: theme.colors.background, ...theme.typography.button }]}>
+                <Text
+                  style={[
+                    styles.modalStartBtnText,
+                    { color: theme.colors.background, ...theme.typography.button },
+                  ]}
+                >
                   Start Workout
                 </Text>
               </Pressable>
@@ -307,8 +382,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   menuItemText: { color: '#F4F5F7', fontFamily: 'SpaceGrotesk_600SemiBold', fontSize: 16 },
-  emptyText: { color: '#8A8D9F', fontFamily: 'Manrope_500Medium', textAlign: 'center', marginTop: 24, paddingHorizontal: 20, lineHeight: 22 },
-  
+  emptyText: {
+    color: '#8A8D9F',
+    fontFamily: 'Manrope_500Medium',
+    textAlign: 'center',
+    marginTop: 24,
+    paddingHorizontal: 20,
+    lineHeight: 22,
+  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(11, 11, 15, 0.85)',

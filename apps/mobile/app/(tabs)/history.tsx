@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, ScrollView, Dimensions, Modal, Animated, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Pressable,
+  ScrollView,
+  Dimensions,
+  Modal,
+  Animated,
+  Platform,
+} from 'react-native';
 
 import { useRouter } from 'expo-router';
 import { LineChart } from 'react-native-chart-kit';
@@ -19,25 +30,37 @@ export default function HistoryScreen() {
   const [activeTab, setActiveTab] = useState<'history' | 'progress' | 'achievements'>('history');
   const theme = useTheme();
 
-
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.colors.text, ...theme.typography.heading }]}>
+        <Text
+          style={[styles.headerTitle, { color: theme.colors.text, ...theme.typography.heading }]}
+        >
           ACTIVITY
         </Text>
       </View>
       <View style={styles.toggleContainer}>
-        {(['history', 'progress', 'achievements'] as const).map(tab => (
-          <Pressable 
+        {(['history', 'progress', 'achievements'] as const).map((tab) => (
+          <Pressable
             key={tab}
-            style={[styles.toggleBtn, activeTab === tab && { borderBottomColor: theme.colors.primary, borderBottomWidth: 2 }]}
+            style={[
+              styles.toggleBtn,
+              activeTab === tab && {
+                borderBottomColor: theme.colors.primary,
+                borderBottomWidth: 2,
+              },
+            ]}
             onPress={() => setActiveTab(tab)}
           >
-            <Text style={[
-              styles.toggleText, 
-              { color: activeTab === tab ? theme.colors.primary : theme.colors.muted, ...theme.typography.caption }
-            ]}>
+            <Text
+              style={[
+                styles.toggleText,
+                {
+                  color: activeTab === tab ? theme.colors.primary : theme.colors.muted,
+                  ...theme.typography.caption,
+                },
+              ]}
+            >
               {tab.toUpperCase()}
             </Text>
           </Pressable>
@@ -66,7 +89,9 @@ function HistoryView() {
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
-      weekday: 'short', month: 'short', day: 'numeric',
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
     }).format(new Date(date));
   };
 
@@ -79,57 +104,126 @@ function HistoryView() {
   };
 
   const renderItem = ({ item }: { item: WorkoutSession }) => {
-    const totalSets = item.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0);
-    const totalVolume = item.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed && s.weight).reduce((sSum, s) => sSum + s.weight! * (s.reps || 0), 0), 0);
-    
+    const totalSets = item.exercises.reduce(
+      (sum, ex) => sum + ex.sets.filter((s) => s.completed).length,
+      0,
+    );
+    const totalVolume = item.exercises.reduce(
+      (sum, ex) =>
+        sum +
+        ex.sets
+          .filter((s) => s.completed && s.weight)
+          .reduce((sSum, s) => sSum + s.weight! * (s.reps || 0), 0),
+      0,
+    );
+
     const exerciseNames = item.exercises
-      .map(se => allExercises.find(e => e.id === se.exerciseId)?.name)
+      .map((se) => allExercises.find((e) => e.id === se.exerciseId)?.name)
       .filter(Boolean)
       .join(', ');
 
     return (
-      <Card 
-        style={styles.card} 
-        onPress={() => setSelectedSession(item)}
-        padding="lg"
-      >
+      <Card style={styles.card} onPress={() => setSelectedSession(item)} padding="lg">
         <View style={styles.cardHeader}>
-          <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading, fontSize: 18 }]}>{item.name}</Text>
-          <Text style={[styles.date, { color: theme.colors.muted, ...theme.typography.caption }]}>{formatDate(item.startedAt)}</Text>
+          <Text
+            style={[
+              styles.title,
+              { color: theme.colors.text, ...theme.typography.heading, fontSize: 18 },
+            ]}
+          >
+            {item.name}
+          </Text>
+          <Text style={[styles.date, { color: theme.colors.muted, ...theme.typography.caption }]}>
+            {formatDate(item.startedAt)}
+          </Text>
         </View>
-        <Text style={{ color: theme.colors.muted, marginBottom: 12, fontSize: 14, fontFamily: 'Manrope_500Medium' }} numberOfLines={2} ellipsizeMode="tail">
+        <Text
+          style={{
+            color: theme.colors.muted,
+            marginBottom: 12,
+            fontSize: 14,
+            fontFamily: 'Manrope_500Medium',
+          }}
+          numberOfLines={2}
+          ellipsizeMode="tail"
+        >
           {exerciseNames || `${item.exercises.length} Exercises`}
         </Text>
         <View style={styles.stats}>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>{formatDuration(item.durationSeconds)}</Text>
-            <Text style={[styles.statLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>Time</Text>
+            <Text
+              style={[
+                styles.statValue,
+                { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' },
+              ]}
+            >
+              {formatDuration(item.durationSeconds)}
+            </Text>
+            <Text
+              style={[styles.statLabel, { color: theme.colors.muted, ...theme.typography.caption }]}
+            >
+              Time
+            </Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>{Math.round(totalVolume)}</Text>
-            <Text style={[styles.statLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>Volume</Text>
+            <Text
+              style={[
+                styles.statValue,
+                { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' },
+              ]}
+            >
+              {Math.round(totalVolume)}
+            </Text>
+            <Text
+              style={[styles.statLabel, { color: theme.colors.muted, ...theme.typography.caption }]}
+            >
+              Volume
+            </Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>{totalSets}</Text>
-            <Text style={[styles.statLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>Sets</Text>
+            <Text
+              style={[
+                styles.statValue,
+                { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' },
+              ]}
+            >
+              {totalSets}
+            </Text>
+            <Text
+              style={[styles.statLabel, { color: theme.colors.muted, ...theme.typography.caption }]}
+            >
+              Sets
+            </Text>
           </View>
         </View>
       </Card>
     );
   };
 
-  const summaryTotalSets = selectedSession?.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0) ?? 0;
-  const summaryTotalVolume = selectedSession?.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed && s.weight).reduce((sSum, s) => sSum + s.weight! * (s.reps || 0), 0), 0) ?? 0;
+  const summaryTotalSets =
+    selectedSession?.exercises.reduce(
+      (sum, ex) => sum + ex.sets.filter((s) => s.completed).length,
+      0,
+    ) ?? 0;
+  const summaryTotalVolume =
+    selectedSession?.exercises.reduce(
+      (sum, ex) =>
+        sum +
+        ex.sets
+          .filter((s) => s.completed && s.weight)
+          .reduce((sSum, s) => sSum + s.weight! * (s.reps || 0), 0),
+      0,
+    ) ?? 0;
 
   return (
     <>
       <FlatList
         data={sessions}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
-          <EmptyState 
+          <EmptyState
             title="NO WORKOUTS YET"
             description="Your completed workouts will appear here."
           />
@@ -137,10 +231,10 @@ function HistoryView() {
       />
 
       {/* Workout Summary Popup */}
-      <Modal 
-        visible={selectedSession !== null} 
-        transparent 
-        animationType="slide" 
+      <Modal
+        visible={selectedSession !== null}
+        transparent
+        animationType="slide"
         onRequestClose={() => setSelectedSession(null)}
       >
         <Pressable style={styles.summaryOverlay} onPress={() => setSelectedSession(null)}>
@@ -150,44 +244,102 @@ function HistoryView() {
                 <View style={styles.summaryGripArea}>
                   <View style={[styles.summaryGrip, { backgroundColor: theme.colors.border }]} />
                 </View>
-                <Text style={[styles.summaryTitle, { color: theme.colors.text, ...theme.typography.heading }]}>
+                <Text
+                  style={[
+                    styles.summaryTitle,
+                    { color: theme.colors.text, ...theme.typography.heading },
+                  ]}
+                >
                   {selectedSession.name}
                 </Text>
-                <Text style={[styles.summaryDate, { color: theme.colors.muted, ...theme.typography.caption }]}>
+                <Text
+                  style={[
+                    styles.summaryDate,
+                    { color: theme.colors.muted, ...theme.typography.caption },
+                  ]}
+                >
                   {formatDate(selectedSession.startedAt)}
                 </Text>
                 <View style={styles.summaryStatsRow}>
                   <View style={styles.summaryStat}>
-                    <Text style={[styles.summaryStatValue, { color: theme.colors.primary, ...theme.typography.display }]}>
+                    <Text
+                      style={[
+                        styles.summaryStatValue,
+                        { color: theme.colors.primary, ...theme.typography.display },
+                      ]}
+                    >
                       {formatDuration(selectedSession.durationSeconds)}
                     </Text>
-                    <Text style={[styles.summaryStatLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>DURATION</Text>
+                    <Text
+                      style={[
+                        styles.summaryStatLabel,
+                        { color: theme.colors.muted, ...theme.typography.caption },
+                      ]}
+                    >
+                      DURATION
+                    </Text>
                   </View>
                   <View style={styles.summaryStat}>
-                    <Text style={[styles.summaryStatValue, { color: theme.colors.primary, ...theme.typography.display }]}>
+                    <Text
+                      style={[
+                        styles.summaryStatValue,
+                        { color: theme.colors.primary, ...theme.typography.display },
+                      ]}
+                    >
                       {Math.round(summaryTotalVolume)}
                     </Text>
-                    <Text style={[styles.summaryStatLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>VOLUME</Text>
+                    <Text
+                      style={[
+                        styles.summaryStatLabel,
+                        { color: theme.colors.muted, ...theme.typography.caption },
+                      ]}
+                    >
+                      VOLUME
+                    </Text>
                   </View>
                   <View style={styles.summaryStat}>
-                    <Text style={[styles.summaryStatValue, { color: theme.colors.primary, ...theme.typography.display }]}>
+                    <Text
+                      style={[
+                        styles.summaryStatValue,
+                        { color: theme.colors.primary, ...theme.typography.display },
+                      ]}
+                    >
                       {summaryTotalSets}
                     </Text>
-                    <Text style={[styles.summaryStatLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>SETS</Text>
+                    <Text
+                      style={[
+                        styles.summaryStatLabel,
+                        { color: theme.colors.muted, ...theme.typography.caption },
+                      ]}
+                    >
+                      SETS
+                    </Text>
                   </View>
                 </View>
                 <View style={styles.summaryExercises}>
                   {selectedSession.exercises.map((ex) => {
-                    const exInfo = allExercises.find(e => e.id === ex.exerciseId);
-                    const completedSets = ex.sets.filter(s => s.completed);
+                    const exInfo = allExercises.find((e) => e.id === ex.exerciseId);
+                    const completedSets = ex.sets.filter((s) => s.completed);
                     return (
                       <View key={ex.id} style={styles.summaryExRow}>
-                        <Text style={[styles.summaryExName, { color: theme.colors.text, ...theme.typography.body }]}>
+                        <Text
+                          style={[
+                            styles.summaryExName,
+                            { color: theme.colors.text, ...theme.typography.body },
+                          ]}
+                        >
                           {exInfo?.name || 'Unknown'}
                         </Text>
-                        <Text style={[styles.summaryExDetail, { color: theme.colors.muted, ...theme.typography.caption }]}>
+                        <Text
+                          style={[
+                            styles.summaryExDetail,
+                            { color: theme.colors.muted, ...theme.typography.caption },
+                          ]}
+                        >
                           {completedSets.length} sets
-                          {completedSets[0]?.weight ? ` · ${completedSets[0].weight}kg × ${completedSets[0].reps ?? '?'}` : ''}
+                          {completedSets[0]?.weight
+                            ? ` · ${completedSets[0].weight}kg × ${completedSets[0].reps ?? '?'}`
+                            : ''}
                         </Text>
                       </View>
                     );
@@ -201,7 +353,12 @@ function HistoryView() {
                     router.push(`/history/${id}` as unknown as Parameters<typeof router.push>[0]);
                   }}
                 >
-                  <Text style={[styles.summaryDetailBtnText, { color: theme.colors.background, ...theme.typography.button }]}>
+                  <Text
+                    style={[
+                      styles.summaryDetailBtnText,
+                      { color: theme.colors.background, ...theme.typography.button },
+                    ]}
+                  >
                     VIEW FULL DETAILS
                   </Text>
                 </Pressable>
@@ -222,9 +379,9 @@ function ProgressView() {
   const isImperial = profile.preferredUnits === 'imperial';
   const prs = historyStore.getPRs();
   const activeExerciseIds = Object.keys(prs);
-  
+
   const [selectedExId, setSelectedExId] = useState<string | null>(
-    activeExerciseIds.length > 0 ? (activeExerciseIds[0] || null) : null
+    activeExerciseIds.length > 0 ? activeExerciseIds[0] || null : null,
   );
 
   const [selectedPoint, setSelectedPoint] = useState<{
@@ -250,28 +407,30 @@ function ProgressView() {
         toValue: 0,
         duration: 500,
         useNativeDriver: Platform.OS !== 'web',
-      })
+      }),
     ]).start();
   }, [selectedExId]);
 
   const screenWidth = Dimensions.get('window').width;
 
   const getProgressHistory = (exerciseId: string) => {
-    const exercise = exercises.find(e => e.id === exerciseId);
+    const exercise = exercises.find((e) => e.id === exerciseId);
     const exerciseName = exercise?.name;
 
     const points: { date: Date; volume: number; maxE1RM: number; isPR: boolean }[] = [];
-    const sortedSessions = [...historyStore.sessions].sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime());
+    const sortedSessions = [...historyStore.sessions].sort(
+      (a, b) => a.startedAt.getTime() - b.startedAt.getTime(),
+    );
 
     let historicalMax = 0;
 
-    sortedSessions.forEach(session => {
+    sortedSessions.forEach((session) => {
       let volume = 0;
       let sessionMaxE1RM = 0;
-      
-      const ex = session.exercises.find(e => e.exerciseId === exerciseId);
+
+      const ex = session.exercises.find((e) => e.exerciseId === exerciseId);
       if (ex) {
-        ex.sets.forEach(set => {
+        ex.sets.forEach((set) => {
           if (set.completed && set.weight && set.reps && set.type !== 'warmup') {
             volume += set.weight * set.reps;
             const e1rm = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir, exerciseName);
@@ -305,32 +464,81 @@ function ProgressView() {
     if (history.length < 2) {
       return (
         <Card padding="lg" style={{ alignItems: 'center' }}>
-          <Text style={[{ color: theme.colors.text, fontSize: 16, marginBottom: 4 }, theme.typography.heading]}>Not enough data</Text>
-          <Text style={[{ color: theme.colors.muted }, theme.typography.body]}>Complete at least 2 sessions.</Text>
+          <Text
+            style={[
+              { color: theme.colors.text, fontSize: 16, marginBottom: 4 },
+              theme.typography.heading,
+            ]}
+          >
+            Not enough data
+          </Text>
+          <Text style={[{ color: theme.colors.muted }, theme.typography.body]}>
+            Complete at least 2 sessions.
+          </Text>
         </Card>
       );
     }
     const data = {
-      labels: history.map(h => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(h.date)),
+      labels: history.map((h) =>
+        new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(h.date),
+      ),
       datasets: [
-        { data: history.map(h => isImperial ? Math.round(h.volume * 2.20462) : h.volume), color: () => theme.colors.primary, strokeWidth: 2 }
+        {
+          data: history.map((h) => (isImperial ? Math.round(h.volume * 2.20462) : h.volume)),
+          color: () => theme.colors.primary,
+          strokeWidth: 2,
+        },
       ],
     };
     return (
-      <Animated.View style={[styles.chartContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.muted, opacity: chartFadeAnim, transform: [{ translateY: chartSlideAnim }] }]}>
-        <Text style={[styles.chartTitle, { color: theme.colors.text, ...theme.typography.heading }]}>Volume History</Text>
+      <Animated.View
+        style={[
+          styles.chartContainer,
+          {
+            backgroundColor: theme.colors.surface,
+            borderColor: theme.colors.muted,
+            opacity: chartFadeAnim,
+            transform: [{ translateY: chartSlideAnim }],
+          },
+        ]}
+      >
+        <Text
+          style={[styles.chartTitle, { color: theme.colors.text, ...theme.typography.heading }]}
+        >
+          Volume History
+        </Text>
 
         {/* Selected Data Point Details */}
         {selectedPoint ? (
-          <View style={[styles.tooltipContainer, { backgroundColor: theme.colors.background, borderColor: selectedPoint.isPR ? '#FFB020' : theme.colors.primary }]}>
-            <Ionicons name={selectedPoint.isPR ? 'star' : 'stats-chart'} size={16} color={selectedPoint.isPR ? '#FFB020' : theme.colors.primary} />
+          <View
+            style={[
+              styles.tooltipContainer,
+              {
+                backgroundColor: theme.colors.background,
+                borderColor: selectedPoint.isPR ? '#FFB020' : theme.colors.primary,
+              },
+            ]}
+          >
+            <Ionicons
+              name={selectedPoint.isPR ? 'star' : 'stats-chart'}
+              size={16}
+              color={selectedPoint.isPR ? '#FFB020' : theme.colors.primary}
+            />
             <Text style={[styles.tooltipText, { color: theme.colors.text }]}>
               <Text style={{ fontFamily: 'SpaceGrotesk_700Bold' }}>{selectedPoint.date}</Text>:{' '}
-              <Text style={{ color: selectedPoint.isPR ? '#FFB020' : theme.colors.primary, fontFamily: 'SpaceGrotesk_700Bold' }}>
+              <Text
+                style={{
+                  color: selectedPoint.isPR ? '#FFB020' : theme.colors.primary,
+                  fontFamily: 'SpaceGrotesk_700Bold',
+                }}
+              >
                 {selectedPoint.volume} {isImperial ? 'lbs' : 'kg'}
               </Text>
               {selectedPoint.isPR && (
-                <Text style={{ color: '#FFB020', fontFamily: 'SpaceGrotesk_700Bold' }}> (★ NEW PR!)</Text>
+                <Text style={{ color: '#FFB020', fontFamily: 'SpaceGrotesk_700Bold' }}>
+                  {' '}
+                  (★ NEW PR!)
+                </Text>
               )}
             </Text>
             <Pressable onPress={() => setSelectedPoint(null)} hitSlop={10}>
@@ -344,7 +552,9 @@ function ProgressView() {
         )}
 
         <LineChart
-          data={data} width={screenWidth - 64} height={220}
+          data={data}
+          width={screenWidth - 64}
+          height={220}
           withInnerLines={false}
           withOuterLines={false}
           onDataPointClick={({ index }) => {
@@ -363,12 +573,16 @@ function ProgressView() {
             return point?.isPR ? '#FFB020' : theme.colors.primary;
           }}
           chartConfig={{
-            backgroundColor: theme.colors.surface, backgroundGradientFrom: theme.colors.surface, backgroundGradientTo: theme.colors.surface,
-            decimalPlaces: 0, color: () => theme.colors.primary,
+            backgroundColor: theme.colors.surface,
+            backgroundGradientFrom: theme.colors.surface,
+            backgroundGradientTo: theme.colors.surface,
+            decimalPlaces: 0,
+            color: () => theme.colors.primary,
             labelColor: () => theme.colors.muted,
-            propsForDots: { r: '6', strokeWidth: '2.5', stroke: theme.colors.surface }
+            propsForDots: { r: '6', strokeWidth: '2.5', stroke: theme.colors.surface },
           }}
-          bezier style={{ marginVertical: 8, borderRadius: 16 }}
+          bezier
+          style={{ marginVertical: 8, borderRadius: 16 }}
         />
       </Animated.View>
     );
@@ -376,32 +590,71 @@ function ProgressView() {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 }]}>PERSONAL RECORDS</Text>
+      <Text
+        style={[
+          styles.sectionTitle,
+          { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
+        ]}
+      >
+        PERSONAL RECORDS
+      </Text>
       {activeExerciseIds.length === 0 ? (
-        <Text style={[{ color: theme.colors.muted, ...theme.typography.body }]}>Complete a workout to see your PRs.</Text>
+        <Text style={[{ color: theme.colors.muted, ...theme.typography.body }]}>
+          Complete a workout to see your PRs.
+        </Text>
       ) : (
         <>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-            {activeExerciseIds.map(id => {
-              const ex = exercises.find(e => e.id === id);
+            {activeExerciseIds.map((id) => {
+              const ex = exercises.find((e) => e.id === id);
               const isSelected = id === selectedExId;
               return (
-                <Pressable key={id} style={[styles.chip, { backgroundColor: isSelected ? theme.colors.primary : theme.colors.surface }]} onPress={() => setSelectedExId(id)}>
-                  <Text style={[styles.chipText, { color: isSelected ? theme.colors.background : theme.colors.muted, ...theme.typography.caption }]}>{ex?.name || 'Unknown'}</Text>
+                <Pressable
+                  key={id}
+                  style={[
+                    styles.chip,
+                    { backgroundColor: isSelected ? theme.colors.primary : theme.colors.surface },
+                  ]}
+                  onPress={() => setSelectedExId(id)}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      {
+                        color: isSelected ? theme.colors.background : theme.colors.muted,
+                        ...theme.typography.caption,
+                      },
+                    ]}
+                  >
+                    {ex?.name || 'Unknown'}
+                  </Text>
                 </Pressable>
               );
             })}
           </ScrollView>
           {selectedExId && prs[selectedExId] !== undefined && (
             <Card style={styles.prHighlight} padding="md">
-              <Text style={[styles.prHighlightLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>BEST WEIGHT</Text>
-              <Text style={[styles.prHighlightValue, { color: theme.colors.primary, ...theme.typography.display, fontSize: 32 }]}>
+              <Text
+                style={[
+                  styles.prHighlightLabel,
+                  { color: theme.colors.muted, ...theme.typography.caption },
+                ]}
+              >
+                BEST WEIGHT
+              </Text>
+              <Text
+                style={[
+                  styles.prHighlightValue,
+                  { color: theme.colors.primary, ...theme.typography.display, fontSize: 32 },
+                ]}
+              >
                 {(() => {
                   const rawVal = prs[selectedExId]!;
                   const converted = isImperial ? rawVal * 2.20462 : rawVal;
                   const roundedDown = Math.floor(converted * 100) / 100;
                   return roundedDown.toFixed(2);
-                })()} {isImperial ? 'lbs' : 'kg'}
+                })()}{' '}
+                {isImperial ? 'lbs' : 'kg'}
               </Text>
             </Card>
           )}
@@ -420,7 +673,9 @@ function AchievementBadge({ kind }: { kind: 'one_time' | 'repeatable' }) {
   return (
     <View style={[styles.kindBadge, { borderColor: color }]}>
       <Ionicons name={kind === 'repeatable' ? 'repeat' : 'flag-outline'} size={10} color={color} />
-      <Text style={[styles.kindBadgeText, { color }]}>{kind === 'repeatable' ? 'REPEATABLE' : 'ONE-TIME'}</Text>
+      <Text style={[styles.kindBadgeText, { color }]}>
+        {kind === 'repeatable' ? 'REPEATABLE' : 'ONE-TIME'}
+      </Text>
     </View>
   );
 }
@@ -443,38 +698,84 @@ function AchievementsView() {
       {/* Level Card */}
       <Card style={styles.levelCard} padding="lg">
         <View style={styles.levelHeader}>
-          <Text style={[styles.levelTitle, { color: theme.colors.text, ...theme.typography.heading, fontSize: 22 }]}>
+          <Text
+            style={[
+              styles.levelTitle,
+              { color: theme.colors.text, ...theme.typography.heading, fontSize: 22 },
+            ]}
+          >
             LEVEL {level} • {getLevelBadge(level).title} {getLevelBadge(level).icon}
           </Text>
-          <Text style={[styles.xpText, { color: theme.colors.primary, ...theme.typography.heading }]}>{currentLevelXp} / 500 XP</Text>
+          <Text
+            style={[styles.xpText, { color: theme.colors.primary, ...theme.typography.heading }]}
+          >
+            {currentLevelXp} / 500 XP
+          </Text>
         </View>
         <View style={[styles.progressBarBg, { backgroundColor: theme.colors.surface }]}>
-          <View style={[styles.progressBarFill, { backgroundColor: theme.colors.primary, width: `${xpProgressPercent}%` }]} />
+          <View
+            style={[
+              styles.progressBarFill,
+              { backgroundColor: theme.colors.primary, width: `${xpProgressPercent}%` },
+            ]}
+          />
         </View>
-        <Text style={[styles.xpSub, { color: theme.colors.muted, ...theme.typography.caption }]}>{500 - currentLevelXp} XP TO LEVEL {level + 1}</Text>
+        <Text style={[styles.xpSub, { color: theme.colors.muted, ...theme.typography.caption }]}>
+          {500 - currentLevelXp} XP TO LEVEL {level + 1}
+        </Text>
       </Card>
 
       {/* Repeatable */}
-      <Text style={[styles.sectionTitle, { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 }]}>REPEATABLE</Text>
+      <Text
+        style={[
+          styles.sectionTitle,
+          { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
+        ]}
+      >
+        REPEATABLE
+      </Text>
       {repeatables.map((ach) => {
         const count = repeatCounts[ach.id] || 0;
         const earned = count > 0;
         return (
-          <Card key={ach.id} style={[styles.achCard, earned ? { borderColor: GOLD, borderWidth: 1 } : { opacity: 0.6 }]} padding="md">
+          <Card
+            key={ach.id}
+            style={[
+              styles.achCard,
+              earned ? { borderColor: GOLD, borderWidth: 1 } : { opacity: 0.6 },
+            ]}
+            padding="md"
+          >
             <View style={styles.achRow}>
               <View style={[styles.achIconContainer, { backgroundColor: theme.colors.surface }]}>
-                <Ionicons name={ach.icon as React.ComponentProps<typeof Ionicons>['name']} size={24} color={earned ? GOLD : theme.colors.muted} />
+                <Ionicons
+                  name={ach.icon as React.ComponentProps<typeof Ionicons>['name']}
+                  size={24}
+                  color={earned ? GOLD : theme.colors.muted}
+                />
               </View>
               <View style={styles.achInfo}>
                 <View style={styles.achNameRow}>
-                  <Text style={[styles.achName, { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>{ach.name}</Text>
+                  <Text
+                    style={[
+                      styles.achName,
+                      { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' },
+                    ]}
+                  >
+                    {ach.name}
+                  </Text>
                   <AchievementBadge kind="repeatable" />
                 </View>
-                <Text style={[styles.achDesc, { color: theme.colors.muted, ...theme.typography.caption }]}>{ach.description}</Text>
+                <Text
+                  style={[
+                    styles.achDesc,
+                    { color: theme.colors.muted, ...theme.typography.caption },
+                  ]}
+                >
+                  {ach.description}
+                </Text>
               </View>
-              {earned && (
-                <Text style={[styles.achCount, { color: GOLD }]}>×{count}</Text>
-              )}
+              {earned && <Text style={[styles.achCount, { color: GOLD }]}>×{count}</Text>}
             </View>
           </Card>
         );
@@ -482,19 +783,53 @@ function AchievementsView() {
 
       {unlockedList.length > 0 && (
         <>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text, ...theme.typography.heading, fontSize: 20, marginTop: 24 }]}>UNLOCKED ({unlockedList.length})</Text>
-          {unlockedList.map(ach => (
-            <Card key={ach.id} style={[styles.achCard, { borderColor: theme.colors.primary, borderWidth: 1 }]} padding="md">
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color: theme.colors.text,
+                ...theme.typography.heading,
+                fontSize: 20,
+                marginTop: 24,
+              },
+            ]}
+          >
+            UNLOCKED ({unlockedList.length})
+          </Text>
+          {unlockedList.map((ach) => (
+            <Card
+              key={ach.id}
+              style={[styles.achCard, { borderColor: theme.colors.primary, borderWidth: 1 }]}
+              padding="md"
+            >
               <View style={styles.achRow}>
                 <View style={[styles.achIconContainer, { backgroundColor: theme.colors.surface }]}>
-                  <Ionicons name={ach.icon as React.ComponentProps<typeof Ionicons>['name']} size={24} color={theme.colors.primary} />
+                  <Ionicons
+                    name={ach.icon as React.ComponentProps<typeof Ionicons>['name']}
+                    size={24}
+                    color={theme.colors.primary}
+                  />
                 </View>
                 <View style={styles.achInfo}>
                   <View style={styles.achNameRow}>
-                    <Text style={[styles.achName, { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>{ach.name}</Text>
+                    <Text
+                      style={[
+                        styles.achName,
+                        { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' },
+                      ]}
+                    >
+                      {ach.name}
+                    </Text>
                     <AchievementBadge kind="one_time" />
                   </View>
-                  <Text style={[styles.achDesc, { color: theme.colors.muted, ...theme.typography.caption }]}>{ach.description}</Text>
+                  <Text
+                    style={[
+                      styles.achDesc,
+                      { color: theme.colors.muted, ...theme.typography.caption },
+                    ]}
+                  >
+                    {ach.description}
+                  </Text>
                 </View>
               </View>
             </Card>
@@ -504,26 +839,74 @@ function AchievementsView() {
 
       {lockedList.length > 0 && (
         <>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text, ...theme.typography.heading, fontSize: 20, marginTop: 24 }]}>LOCKED ({lockedList.length})</Text>
-          {lockedList.map(ach => {
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color: theme.colors.text,
+                ...theme.typography.heading,
+                fontSize: 20,
+                marginTop: 24,
+              },
+            ]}
+          >
+            LOCKED ({lockedList.length})
+          </Text>
+          {lockedList.map((ach) => {
             const prog = getProgress(ach.id);
             return (
               <Card key={ach.id} style={[styles.achCard, { opacity: 0.6 }]} padding="md">
                 <View style={styles.achRow}>
-                  <View style={[styles.achIconContainer, { backgroundColor: theme.colors.surface }]}>
-                    <Ionicons name={ach.icon as React.ComponentProps<typeof Ionicons>['name']} size={24} color={theme.colors.muted} />
+                  <View
+                    style={[styles.achIconContainer, { backgroundColor: theme.colors.surface }]}
+                  >
+                    <Ionicons
+                      name={ach.icon as React.ComponentProps<typeof Ionicons>['name']}
+                      size={24}
+                      color={theme.colors.muted}
+                    />
                   </View>
                   <View style={styles.achInfo}>
                     <View style={styles.achNameRow}>
-                      <Text style={[styles.achName, { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>{ach.name}</Text>
+                      <Text
+                        style={[
+                          styles.achName,
+                          {
+                            color: theme.colors.text,
+                            ...theme.typography.body,
+                            fontWeight: 'bold',
+                          },
+                        ]}
+                      >
+                        {ach.name}
+                      </Text>
                       <AchievementBadge kind="one_time" />
                     </View>
-                    <Text style={[styles.achDesc, { color: theme.colors.muted, ...theme.typography.caption }]}>{ach.description}</Text>
+                    <Text
+                      style={[
+                        styles.achDesc,
+                        { color: theme.colors.muted, ...theme.typography.caption },
+                      ]}
+                    >
+                      {ach.description}
+                    </Text>
                     <View style={styles.achProgressRow}>
-                      <View style={[styles.achProgressBarBg, { backgroundColor: theme.colors.surface }]}>
-                        <View style={[styles.achProgressBarFill, { backgroundColor: theme.colors.muted, width: `${prog.percent}%` }]} />
+                      <View
+                        style={[styles.achProgressBarBg, { backgroundColor: theme.colors.surface }]}
+                      >
+                        <View
+                          style={[
+                            styles.achProgressBarFill,
+                            { backgroundColor: theme.colors.muted, width: `${prog.percent}%` },
+                          ]}
+                        />
                       </View>
-                      <Text style={[styles.achProgressText, { color: theme.colors.muted, ...theme.typography.caption, marginLeft: 8 }]}>
+                      <Text
+                        style={[
+                          styles.achProgressText,
+                          { color: theme.colors.muted, ...theme.typography.caption, marginLeft: 8 },
+                        ]}
+                      >
                         {prog.current} / {prog.target}
                       </Text>
                     </View>
@@ -545,8 +928,7 @@ const styles = StyleSheet.create({
     paddingTop: 48,
     paddingBottom: 16,
   },
-  headerTitle: {
-  },
+  headerTitle: {},
   toggleContainer: {
     flexDirection: 'row',
     paddingHorizontal: 24,
@@ -556,30 +938,34 @@ const styles = StyleSheet.create({
     marginRight: 24,
     paddingVertical: 8,
   },
-  toggleText: { 
-  },
+  toggleText: {},
   list: { paddingHorizontal: 24, paddingBottom: 40 },
   card: {
     marginBottom: 16,
   },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
   title: { flex: 1, marginRight: 8 },
-  date: { },
+  date: {},
   stats: { flexDirection: 'row', gap: 24 },
   statItem: { alignItems: 'flex-start' },
   statValue: { marginBottom: 2 },
-  statLabel: { },
+  statLabel: {},
   content: { paddingHorizontal: 24, paddingBottom: 40 },
   sectionTitle: { marginBottom: 16 },
   chipScroll: { marginBottom: 24 },
   chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8 },
-  chipText: { },
+  chipText: {},
   prHighlight: {
     alignItems: 'flex-start',
     marginBottom: 24,
   },
   prHighlightLabel: { marginBottom: 8 },
-  prHighlightValue: { },
+  prHighlightValue: {},
   chartContainer: { borderRadius: 16, padding: 16, borderWidth: 1, alignItems: 'center' },
   chartTitle: { alignSelf: 'flex-start', marginBottom: 16 },
   levelCard: {
@@ -591,10 +977,8 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     marginBottom: 16,
   },
-  levelTitle: {
-  },
-  xpText: {
-  },
+  levelTitle: {},
+  xpText: {},
   progressBarBg: {
     height: 8,
     borderRadius: 4,
@@ -604,8 +988,7 @@ const styles = StyleSheet.create({
   progressBarFill: {
     height: '100%',
   },
-  xpSub: {
-  },
+  xpSub: {},
   achCard: {
     marginBottom: 12,
   },
@@ -671,8 +1054,7 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 2,
   },
-  achProgressText: {
-  },
+  achProgressText: {},
   summaryOverlay: {
     flex: 1,
     backgroundColor: 'rgba(11, 11, 15, 0.7)',
@@ -743,8 +1125,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
-  summaryExDetail: {
-  },
+  summaryExDetail: {},
   summaryDetailBtn: {
     paddingVertical: 16,
     borderRadius: 12,

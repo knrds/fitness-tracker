@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert, Platform, Share } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  Alert,
+  Platform,
+  Share,
+} from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
@@ -21,8 +30,8 @@ export default function WorkoutDetailScreen() {
   const isImperial = profile.preferredUnits === 'imperial';
 
   const [saveModalVisible, setSaveModalVisible] = useState(false);
-  
-  const session = sessions.find(s => s.id === id);
+
+  const session = sessions.find((s) => s.id === id);
 
   if (!session) {
     return (
@@ -38,7 +47,7 @@ export default function WorkoutDetailScreen() {
       month: 'long',
       day: 'numeric',
       hour: 'numeric',
-      minute: '2-digit'
+      minute: '2-digit',
     }).format(new Date(date));
   };
 
@@ -51,7 +60,7 @@ export default function WorkoutDetailScreen() {
   };
 
   const mapToTemplateExercises = (sessionExercises: SessionExercise[]): TemplateExercise[] => {
-    return sessionExercises.map(ex => {
+    return sessionExercises.map((ex) => {
       const firstSet = ex.sets[0];
       return {
         id: Crypto.randomUUID(),
@@ -76,18 +85,22 @@ export default function WorkoutDetailScreen() {
       if (Platform.OS === 'web') {
         if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
           const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-          if (confirmFn?.("An active workout is already in progress. Do you want to discard it and repeat this workout instead?")) {
+          if (
+            confirmFn?.(
+              'An active workout is already in progress. Do you want to discard it and repeat this workout instead?',
+            )
+          ) {
             start();
           }
         }
       } else {
         Alert.alert(
-          "Workout In Progress",
-          "An active workout is already in progress. Do you want to discard it and repeat this workout instead?",
+          'Workout In Progress',
+          'An active workout is already in progress. Do you want to discard it and repeat this workout instead?',
           [
-            { text: "Cancel", style: "cancel" },
-            { text: "Discard & Start", style: "destructive", onPress: start }
-          ]
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Discard & Start', style: 'destructive', onPress: start },
+          ],
         );
       }
     } else {
@@ -151,12 +164,15 @@ export default function WorkoutDetailScreen() {
           <Text style={styles.title}>{session.name}</Text>
           <Text style={styles.date}>{formatDate(session.startedAt)}</Text>
           <Text style={styles.duration}>Duration: {formatDuration(session.durationSeconds)}</Text>
-          
+
           <View style={styles.actionRow}>
             <Pressable style={styles.actionBtn} onPress={handleRepeatWorkout}>
               <Text style={styles.actionBtnText}>Repeat</Text>
             </Pressable>
-            <Pressable style={[styles.actionBtn, styles.saveBtn]} onPress={() => setSaveModalVisible(true)}>
+            <Pressable
+              style={[styles.actionBtn, styles.saveBtn]}
+              onPress={() => setSaveModalVisible(true)}
+            >
               <Text style={styles.saveBtnText}>Template</Text>
             </Pressable>
             <Pressable style={[styles.actionBtn, styles.shareBtn]} onPress={handleShareWorkout}>
@@ -168,20 +184,25 @@ export default function WorkoutDetailScreen() {
         <Text style={styles.sectionTitle}>Exercises</Text>
 
         {session.exercises.map((ex, index) => {
-          const exerciseDef = exercises.find(e => e.id === ex.exerciseId);
-          const completedSets = ex.sets.filter(s => s.completed);
-          const volumeKg = completedSets.reduce((sum, s) => sum + (s.weight || 0) * (s.reps || 0), 0);
+          const exerciseDef = exercises.find((e) => e.id === ex.exerciseId);
+          const completedSets = ex.sets.filter((s) => s.completed);
+          const volumeKg = completedSets.reduce(
+            (sum, s) => sum + (s.weight || 0) * (s.reps || 0),
+            0,
+          );
           const volume = isImperial ? Math.round(volumeKg * 2.20462) : volumeKg;
-          
+
           return (
             <View key={ex.id} style={styles.card}>
-              <Text style={styles.exName}>{index + 1}. {exerciseDef?.name || 'Unknown Exercise'}</Text>
+              <Text style={styles.exName}>
+                {index + 1}. {exerciseDef?.name || 'Unknown Exercise'}
+              </Text>
               {volume > 0 && (
                 <Text style={styles.volumeText}>
                   Volume: {volume.toLocaleString()} {isImperial ? 'lbs' : 'kg'}
                 </Text>
               )}
-              
+
               <View style={styles.tableHeader}>
                 <Text style={styles.colSet}>Set</Text>
                 <Text style={styles.colWeight}>{isImperial ? 'lbs' : 'kg'}</Text>
@@ -189,8 +210,11 @@ export default function WorkoutDetailScreen() {
                 <Text style={styles.colRpe}>RPE</Text>
               </View>
 
-              {ex.sets.map(set => (
-                <View key={set.id} style={[styles.tableRow, !set.completed && styles.incompleteRow]}>
+              {ex.sets.map((set) => (
+                <View
+                  key={set.id}
+                  style={[styles.tableRow, !set.completed && styles.incompleteRow]}
+                >
                   <Text style={styles.colSet}>{set.setNumber}</Text>
                   <Text style={styles.colWeight}>{displayWeight(set.weight)}</Text>
                   <Text style={styles.colReps}>{set.reps || '-'}</Text>
@@ -226,7 +250,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2A2B31',
   },
-  title: { fontSize: 22, fontFamily: 'SpaceGrotesk_700Bold', color: '#F4F5F7', marginBottom: 4, textTransform: 'uppercase' },
+  title: {
+    fontSize: 22,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#F4F5F7',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
   date: { fontSize: 14, fontFamily: 'Manrope_500Medium', color: '#8A8D9F', marginBottom: 8 },
   duration: { fontSize: 16, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#F4F5F7' },
   actionRow: {
@@ -265,7 +295,13 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 14,
   },
-  sectionTitle: { fontSize: 18, fontFamily: 'SpaceGrotesk_700Bold', color: '#90D5FF', marginBottom: 12, textTransform: 'uppercase' },
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#90D5FF',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+  },
   card: {
     backgroundColor: '#1A1C23',
     borderRadius: 16,
@@ -274,8 +310,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2A2B31',
   },
-  exName: { fontSize: 16, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#F4F5F7', marginBottom: 4 },
-  volumeText: { fontSize: 14, color: '#90D5FF', fontFamily: 'SpaceGrotesk_700Bold', marginBottom: 12 },
+  exName: {
+    fontSize: 16,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    color: '#F4F5F7',
+    marginBottom: 4,
+  },
+  volumeText: {
+    fontSize: 14,
+    color: '#90D5FF',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    marginBottom: 12,
+  },
   tableHeader: {
     flexDirection: 'row',
     borderBottomWidth: 1,

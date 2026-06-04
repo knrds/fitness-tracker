@@ -49,9 +49,7 @@ export const Badge: React.FC<BadgeProps> = ({ label, variant = 'default', style 
         style,
       ]}
     >
-      <Text style={[styles.text, { color: textColor, ...theme.typography.caption }]}>
-        {label}
-      </Text>
+      <Text style={[styles.text, { color: textColor, ...theme.typography.caption }]}>{label}</Text>
     </View>
   );
 };

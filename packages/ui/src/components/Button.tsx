@@ -1,5 +1,12 @@
 import React from 'react';
-import { StyleSheet, Pressable, PressableProps, Text, ActivityIndicator, Platform } from 'react-native';
+import {
+  StyleSheet,
+  Pressable,
+  PressableProps,
+  Text,
+  ActivityIndicator,
+  Platform,
+} from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -104,9 +111,7 @@ export const Button: React.FC<ButtonProps> = ({
       {isLoading ? (
         <ActivityIndicator color={textColor} />
       ) : (
-        <Text style={[styles.text, { color: textColor, ...theme.typography.button }]}>
-          {title}
-        </Text>
+        <Text style={[styles.text, { color: textColor, ...theme.typography.button }]}>{title}</Text>
       )}
     </AnimatedPressable>
   );

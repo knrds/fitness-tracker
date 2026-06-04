@@ -17,39 +17,44 @@ const MUSCLE_FILTERS = [
   { id: MuscleGroup.FrontDelts, label: 'Shoulders' },
   { id: MuscleGroup.Biceps, label: 'Arms' },
   { id: MuscleGroup.Abs, label: 'Core' },
-  { id: MuscleGroup.FullBody, label: 'Full Body' }
+  { id: MuscleGroup.FullBody, label: 'Full Body' },
 ];
 
 export default function ExercisesScreen() {
   const theme = useTheme();
-  const { filteredExercises, favoriteIds, toggleFavorite, searchQuery, setSearchQuery } = useExerciseStore();
+  const { filteredExercises, favoriteIds, toggleFavorite, searchQuery, setSearchQuery } =
+    useExerciseStore();
   const historyStore = useHistoryStore();
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'most_used' | 'recently_used'>('name_asc');
+  const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'most_used' | 'recently_used'>(
+    'name_asc',
+  );
   const [showSortDropdown, setShowSortDropdown] = useState(false);
 
   // Compute frequencies and recency
   const { exerciseUsageCount, exerciseLastUsed } = React.useMemo(() => {
     const counts: Record<string, number> = {};
     const lastUsed: Record<string, number> = {};
-    
+
     // Chronological processing so latest date overrides older ones
-    const sortedHistory = [...historyStore.sessions].sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime());
-    
-    sortedHistory.forEach(session => {
+    const sortedHistory = [...historyStore.sessions].sort(
+      (a, b) => a.startedAt.getTime() - b.startedAt.getTime(),
+    );
+
+    sortedHistory.forEach((session) => {
       const time = session.startedAt.getTime();
-      session.exercises.forEach(ex => {
+      session.exercises.forEach((ex) => {
         counts[ex.exerciseId] = (counts[ex.exerciseId] || 0) + 1;
         lastUsed[ex.exerciseId] = time;
       });
     });
-    
+
     return { exerciseUsageCount: counts, exerciseLastUsed: lastUsed };
   }, [historyStore.sessions]);
 
   const displayExercises = filteredExercises
-    .filter(ex => {
+    .filter((ex) => {
       if (selectedMuscle === 'favorites') {
         return favoriteIds.includes(ex.id);
       }
@@ -81,7 +86,9 @@ export default function ExercisesScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.colors.text, ...theme.typography.heading }]}>
+        <Text
+          style={[styles.headerTitle, { color: theme.colors.text, ...theme.typography.heading }]}
+        >
           EXERCISE LIBRARY
         </Text>
         <Pressable style={styles.createBtn} onPress={() => setShowCustomModal(true)}>
@@ -91,8 +98,18 @@ export default function ExercisesScreen() {
 
       <View style={[styles.searchContainer, { zIndex: 100 }]}>
         <View style={styles.searchRow}>
-          <View style={[styles.searchBar, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, flex: 1 }]}>
-            <Ionicons name="search" size={20} color={theme.colors.muted} style={styles.searchIcon} />
+          <View
+            style={[
+              styles.searchBar,
+              { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, flex: 1 },
+            ]}
+          >
+            <Ionicons
+              name="search"
+              size={20}
+              color={theme.colors.muted}
+              style={styles.searchIcon}
+            />
             <TextInput
               style={[styles.searchInput, { color: theme.colors.text, ...theme.typography.body }]}
               placeholder="Search exercises..."
@@ -101,9 +118,12 @@ export default function ExercisesScreen() {
               placeholderTextColor={theme.colors.muted}
             />
           </View>
-          <Pressable 
-            style={[styles.sortBtn, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} 
-            onPress={() => setShowSortDropdown(prev => !prev)}
+          <Pressable
+            style={[
+              styles.sortBtn,
+              { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+            ]}
+            onPress={() => setShowSortDropdown((prev) => !prev)}
             testID="sort-exercises-btn"
           >
             <Ionicons name="swap-vertical" size={20} color={theme.colors.primary} />
@@ -111,42 +131,58 @@ export default function ExercisesScreen() {
         </View>
 
         {showSortDropdown && (
-          <View style={[styles.sortDropdown, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-            {(([
-              { id: 'name_asc', label: 'Name (A-Z)', icon: 'text' },
-              { id: 'name_desc', label: 'Name (Z-A)', icon: 'text' },
-              { id: 'most_used', label: 'Most Used', icon: 'barbell' },
-              { id: 'recently_used', label: 'Recently Used', icon: 'time' },
-            ] as const) as ReadonlyArray<{ id: typeof sortBy; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }>).map(opt => (
+          <View
+            style={[
+              styles.sortDropdown,
+              { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+            ]}
+          >
+            {(
+              [
+                { id: 'name_asc', label: 'Name (A-Z)', icon: 'text' },
+                { id: 'name_desc', label: 'Name (Z-A)', icon: 'text' },
+                { id: 'most_used', label: 'Most Used', icon: 'barbell' },
+                { id: 'recently_used', label: 'Recently Used', icon: 'time' },
+              ] as const as ReadonlyArray<{
+                id: typeof sortBy;
+                label: string;
+                icon: React.ComponentProps<typeof Ionicons>['name'];
+              }>
+            ).map((opt) => (
               <Pressable
                 key={opt.id}
                 style={[
                   styles.sortOption,
-                  sortBy === opt.id && { backgroundColor: 'rgba(144, 213, 255, 0.1)' }
+                  sortBy === opt.id && { backgroundColor: 'rgba(144, 213, 255, 0.1)' },
                 ]}
                 onPress={() => {
                   setSortBy(opt.id);
                   setShowSortDropdown(false);
                 }}
               >
-                <Ionicons 
-                  name={opt.icon} 
-                  size={18} 
-                  color={sortBy === opt.id ? theme.colors.primary : theme.colors.muted} 
+                <Ionicons
+                  name={opt.icon}
+                  size={18}
+                  color={sortBy === opt.id ? theme.colors.primary : theme.colors.muted}
                 />
-                <Text 
+                <Text
                   style={[
-                    styles.sortOptionText, 
-                    { 
+                    styles.sortOptionText,
+                    {
                       color: sortBy === opt.id ? theme.colors.primary : theme.colors.text,
-                      fontFamily: sortBy === opt.id ? 'SpaceGrotesk_700Bold' : 'Manrope_500Medium'
-                    }
+                      fontFamily: sortBy === opt.id ? 'SpaceGrotesk_700Bold' : 'Manrope_500Medium',
+                    },
                   ]}
                 >
                   {opt.label}
                 </Text>
                 {sortBy === opt.id && (
-                  <Ionicons name="checkmark" size={16} color={theme.colors.primary} style={{ marginLeft: 'auto' }} />
+                  <Ionicons
+                    name="checkmark"
+                    size={16}
+                    color={theme.colors.primary}
+                    style={{ marginLeft: 'auto' }}
+                  />
                 )}
               </Pressable>
             ))}
@@ -162,7 +198,8 @@ export default function ExercisesScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.filterList}
           renderItem={({ item }) => {
-            const isSelected = (selectedMuscle === null && item.id === 'all') || selectedMuscle === item.id;
+            const isSelected =
+              (selectedMuscle === null && item.id === 'all') || selectedMuscle === item.id;
             return (
               <Pressable
                 style={[
@@ -170,7 +207,7 @@ export default function ExercisesScreen() {
                   {
                     backgroundColor: isSelected ? theme.colors.surface : 'transparent',
                     borderColor: isSelected ? theme.colors.primary : theme.colors.muted,
-                  }
+                  },
                 ]}
                 onPress={() => setSelectedMuscle(item.id === 'all' ? null : item.id)}
               >
@@ -180,7 +217,7 @@ export default function ExercisesScreen() {
                     {
                       color: isSelected ? theme.colors.primary : theme.colors.muted,
                       ...theme.typography.caption,
-                    }
+                    },
                   ]}
                 >
                   {item.label}
@@ -196,24 +233,21 @@ export default function ExercisesScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
-          <ExerciseRow 
-            exercise={item} 
+          <ExerciseRow
+            exercise={item}
             isFavorite={favoriteIds.includes(item.id)}
             onToggleFavorite={toggleFavorite}
           />
         )}
         ListEmptyComponent={
-          <EmptyState 
-            title="0 EXERCISES FOUND" 
+          <EmptyState
+            title="0 EXERCISES FOUND"
             description="Adjust your search or filters to find what you're looking for."
           />
         }
       />
 
-      <CustomExerciseModal 
-        visible={showCustomModal} 
-        onClose={() => setShowCustomModal(false)} 
-      />
+      <CustomExerciseModal visible={showCustomModal} onClose={() => setShowCustomModal(false)} />
     </View>
   );
 }
@@ -230,8 +264,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginBottom: 16,
   },
-  headerTitle: {
-  },
+  headerTitle: {},
   createBtn: {
     padding: 8,
   },
@@ -269,8 +302,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  filterPillText: {
-  },
+  filterPillText: {},
   listContent: {
     paddingHorizontal: 24,
     paddingBottom: 40,

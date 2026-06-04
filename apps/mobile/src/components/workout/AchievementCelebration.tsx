@@ -29,14 +29,31 @@ export const AchievementCelebration = () => {
           ]}
           onPress={(e) => e.stopPropagation()}
         >
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
             {levelUpTo !== null && (
               <View style={styles.levelUpContainer}>
-                <View style={[styles.iconBadge, { backgroundColor: 'rgba(144, 213, 255, 0.12)', borderColor: theme.colors.primary }]}>
+                <View
+                  style={[
+                    styles.iconBadge,
+                    {
+                      backgroundColor: 'rgba(144, 213, 255, 0.12)',
+                      borderColor: theme.colors.primary,
+                    },
+                  ]}
+                >
                   <Ionicons name="trophy" size={44} color={theme.colors.primary} />
                 </View>
-                <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>Level Up</Text>
-                <Text style={[styles.levelValue, { color: theme.colors.primary }]}>LEVEL {levelUpTo}</Text>
+                <Text
+                  style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}
+                >
+                  Level Up
+                </Text>
+                <Text style={[styles.levelValue, { color: theme.colors.primary }]}>
+                  LEVEL {levelUpTo}
+                </Text>
                 <Text style={[styles.desc, { color: theme.colors.muted }]}>
                   Your dedication is paying off. Keep crushing it.
                 </Text>
@@ -49,7 +66,9 @@ export const AchievementCelebration = () => {
 
             {newlyUnlocked.length > 0 && (
               <View style={styles.achievementsContainer}>
-                <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
+                <Text
+                  style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}
+                >
                   Achievement Unlocked
                 </Text>
                 {newlyUnlocked.map((id) => {
@@ -58,18 +77,25 @@ export const AchievementCelebration = () => {
                   return (
                     <View
                       key={id}
-                      style={[styles.achCard, { backgroundColor: theme.colors.background, borderColor: GOLD }]}
+                      style={[
+                        styles.achCard,
+                        { backgroundColor: theme.colors.background, borderColor: GOLD },
+                      ]}
                     >
                       <View style={[styles.achIcon, { backgroundColor: 'rgba(255,176,32,0.12)' }]}>
                         <Ionicons
-                           name={ach.icon as React.ComponentProps<typeof Ionicons>['name']}
+                          name={ach.icon as React.ComponentProps<typeof Ionicons>['name']}
                           size={28}
                           color={GOLD}
                         />
                       </View>
                       <View style={styles.achInfo}>
-                        <Text style={[styles.achName, { color: theme.colors.text }]}>{ach.name}</Text>
-                        <Text style={[styles.achDesc, { color: theme.colors.muted }]}>{ach.description}</Text>
+                        <Text style={[styles.achName, { color: theme.colors.text }]}>
+                          {ach.name}
+                        </Text>
+                        <Text style={[styles.achDesc, { color: theme.colors.muted }]}>
+                          {ach.description}
+                        </Text>
                         <Text style={[styles.achReward, { color: GOLD }]}>+{ach.xpReward} XP</Text>
                       </View>
                     </View>
@@ -79,10 +105,18 @@ export const AchievementCelebration = () => {
             )}
 
             <Pressable
-              style={[styles.button, { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md }]}
+              style={[
+                styles.button,
+                { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md },
+              ]}
               onPress={clearCelebrations}
             >
-              <Text style={[styles.buttonText, { color: theme.colors.background, ...theme.typography.button }]}>
+              <Text
+                style={[
+                  styles.buttonText,
+                  { color: theme.colors.background, ...theme.typography.button },
+                ]}
+              >
                 Let&apos;s Go
               </Text>
             </Pressable>

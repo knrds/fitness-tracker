@@ -6,7 +6,7 @@ jest.mock('react-native-mmkv', () => ({
     set: jest.fn(),
     getString: jest.fn(),
     delete: jest.fn(),
-  }))
+  })),
 }));
 
 describe('historyStore', () => {
@@ -34,16 +34,22 @@ describe('historyStore', () => {
 
   it('calculates streaks correctly', () => {
     const today = new Date();
-    
+
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
-    
+
     const twoDaysAgo = new Date(today);
     twoDaysAgo.setDate(today.getDate() - 2);
 
-    useHistoryStore.getState().addSession({ id: 's1', startedAt: today, exercises: [] } as unknown as WorkoutSession);
-    useHistoryStore.getState().addSession({ id: 's2', startedAt: yesterday, exercises: [] } as unknown as WorkoutSession);
-    useHistoryStore.getState().addSession({ id: 's3', startedAt: twoDaysAgo, exercises: [] } as unknown as WorkoutSession);
+    useHistoryStore
+      .getState()
+      .addSession({ id: 's1', startedAt: today, exercises: [] } as unknown as WorkoutSession);
+    useHistoryStore
+      .getState()
+      .addSession({ id: 's2', startedAt: yesterday, exercises: [] } as unknown as WorkoutSession);
+    useHistoryStore
+      .getState()
+      .addSession({ id: 's3', startedAt: twoDaysAgo, exercises: [] } as unknown as WorkoutSession);
 
     expect(useHistoryStore.getState().getStreak()).toBe(3);
   });
@@ -58,15 +64,15 @@ describe('historyStore', () => {
           sets: [
             { completed: true, weight: 100, reps: 5 },
             { completed: true, weight: 110, reps: 3 }, // PR
-            { completed: false, weight: 120, reps: 1 } // Ignored
-          ]
-        }
-      ]
+            { completed: false, weight: 120, reps: 1 }, // Ignored
+          ],
+        },
+      ],
     } as unknown as WorkoutSession;
 
     useHistoryStore.getState().addSession(session);
     const prs = useHistoryStore.getState().getPRs();
-    
+
     expect(prs['ex-1']).toBe(110);
   });
 });

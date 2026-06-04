@@ -6,7 +6,7 @@ jest.mock('react-native-mmkv', () => ({
     set: jest.fn(),
     getString: jest.fn(),
     delete: jest.fn(),
-  }))
+  })),
 }));
 
 describe('exerciseStore', () => {
@@ -31,16 +31,22 @@ describe('exerciseStore', () => {
     const state = useExerciseStore.getState();
     expect(state.searchQuery).toBe('Bench Press');
     expect(state.filteredExercises.length).toBeGreaterThan(0);
-    expect(state.filteredExercises.every(ex => ex.name.toLowerCase().includes('bench press'))).toBe(true);
+    expect(
+      state.filteredExercises.every((ex) => ex.name.toLowerCase().includes('bench press')),
+    ).toBe(true);
   });
 
   it('should set muscle group filter', () => {
     useExerciseStore.getState().setFilter(MuscleGroup.Chest, null);
     const state = useExerciseStore.getState();
     expect(state.selectedMuscleGroup).toBe(MuscleGroup.Chest);
-    expect(state.filteredExercises.every(ex => 
-      ex.primaryMuscles.includes(MuscleGroup.Chest) || ex.secondaryMuscles.includes(MuscleGroup.Chest)
-    )).toBe(true);
+    expect(
+      state.filteredExercises.every(
+        (ex) =>
+          ex.primaryMuscles.includes(MuscleGroup.Chest) ||
+          ex.secondaryMuscles.includes(MuscleGroup.Chest),
+      ),
+    ).toBe(true);
   });
 
   it('should toggle favorites', () => {

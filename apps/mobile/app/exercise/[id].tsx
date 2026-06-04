@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#C6FF00',
+    color: '#90D5FF',
     marginBottom: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#C6FF00',
+    backgroundColor: '#90D5FF',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -479,10 +479,10 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   actionButtonActive: {
-    backgroundColor: '#C6FF00',
+    backgroundColor: '#90D5FF',
   },
   actionButtonStart: {
-    backgroundColor: '#C6FF00',
+    backgroundColor: '#90D5FF',
   },
   actionButtonPressed: {
     opacity: 0.85,
@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   playOverlayText: {
-    color: '#C6FF00',
+    color: '#90D5FF',
     fontSize: 12,
     fontFamily: 'SpaceGrotesk_700Bold',
   },

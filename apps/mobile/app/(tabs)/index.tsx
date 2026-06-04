@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable, Image } from 'react-native';
 import { useRouter, Href } from 'expo-router';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useProfileStore } from '../../src/stores/profileStore';
@@ -30,6 +30,14 @@ export default function HomeScreen() {
     router.push('/workout/session');
   };
 
+  // Profile avatar initials
+  const initials = (profile.displayName || 'U')
+    .split(' ')
+    .map(w => w.charAt(0))
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
   // Logic for Weekly Consistency Chart
   const today = new Date();
   const last7Days = Array.from({ length: 7 }).map((_, i) => {
@@ -50,38 +58,50 @@ export default function HomeScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]} contentContainerStyle={styles.content}>
-      {/* Top Header */}
-      <View style={styles.headerRow}>
-        <View>
-          <Text style={[{ color: theme.colors.muted, marginBottom: 4 }, theme.typography.caption]}>
-            READY TO GRIND,
-          </Text>
-          <Text style={[{ color: theme.colors.text }, theme.typography.heading]}>
-            {profile.displayName || 'ATHLETE'}
-          </Text>
-        </View>
-        <Pressable 
-          onPress={() => router.push('/profile' as Href)}
-        >
-          <View style={styles.readinessContainer}>
-            <Text style={[{ color: theme.colors.primary, fontSize: 32, lineHeight: 36 }, theme.typography.display]}>
-              {streak}
+      {/* Top Header — entire row tappable to navigate to profile */}
+      <Pressable 
+        style={styles.headerRow} 
+        onPress={() => router.push('/profile' as Href)}
+      >
+        {/* Profile Avatar */}
+        <View style={styles.headerLeft}>
+          {profile.profileImageUri ? (
+            <Image 
+              source={{ uri: profile.profileImageUri }} 
+              style={[styles.avatar, { borderColor: theme.colors.primary }]} 
+            />
+          ) : (
+            <View style={[styles.avatar, styles.avatarFallback, { borderColor: theme.colors.primary, backgroundColor: theme.colors.surface }]}>
+              <Text style={[styles.avatarInitials, { color: theme.colors.primary }]}>{initials}</Text>
+            </View>
+          )}
+          <View>
+            <Text style={[{ color: theme.colors.muted, marginBottom: 2 }, theme.typography.caption]}>
+              READY TO GRIND,
             </Text>
-            <Text style={[{ color: theme.colors.muted }, theme.typography.caption]}>
-              STREAK 🔥
+            <Text style={[{ color: theme.colors.text }, theme.typography.heading]}>
+              {profile.displayName || 'ATHLETE'}
             </Text>
           </View>
-        </Pressable>
-      </View>
+        </View>
+        <View style={styles.readinessContainer}>
+          <Text style={[{ color: theme.colors.primary, fontSize: 32, lineHeight: 36 }, theme.typography.display]}>
+            {streak}
+          </Text>
+          <Text style={[{ color: theme.colors.muted }, theme.typography.caption]}>
+            STREAK 🔥
+          </Text>
+        </View>
+      </Pressable>
 
       <View style={styles.levelContainer}>
         <Text style={[styles.levelText, { color: theme.colors.text, ...theme.typography.caption }]}>LEVEL {level}</Text>
-        <View style={[styles.xpBarBackground, { backgroundColor: theme.colors.muted }]}>
+        <View style={[styles.xpBarBackground, { backgroundColor: theme.colors.border }]}>
           <View style={[styles.xpBarFill, { backgroundColor: theme.colors.primary, width: `${(xp % 500) / 5}%` }]} />
         </View>
       </View>
 
-      {/* "Heute" Card */}
+      {/* "Today" Card */}
       <Text style={[{ color: theme.colors.text, fontSize: 20, marginTop: 16, marginBottom: 16 }, theme.typography.heading]}>TODAY</Text>
       <Card style={styles.todayCard} padding="lg">
         {activeProgram ? (
@@ -129,13 +149,20 @@ export default function HomeScreen() {
               <View key={idx} style={styles.dayColumn}>
                 <View style={[
                   styles.dayCircle,
-                  { 
-                    backgroundColor: isTrained ? theme.colors.primary : theme.colors.muted,
-                    borderColor: isToday ? theme.colors.text : 'transparent',
-                    borderWidth: isToday ? 2 : 0,
-                  }
+                  isTrained 
+                    ? { backgroundColor: theme.colors.primary }
+                    : { backgroundColor: 'transparent', borderColor: theme.colors.border, borderWidth: 2 },
+                  isToday && { 
+                    borderColor: theme.colors.primary,
+                    borderWidth: 3,
+                    ...(!isTrained && { backgroundColor: 'rgba(144, 213, 255, 0.1)' }),
+                  },
                 ]} />
-                <Text style={[{ color: theme.colors.muted, ...theme.typography.caption, fontSize: 10, marginTop: 8 }]}>
+                <Text style={[
+                  { ...theme.typography.caption, fontSize: 10, marginTop: 8 },
+                  { color: isToday ? theme.colors.primary : theme.colors.muted },
+                  isToday && { fontFamily: 'SpaceGrotesk_700Bold' },
+                ]}>
                   {['S', 'M', 'T', 'W', 'T', 'F', 'S'][date.getDay()]}
                 </Text>
               </View>
@@ -189,18 +216,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  greetingText: {
-    marginBottom: 4,
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    flex: 1,
   },
-  profileNameText: {
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+  },
+  avatarFallback: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitials: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 18,
   },
   readinessContainer: {
     alignItems: 'flex-end',
-  },
-  readinessScore: {
-    lineHeight: 36,
-  },
-  readinessLabel: {
   },
   levelContainer: {
     flexDirection: 'row',
@@ -219,15 +256,8 @@ const styles = StyleSheet.create({
   xpBarFill: {
     height: '100%',
   },
-  sectionTitle: {
-    marginBottom: 16,
-    marginTop: 16,
-  },
   todayCard: {
     marginBottom: 32,
-  },
-  todayCardTitle: {
-    marginBottom: 8,
   },
   consistencyCard: {
     marginBottom: 32,
@@ -241,9 +271,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dayCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
   },
   recentActivityCard: {
     marginBottom: 16,

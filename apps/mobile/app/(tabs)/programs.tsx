@@ -308,8 +308,8 @@ export default function ProgramListScreen() {
               </Pressable>
             ) : (
               <Pressable style={styles.menuItem} onPress={() => { if (menuProgram) setActiveProgram(menuProgram.id); setMenuProgramId(null); }}>
-                <Ionicons name="checkmark-circle-outline" size={20} color="#C6FF00" />
-                <Text style={[styles.menuItemText, { color: '#C6FF00' }]}>Set Active</Text>
+                <Ionicons name="checkmark-circle-outline" size={20} color="#90D5FF" />
+                <Text style={[styles.menuItemText, { color: '#90D5FF' }]}>Set Active</Text>
               </Pressable>
             )}
             <Pressable style={styles.menuItem} onPress={() => { const id = menuProgram?.id; setMenuProgramId(null); if (id) router.push(`/programs/builder?id=${id}`); }}>
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#C6FF00',
+    backgroundColor: '#90D5FF',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 9999,
@@ -387,19 +387,19 @@ const styles = StyleSheet.create({
   },
   menuItemText: { color: '#F4F5F7', fontFamily: 'SpaceGrotesk_600SemiBold', fontSize: 16 },
   cardActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  btn: { backgroundColor: '#C6FF00', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+  btn: { backgroundColor: '#90D5FF', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   editBtn: { backgroundColor: '#2A2B31', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   deleteBtn: { backgroundColor: 'rgba(239, 68, 68, 0.1)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#ef4444' },
   btnText: { color: '#0B0B0F', fontFamily: 'SpaceGrotesk_700Bold' },
   editBtnText: { color: '#F4F5F7', fontFamily: 'SpaceGrotesk_700Bold' },
   deleteBtnText: { color: '#ef4444', fontFamily: 'SpaceGrotesk_700Bold' },
-  activeLabel: { color: '#C6FF00', fontFamily: 'SpaceGrotesk_700Bold', paddingVertical: 8, paddingHorizontal: 4 },
+  activeLabel: { color: '#90D5FF', fontFamily: 'SpaceGrotesk_700Bold', paddingVertical: 8, paddingHorizontal: 4 },
   empty: { textAlign: 'center', marginTop: 40, color: '#8A8D9F', fontFamily: 'Manrope_500Medium', fontSize: 16 },
   fab: {
     position: 'absolute',
     bottom: 24,
     right: 24,
-    backgroundColor: '#C6FF00',
+    backgroundColor: '#90D5FF',
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2B31',
   },
   createBtn: {
-    backgroundColor: '#C6FF00',
+    backgroundColor: '#90D5FF',
   },
   cancelBtnText: {
     color: '#8A8D9F',
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
   activeBadge: {
     fontSize: 11,
     fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#C6FF00',
+    color: '#90D5FF',
     backgroundColor: '#2A2B31',
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
   calendarTitle: {
     fontSize: 16,
     fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#C6FF00',
+    color: '#90D5FF',
     marginBottom: 10,
     marginTop: 8,
     textTransform: 'uppercase',
@@ -571,8 +571,8 @@ const styles = StyleSheet.create({
     borderColor: '#2A2B31',
   },
   weekTabSelected: {
-    backgroundColor: '#C6FF00',
-    borderColor: '#C6FF00',
+    backgroundColor: '#90D5FF',
+    borderColor: '#90D5FF',
   },
   weekTabText: {
     color: '#8A8D9F',
@@ -621,7 +621,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   startWorkoutBtn: {
-    backgroundColor: '#C6FF00',
+    backgroundColor: '#90D5FF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
@@ -646,7 +646,7 @@ const styles = StyleSheet.create({
   sectionHeaderTitle: {
     fontSize: 18,
     fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#C6FF00',
+    color: '#90D5FF',
     marginBottom: 12,
     textTransform: 'uppercase',
   },

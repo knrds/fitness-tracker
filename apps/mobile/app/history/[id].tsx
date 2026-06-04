@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     flex: 1,
-    backgroundColor: '#C6FF00',
+    backgroundColor: '#90D5FF',
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 14,
   },
-  sectionTitle: { fontSize: 18, fontFamily: 'SpaceGrotesk_700Bold', color: '#C6FF00', marginBottom: 12, textTransform: 'uppercase' },
+  sectionTitle: { fontSize: 18, fontFamily: 'SpaceGrotesk_700Bold', color: '#90D5FF', marginBottom: 12, textTransform: 'uppercase' },
   card: {
     backgroundColor: '#1A1C23',
     borderRadius: 16,
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     borderColor: '#2A2B31',
   },
   exName: { fontSize: 16, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#F4F5F7', marginBottom: 4 },
-  volumeText: { fontSize: 14, color: '#C6FF00', fontFamily: 'SpaceGrotesk_700Bold', marginBottom: 12 },
+  volumeText: { fontSize: 14, color: '#90D5FF', fontFamily: 'SpaceGrotesk_700Bold', marginBottom: 12 },
   tableHeader: {
     flexDirection: 'row',
     borderBottomWidth: 1,

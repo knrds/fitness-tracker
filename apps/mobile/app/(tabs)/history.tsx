@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, ScrollView, Dimensions, Modal } from 'react-native';
 
 import { useRouter } from 'expo-router';
 import { LineChart } from 'react-native-chart-kit';
@@ -56,9 +56,11 @@ export default function HistoryScreen() {
 function HistoryView() {
   const router = useRouter();
   const theme = useTheme();
+  const { exercises: allExercises } = useExerciseStore();
   useHistoryStore((state) => state.sessions);
   const { getSessionsByDateDesc } = useHistoryStore();
   const sessions = getSessionsByDateDesc();
+  const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
@@ -81,7 +83,7 @@ function HistoryView() {
     return (
       <Card 
         style={styles.card} 
-        onPress={() => router.push(`/history/${item.id}` as unknown as Parameters<typeof router.push>[0])}
+        onPress={() => setSelectedSession(item)}
         padding="lg"
       >
         <View style={styles.cardHeader}>
@@ -106,19 +108,99 @@ function HistoryView() {
     );
   };
 
+  const summaryTotalSets = selectedSession?.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0) ?? 0;
+  const summaryTotalVolume = selectedSession?.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed && s.weight).reduce((sSum, s) => sSum + s.weight! * (s.reps || 0), 0), 0) ?? 0;
+
   return (
-    <FlatList
-      data={sessions}
-      keyExtractor={item => item.id}
-      renderItem={renderItem}
-      contentContainerStyle={styles.list}
-      ListEmptyComponent={
-        <EmptyState 
-          title="NO WORKOUTS YET"
-          description="Your completed workouts will appear here."
-        />
-      }
-    />
+    <>
+      <FlatList
+        data={sessions}
+        keyExtractor={item => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          <EmptyState 
+            title="NO WORKOUTS YET"
+            description="Your completed workouts will appear here."
+          />
+        }
+      />
+
+      {/* Workout Summary Popup */}
+      <Modal 
+        visible={selectedSession !== null} 
+        transparent 
+        animationType="slide" 
+        onRequestClose={() => setSelectedSession(null)}
+      >
+        <Pressable style={styles.summaryOverlay} onPress={() => setSelectedSession(null)}>
+          <View style={styles.summarySheet} onStartShouldSetResponder={() => true}>
+            {selectedSession && (
+              <>
+                <View style={styles.summaryGripArea}>
+                  <View style={[styles.summaryGrip, { backgroundColor: theme.colors.border }]} />
+                </View>
+                <Text style={[styles.summaryTitle, { color: theme.colors.text, ...theme.typography.heading }]}>
+                  {selectedSession.name}
+                </Text>
+                <Text style={[styles.summaryDate, { color: theme.colors.muted, ...theme.typography.caption }]}>
+                  {formatDate(selectedSession.startedAt)}
+                </Text>
+                <View style={styles.summaryStatsRow}>
+                  <View style={styles.summaryStat}>
+                    <Text style={[styles.summaryStatValue, { color: theme.colors.primary, ...theme.typography.display }]}>
+                      {formatDuration(selectedSession.durationSeconds)}
+                    </Text>
+                    <Text style={[styles.summaryStatLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>DURATION</Text>
+                  </View>
+                  <View style={styles.summaryStat}>
+                    <Text style={[styles.summaryStatValue, { color: theme.colors.primary, ...theme.typography.display }]}>
+                      {Math.round(summaryTotalVolume)}
+                    </Text>
+                    <Text style={[styles.summaryStatLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>VOLUME</Text>
+                  </View>
+                  <View style={styles.summaryStat}>
+                    <Text style={[styles.summaryStatValue, { color: theme.colors.primary, ...theme.typography.display }]}>
+                      {summaryTotalSets}
+                    </Text>
+                    <Text style={[styles.summaryStatLabel, { color: theme.colors.muted, ...theme.typography.caption }]}>SETS</Text>
+                  </View>
+                </View>
+                <View style={styles.summaryExercises}>
+                  {selectedSession.exercises.map((ex) => {
+                    const exInfo = allExercises.find(e => e.id === ex.exerciseId);
+                    const completedSets = ex.sets.filter(s => s.completed);
+                    return (
+                      <View key={ex.id} style={styles.summaryExRow}>
+                        <Text style={[styles.summaryExName, { color: theme.colors.text, ...theme.typography.body }]}>
+                          {exInfo?.name || 'Unknown'}
+                        </Text>
+                        <Text style={[styles.summaryExDetail, { color: theme.colors.muted, ...theme.typography.caption }]}>
+                          {completedSets.length} sets
+                          {completedSets[0]?.weight ? ` · ${completedSets[0].weight}kg × ${completedSets[0].reps ?? '?'}` : ''}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+                <Pressable
+                  style={[styles.summaryDetailBtn, { backgroundColor: theme.colors.primary }]}
+                  onPress={() => {
+                    const id = selectedSession.id;
+                    setSelectedSession(null);
+                    router.push(`/history/${id}` as unknown as Parameters<typeof router.push>[0]);
+                  }}
+                >
+                  <Text style={[styles.summaryDetailBtnText, { color: theme.colors.background, ...theme.typography.button }]}>
+                    VIEW FULL DETAILS
+                  </Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+        </Pressable>
+      </Modal>
+    </>
   );
 }
 
@@ -470,5 +552,85 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   achProgressText: {
+  },
+  summaryOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(11, 11, 15, 0.7)',
+    justifyContent: 'flex-end',
+  },
+  summarySheet: {
+    backgroundColor: '#1A1C23',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2A2B31',
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+    maxHeight: '70%',
+  },
+  summaryGripArea: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  summaryGrip: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+  },
+  summaryTitle: {
+    fontSize: 22,
+    marginBottom: 4,
+  },
+  summaryDate: {
+    marginBottom: 20,
+  },
+  summaryStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    gap: 12,
+  },
+  summaryStat: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: '#0B0B0F',
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2A2B31',
+  },
+  summaryStatValue: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  summaryStatLabel: {
+    fontSize: 10,
+  },
+  summaryExercises: {
+    marginBottom: 24,
+    gap: 12,
+  },
+  summaryExRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A2B31',
+  },
+  summaryExName: {
+    flex: 1,
+    marginRight: 8,
+  },
+  summaryExDetail: {
+  },
+  summaryDetailBtn: {
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  summaryDetailBtnText: {
+    fontSize: 15,
   },
 });

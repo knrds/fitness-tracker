@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   textArea: { minHeight: 80, textAlignVertical: 'top' },
-  sectionTitle: { fontSize: 20, fontFamily: 'SpaceGrotesk_700Bold', color: '#C6FF00', marginTop: 16, marginBottom: 16, textTransform: 'uppercase' },
+  sectionTitle: { fontSize: 20, fontFamily: 'SpaceGrotesk_700Bold', color: '#90D5FF', marginTop: 16, marginBottom: 16, textTransform: 'uppercase' },
   dayContainer: {
     backgroundColor: '#1A1C23',
     borderRadius: 16,
@@ -177,9 +177,9 @@ const styles = StyleSheet.create({
   },
   workoutName: { fontSize: 16, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#F4F5F7' },
   workoutActions: { flexDirection: 'row', gap: 12 },
-  editText: { color: '#C6FF00', fontFamily: 'SpaceGrotesk_700Bold' },
+  editText: { color: '#90D5FF', fontFamily: 'SpaceGrotesk_700Bold' },
   removeText: { color: '#ef4444', fontFamily: 'SpaceGrotesk_700Bold' },
-  startText: { color: '#C6FF00', fontFamily: 'SpaceGrotesk_700Bold' },
+  startText: { color: '#90D5FF', fontFamily: 'SpaceGrotesk_700Bold' },
   addWorkoutBtn: {
     padding: 12,
     alignItems: 'center',

@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   emptyWorkoutBtn: {
-    backgroundColor: '#C6FF00',
+    backgroundColor: '#90D5FF',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#C6FF00',
+    color: '#90D5FF',
     marginBottom: 12,
     textTransform: 'uppercase',
   },
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   startBtn: {
-    backgroundColor: '#C6FF00',
+    backgroundColor: '#90D5FF',
   },
   startBtnText: {
     color: '#0B0B0F',
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   editBtnText: {
-    color: '#C6FF00',
+    color: '#90D5FF',
     fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 14,
   },

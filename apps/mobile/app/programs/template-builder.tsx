@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: { fontSize: 18, fontFamily: 'SpaceGrotesk_700Bold', color: '#F4F5F7', textTransform: 'uppercase' },
-  saveBtn: { backgroundColor: '#C6FF00', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
+  saveBtn: { backgroundColor: '#90D5FF', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
   saveBtnText: { color: '#0B0B0F', fontFamily: 'SpaceGrotesk_700Bold' },
   content: { padding: 16, paddingBottom: 40 },
   label: { fontSize: 14, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#8A8D9F', marginBottom: 8, textTransform: 'uppercase' },
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     color: '#F4F5F7',
     marginBottom: 16,
   },
-  sectionTitle: { fontSize: 18, fontFamily: 'SpaceGrotesk_700Bold', color: '#C6FF00', marginBottom: 16, textTransform: 'uppercase' },
+  sectionTitle: { fontSize: 18, fontFamily: 'SpaceGrotesk_700Bold', color: '#90D5FF', marginBottom: 16, textTransform: 'uppercase' },
   exerciseCard: {
     backgroundColor: '#1A1C23',
     borderRadius: 16,
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     borderColor: '#2A2B31',
     borderStyle: 'dashed',
   },
-  addExText: { color: '#C6FF00', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 16, textTransform: 'uppercase' },
+  addExText: { color: '#90D5FF', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 16, textTransform: 'uppercase' },
   
   modalContainer: { flex: 1, backgroundColor: '#0B0B0F', paddingTop: 40 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderColor: '#2A2B31' },

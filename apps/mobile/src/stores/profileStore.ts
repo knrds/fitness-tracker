@@ -38,6 +38,7 @@ export interface Profile {
   rirMode?: 'always_on' | 'always_off' | 'selected_exercises';
   rpeEnabledExerciseIds?: string[];
   rirEnabledExerciseIds?: string[];
+  profileImageUri?: string;
 }
 
 export interface ProfileState {
@@ -81,6 +82,7 @@ const profileStateSchema = z.object({
   rirMode: z.enum(['always_on', 'always_off', 'selected_exercises']).optional(),
   rpeEnabledExerciseIds: z.array(z.string()).optional(),
   rirEnabledExerciseIds: z.array(z.string()).optional(),
+  profileImageUri: z.string().optional(),
 });
 
 const profilePersistedSchema = z.object({

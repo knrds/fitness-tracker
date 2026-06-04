@@ -9,10 +9,12 @@ import {
   Alert, 
   Share,
   Modal,
-  SafeAreaView
+  SafeAreaView,
+  Image
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useProfileStore } from '../src/stores/profileStore';
 import { useBodyMetricStore } from '../src/stores/bodyMetricStore';
 import { FitnessGoal, ExperienceLevel, UnitSystem, BiologicalSex } from '@fitness-tracker/domain';
@@ -226,17 +228,64 @@ export default function ProfileScreen() {
     return g.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
 
+  const handlePickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+        base64: true,
+      });
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        if (asset.base64) {
+          const uri = `data:image/jpeg;base64,${asset.base64}`;
+          updateProfile({ profileImageUri: uri });
+        } else if (asset.uri) {
+          updateProfile({ profileImageUri: asset.uri });
+        }
+      }
+    } catch {
+      Alert.alert('Error', 'Could not pick image.');
+    }
+  };
+
+  const profileInitials = (profile.displayName || 'U')
+    .split(' ')
+    .map(w => w.charAt(0))
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={15} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#F4F5F7" />
+          <Ionicons name="arrow-back" size={24} color="#90D5FF" />
         </Pressable>
         <Text style={styles.headerTitle}>Profile & Settings</Text>
         <View style={styles.headerRight} />
       </View>
 
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+        {/* Profile Picture */}
+        <View style={styles.avatarSection}>
+          <Pressable onPress={handlePickImage} style={styles.avatarContainer}>
+            {profile.profileImageUri ? (
+              <Image source={{ uri: profile.profileImageUri }} style={styles.avatarImage} />
+            ) : (
+              <View style={[styles.avatarImage, styles.avatarPlaceholder]}>
+                <Text style={styles.avatarInitials}>{profileInitials}</Text>
+              </View>
+            )}
+            <View style={styles.avatarEditBadge}>
+              <Ionicons name="camera" size={14} color="#0B0B0F" />
+            </View>
+          </Pressable>
+          <Text style={styles.avatarNameText}>{profile.displayName || 'User'}</Text>
+        </View>
+
         {/* Profile Card Info */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>User Info</Text>
@@ -582,7 +631,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#C6FF00',
+    color: '#90D5FF',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 16,
@@ -619,7 +668,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   chipActive: {
-    backgroundColor: '#C6FF00',
+    backgroundColor: '#90D5FF',
   },
   chipText: {
     color: '#8A8D9F',
@@ -630,7 +679,7 @@ const styles = StyleSheet.create({
     color: '#0B0B0F',
   },
   saveBtn: {
-    backgroundColor: '#C6FF00',
+    backgroundColor: '#90D5FF',
     padding: 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -767,7 +816,7 @@ const styles = StyleSheet.create({
   sectionDivider: {
     fontSize: 14,
     fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#C6FF00',
+    color: '#90D5FF',
     marginTop: 20,
     marginBottom: 6,
     textTransform: 'uppercase',
@@ -787,7 +836,7 @@ const styles = StyleSheet.create({
     borderColor: '#2A2B31',
   },
   selectBtnText: {
-    color: '#C6FF00',
+    color: '#90D5FF',
     fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 14,
   },
@@ -797,5 +846,50 @@ const styles = StyleSheet.create({
     marginTop: 6,
     lineHeight: 18,
     fontStyle: 'italic',
+  },
+  avatarSection: {
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingTop: 8,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 12,
+  },
+  avatarImage: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 3,
+    borderColor: '#90D5FF',
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#1A1C23',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitials: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 32,
+    color: '#90D5FF',
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#90D5FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#0B0B0F',
+  },
+  avatarNameText: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 20,
+    color: '#F4F5F7',
+    textTransform: 'uppercase',
   },
 });

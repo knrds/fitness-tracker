@@ -134,7 +134,7 @@ function RootNavigator() {
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: theme.colors.background },
-          headerTintColor: theme.colors.text,
+          headerTintColor: theme.colors.primary,
           headerTitleStyle: { fontFamily: 'SpaceGrotesk_700Bold', color: theme.colors.text },
           headerShadowVisible: false,
           contentStyle: { backgroundColor: theme.colors.background },

@@ -37,8 +37,11 @@ export const SaveTemplateModal = ({ visible, defaultName, onClose, onSave, onSki
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderRadius: theme.radius.lg }]}>
+      <Pressable style={styles.overlay} onPress={onClose}>
+        <Pressable
+          style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderRadius: theme.radius.lg }]}
+          onPress={(e) => e.stopPropagation()}
+        >
           <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>Save as Template?</Text>
           <Text style={[styles.subtitle, { color: theme.colors.muted }]}>
             Save this workout&apos;s exercises and sets to perform it again later.
@@ -68,8 +71,8 @@ export const SaveTemplateModal = ({ visible, defaultName, onClose, onSave, onSki
               <Text style={[styles.btnText, { color: theme.colors.background, ...theme.typography.button }]}>Save</Text>
             </Pressable>
           </View>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 };

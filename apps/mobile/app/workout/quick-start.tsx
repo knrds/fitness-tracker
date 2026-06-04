@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@fitness-tracker/ui';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
@@ -8,6 +10,7 @@ import { WorkoutTemplate } from '@fitness-tracker/domain';
 
 export default function QuickStartScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const { templates, deleteTemplate } = useProgramStore();
   const { exercises: allExercises } = useExerciseStore();
   const { status: activeWorkoutStatus, startWorkout, startWorkoutFromTemplate } = useWorkoutStore();
@@ -127,10 +130,15 @@ export default function QuickStartScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Quick Start</Text>
-        <Text style={styles.headerSub}>Start an empty workout or choose a template below.</Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+        <Pressable onPress={() => router.back()} hitSlop={15} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+        </Pressable>
+        <View style={styles.headerTextContainer}>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Quick Start</Text>
+          <Text style={[styles.headerSub, { color: theme.colors.muted }]}>Start an empty workout or choose a template below.</Text>
+        </View>
       </View>
 
       <Pressable style={styles.emptyWorkoutBtn} onPress={handleStartEmptyWorkout}>
@@ -160,21 +168,33 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0B0B0F',
     padding: 16,
+    paddingTop: Platform.OS === 'ios' ? 50 : 48,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 20,
+    borderBottomWidth: 1,
+    paddingBottom: 16,
+    gap: 12,
+  },
+  backBtn: {
+    padding: 4,
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontFamily: 'SpaceGrotesk_700Bold',
     color: '#F4F5F7',
     textTransform: 'uppercase',
   },
   headerSub: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: 'Manrope_500Medium',
     color: '#8A8D9F',
-    marginTop: 4,
+    marginTop: 2,
   },
   emptyWorkoutBtn: {
     backgroundColor: '#90D5FF',

@@ -10,7 +10,8 @@ import {
   Share,
   Modal,
   SafeAreaView,
-  Image
+  Image,
+  Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -596,7 +597,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingTop: Platform.OS === 'ios' ? 14 : 48,
+    paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#2A2B31',
     backgroundColor: '#1A1C23',

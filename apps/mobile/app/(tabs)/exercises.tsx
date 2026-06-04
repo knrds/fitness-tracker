@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, Pressable } from 'react-native';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
+import { useHistoryStore } from '../../src/stores/historyStore';
 import { ExerciseRow } from '../../src/components/exercises/ExerciseRow';
 import { CustomExerciseModal } from '../../src/components/exercises/CustomExerciseModal';
 import { useTheme, EmptyState } from '@fitness-tracker/ui';
@@ -22,15 +23,60 @@ const MUSCLE_FILTERS = [
 export default function ExercisesScreen() {
   const theme = useTheme();
   const { filteredExercises, favoriteIds, toggleFavorite, searchQuery, setSearchQuery } = useExerciseStore();
+  const historyStore = useHistoryStore();
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'most_used' | 'recently_used'>('name_asc');
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
 
-  const displayExercises = filteredExercises.filter(ex => {
-    if (selectedMuscle === 'favorites') {
-      return favoriteIds.includes(ex.id);
-    }
-    return selectedMuscle ? ex.primaryMuscles.includes(selectedMuscle as MuscleGroup) : true;
-  });
+  // Compute frequencies and recency
+  const { exerciseUsageCount, exerciseLastUsed } = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    const lastUsed: Record<string, number> = {};
+    
+    // Chronological processing so latest date overrides older ones
+    const sortedHistory = [...historyStore.sessions].sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime());
+    
+    sortedHistory.forEach(session => {
+      const time = session.startedAt.getTime();
+      session.exercises.forEach(ex => {
+        counts[ex.exerciseId] = (counts[ex.exerciseId] || 0) + 1;
+        lastUsed[ex.exerciseId] = time;
+      });
+    });
+    
+    return { exerciseUsageCount: counts, exerciseLastUsed: lastUsed };
+  }, [historyStore.sessions]);
+
+  const displayExercises = filteredExercises
+    .filter(ex => {
+      if (selectedMuscle === 'favorites') {
+        return favoriteIds.includes(ex.id);
+      }
+      return selectedMuscle ? ex.primaryMuscles.includes(selectedMuscle as MuscleGroup) : true;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'name_asc':
+          return a.name.localeCompare(b.name);
+        case 'name_desc':
+          return b.name.localeCompare(a.name);
+        case 'most_used': {
+          const countA = exerciseUsageCount[a.id] || 0;
+          const countB = exerciseUsageCount[b.id] || 0;
+          if (countA !== countB) return countB - countA;
+          return a.name.localeCompare(b.name);
+        }
+        case 'recently_used': {
+          const timeA = exerciseLastUsed[a.id] || 0;
+          const timeB = exerciseLastUsed[b.id] || 0;
+          if (timeA !== timeB) return timeB - timeA;
+          return a.name.localeCompare(b.name);
+        }
+        default:
+          return 0;
+      }
+    });
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -43,17 +89,69 @@ export default function ExercisesScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.searchContainer}>
-        <View style={[styles.searchBar, { backgroundColor: theme.colors.surface, borderColor: theme.colors.muted }]}>
-          <Ionicons name="search" size={20} color={theme.colors.muted} style={styles.searchIcon} />
-          <TextInput
-            style={[styles.searchInput, { color: theme.colors.text, ...theme.typography.body }]}
-            placeholder="Search exercises..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor={theme.colors.muted}
-          />
+      <View style={[styles.searchContainer, { zIndex: 100 }]}>
+        <View style={styles.searchRow}>
+          <View style={[styles.searchBar, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, flex: 1 }]}>
+            <Ionicons name="search" size={20} color={theme.colors.muted} style={styles.searchIcon} />
+            <TextInput
+              style={[styles.searchInput, { color: theme.colors.text, ...theme.typography.body }]}
+              placeholder="Search exercises..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholderTextColor={theme.colors.muted}
+            />
+          </View>
+          <Pressable 
+            style={[styles.sortBtn, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} 
+            onPress={() => setShowSortDropdown(prev => !prev)}
+            testID="sort-exercises-btn"
+          >
+            <Ionicons name="swap-vertical" size={20} color={theme.colors.primary} />
+          </Pressable>
         </View>
+
+        {showSortDropdown && (
+          <View style={[styles.sortDropdown, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            {(([
+              { id: 'name_asc', label: 'Name (A-Z)', icon: 'text' },
+              { id: 'name_desc', label: 'Name (Z-A)', icon: 'text' },
+              { id: 'most_used', label: 'Most Used', icon: 'barbell' },
+              { id: 'recently_used', label: 'Recently Used', icon: 'time' },
+            ] as const) as ReadonlyArray<{ id: typeof sortBy; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }>).map(opt => (
+              <Pressable
+                key={opt.id}
+                style={[
+                  styles.sortOption,
+                  sortBy === opt.id && { backgroundColor: 'rgba(144, 213, 255, 0.1)' }
+                ]}
+                onPress={() => {
+                  setSortBy(opt.id);
+                  setShowSortDropdown(false);
+                }}
+              >
+                <Ionicons 
+                  name={opt.icon} 
+                  size={18} 
+                  color={sortBy === opt.id ? theme.colors.primary : theme.colors.muted} 
+                />
+                <Text 
+                  style={[
+                    styles.sortOptionText, 
+                    { 
+                      color: sortBy === opt.id ? theme.colors.primary : theme.colors.text,
+                      fontFamily: sortBy === opt.id ? 'SpaceGrotesk_700Bold' : 'Manrope_500Medium'
+                    }
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+                {sortBy === opt.id && (
+                  <Ionicons name="checkmark" size={16} color={theme.colors.primary} style={{ marginLeft: 'auto' }} />
+                )}
+              </Pressable>
+            ))}
+          </View>
+        )}
       </View>
 
       <View style={styles.filterContainer}>
@@ -176,5 +274,45 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 24,
     paddingBottom: 40,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    zIndex: 10,
+  },
+  sortBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sortDropdown: {
+    position: 'absolute',
+    top: 54,
+    right: 24,
+    width: 200,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 6,
+    zIndex: 9999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  sortOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 10,
+  },
+  sortOptionText: {
+    fontSize: 14,
   },
 });

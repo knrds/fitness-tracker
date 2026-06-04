@@ -17,6 +17,7 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
   const [instructions, setInstructions] = useState('');
   const [muscle, setMuscle] = useState<MuscleGroup | ''>('');
   const [equipment, setEq] = useState<Equipment | ''>('');
+  const [trackMode, setTrackMode] = useState<'reps' | 'duration'>('reps');
 
   const handleSave = () => {
     if (!name.trim()) return Alert.alert('Error', 'Name is required');
@@ -30,12 +31,13 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
         primaryMuscles: [muscle as MuscleGroup],
         secondaryMuscles: [],
         equipment: equipment as Equipment,
-        movementPattern: MovementPattern.Isolation,
+        movementPattern: trackMode === 'duration' ? MovementPattern.Cardio : MovementPattern.Isolation,
       });
       setName('');
       setInstructions('');
       setMuscle('');
       setEq('');
+      setTrackMode('reps');
       onClose();
     } catch {
       Alert.alert('Error', 'Could not create exercise.');
@@ -73,6 +75,12 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
             placeholder="e.g. My Custom Lift"
             placeholderTextColor={theme.colors.muted}
           />
+
+          <Text style={[styles.label, { color: theme.colors.muted }]}>Tracking Mode</Text>
+          <View style={styles.chipContainer}>
+            {renderChip(trackMode === 'reps', 'Reps & Weight', () => setTrackMode('reps'), 'mode-reps')}
+            {renderChip(trackMode === 'duration', 'Duration & Level', () => setTrackMode('duration'), 'mode-duration')}
+          </View>
 
           <Text style={[styles.label, { color: theme.colors.muted }]}>Muscle Group</Text>
           <View style={styles.chipContainer}>

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Modal, TextInput, Alert, Platform, ScrollView, Share } from 'react-native';
+import React, { useState, useRef, useMemo } from 'react';
+import { View, Text, StyleSheet, Pressable, Modal, TextInput, Alert, Platform, ScrollView, Share, PanResponder, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Crypto from 'expo-crypto';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@fitness-tracker/ui';
 
 import { Program, WorkoutTemplate } from '@fitness-tracker/domain';
 
@@ -11,13 +12,76 @@ import { useWorkoutStore } from '../../src/stores/workoutStore';
 
 export default function ProgramListScreen() {
   const router = useRouter();
-  const { programs, templates, setActiveProgram, deleteProgram, createProgram } = useProgramStore();
+  const theme = useTheme();
+  const { programs, templates, setActiveProgram, deleteProgram, createProgram, updateProgramsOrder } = useProgramStore();
 
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
   const [menuProgramId, setMenuProgramId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [durationWeeks, setDurationWeeks] = useState('4');
+
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const dragY = useRef(new Animated.Value(0)).current;
+  const draggingProgramRef = useRef<Program | null>(null);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
+  const itemLayouts = useRef<Record<string, { y: number; height: number }>>({});
+
+  const panResponder = useMemo(() => {
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (e, gestureState) => {
+        return Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderGrant: () => {
+        const p = draggingProgramRef.current;
+        if (p) {
+          setActiveDragId(p.id);
+          setScrollEnabled(false);
+          dragY.setValue(0);
+        }
+      },
+      onPanResponderMove: (e, gestureState) => {
+        dragY.setValue(gestureState.dy);
+      },
+      onPanResponderRelease: (e, gestureState) => {
+        const p = draggingProgramRef.current;
+        if (p) {
+          const layout = itemLayouts.current[p.id];
+          if (layout) {
+            const dropY = layout.y + gestureState.dy;
+            const otherPrograms = programs.filter(item => item.id !== p.id);
+            let insertIndex = 0;
+            for (let i = 0; i < otherPrograms.length; i++) {
+              const otherProg = otherPrograms[i];
+              if (otherProg) {
+                const otherId = otherProg.id;
+                const otherLayout = itemLayouts.current[otherId];
+                if (otherLayout) {
+                  const centerY = otherLayout.y + otherLayout.height / 2;
+                  if (dropY > centerY) {
+                    insertIndex = i + 1;
+                  }
+                }
+              }
+            }
+            
+            const reordered = [...otherPrograms];
+            reordered.splice(insertIndex, 0, p);
+            updateProgramsOrder(reordered);
+          }
+        }
+        setActiveDragId(null);
+        setScrollEnabled(true);
+        dragY.setValue(0);
+      },
+      onPanResponderTerminate: () => {
+        setActiveDragId(null);
+        setScrollEnabled(true);
+        dragY.setValue(0);
+      }
+    });
+  }, [programs, updateProgramsOrder]);
 
   const handleCreateProgram = () => {
     if (!name.trim()) {
@@ -239,54 +303,92 @@ export default function ProgramListScreen() {
 
   const menuProgram = programs.find((p) => p.id === menuProgramId) || null;
 
-  const renderItem = ({ item }: { item: Program }) => {
-    return (
-      <Pressable style={styles.card} onPress={() => router.push(`/programs/builder?id=${item.id}`)}>
-        <View style={styles.cardTopRow}>
-          <View style={styles.cardInfo}>
-            <Text style={styles.cardTitle}>{item.name}</Text>
-            <Text style={styles.cardSubtitle}>{item.durationWeeks} Weeks</Text>
-          </View>
-          <View style={styles.cardActionsContainer}>
-            {item.isActive ? (
-              <Pressable 
-                style={[styles.smallActiveBtn, { backgroundColor: 'rgba(144, 213, 255, 0.15)', borderColor: '#90D5FF' }]}
-                onPress={(e) => { e.stopPropagation(); confirmDeactivate(); }}
-              >
-                <Ionicons name="checkmark-circle" size={12} color="#90D5FF" />
-                <Text style={[styles.smallActiveBtnText, { color: '#90D5FF' }]}>ACTIVE</Text>
-              </Pressable>
-            ) : (
-              <Pressable 
-                style={[styles.smallActivateBtn, { backgroundColor: '#1A1C23', borderColor: '#2A2B31' }]}
-                onPress={(e) => { e.stopPropagation(); setActiveProgram(item.id); }}
-              >
-                <Text style={[styles.smallActivateBtnText, { color: '#F4F5F7' }]}>ACTIVATE</Text>
-              </Pressable>
-            )}
-            <Pressable 
-              style={styles.kebabBtn} 
-              hitSlop={10} 
-              onPress={(e) => { e.stopPropagation(); setMenuProgramId(item.id); }}
-            >
-              <Ionicons name="ellipsis-vertical" size={20} color="#8A8D9F" />
-            </Pressable>
-          </View>
-        </View>
-      </Pressable>
-    );
-  };
-
   return (
     <View style={styles.container}>
-      <FlatList
-        data={programs}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        ListHeaderComponent={renderHeader}
+      <ScrollView
         contentContainerStyle={styles.list}
-        ListEmptyComponent={<Text style={styles.empty}>No programs found. Click + to create one.</Text>}
-      />
+        scrollEnabled={scrollEnabled}
+      >
+        {renderHeader()}
+        {programs.map((item) => {
+          const isDraggingThis = item.id === activeDragId;
+          return (
+            <Animated.View
+              key={item.id}
+              onLayout={(e) => {
+                if (activeDragId !== item.id) {
+                  itemLayouts.current[item.id] = {
+                    y: e.nativeEvent.layout.y,
+                    height: e.nativeEvent.layout.height,
+                  };
+                }
+              }}
+              style={[
+                styles.card,
+                isDraggingThis && {
+                  transform: [{ translateY: dragY }],
+                  zIndex: 9999,
+                  opacity: 0.85,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.35,
+                  shadowRadius: 6,
+                  elevation: 5,
+                }
+              ]}
+            >
+              <View style={styles.cardTopRow}>
+                <View
+                  style={styles.dragHandle}
+                  onTouchStart={() => {
+                    draggingProgramRef.current = item;
+                  }}
+                  {...panResponder.panHandlers}
+                >
+                  <Ionicons name="reorder-two" size={24} color={theme.colors.primary} />
+                </View>
+                
+                <Pressable 
+                  style={styles.cardInfo} 
+                  onPress={() => router.push(`/programs/builder?id=${item.id}`)}
+                >
+                  <Text style={styles.cardTitle}>{item.name}</Text>
+                  <Text style={styles.cardSubtitle}>{item.durationWeeks} Weeks</Text>
+                </Pressable>
+                
+                <View style={styles.cardActionsContainer}>
+                  {item.isActive ? (
+                    <Pressable 
+                      style={[styles.smallActiveBtn, { backgroundColor: 'rgba(144, 213, 255, 0.15)', borderColor: '#90D5FF' }]}
+                      onPress={(e) => { e.stopPropagation(); confirmDeactivate(); }}
+                    >
+                      <Ionicons name="checkmark-circle" size={12} color="#90D5FF" />
+                      <Text style={[styles.smallActiveBtnText, { color: '#90D5FF' }]}>ACTIVE</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable 
+                      style={[styles.smallActivateBtn, { backgroundColor: '#1A1C23', borderColor: '#2A2B31' }]}
+                      onPress={(e) => { e.stopPropagation(); setActiveProgram(item.id); }}
+                    >
+                      <Text style={[styles.smallActivateBtnText, { color: '#F4F5F7' }]}>ACTIVATE</Text>
+                    </Pressable>
+                  )}
+                  <Pressable 
+                    style={styles.kebabBtn} 
+                    hitSlop={10} 
+                    onPress={(e) => { e.stopPropagation(); setMenuProgramId(item.id); }}
+                  >
+                    <Ionicons name="ellipsis-vertical" size={20} color="#8A8D9F" />
+                  </Pressable>
+                </View>
+              </View>
+            </Animated.View>
+          );
+        })}
+        {programs.length === 0 && (
+          <Text style={styles.empty}>No programs found. Click + to create one.</Text>
+        )}
+      </ScrollView>
       <Pressable style={styles.fab} onPress={() => setCreateModalVisible(true)}>
         <Text style={styles.fabText}>+</Text>
       </Pressable>
@@ -713,5 +815,12 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceGrotesk_600SemiBold',
     fontSize: 11,
     letterSpacing: 0.5,
+  },
+  dragHandle: {
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 4,
   },
 });

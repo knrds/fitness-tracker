@@ -39,12 +39,15 @@ export interface ExerciseState {
   addCustomExercise: (data: Omit<Exercise, 'id' | 'createdAt' | 'updatedAt' | 'isCustom' | 'ownerId'>) => void;
   exerciseRestDurations: Record<string, number>;
   setExerciseRestDuration: (exerciseId: string, durationSeconds: number) => void;
+  persistentNotes: Record<string, string>;
+  setPersistentNote: (exerciseId: string, note: string) => void;
 }
 
 const exercisePersistedSchema = z.object({
   favoriteIds: z.array(z.string()),
   customExercises: z.array(ExerciseSchema),
   exerciseRestDurations: z.record(z.number().int().nonnegative()),
+  persistentNotes: z.record(z.string()).optional(),
 });
 
 type ExercisePersistedState = z.infer<typeof exercisePersistedSchema>;
@@ -53,6 +56,7 @@ const defaultPersistedState: ExercisePersistedState = {
   favoriteIds: [],
   customExercises: [],
   exerciseRestDurations: {},
+  persistentNotes: {},
 };
 
 export const useExerciseStore = create<ExerciseState>()(
@@ -66,6 +70,7 @@ export const useExerciseStore = create<ExerciseState>()(
       favoriteIds: [],
       customExercises: [],
       exerciseRestDurations: {},
+      persistentNotes: {},
 
       setFilter: (muscleGroup, equipment) => 
         set((state) => {
@@ -129,14 +134,23 @@ export const useExerciseStore = create<ExerciseState>()(
             [exerciseId]: durationSeconds,
           },
         })),
+
+      setPersistentNote: (exerciseId, note) =>
+        set((state) => ({
+          persistentNotes: {
+            ...state.persistentNotes,
+            [exerciseId]: note,
+          },
+        })),
     }),
     {
       name: 'exercise-storage',
       storage: createHydratedStorage('exercise-storage', exercisePersistedSchema, defaultPersistedState),
       partialize: (state) => ({ 
-        favoriteIds: state.favoriteIds, 
-        customExercises: state.customExercises,
-        exerciseRestDurations: state.exerciseRestDurations 
+          favoriteIds: state.favoriteIds, 
+          customExercises: state.customExercises,
+          exerciseRestDurations: state.exerciseRestDurations,
+          persistentNotes: state.persistentNotes
       }),
       version: 1,
       migrate: (persistedState) => {
@@ -146,6 +160,7 @@ export const useExerciseStore = create<ExerciseState>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.exercises = [...EXERCISES, ...(state.customExercises || [])];
+          state.persistentNotes = state.persistentNotes || {};
           state.filteredExercises = filterExercises(state.exercises, state.searchQuery, state.selectedMuscleGroup, state.selectedEquipment);
         }
       }

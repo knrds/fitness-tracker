@@ -98,8 +98,11 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderRadius: theme.radius.lg }]}>
+      <Pressable style={styles.overlay} onPress={onClose}>
+        <Pressable
+          style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderRadius: theme.radius.lg }]}
+          onPress={(e) => e.stopPropagation()}
+        >
           <View style={styles.header}>
             <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>Plate Calculator</Text>
             <Pressable onPress={onClose} hitSlop={15}>
@@ -179,8 +182,8 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
           >
             <Text style={[styles.actionButtonText, { color: theme.colors.background, ...theme.typography.button }]}>Done</Text>
           </Pressable>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 };

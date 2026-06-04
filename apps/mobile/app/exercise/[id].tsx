@@ -83,186 +83,208 @@ export default function ExerciseDetailScreen() {
     : [];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: exercise.name }} />
-      {exercise.imageUrl ? (
-        <Pressable onPress={() => { setIsPlaying(true); setFullscreen(true); }} style={styles.imageContainer}>
-          <Image
-            source={{ uri: getDisplayedImageUri() }}
-            style={styles.image}
-            contentFit="cover"
-            onLoadStart={() => setImageLoading(true)}
-            onLoadEnd={() => {
-              setImageLoading(false);
-              setHasLoadedOnce(true);
-            }}
-          />
-          {imageLoading && !hasLoadedOnce && (
-            <View style={styles.imageLoader}>
-              <ActivityIndicator size="large" color={theme.colors.primary} />
-            </View>
-          )}
-          <View style={styles.expandBadge}>
-            <Ionicons name="expand" size={18} color="#F4F5F7" />
-          </View>
-          <View style={styles.playOverlay}>
-            <Text style={styles.playOverlayText}>▶ Tap to enlarge &amp; play</Text>
-          </View>
-        </Pressable>
-      ) : (
-        <View style={styles.imagePlaceholder}>
-          <Text style={styles.placeholderIcon}>💪</Text>
-          <Text style={styles.placeholderText}>No Exercise Image Available</Text>
-        </View>
-      )}
-
-      <View style={styles.detailsContainer}>
-        <View style={styles.header}>
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>{exercise.name}</Text>
-            {id && (
-              <Pressable 
-                onPress={() => toggleFavorite(id)} 
-                hitSlop={15} 
-                style={styles.favoriteButton}
-                testID="detail-favorite-btn"
-              >
-                <Text style={styles.favoriteIcon}>{isFavorite ? '★' : '☆'}</Text>
-              </Pressable>
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <Stack.Screen 
+        options={{ 
+          title: exercise.name,
+          headerShown: true,
+          headerLeft: () => (
+            <Pressable 
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/(tabs)/exercises');
+                }
+              }} 
+              hitSlop={15} 
+              style={{ paddingRight: 12 }}
+            >
+              <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+            </Pressable>
+          ),
+        }} 
+      />
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        {exercise.imageUrl ? (
+          <Pressable onPress={() => { setIsPlaying(true); setFullscreen(true); }} style={styles.imageContainer}>
+            <Image
+              source={{ uri: getDisplayedImageUri() }}
+              style={styles.image}
+              contentFit="cover"
+              onLoadStart={() => setImageLoading(true)}
+              onLoadEnd={() => {
+                setImageLoading(false);
+                setHasLoadedOnce(true);
+              }}
+            />
+            {imageLoading && !hasLoadedOnce && (
+              <View style={styles.imageLoader}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+              </View>
             )}
+            <View style={styles.expandBadge}>
+              <Ionicons name="expand" size={18} color="#F4F5F7" />
+            </View>
+            <View style={styles.playOverlay}>
+              <Text style={styles.playOverlayText}>▶ Tap to enlarge &amp; play</Text>
+            </View>
+          </Pressable>
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <Text style={styles.placeholderIcon}>💪</Text>
+            <Text style={styles.placeholderText}>No Exercise Image Available</Text>
           </View>
-        </View>
+        )}
 
-        {/* Info Rows: Side by Side Cards */}
-        <View style={styles.infoRow}>
-          <View style={styles.infoCard}>
-            <Text style={styles.infoLabel}>Equipment</Text>
-            <Text style={styles.infoValue}>{formatName(exercise.equipment)}</Text>
+        <View style={styles.detailsContainer}>
+          <View style={styles.header}>
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>{exercise.name}</Text>
+              {id && (
+                <Pressable 
+                  onPress={() => toggleFavorite(id)} 
+                  hitSlop={15} 
+                  style={styles.favoriteButton}
+                  testID="detail-favorite-btn"
+                >
+                  <Text style={styles.favoriteIcon}>{isFavorite ? '★' : '☆'}</Text>
+                </Pressable>
+              )}
+            </View>
           </View>
-          <View style={styles.infoCard}>
-            <Text style={styles.infoLabel}>Difficulty</Text>
-            <Text style={styles.infoValue}>
-              {exercise.experienceLevel 
-                ? formatName(exercise.experienceLevel) 
-                : 'Beginner'}
-            </Text>
-          </View>
-        </View>
 
-        {/* Muscle Badges */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Primary Muscles</Text>
-          <View style={styles.badges}>
-            {exercise.primaryMuscles.map(m => (
-              <MuscleGroupBadge key={m} muscleGroup={m} />
-            ))}
+          {/* Info Rows: Side by Side Cards */}
+          <View style={styles.infoRow}>
+            <View style={styles.infoCard}>
+              <Text style={styles.infoLabel}>Equipment</Text>
+              <Text style={styles.infoValue}>{formatName(exercise.equipment)}</Text>
+            </View>
+            <View style={styles.infoCard}>
+              <Text style={styles.infoLabel}>Difficulty</Text>
+              <Text style={styles.infoValue}>
+                {exercise.experienceLevel 
+                  ? formatName(exercise.experienceLevel) 
+                  : 'Beginner'}
+              </Text>
+            </View>
           </View>
-        </View>
 
-        {exercise.secondaryMuscles.length > 0 && (
+          {/* Muscle Badges */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Secondary Muscles</Text>
+            <Text style={styles.sectionTitle}>Primary Muscles</Text>
             <View style={styles.badges}>
-              {exercise.secondaryMuscles.map(m => (
+              {exercise.primaryMuscles.map(m => (
                 <MuscleGroupBadge key={m} muscleGroup={m} />
               ))}
             </View>
           </View>
-        )}
 
-        {/* Instructions list */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Instructions</Text>
-          {instructionLines.length > 0 ? (
-            <View style={styles.instructionsContainer}>
-              {instructionLines.map((line, idx) => (
-                <View key={idx} style={styles.instructionStep}>
-                  <View style={styles.stepNumberContainer}>
-                    <Text style={styles.stepNumberText}>{idx + 1}</Text>
-                  </View>
-                  <Text style={styles.instructionText}>{line.trim()}</Text>
-                </View>
-              ))}
+          {exercise.secondaryMuscles.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Secondary Muscles</Text>
+              <View style={styles.badges}>
+                {exercise.secondaryMuscles.map(m => (
+                  <MuscleGroupBadge key={m} muscleGroup={m} />
+                ))}
+              </View>
             </View>
-          ) : (
-            <Text style={styles.noInstructionsText}>No instructions available for this exercise.</Text>
           )}
+
+          {/* Instructions list */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Instructions</Text>
+            {instructionLines.length > 0 ? (
+              <View style={styles.instructionsContainer}>
+                {instructionLines.map((line, idx) => (
+                  <View key={idx} style={styles.instructionStep}>
+                    <View style={styles.stepNumberContainer}>
+                      <Text style={styles.stepNumberText}>{idx + 1}</Text>
+                    </View>
+                    <Text style={styles.instructionText}>{line.trim()}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.noInstructionsText}>No instructions available for this exercise.</Text>
+            )}
+          </View>
+
+          {/* Removed Default Rest Timer section as requested */}
+
+          {/* Exercise Settings (conditional on RPE/RIR modes) */}
+          {(profile.rpeMode === 'selected_exercises' || profile.rirMode === 'selected_exercises') && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Exercise Options</Text>
+              <View style={styles.exerciseOptionsContainer}>
+                {profile.rpeMode === 'selected_exercises' && (
+                  <View style={styles.optionRow}>
+                    <Text style={styles.optionLabel}>Enable RPE Column</Text>
+                    <Switch
+                      value={(profile.rpeEnabledExerciseIds || []).includes(exercise.id)}
+                      onValueChange={(val) => {
+                        const current = profile.rpeEnabledExerciseIds || [];
+                        const updated = val
+                          ? [...current, exercise.id]
+                          : current.filter(id => id !== exercise.id);
+                        updateProfile({ rpeEnabledExerciseIds: updated });
+                      }}
+                      trackColor={{ false: '#2A2B31', true: theme.colors.primary }}
+                    />
+                  </View>
+                )}
+                {profile.rirMode === 'selected_exercises' && (
+                  <View style={[styles.optionRow, { borderBottomWidth: 0 }]}>
+                    <Text style={styles.optionLabel}>Enable RIR Column</Text>
+                    <Switch
+                      value={(profile.rirEnabledExerciseIds || []).includes(exercise.id)}
+                      onValueChange={(val) => {
+                        const current = profile.rirEnabledExerciseIds || [];
+                        const updated = val
+                          ? [...current, exercise.id]
+                          : current.filter(id => id !== exercise.id);
+                        updateProfile({ rirEnabledExerciseIds: updated });
+                      }}
+                      trackColor={{ false: '#2A2B31', true: theme.colors.primary }}
+                    />
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* Action Button */}
+          <Pressable 
+            style={({ pressed }) => [
+              styles.actionButton,
+              (status === 'active' || status === 'paused') ? styles.actionButtonActive : styles.actionButtonStart,
+              pressed && styles.actionButtonPressed
+            ]}
+            onPress={handleAddToWorkout}
+          >
+            <Text style={styles.actionButtonText}>
+              {(status === 'active' || status === 'paused')
+                ? 'Zu aktivem Workout hinzufügen'
+                : 'Neues Workout mit dieser Übung starten'}
+            </Text>
+          </Pressable>
         </View>
 
-        {/* Removed Default Rest Timer section as requested */}
-
-        {/* Exercise Settings (conditional on RPE/RIR modes) */}
-        {(profile.rpeMode === 'selected_exercises' || profile.rirMode === 'selected_exercises') && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Exercise Options</Text>
-            <View style={styles.exerciseOptionsContainer}>
-              {profile.rpeMode === 'selected_exercises' && (
-                <View style={styles.optionRow}>
-                  <Text style={styles.optionLabel}>Enable RPE Column</Text>
-                  <Switch
-                    value={(profile.rpeEnabledExerciseIds || []).includes(exercise.id)}
-                    onValueChange={(val) => {
-                      const current = profile.rpeEnabledExerciseIds || [];
-                      const updated = val
-                        ? [...current, exercise.id]
-                        : current.filter(id => id !== exercise.id);
-                      updateProfile({ rpeEnabledExerciseIds: updated });
-                    }}
-                    trackColor={{ false: '#2A2B31', true: theme.colors.primary }}
-                  />
-                </View>
-              )}
-              {profile.rirMode === 'selected_exercises' && (
-                <View style={[styles.optionRow, { borderBottomWidth: 0 }]}>
-                  <Text style={styles.optionLabel}>Enable RIR Column</Text>
-                  <Switch
-                    value={(profile.rirEnabledExerciseIds || []).includes(exercise.id)}
-                    onValueChange={(val) => {
-                      const current = profile.rirEnabledExerciseIds || [];
-                      const updated = val
-                        ? [...current, exercise.id]
-                        : current.filter(id => id !== exercise.id);
-                      updateProfile({ rirEnabledExerciseIds: updated });
-                    }}
-                    trackColor={{ false: '#2A2B31', true: theme.colors.primary }}
-                  />
-                </View>
-              )}
+        <Modal visible={fullscreen} animationType="fade" onRequestClose={() => setFullscreen(false)}>
+          <View style={styles.fullscreenContainer}>
+            <Pressable style={styles.fullscreenClose} hitSlop={12} onPress={() => setFullscreen(false)}>
+              <Ionicons name="close" size={30} color="#F4F5F7" />
+            </Pressable>
+            <Pressable style={styles.fullscreenImageWrap} onPress={() => setIsPlaying((p) => !p)}>
+              <Image source={{ uri: getDisplayedImageUri() }} style={styles.fullscreenImage} contentFit="contain" />
+            </Pressable>
+            <View style={styles.fullscreenHint}>
+              <Text style={styles.playOverlayText}>{isPlaying ? '⏸ Tap to pause' : '▶ Tap to play'}</Text>
             </View>
           </View>
-        )}
-
-        {/* Action Button */}
-        <Pressable 
-          style={({ pressed }) => [
-            styles.actionButton,
-            (status === 'active' || status === 'paused') ? styles.actionButtonActive : styles.actionButtonStart,
-            pressed && styles.actionButtonPressed
-          ]}
-          onPress={handleAddToWorkout}
-        >
-          <Text style={styles.actionButtonText}>
-            {(status === 'active' || status === 'paused')
-              ? 'Zu aktivem Workout hinzufügen'
-              : 'Neues Workout mit dieser Übung starten'}
-          </Text>
-        </Pressable>
-      </View>
-
-      <Modal visible={fullscreen} animationType="fade" onRequestClose={() => setFullscreen(false)}>
-        <View style={styles.fullscreenContainer}>
-          <Pressable style={styles.fullscreenClose} hitSlop={12} onPress={() => setFullscreen(false)}>
-            <Ionicons name="close" size={30} color="#F4F5F7" />
-          </Pressable>
-          <Pressable style={styles.fullscreenImageWrap} onPress={() => setIsPlaying((p) => !p)}>
-            <Image source={{ uri: getDisplayedImageUri() }} style={styles.fullscreenImage} contentFit="contain" />
-          </Pressable>
-          <View style={styles.fullscreenHint}>
-            <Text style={styles.playOverlayText}>{isPlaying ? '⏸ Tap to pause' : '▶ Tap to play'}</Text>
-          </View>
-        </View>
-      </Modal>
-    </ScrollView>
+        </Modal>
+      </ScrollView>
+    </View>
   );
 }
 

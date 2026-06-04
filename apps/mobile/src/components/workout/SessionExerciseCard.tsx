@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, Alert, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Pressable, TextInput, Alert, Platform, Modal, ScrollView } from 'react-native';
 import { SessionExercise, ExerciseSet, SetType, estimateOneRepMax } from '@fitness-tracker/domain';
 import { useWorkoutStore } from '../../stores/workoutStore';
 import { useExerciseStore } from '../../stores/exerciseStore';
@@ -15,25 +15,28 @@ interface Props {
 
 export const SessionExerciseCard = ({ sessionExercise }: Props) => {
   const theme = useTheme();
-  const { exercises } = useExerciseStore();
-  const { addSet, updateSet, completeSet, removeExercise, removeSet, calculateWarmupSets, toggleSuperset } = useWorkoutStore();
+  const { exercises, persistentNotes, setPersistentNote } = useExerciseStore();
+  const { addSet, updateSet, completeSet, removeExercise, removeSet, calculateWarmupSets, toggleSuperset, updateExerciseNotes } = useWorkoutStore();
   const { profile } = useProfileStore();
   const isImperial = profile.preferredUnits === 'imperial';
 
   const getPreviousPerformance = useHistoryStore(state => state.getPreviousPerformance);
   const lastPerformance = React.useMemo(() => getPreviousPerformance(sessionExercise.exerciseId), [getPreviousPerformance, sessionExercise.exerciseId]);
   const [plateCalcVisible, setPlateCalcVisible] = useState(false);
+  const [infoModalVisible, setInfoModalVisible] = useState(false);
 
   const exercise = exercises.find(e => e.id === sessionExercise.exerciseId);
   if (!exercise) return null;
+
+  const isCardio = exercise.movementPattern === 'cardio' || exercise.equipment === 'cardio_machine';
 
   const rpeMode = profile.rpeMode || 'always_on';
   const rirMode = profile.rirMode || 'always_on';
   const rpeEnabledExerciseIds = profile.rpeEnabledExerciseIds || [];
   const rirEnabledExerciseIds = profile.rirEnabledExerciseIds || [];
 
-  const showRpe = rpeMode === 'always_on' || (rpeMode === 'selected_exercises' && rpeEnabledExerciseIds.includes(sessionExercise.exerciseId));
-  const showRir = rirMode === 'always_on' || (rirMode === 'selected_exercises' && rirEnabledExerciseIds.includes(sessionExercise.exerciseId));
+  const showRpe = !isCardio && (rpeMode === 'always_on' || (rpeMode === 'selected_exercises' && rpeEnabledExerciseIds.includes(sessionExercise.exerciseId)));
+  const showRir = !isCardio && (rirMode === 'always_on' || (rirMode === 'selected_exercises' && rirEnabledExerciseIds.includes(sessionExercise.exerciseId)));
 
   const confirmDeleteExercise = () => {
     if (Platform.OS === 'web') {
@@ -79,7 +82,16 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
   const getPrevPerformanceText = () => {
     if (!lastPerformance) return null;
     const dateStr = new Date(lastPerformance.date).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: '2-digit' });
-    const setsStrUnits = lastPerformance.sets.map(s => {
+    const nonWarmupSets = lastPerformance.sets.filter(s => s.type !== 'warmup');
+    if (nonWarmupSets.length === 0) return null;
+
+    const setsStrUnits = nonWarmupSets.map(s => {
+      if (isCardio) {
+        const mins = Math.floor((s.durationSeconds || 0) / 60);
+        const secs = (s.durationSeconds || 0) % 60;
+        const durStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        return `Lvl ${s.weight || 0} for ${durStr}`;
+      }
       if (!s.weight) return `${s.reps} reps`;
       const weightDisplay = isImperial ? s.weight * 2.20462 : s.weight;
       const formattedWeight = weightDisplay.toFixed(1).replace(/\.0$/, '');
@@ -115,6 +127,37 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
     }
   };
 
+  // Calculate statistics for the (i) modal
+  const sessionVolume = sessionExercise.sets.filter(s => s.completed && s.type !== 'warmup').reduce((acc, curr) => acc + (curr.weight || 0) * (curr.reps || 0), 0);
+
+  const stats = React.useMemo(() => {
+    const historySessions = useHistoryStore.getState().sessions;
+    let maxWeight = 0;
+    let totalWeight = 0;
+    let completedSetsCount = 0;
+    let lifetimeVolume = 0;
+
+    historySessions.forEach(s => {
+      s.exercises.forEach(ex => {
+        if (ex.exerciseId === sessionExercise.exerciseId) {
+          ex.sets.forEach(set => {
+            if (set.completed && set.type !== 'warmup') {
+              if (set.weight) {
+                if (set.weight > maxWeight) maxWeight = set.weight;
+                totalWeight += set.weight;
+                completedSetsCount++;
+                lifetimeVolume += set.weight * (set.reps || 0);
+              }
+            }
+          });
+        }
+      });
+    });
+
+    const avgWeight = completedSetsCount > 0 ? totalWeight / completedSetsCount : 0;
+    return { maxWeight, avgWeight, lifetimeVolume };
+  }, [sessionExercise.exerciseId]);
+
   return (
     <Card 
       style={[
@@ -136,9 +179,14 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
           )}
         </View>
         <View style={styles.headerIcons}>
-          <Pressable onPress={() => setPlateCalcVisible(true)} style={styles.iconBtn}>
-            <Ionicons name="barbell-outline" size={24} color={theme.colors.muted} />
+          <Pressable onPress={() => setInfoModalVisible(true)} style={styles.iconBtn}>
+            <Ionicons name="information-circle-outline" size={24} color={theme.colors.primary} />
           </Pressable>
+          {!isCardio && (
+            <Pressable onPress={() => setPlateCalcVisible(true)} style={styles.iconBtn}>
+              <Ionicons name="barbell-outline" size={24} color={theme.colors.muted} />
+            </Pressable>
+          )}
           <Pressable onPress={handleToggleSuperset} style={styles.iconBtn}>
             <Ionicons name="link" size={24} color={sessionExercise.supersetGroup ? theme.colors.primary : theme.colors.muted} />
           </Pressable>
@@ -150,8 +198,12 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
       
       <View style={styles.headerRow}>
         <Text style={[styles.columnHeader, styles.setCol, { color: theme.colors.muted }]}>Set</Text>
-        <Text style={[styles.columnHeader, styles.inputCol, { color: theme.colors.muted }]}>{isImperial ? 'lbs' : 'kg'}</Text>
-        <Text style={[styles.columnHeader, styles.inputCol, { color: theme.colors.muted }]}>Reps</Text>
+        <Text style={[styles.columnHeader, styles.inputCol, { color: theme.colors.muted }]}>
+          {isCardio ? 'Level' : (isImperial ? 'lbs' : 'kg')}
+        </Text>
+        <Text style={[styles.columnHeader, styles.inputCol, { color: theme.colors.muted }]}>
+          {isCardio ? 'Min:Sec' : 'Reps'}
+        </Text>
         {showRpe && <Text style={[styles.columnHeader, styles.inputCol, { color: theme.colors.muted }]}>RPE</Text>}
         {showRir && <Text style={[styles.columnHeader, styles.inputCol, { color: theme.colors.muted }]}>RIR</Text>}
         <Text style={[styles.columnHeader, styles.doneCol, { color: theme.colors.muted }]}>✓</Text>
@@ -164,6 +216,7 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
           index={idx}
           sessionExerciseId={sessionExercise.id}
           isImperial={isImperial}
+          isCardio={isCardio}
           showRpe={showRpe}
           showRir={showRir}
           exerciseName={exercise.name}
@@ -179,11 +232,37 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
           variant="ghost" 
           onPress={() => addSet(sessionExercise.id)}
         />
-        <Button 
-          title="🔥 WARMUP" 
-          variant="ghost" 
-          onPress={handleWarmupCalc}
-        />
+        {!isCardio && (
+          <Button 
+            title="🔥 WARMUP" 
+            variant="ghost" 
+            onPress={handleWarmupCalc}
+          />
+        )}
+      </View>
+
+      {/* Exercise Notes Section */}
+      <View style={styles.notesSection}>
+        <View style={styles.noteField}>
+          <Text style={[styles.noteLabel, { color: theme.colors.muted }]}>📌 Sticky Note (Always Visible)</Text>
+          <TextInput
+            style={[styles.noteInput, { color: theme.colors.text, borderColor: theme.colors.border }]}
+            value={persistentNotes[sessionExercise.exerciseId] || ''}
+            onChangeText={(text) => setPersistentNote(sessionExercise.exerciseId, text)}
+            placeholder="Log general tips, seat adjustments, etc."
+            placeholderTextColor={theme.colors.muted}
+          />
+        </View>
+        <View style={styles.noteField}>
+          <Text style={[styles.noteLabel, { color: theme.colors.muted }]}>📝 Workout Note (This Session Only)</Text>
+          <TextInput
+            style={[styles.noteInput, { color: theme.colors.text, borderColor: theme.colors.border }]}
+            value={sessionExercise.notes || ''}
+            onChangeText={(text) => updateExerciseNotes(sessionExercise.id, text)}
+            placeholder="How did this exercise feel today?"
+            placeholderTextColor={theme.colors.muted}
+          />
+        </View>
       </View>
 
       <PlateCalculatorModal
@@ -191,6 +270,86 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
         initialWeightKg={sessionExercise.sets[0]?.weight || 0}
         onClose={() => setPlateCalcVisible(false)}
       />
+
+      {/* Exercise Info Modal */}
+      <Modal visible={infoModalVisible} transparent animationType="fade" onRequestClose={() => setInfoModalVisible(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setInfoModalVisible(false)}>
+          <Pressable style={[styles.modalCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} onPress={(e) => e.stopPropagation()}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text, ...theme.typography.heading }]}>
+              {exercise.name} Info
+            </Text>
+            
+            {/* Stats */}
+            <View style={styles.infoStatsGrid}>
+              <View style={styles.infoStatBox}>
+                <Text style={[styles.infoStatLabel, { color: theme.colors.muted }]}>Session Vol</Text>
+                <Text style={[styles.infoStatValue, { color: theme.colors.primary }]}>
+                  {isImperial ? Math.round(sessionVolume * 2.20462) : Math.round(sessionVolume)} {isImperial ? 'lbs' : 'kg'}
+                </Text>
+              </View>
+              <View style={styles.infoStatBox}>
+                <Text style={[styles.infoStatLabel, { color: theme.colors.muted }]}>Lifetime Vol</Text>
+                <Text style={[styles.infoStatValue, { color: theme.colors.primary }]}>
+                  {isImperial ? Math.round(stats.lifetimeVolume * 2.20462) : Math.round(stats.lifetimeVolume)} {isImperial ? 'lbs' : 'kg'}
+                </Text>
+              </View>
+              <View style={styles.infoStatBox}>
+                <Text style={[styles.infoStatLabel, { color: theme.colors.muted }]}>Personal Record</Text>
+                <Text style={[styles.infoStatValue, { color: theme.colors.primary }]}>
+                  {stats.maxWeight > 0 ? `${(isImperial ? stats.maxWeight * 2.20462 : stats.maxWeight).toFixed(1).replace(/\.0$/, '')} ${isImperial ? 'lbs' : 'kg'}` : '-'}
+                </Text>
+              </View>
+              <View style={styles.infoStatBox}>
+                <Text style={[styles.infoStatLabel, { color: theme.colors.muted }]}>Avg Weight</Text>
+                <Text style={[styles.infoStatValue, { color: theme.colors.primary }]}>
+                  {stats.avgWeight > 0 ? `${(isImperial ? stats.avgWeight * 2.20462 : stats.avgWeight).toFixed(1).replace(/\.0$/, '')} ${isImperial ? 'lbs' : 'kg'}` : '-'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Previous Performance */}
+            <Text style={[styles.infoSubtitle, { color: theme.colors.text, marginTop: 16, marginBottom: 8 }]}>
+              Previous Sets (No Warmups)
+            </Text>
+            <ScrollView style={{ maxHeight: 150 }} showsVerticalScrollIndicator={false}>
+              {lastPerformance && lastPerformance.sets.filter(s => s.type !== 'warmup').length > 0 ? (
+                lastPerformance.sets.filter(s => s.type !== 'warmup').map((s, sIdx) => {
+                  if (isCardio) {
+                    const mins = Math.floor((s.durationSeconds || 0) / 60);
+                    const secs = (s.durationSeconds || 0) % 60;
+                    const durStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                    return (
+                      <Text key={s.id || sIdx} style={[styles.infoSetRow, { color: theme.colors.text }]}>
+                        Set {sIdx + 1}: Level {s.weight || 0} for {durStr}
+                      </Text>
+                    );
+                  }
+                  const w = s.weight ? (isImperial ? s.weight * 2.20462 : s.weight).toFixed(1).replace(/\.0$/, '') : '-';
+                  const unit = s.weight ? (isImperial ? 'lbs' : 'kg') : '';
+                  return (
+                    <Text key={s.id || sIdx} style={[styles.infoSetRow, { color: theme.colors.text }]}>
+                      Set {sIdx + 1}: {w} {unit} x {s.reps} reps {s.rpe ? `(RPE ${s.rpe})` : ''}
+                    </Text>
+                  );
+                })
+              ) : (
+                <Text style={{ color: theme.colors.muted, fontStyle: 'italic', textAlign: 'center', marginVertical: 10 }}>
+                  No previous working sets.
+                </Text>
+              )}
+            </ScrollView>
+
+            <Pressable
+              style={[styles.modalCloseBtn, { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md, marginTop: 20 }]}
+              onPress={() => setInfoModalVisible(false)}
+            >
+              <Text style={[styles.modalCloseBtnText, { color: theme.colors.background, ...theme.typography.button }]}>
+                Close
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </Card>
   );
 };
@@ -200,6 +359,7 @@ interface SetRowProps {
   index: number;
   sessionExerciseId: string;
   isImperial: boolean;
+  isCardio: boolean;
   showRpe: boolean;
   showRir: boolean;
   exerciseName?: string;
@@ -208,13 +368,14 @@ interface SetRowProps {
   onDelete: () => void;
 }
 
-const SetRow = ({ set, index, isImperial, showRpe, showRir, exerciseName, onUpdate, onComplete }: SetRowProps) => {
+const SetRow = ({ set, index, isImperial, isCardio, showRpe, showRir, exerciseName, onUpdate, onComplete }: SetRowProps) => {
   const theme = useTheme();
   const isDone = set.completed;
-  
-  // Format the display weight for imperial, round/clean it up
+
+  // Format Level (unconverted weight for cardio) or normal weight
   const getDisplayWeight = () => {
     if (!set.weight) return '';
+    if (isCardio) return set.weight.toString();
     if (isImperial) {
       const lbs = set.weight * 2.20462;
       return lbs.toFixed(1).replace(/\.0$/, '');
@@ -224,11 +385,46 @@ const SetRow = ({ set, index, isImperial, showRpe, showRir, exerciseName, onUpda
 
   const handleWeightChange = (text: string) => {
     const val = parseFloat(text) || 0;
-    onUpdate({ weight: isImperial ? val / 2.20462 : val });
+    if (isCardio) {
+      onUpdate({ weight: val });
+    } else {
+      onUpdate({ weight: isImperial ? val / 2.20462 : val });
+    }
+  };
+
+  // Format Duration for cardio
+  const formatSecondsToMMSS = (totalSecs?: number) => {
+    if (!totalSecs) return '';
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const parseMMSSToSeconds = (text: string) => {
+    if (!text.trim()) return 0;
+    const parts = text.split(':');
+    if (parts.length === 2) {
+      const mins = parseInt(parts[0]!, 10) || 0;
+      const secs = parseInt(parts[1]!, 10) || 0;
+      return mins * 60 + secs;
+    }
+    const val = parseInt(text, 10) || 0;
+    return val * 60;
+  };
+
+  const [durationStr, setDurationStr] = useState(formatSecondsToMMSS(set.durationSeconds));
+
+  useEffect(() => {
+    setDurationStr(formatSecondsToMMSS(set.durationSeconds));
+  }, [set.durationSeconds]);
+
+  const handleDurationChange = (text: string) => {
+    setDurationStr(text);
+    const secs = parseMMSSToSeconds(text);
+    onUpdate({ durationSeconds: secs });
   };
 
   const cycleSetType = () => {
-    if (isDone) return;
     const types: SetType[] = ['working', 'warmup', 'drop', 'failure'];
     const currentIdx = types.indexOf(set.type);
     const nextIdx = (currentIdx + 1) % types.length;
@@ -249,16 +445,16 @@ const SetRow = ({ set, index, isImperial, showRpe, showRir, exerciseName, onUpda
     }
   };
 
-  // Real-time e1RM calculation
+  // Real-time e1RM calculation (only for non-cardio)
   const weightVal = set.weight || 0;
   const repsVal = set.reps || 0;
   const displayWeight = isImperial ? weightVal * 2.20462 : weightVal;
-  const e1rm = estimateOneRepMax(displayWeight, repsVal, set.rpe, set.rir, exerciseName);
+  const e1rm = isCardio ? 0 : estimateOneRepMax(displayWeight, repsVal, set.rpe, set.rir, exerciseName);
 
   return (
     <View style={styles.rowContainer}>
-      <View style={[styles.row, isDone && { borderColor: theme.colors.primary, backgroundColor: 'rgba(198,255,0,0.07)' }]}>
-        <Pressable onPress={cycleSetType} disabled={isDone} style={[styles.setCol, styles.centerAlign]}>
+      <View style={[styles.row, isDone && { borderColor: theme.colors.primary, backgroundColor: 'rgba(144, 213, 255, 0.07)' }]}>
+        <Pressable onPress={cycleSetType} style={[styles.setCol, styles.centerAlign]}>
           {getSetTypeBadge()}
         </Pressable>
         <TextInput
@@ -269,14 +465,24 @@ const SetRow = ({ set, index, isImperial, showRpe, showRir, exerciseName, onUpda
           placeholder="-"
           placeholderTextColor={theme.colors.muted}
         />
-        <TextInput
-          style={[styles.input, styles.inputCol, { color: theme.colors.text, backgroundColor: theme.colors.background }, isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface }]}
-          keyboardType="numeric"
-          value={set.reps ? set.reps.toString() : ''}
-          onChangeText={(text) => onUpdate({ reps: parseInt(text, 10) || 0 })}
-          placeholder="-"
-          placeholderTextColor={theme.colors.muted}
-        />
+        {isCardio ? (
+          <TextInput
+            style={[styles.input, styles.inputCol, { color: theme.colors.text, backgroundColor: theme.colors.background }, isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface }]}
+            value={durationStr}
+            onChangeText={handleDurationChange}
+            placeholder="00:00"
+            placeholderTextColor={theme.colors.muted}
+          />
+        ) : (
+          <TextInput
+            style={[styles.input, styles.inputCol, { color: theme.colors.text, backgroundColor: theme.colors.background }, isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface }]}
+            keyboardType="numeric"
+            value={set.reps ? set.reps.toString() : ''}
+            onChangeText={(text) => onUpdate({ reps: parseInt(text, 10) || 0 })}
+            placeholder="-"
+            placeholderTextColor={theme.colors.muted}
+          />
+        )}
         {showRpe && (
           <TextInput
             style={[styles.input, styles.inputCol, { color: theme.colors.text, backgroundColor: theme.colors.background, borderColor: theme.colors.border }, isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface }]}
@@ -424,5 +630,92 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
     paddingHorizontal: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(11, 11, 15, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    borderWidth: 1,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  infoStatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 16,
+  },
+  infoStatBox: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: 'rgba(144, 213, 255, 0.05)',
+    borderRadius: 8,
+    padding: 10,
+    alignItems: 'center',
+  },
+  infoStatLabel: {
+    fontSize: 10,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  infoStatValue: {
+    fontSize: 14,
+    fontFamily: 'SpaceGrotesk_700Bold',
+  },
+  infoSubtitle: {
+    fontSize: 14,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    textTransform: 'uppercase',
+  },
+  infoSetRow: {
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 13,
+    paddingVertical: 4,
+  },
+  modalCloseBtn: {
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  modalCloseBtnText: {
+    fontSize: 14,
+  },
+  notesSection: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#2A2B31',
+    paddingTop: 12,
+    gap: 10,
+  },
+  noteField: {
+    flexDirection: 'column',
+  },
+  noteLabel: {
+    fontSize: 10,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  noteInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 13,
+    fontFamily: 'Manrope_500Medium',
+    backgroundColor: '#0B0B0F',
   },
 });

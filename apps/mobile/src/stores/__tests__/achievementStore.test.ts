@@ -83,11 +83,11 @@ describe('achievementStore', () => {
     // - Base: 50 XP
     // - Volume bonus: 1000 kg / 100 = 10 XP
     // - PR bonus: ex-bench is a new PR = 100 XP
-    // One-time achievements: first_workout (100) + first_pr (100) = 200 XP
+    // One-time achievements: first_workout (50) + first_pr (50) = 100 XP
     // Repeatable achievements earned this session:
     //   - rep_workout_complete (+25), rep_session_pr (+50) = 75 XP
-    // Total XP = 50 + 10 + 100 + 200 + 75 = 435 XP
-    expect(state.xp).toBe(435);
+    // Total XP = 50 + 10 + 100 + 100 + 75 = 335 XP
+    expect(state.xp).toBe(335);
     expect(state.level).toBe(1);
     expect(state.unlockedAchievements['first_workout']).toBeDefined();
     expect(state.unlockedAchievements['first_pr']).toBeDefined(); // First PR unlocked as well
@@ -145,9 +145,10 @@ describe('achievementStore', () => {
     // - Base: 50 XP
     // - Volume bonus: 10 XP
     // - PR: 100 XP (ex-bench max weight 100 kg is first PR)
-    // - Achievements first_workout + first_pr = 200 XP reward
-    // Total XP = 450 + 50 + 10 + 100 + 200 = 810 XP
-    // Level = Math.floor(810 / 500) + 1 = 2
+    // - Achievements first_workout + first_pr = 100 XP reward
+    // - Repeatable: rep_workout_complete (25) + rep_session_pr (50) = 75 XP
+    // Total XP = 450 + 50 + 10 + 100 + 100 + 75 = 785 XP
+    // Level = Math.floor(785 / 500) + 1 = 2
     expect(state.level).toBe(2);
     expect(state.levelUpTo).toBe(2);
   });

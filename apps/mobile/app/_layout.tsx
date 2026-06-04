@@ -138,10 +138,14 @@ function RootNavigator() {
           headerTintColor: theme.colors.primary,
           headerTitleStyle: { fontFamily: 'SpaceGrotesk_700Bold', color: theme.colors.text },
           headerShadowVisible: false,
+          headerBackTitle: '',
           contentStyle: { backgroundColor: theme.colors.background },
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="profile" options={{ headerShown: false }} />
+        <Stack.Screen name="programs/template-builder" options={{ headerShown: false }} />
+        <Stack.Screen name="workout/quick-start" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="light" />
       <AchievementCelebration />

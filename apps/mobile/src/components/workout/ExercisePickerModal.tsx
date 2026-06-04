@@ -3,9 +3,12 @@ import { Modal, View, Text, StyleSheet, FlatList, TextInput, Pressable, SafeArea
 import { Ionicons } from '@expo/vector-icons';
 import { UUID, Exercise } from '@fitness-tracker/domain';
 import { useTheme } from '@fitness-tracker/ui';
+import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 
 import { useExerciseStore } from '../../stores/exerciseStore';
 import { useHistoryStore } from '../../stores/historyStore';
+import { CustomExerciseModal } from '../exercises/CustomExerciseModal';
 
 interface Props {
   visible: boolean;
@@ -41,11 +44,13 @@ const POPULAR_EXERCISE_NAMES = [
 
 export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
   const theme = useTheme();
+  const router = useRouter();
   const { exercises } = useExerciseStore();
   const { sessions } = useHistoryStore();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedIds, setSelectedIds] = useState<Set<UUID>>(new Set());
+  const [customExVisible, setCustomExVisible] = useState(false);
 
   const categories = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core'];
 
@@ -162,24 +167,52 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
         style={[
           styles.exerciseRow,
           { borderColor: theme.colors.border },
-          isSelected && { backgroundColor: 'rgba(198,255,0,0.08)' },
+          isSelected && { backgroundColor: 'rgba(144, 213, 255, 0.08)' },
         ]}
         onPress={() => toggleSelection(ex.id)}
       >
+        <View style={[styles.thumbnail, { backgroundColor: theme.colors.surface }]}>
+          {ex.imageUrl ? (
+            <Image
+              source={{ uri: ex.imageUrl }}
+              style={styles.image}
+              contentFit="cover"
+            />
+          ) : (
+            <Ionicons name="barbell-outline" size={20} color={theme.colors.muted} />
+          )}
+        </View>
+
         <View style={styles.exerciseTextContainer}>
-          <Text style={[styles.exerciseName, { color: theme.colors.text }]}>{ex.name}</Text>
-          <Text style={[styles.exerciseMeta, { color: theme.colors.muted }]}>
+          <Text style={[styles.exerciseName, { color: theme.colors.text }]} numberOfLines={1}>
+            {ex.name}
+          </Text>
+          <Text style={[styles.exerciseMeta, { color: theme.colors.muted }]} numberOfLines={1}>
             {ex.primaryMuscles.join(', ').replace(/_/g, ' ')} • {ex.equipment.replace(/_/g, ' ')}
           </Text>
         </View>
-        <View
-          style={[
-            styles.checkbox,
-            { borderColor: isSelected ? theme.colors.primary : theme.colors.border },
-            isSelected && { backgroundColor: theme.colors.primary },
-          ]}
-        >
-          {isSelected && <Ionicons name="checkmark" size={16} color={theme.colors.background} />}
+
+        <View style={styles.actionContainer}>
+          <Pressable 
+            style={styles.infoBtn}
+            hitSlop={8}
+            onPress={() => {
+              onClose();
+              router.push(`/exercise/${ex.id}`);
+            }}
+          >
+            <Ionicons name="information-circle-outline" size={22} color={theme.colors.primary} />
+          </Pressable>
+
+          <View
+            style={[
+              styles.checkbox,
+              { borderColor: isSelected ? theme.colors.primary : theme.colors.border },
+              isSelected && { backgroundColor: theme.colors.primary },
+            ]}
+          >
+            {isSelected && <Ionicons name="checkmark" size={16} color={theme.colors.background} />}
+          </View>
         </View>
       </Pressable>
     );
@@ -190,9 +223,14 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
           <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>Add Exercises</Text>
-          <Pressable hitSlop={8} onPress={onClose}>
-            <Ionicons name="close" size={26} color={theme.colors.muted} />
-          </Pressable>
+          <View style={styles.headerRight}>
+            <Pressable hitSlop={8} onPress={() => setCustomExVisible(true)} style={{ marginRight: 16 }}>
+              <Ionicons name="add" size={28} color={theme.colors.primary} />
+            </Pressable>
+            <Pressable hitSlop={8} onPress={onClose}>
+              <Ionicons name="close" size={26} color={theme.colors.muted} />
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.searchContainer}>
@@ -256,6 +294,8 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
           </View>
         )}
       </SafeAreaView>
+
+      <CustomExerciseModal visible={customExVisible} onClose={() => setCustomExVisible(false)} />
     </Modal>
   );
 };
@@ -271,6 +311,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   title: {
     fontSize: 20,
@@ -301,12 +345,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
+  },
+  thumbnail: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  actionContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  infoBtn: {
+    padding: 4,
   },
   exerciseTextContainer: {
     flex: 1,
-    paddingRight: 16,
+    paddingRight: 8,
   },
   exerciseName: {
     fontFamily: 'Manrope_500Medium',

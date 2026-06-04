@@ -304,7 +304,18 @@ export type ActiveWorkoutStateInput = z.input<typeof ActiveWorkoutStateSchema>;
 // Achievements & Gamification
 // ---------------------------------------------------------------------------
 
-export const AchievementCategorySchema = z.enum(['workouts', 'streaks', 'pr', 'volume', 'exercises']);
+export const AchievementCategorySchema = z.enum([
+  'workouts',
+  'streaks',
+  'pr',
+  'volume',
+  'exercises',
+  'muscles',
+  'session',
+  'meta',
+  'time',
+  'niche',
+]);
 
 export const AchievementSchema = z.object({
   id: z.string(),

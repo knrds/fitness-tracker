@@ -532,7 +532,10 @@ export type AchievementCategory =
   | 'volume'
   | 'exercises'
   | 'muscles'
-  | 'session';
+  | 'session'
+  | 'meta'
+  | 'time'
+  | 'niche';
 
 export interface Achievement {
   id: string;

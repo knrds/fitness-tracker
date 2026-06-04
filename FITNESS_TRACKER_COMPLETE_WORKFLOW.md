@@ -29,30 +29,27 @@
 
 ## 1. AKTUELLER STAND
 
-> ✅ **Stand 2026-06-03:** Alle Missionen aus Block 1 (M6, M7, M8, M9) sowie das
-> Exercise-DB-Upgrade und alle Block 2 Stabilisierungen (H0, Bug-Jagd, Edge-Cases, TS-Härtung)
-> are completed, verified, and compiling cleanly.
+> ✅ **Stand 2026-06-04:** All core tasks from Block 1 (M6–M9), Block 2 (H0, bug fixes, TS hardening), and the UI/UX polish additions (modals, reordering, cardio metrics, recent summaries) are complete.
 >
-> 🔀 **Branch-Konsolidierung (2026-06-03):** Alle ausstehenden Bugfix-/Feature-Commits
-> aus `fix/bugfixes` wurden nach `main` zusammengeführt (PR #9 hatte nur den ersten
-> Commit erfasst). Stale Branches (`chore/update-agents-md`, `fix/domain-logic-hardening`,
-> `feat/workout-improvements`) wurden lokal und auf GitHub gelöscht. `main` ist grün:
-> `pnpm typecheck` ✅, `pnpm test` (67 Tests) ✅, `pnpm lint` ✅. Aktiver Arbeits-Branch:
-> `fix/bugfixes` (Gemini). **Nächster Schritt: BLOCK 3 — Design-Fundament.**
+> 🔀 **Branch & UI Polish updates (2026-06-04):**
+> - **Smooth Animated Modals:** Custom `<Modal>` component rewritten to use `Animated` for backdrop fade and container slide translations on open and close.
+> - **PR highlights on Progress Charts:** Volume history Progress charts now calculate historical PRs using e1RM and highlight PR workouts with gold dots (`#FFB020`). Tapping dots reveals volume details alongside a "★ NEW PR!" indicator.
+> - **Interactive XP Tooltip:** Level card on the Home Screen shows the exact numerical XP progress (`X / 500 XP`) when hovered (web) or pressed (mobile).
+> - **Unique Achievement Icons:** Replaced repeated Ionicon names in `achievements.ts` to ensure every achievement has a unique, distinct icon representing its milestone.
+> - **Program List Drag-and-Drop:** Converted `FlatList` to custom `ScrollView` in `(tabs)/programs.tsx`, enabling vertical drag-and-drop sorting via `PanResponder` and `Animated` using a `reorder-two` handle, persisting the new order via `updateProgramsOrder`.
+> - **Home Recent Workouts:** Added a list of the 4 most recent completed workouts under the Today card on the Home screen. Tapping a card opens a modal summary details sheet with click-outside-to-dismiss support.
+> - **Workout/Template Subtitles:** Added a 2-line truncated list of exercise names as a subtitle for template cards in `(tabs)/workouts.tsx` and history cards in `(tabs)/history.tsx`.
+> - **Custom Exercise Tracking Mode:** Added a tracking mode toggle ("Reps & Weight" vs "Duration & Level") to `CustomExerciseModal.tsx`. Selecting duration maps `movementPattern` to `MovementPattern.Cardio`, enabling cardio level and minutes:seconds tracking for custom movements.
+> - **Compiles & Passes:** `pnpm typecheck` ✅, `pnpm test` (all tests passed) ✅, `pnpm lint` ✅.
 >
-> Additionally, the following fixes and features are implemented and fully tested:
-> - **In-App Restoration Modal**: Replaced standard browser confirm and Alert.alert popups with a beautiful, styled custom in-app `<Modal>` overlay.
-> - **12-Hour Workout Timeout**: Silently cancels/discards active workouts started more than 12 hours ago on startup to avoid background timer drift.
-> - **Copy previous set values**: Tapping "+ Add Set" automatically inherits weight, reps, RPE, RIR, and set type from the previous set of that exercise (preventing zero overrides).
-> - **Realistic e1RM Divisors**: Updated divisors (45 leg compounds, 50 standard compounds, 60 isolations) to make predicted maxes realistic (e.g. 100kg x 10 reps -> 120kg e1RM).
-> - **Personal Record Decimals & Actual Weight**: PR best weights are rounded down to 2 decimals using Math.floor and track the actual maximum weight lifted rather than estimated 1RM.
-> - **Pre-built Splits (Programs) & Calendar**: Seeded 3 default structured splits (Ganzkörper, Push/Pull/Legs, OK/UK). When a program is active, displays a gorgeous week-by-week calendar of training and rest days with template quick-start and plan deactivation.
-> - **Workout Session Back Navigation**: Custom back arrow in active workout header triggers a confirmation dialog to abort (delete session) or continue training.
-> - **Achievements Validation & Expansion**: Added 11 new achievements (dedicated streaks, milestone workouts, variety explorers). Updated Zod record schemas to accept Date objects from the MMKV custom storage reviver to prevent data loss on page reloads.
-> - **Template Start Loop Fix**: Resolved recursive render loop in `SessionExerciseCard.tsx` caused by unstable selector object references.
-> - **Plate Calculator**: Removed 25kg plates, using 20kg as the maximum plate size.
-> - **Default Training Plans**: Pre-built GK, OK, UK, Push, Pull, and Legs templates seeded dynamically on hydration.
->
+> ⚠️ **Potential Issues / Notes for Codex:**
+> 1. **Progress Chart Performance:** The `getProgressHistory` calculation on the progress chart loops chronologically through all sessions on every render/tab click. If a user logs 500+ workouts, this may cause a frame drop. Codex should implement memoization for this logic.
+> 2. **ScrollView rendering overhead:** Changing the list of programs in `(tabs)/programs.tsx` from `FlatList` to `ScrollView` allows measuring Y positions for reordering. For long program lists (e.g. 50+ programs), rendering them all at once could introduce minor performance overhead. Codex should check if this needs windowing/optimization.
+> 3. **Cardio custom exercise validation:** The new tracking mode maps "duration" to `MovementPattern.Cardio`. Codex should verify that when exporting workouts or syncing, cardio sets (where `weight` stores the Level and duration is tracked in `durationSeconds`) do not trigger standard volume validation logic that assumes weight in kg/lbs.
+> 4. **Pointer Hover Events on Mobile Web:** `onPointerEnter` and `onPointerLeave` work well for web hover, but might behave inconsistently on older touch-screen browsers.
+> 5. **Zod Parsing Overhead:** Zod validation on MMKV storage hydration is thorough, but ensure it is fast enough as database size grows.
+
+---
 
 Tatsächlicher Stand:
 

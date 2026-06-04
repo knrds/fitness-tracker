@@ -105,7 +105,7 @@ export const useAchievementStore = create<AchievementState>()(
           });
         });
 
-        const cumulativeMetric = (category: string): number => {
+        const cumulativeMetric = (category: string, achId: string): number => {
           switch (category) {
             case 'workouts':
               return totalWorkouts;
@@ -119,6 +119,68 @@ export const useAchievementStore = create<AchievementState>()(
               return uniqueExercisesCount;
             case 'muscles':
               return trainedMuscles.size;
+            case 'time': {
+              if (achId === 'early_bird') {
+                return historyStore.sessions.some((s) => {
+                  if (!s.completedAt) return false;
+                  const date = new Date(s.completedAt);
+                  return date.getHours() < 8;
+                }) ? 1 : 0;
+              }
+              if (achId === 'night_owl') {
+                return historyStore.sessions.some((s) => {
+                  if (!s.completedAt) return false;
+                  const date = new Date(s.completedAt);
+                  return date.getHours() >= 21;
+                }) ? 1 : 0;
+              }
+              if (achId === 'weekend_warrior') {
+                return historyStore.sessions.some((s) => {
+                  if (!s.completedAt) return false;
+                  const date = new Date(s.completedAt);
+                  const day = date.getDay(); // 0 = Sunday, 6 = Saturday
+                  return day === 0 || day === 6;
+                }) ? 1 : 0;
+              }
+              return 0;
+            }
+            case 'niche': {
+              if (achId === 'mind_over_matter') {
+                return historyStore.sessions.filter((s) => {
+                  const hasSessionNote = typeof s.notes === 'string' && s.notes.trim().length > 0;
+                  const hasExNote = s.exercises.some((ex) => typeof ex.notes === 'string' && ex.notes.trim().length > 0);
+                  return hasSessionNote || hasExNote;
+                }).length;
+              }
+              if (achId === 'superset_enthusiast') {
+                return historyStore.sessions.filter((s) =>
+                  s.exercises.some((ex) => typeof ex.supersetGroup === 'string' && ex.supersetGroup.trim().length > 0)
+                ).length;
+              }
+              if (achId === 'warmup_champion') {
+                return historyStore.sessions.filter((s) =>
+                  s.exercises.some((ex) => ex.sets.some((set) => set.completed && set.type === 'warmup'))
+                ).length;
+              }
+              if (achId === 'cardio_lover') {
+                return historyStore.sessions.filter((s) =>
+                  s.exercises.some((ex) => {
+                    const def = exerciseStore.exercises.find((e) => e.id === ex.exerciseId);
+                    const isCardio = def && (def.movementPattern === 'cardio' || def.equipment === 'cardio_machine');
+                    return isCardio && ex.sets.some((set) => set.completed);
+                  })
+                ).length;
+              }
+              return 0;
+            }
+            case 'meta': {
+              const unlockedList = Object.keys(unlocked);
+              const nonMetaUnlocked = unlockedList.filter((id) => {
+                const ach = ACHIEVEMENTS.find((a) => a.id === id);
+                return ach && ach.category !== 'meta';
+              });
+              return nonMetaUnlocked.length;
+            }
             default:
               return 0;
           }
@@ -127,7 +189,7 @@ export const useAchievementStore = create<AchievementState>()(
         const sessionMetric = (category: string): number => {
           switch (category) {
             case 'workouts':
-              return 1; // one workout was just completed
+              return 1;
             case 'volume':
               return sessionVolume;
             case 'pr':
@@ -139,24 +201,29 @@ export const useAchievementStore = create<AchievementState>()(
           }
         };
 
-        // --- Evaluate achievements ---
-        ACHIEVEMENTS.forEach((ach) => {
+        // --- Evaluate achievements (Two-pass to check meta achievements in the same workout) ---
+        ACHIEVEMENTS.filter((ach) => ach.category !== 'meta').forEach((ach) => {
           if (ach.repeatable) {
-            // Repeatable: earned again every workout that meets the per-session
-            // condition. Awards XP + increments count, but does not spam the
-            // celebration modal.
             if (sessionMetric(ach.category) >= ach.targetValue) {
               repeatCounts[ach.id] = (repeatCounts[ach.id] || 0) + 1;
               tempXp += ach.xpReward;
             }
           } else {
-            // One-time milestone.
             if (unlocked[ach.id]) return;
-            if (cumulativeMetric(ach.category) >= ach.targetValue) {
+            if (cumulativeMetric(ach.category, ach.id) >= ach.targetValue) {
               unlocked[ach.id] = new Date().toISOString();
               newlyUnlocked.push(ach.id);
               tempXp += ach.xpReward;
             }
+          }
+        });
+
+        ACHIEVEMENTS.filter((ach) => ach.category === 'meta').forEach((ach) => {
+          if (unlocked[ach.id]) return;
+          if (cumulativeMetric(ach.category, ach.id) >= ach.targetValue) {
+            unlocked[ach.id] = new Date().toISOString();
+            newlyUnlocked.push(ach.id);
+            tempXp += ach.xpReward;
           }
         });
 

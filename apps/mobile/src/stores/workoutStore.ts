@@ -88,6 +88,7 @@ export interface WorkoutActions {
 
   // New Actions
   updateWorkoutNotes: (notes: string) => void;
+  updateExerciseNotes: (sessionExerciseId: UUID, notes: string) => void;
   calculateWarmupSets: (sessionExerciseId: UUID, targetWeight: number) => void;
   toggleSuperset: (sessionExerciseId: UUID) => void;
   clearLastFinishedSession: () => void;
@@ -447,6 +448,14 @@ export const useWorkoutStore = create<WorkoutStore>()(
       updateWorkoutNotes: (notes) => set({
         notes,
         lastUpdatedAt: new Date(),
+      }),
+
+      updateExerciseNotes: (sessionExerciseId, notes) => set((state) => {
+        const exercises = state.exercises.map(ex => {
+          if (ex.id !== sessionExerciseId) return ex;
+          return { ...ex, notes };
+        });
+        return { exercises, lastUpdatedAt: new Date() };
       }),
 
       calculateWarmupSets: (sessionExerciseId, targetWeight) => set((state) => {

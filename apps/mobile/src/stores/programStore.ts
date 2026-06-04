@@ -204,6 +204,7 @@ export interface ProgramState {
   updateProgram: (id: UUID, updates: Partial<Program>) => void;
   deleteProgram: (id: UUID) => void;
   setActiveProgram: (id: UUID | null) => void;
+  updateProgramsOrder: (programs: Program[]) => void;
   
   createTemplate: (template: Partial<WorkoutTemplate>) => void;
   updateTemplate: (id: UUID, updates: Partial<WorkoutTemplate>) => void;
@@ -265,6 +266,10 @@ export const useProgramStore = create<ProgramState>()(
           return p;
         })
       })),
+
+      updateProgramsOrder: (programs) => set({
+        programs
+      }),
 
       createTemplate: (templatePartial) => set((state) => {
         const now = new Date();

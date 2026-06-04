@@ -17,8 +17,8 @@ export const AchievementCelebration = () => {
 
   return (
     <Modal visible={isVisible} animationType="fade" transparent onRequestClose={clearCelebrations}>
-      <View style={styles.overlay}>
-        <View
+      <Pressable style={styles.overlay} onPress={clearCelebrations}>
+        <Pressable
           style={[
             styles.card,
             {
@@ -27,11 +27,12 @@ export const AchievementCelebration = () => {
               borderRadius: theme.radius.lg,
             },
           ]}
+          onPress={(e) => e.stopPropagation()}
         >
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             {levelUpTo !== null && (
               <View style={styles.levelUpContainer}>
-                <View style={[styles.iconBadge, { backgroundColor: 'rgba(198,255,0,0.12)', borderColor: theme.colors.primary }]}>
+                <View style={[styles.iconBadge, { backgroundColor: 'rgba(144, 213, 255, 0.12)', borderColor: theme.colors.primary }]}>
                   <Ionicons name="trophy" size={44} color={theme.colors.primary} />
                 </View>
                 <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>Level Up</Text>
@@ -61,7 +62,7 @@ export const AchievementCelebration = () => {
                     >
                       <View style={[styles.achIcon, { backgroundColor: 'rgba(255,176,32,0.12)' }]}>
                         <Ionicons
-                          name={ach.icon as React.ComponentProps<typeof Ionicons>['name']}
+                           name={ach.icon as React.ComponentProps<typeof Ionicons>['name']}
                           size={28}
                           color={GOLD}
                         />
@@ -86,8 +87,8 @@ export const AchievementCelebration = () => {
               </Text>
             </Pressable>
           </ScrollView>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 };

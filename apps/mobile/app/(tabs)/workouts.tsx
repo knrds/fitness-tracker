@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Alert, Platform, Modal, Share } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, Alert, Platform, Modal, Share, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@fitness-tracker/ui';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
@@ -9,10 +10,12 @@ import { WorkoutTemplate } from '@fitness-tracker/domain';
 
 export default function WorkoutsScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const { templates, deleteTemplate } = useProgramStore();
   const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
   const { exercises } = useExerciseStore();
   const [menuTemplateId, setMenuTemplateId] = useState<string | null>(null);
+  const [summaryTemplateId, setSummaryTemplateId] = useState<string | null>(null);
 
   const handleStartEmpty = () => {
     if (status === 'idle' || status === 'finished') {
@@ -89,18 +92,28 @@ export default function WorkoutsScreen() {
   };
 
   const menuTemplate = templates.find(t => t.id === menuTemplateId) || null;
+  const summaryTemplate = templates.find(t => t.id === summaryTemplateId) || null;
 
-  const renderTemplate = ({ item }: { item: WorkoutTemplate }) => (
-    <Pressable style={styles.card} onPress={() => handleStartTemplate(item)}>
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardTitle}>{item.name}</Text>
-        <Text style={styles.cardSubtitle}>{item.exercises.length} Exercises</Text>
-      </View>
-      <Pressable style={styles.kebabBtn} hitSlop={10} onPress={() => setMenuTemplateId(item.id)}>
-        <Ionicons name="ellipsis-vertical" size={20} color="#8A8D9F" />
+  const renderTemplate = ({ item }: { item: WorkoutTemplate }) => {
+    const exerciseNames = item.exercises
+      .map(te => exercises.find(e => e.id === te.exerciseId)?.name)
+      .filter(Boolean)
+      .join(', ');
+
+    return (
+      <Pressable style={styles.card} onPress={() => setSummaryTemplateId(item.id)}>
+        <View style={styles.cardInfo}>
+          <Text style={styles.cardTitle}>{item.name}</Text>
+          <Text style={styles.cardSubtitle} numberOfLines={2} ellipsizeMode="tail">
+            {exerciseNames || `${item.exercises.length} Exercises`}
+          </Text>
+        </View>
+        <Pressable style={styles.kebabBtn} hitSlop={10} onPress={() => setMenuTemplateId(item.id)}>
+          <Ionicons name="ellipsis-vertical" size={20} color="#8A8D9F" />
+        </Pressable>
       </Pressable>
-    </Pressable>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -148,6 +161,75 @@ export default function WorkoutsScreen() {
           </View>
         </Pressable>
       </Modal>
+
+      {summaryTemplate && (
+        <Modal
+          visible={summaryTemplateId !== null}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setSummaryTemplateId(null)}
+        >
+          <Pressable style={styles.modalOverlay} onPress={() => setSummaryTemplateId(null)}>
+            <Pressable
+              style={[styles.modalCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <View style={styles.modalHeaderRow}>
+                <Text style={[styles.modalTitle, { color: theme.colors.text, ...theme.typography.heading }]}>
+                  {summaryTemplate.name}
+                </Text>
+                <Pressable onPress={() => setSummaryTemplateId(null)} hitSlop={10}>
+                  <Ionicons name="close" size={24} color={theme.colors.muted} />
+                </Pressable>
+              </View>
+              
+              <View style={styles.modalSummaryStatsRow}>
+                <View style={styles.modalStatItem}>
+                  <Ionicons name="barbell-outline" size={16} color={theme.colors.primary} />
+                  <Text style={[styles.modalStatText, { color: theme.colors.muted }]}>
+                    {summaryTemplate.exercises.length} Exercises
+                  </Text>
+                </View>
+                <View style={styles.modalStatItem}>
+                  <Ionicons name="repeat-outline" size={16} color={theme.colors.primary} />
+                  <Text style={[styles.modalStatText, { color: theme.colors.muted }]}>
+                    {summaryTemplate.exercises.reduce((acc, curr) => acc + curr.targetSets, 0)} Total Sets
+                  </Text>
+                </View>
+              </View>
+
+              <ScrollView style={styles.summaryExerciseList} showsVerticalScrollIndicator={false}>
+                {summaryTemplate.exercises.map((te, idx) => {
+                  const ex = exercises.find(e => e.id === te.exerciseId);
+                  return (
+                    <View key={te.id || idx} style={[styles.summaryExRow, { borderColor: theme.colors.border }]}>
+                      <Text style={[styles.summaryExName, { color: theme.colors.text }]}>
+                        {ex?.name || 'Unknown Exercise'}
+                      </Text>
+                      <Text style={[styles.summaryExDetails, { color: theme.colors.primary }]}>
+                        {te.targetSets}s × {te.targetReps ?? '8-10'}r
+                      </Text>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+
+              <Pressable
+                style={[styles.modalStartBtn, { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md }]}
+                onPress={() => {
+                  const tmpl = summaryTemplate;
+                  setSummaryTemplateId(null);
+                  handleStartTemplate(tmpl);
+                }}
+              >
+                <Text style={[styles.modalStartBtnText, { color: theme.colors.background, ...theme.typography.button }]}>
+                  Start Workout
+                </Text>
+              </Pressable>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -226,4 +308,78 @@ const styles = StyleSheet.create({
   },
   menuItemText: { color: '#F4F5F7', fontFamily: 'SpaceGrotesk_600SemiBold', fontSize: 16 },
   emptyText: { color: '#8A8D9F', fontFamily: 'Manrope_500Medium', textAlign: 'center', marginTop: 24, paddingHorizontal: 20, lineHeight: 22 },
+  
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(11, 11, 15, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    borderWidth: 1,
+    padding: 24,
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 16,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    width: '100%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    flex: 1,
+    marginRight: 12,
+  },
+  modalSummaryStatsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 20,
+    width: '100%',
+  },
+  modalStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  modalStatText: {
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 13,
+  },
+  summaryExerciseList: {
+    maxHeight: 250,
+    width: '100%',
+    marginBottom: 24,
+  },
+  summaryExRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    width: '100%',
+  },
+  summaryExName: {
+    fontSize: 14,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    flex: 1,
+    marginRight: 12,
+  },
+  summaryExDetails: {
+    fontSize: 13,
+    fontFamily: 'SpaceGrotesk_700Bold',
+  },
+  modalStartBtn: {
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  modalStartBtnText: {
+    fontSize: 15,
+  },
 });

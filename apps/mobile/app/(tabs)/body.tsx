@@ -7,7 +7,9 @@ import {
   Pressable,
   Dimensions,
   Alert,
-  SafeAreaView
+  SafeAreaView,
+  Animated,
+  Platform
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +26,31 @@ export default function BodyTrackingScreen() {
 
   const [activeChartTab, setActiveChartTab] = useState<'weight' | 'fat'>('weight');
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedPoint, setSelectedPoint] = useState<{
+    date: string;
+    value: string;
+  } | null>(null);
+
+  const chartFadeAnim = React.useRef(new Animated.Value(0)).current;
+  const chartSlideAnim = React.useRef(new Animated.Value(20)).current;
+
+  React.useEffect(() => {
+    setSelectedPoint(null);
+    chartFadeAnim.setValue(0);
+    chartSlideAnim.setValue(20);
+    Animated.parallel([
+      Animated.timing(chartFadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.timing(chartSlideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: Platform.OS !== 'web',
+      })
+    ]).start();
+  }, [activeChartTab]);
 
   // Form states
   const [weight, setWeight] = useState('');
@@ -167,13 +194,54 @@ export default function BodyTrackingScreen() {
     };
 
     return (
-      <View style={[styles.chartContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.muted }]}>
+      <Animated.View style={[styles.chartContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.muted, opacity: chartFadeAnim, transform: [{ translateY: chartSlideAnim }] }]}>
+        <Text style={[styles.chartTitle, { color: theme.colors.text, ...theme.typography.heading, fontSize: 16, marginBottom: 4 }]}>
+          {activeChartTab === 'weight' ? 'Weight History' : 'Body Fat History'}
+        </Text>
+
+        {selectedPoint ? (
+          <View style={[styles.tooltipContainer, { backgroundColor: theme.colors.background, borderColor: theme.colors.primary }]}>
+            <Ionicons name="stats-chart" size={16} color={theme.colors.primary} />
+            <Text style={[styles.tooltipText, { color: theme.colors.text }]}>
+              <Text style={{ fontFamily: 'SpaceGrotesk_700Bold' }}>{selectedPoint.date}</Text>:{' '}
+              <Text style={{ color: theme.colors.primary, fontFamily: 'SpaceGrotesk_700Bold' }}>
+                {selectedPoint.value}
+              </Text>
+            </Text>
+            <Pressable onPress={() => setSelectedPoint(null)} hitSlop={10}>
+              <Ionicons name="close-circle" size={18} color={theme.colors.muted} />
+            </Pressable>
+          </View>
+        ) : (
+          <Text style={[styles.chartTipText, { color: theme.colors.muted }]}>
+            💡 Tap any point on the chart to see details
+          </Text>
+        )}
+
         <LineChart
           data={data}
           width={screenWidth - 32}
           height={200}
           withInnerLines={false}
           withOuterLines={false}
+          onDataPointClick={({ index }) => {
+            const slicedHistory = history.slice(-6);
+            const item = slicedHistory[index];
+            if (item) {
+              const dateStr = new Date(item.recordedAt).toLocaleDateString();
+              let valStr = '';
+              if (activeChartTab === 'weight') {
+                const w = item.weightKg ? (isImperial ? item.weightKg * 2.20462 : item.weightKg) : 0;
+                valStr = `${w.toFixed(1)} ${isImperial ? 'lbs' : 'kg'}`;
+              } else {
+                valStr = `${(item.bodyFatPercentage || 0).toFixed(1)}%`;
+              }
+              setSelectedPoint({
+                date: dateStr,
+                value: valStr,
+              });
+            }
+          }}
           chartConfig={{
             backgroundColor: theme.colors.surface,
             backgroundGradientFrom: theme.colors.surface,
@@ -182,7 +250,7 @@ export default function BodyTrackingScreen() {
             color: () => theme.colors.primary,
             labelColor: () => theme.colors.muted,
             propsForDots: {
-              r: '4',
+              r: '5',
               strokeWidth: '2',
               stroke: theme.colors.surface,
             }
@@ -190,7 +258,7 @@ export default function BodyTrackingScreen() {
           bezier
           style={styles.chart}
         />
-      </View>
+      </Animated.View>
     );
   };
 
@@ -263,6 +331,8 @@ export default function BodyTrackingScreen() {
         onClose={() => setModalVisible(false)}
         primaryActionTitle="Save Entry"
         onPrimaryAction={handleSave}
+        secondaryActionTitle="Cancel"
+        onSecondaryAction={() => setModalVisible(false)}
       >
         <ScrollView style={styles.modalForm} contentContainerStyle={styles.modalFormContent}>
           <Input
@@ -417,5 +487,36 @@ const styles = StyleSheet.create({
   sectionDivider: {
     marginTop: 20,
     marginBottom: 12,
+  },
+  chartTitle: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 16,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  tooltipContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 4,
+    width: '90%',
+  },
+  tooltipText: {
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 13,
+    flex: 1,
+  },
+  chartTipText: {
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 11,
+    marginTop: 6,
+    marginBottom: 4,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
 });

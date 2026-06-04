@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, ScrollView, Dimensions, Modal } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, ScrollView, Dimensions, Modal, Animated, Platform } from 'react-native';
 
 import { useRouter } from 'expo-router';
 import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
 
-import { WorkoutSession, ACHIEVEMENTS } from '@fitness-tracker/domain';
+import { WorkoutSession, ACHIEVEMENTS, estimateOneRepMax } from '@fitness-tracker/domain';
 
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
@@ -18,6 +18,7 @@ import { getLevelBadge } from '../../src/utils/level';
 export default function HistoryScreen() {
   const [activeTab, setActiveTab] = useState<'history' | 'progress' | 'achievements'>('history');
   const theme = useTheme();
+
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -81,6 +82,11 @@ function HistoryView() {
     const totalSets = item.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0);
     const totalVolume = item.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed && s.weight).reduce((sSum, s) => sSum + s.weight! * (s.reps || 0), 0), 0);
     
+    const exerciseNames = item.exercises
+      .map(se => allExercises.find(e => e.id === se.exerciseId)?.name)
+      .filter(Boolean)
+      .join(', ');
+
     return (
       <Card 
         style={styles.card} 
@@ -91,6 +97,9 @@ function HistoryView() {
           <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading, fontSize: 18 }]}>{item.name}</Text>
           <Text style={[styles.date, { color: theme.colors.muted, ...theme.typography.caption }]}>{formatDate(item.startedAt)}</Text>
         </View>
+        <Text style={{ color: theme.colors.muted, marginBottom: 12, fontSize: 14, fontFamily: 'Manrope_500Medium' }} numberOfLines={2} ellipsizeMode="tail">
+          {exerciseNames || `${item.exercises.length} Exercises`}
+        </Text>
         <View style={styles.stats}>
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}>{formatDuration(item.durationSeconds)}</Text>
@@ -207,23 +216,92 @@ function HistoryView() {
 
 function ProgressView() {
   const theme = useTheme();
-  useHistoryStore((state) => state.sessions);
-  const { getPRs, getExerciseVolumeHistory } = useHistoryStore();
+  const historyStore = useHistoryStore();
   const { exercises } = useExerciseStore();
   const { profile } = useProfileStore();
   const isImperial = profile.preferredUnits === 'imperial';
-  const prs = getPRs();
+  const prs = historyStore.getPRs();
   const activeExerciseIds = Object.keys(prs);
   
   const [selectedExId, setSelectedExId] = useState<string | null>(
     activeExerciseIds.length > 0 ? (activeExerciseIds[0] || null) : null
   );
 
+  const [selectedPoint, setSelectedPoint] = useState<{
+    date: string;
+    volume: number;
+    isPR: boolean;
+  } | null>(null);
+
+  const chartFadeAnim = React.useRef(new Animated.Value(0)).current;
+  const chartSlideAnim = React.useRef(new Animated.Value(20)).current;
+
+  React.useEffect(() => {
+    setSelectedPoint(null);
+    chartFadeAnim.setValue(0);
+    chartSlideAnim.setValue(20);
+    Animated.parallel([
+      Animated.timing(chartFadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.timing(chartSlideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: Platform.OS !== 'web',
+      })
+    ]).start();
+  }, [selectedExId]);
+
   const screenWidth = Dimensions.get('window').width;
+
+  const getProgressHistory = (exerciseId: string) => {
+    const exercise = exercises.find(e => e.id === exerciseId);
+    const exerciseName = exercise?.name;
+
+    const points: { date: Date; volume: number; maxE1RM: number; isPR: boolean }[] = [];
+    const sortedSessions = [...historyStore.sessions].sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime());
+
+    let historicalMax = 0;
+
+    sortedSessions.forEach(session => {
+      let volume = 0;
+      let sessionMaxE1RM = 0;
+      
+      const ex = session.exercises.find(e => e.exerciseId === exerciseId);
+      if (ex) {
+        ex.sets.forEach(set => {
+          if (set.completed && set.weight && set.reps && set.type !== 'warmup') {
+            volume += set.weight * set.reps;
+            const e1rm = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir, exerciseName);
+            if (e1rm > sessionMaxE1RM) {
+              sessionMaxE1RM = e1rm;
+            }
+          }
+        });
+      }
+
+      if (volume > 0) {
+        const isPR = sessionMaxE1RM > historicalMax;
+        if (isPR) {
+          historicalMax = sessionMaxE1RM;
+        }
+        points.push({
+          date: session.startedAt,
+          volume,
+          maxE1RM: sessionMaxE1RM,
+          isPR,
+        });
+      }
+    });
+
+    return points;
+  };
 
   const renderChart = () => {
     if (!selectedExId) return null;
-    const history = getExerciseVolumeHistory(selectedExId);
+    const history = getProgressHistory(selectedExId);
     if (history.length < 2) {
       return (
         <Card padding="lg" style={{ alignItems: 'center' }}>
@@ -233,27 +311,66 @@ function ProgressView() {
       );
     }
     const data = {
-      labels: history.map(h => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(h.date))),
+      labels: history.map(h => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(h.date)),
       datasets: [
         { data: history.map(h => isImperial ? Math.round(h.volume * 2.20462) : h.volume), color: () => theme.colors.primary, strokeWidth: 2 }
       ],
     };
     return (
-      <View style={[styles.chartContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.muted }]}>
+      <Animated.View style={[styles.chartContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.muted, opacity: chartFadeAnim, transform: [{ translateY: chartSlideAnim }] }]}>
         <Text style={[styles.chartTitle, { color: theme.colors.text, ...theme.typography.heading }]}>Volume History</Text>
+
+        {/* Selected Data Point Details */}
+        {selectedPoint ? (
+          <View style={[styles.tooltipContainer, { backgroundColor: theme.colors.background, borderColor: selectedPoint.isPR ? '#FFB020' : theme.colors.primary }]}>
+            <Ionicons name={selectedPoint.isPR ? 'star' : 'stats-chart'} size={16} color={selectedPoint.isPR ? '#FFB020' : theme.colors.primary} />
+            <Text style={[styles.tooltipText, { color: theme.colors.text }]}>
+              <Text style={{ fontFamily: 'SpaceGrotesk_700Bold' }}>{selectedPoint.date}</Text>:{' '}
+              <Text style={{ color: selectedPoint.isPR ? '#FFB020' : theme.colors.primary, fontFamily: 'SpaceGrotesk_700Bold' }}>
+                {selectedPoint.volume} {isImperial ? 'lbs' : 'kg'}
+              </Text>
+              {selectedPoint.isPR && (
+                <Text style={{ color: '#FFB020', fontFamily: 'SpaceGrotesk_700Bold' }}> (★ NEW PR!)</Text>
+              )}
+            </Text>
+            <Pressable onPress={() => setSelectedPoint(null)} hitSlop={10}>
+              <Ionicons name="close-circle" size={18} color={theme.colors.muted} />
+            </Pressable>
+          </View>
+        ) : (
+          <Text style={[styles.chartTipText, { color: theme.colors.muted }]}>
+            💡 Tap any point on the chart to see details
+          </Text>
+        )}
+
         <LineChart
           data={data} width={screenWidth - 64} height={220}
           withInnerLines={false}
           withOuterLines={false}
+          onDataPointClick={({ index }) => {
+            const item = history[index];
+            if (item) {
+              const vol = isImperial ? Math.round(item.volume * 2.20462) : Math.round(item.volume);
+              setSelectedPoint({
+                date: new Date(item.date).toLocaleDateString(),
+                volume: vol,
+                isPR: item.isPR,
+              });
+            }
+          }}
+          getDotColor={(dataPoint, dataPointIndex) => {
+            const point = history[dataPointIndex];
+            return point?.isPR ? '#FFB020' : theme.colors.primary;
+          }}
           chartConfig={{
             backgroundColor: theme.colors.surface, backgroundGradientFrom: theme.colors.surface, backgroundGradientTo: theme.colors.surface,
             decimalPlaces: 0, color: () => theme.colors.primary,
             labelColor: () => theme.colors.muted,
-            propsForDots: { r: '4', strokeWidth: '2', stroke: theme.colors.surface }
+            propsForDots: { r: '6', strokeWidth: '2.5', stroke: theme.colors.surface }
           }}
           bezier style={{ marginVertical: 8, borderRadius: 16 }}
         />
-      </View>
+      </Animated.View>
     );
   };
 
@@ -635,5 +752,30 @@ const styles = StyleSheet.create({
   },
   summaryDetailBtnText: {
     fontSize: 15,
+  },
+  tooltipContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 4,
+    width: '90%',
+  },
+  tooltipText: {
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 13,
+    flex: 1,
+  },
+  chartTipText: {
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 11,
+    marginTop: 6,
+    marginBottom: 4,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
 });

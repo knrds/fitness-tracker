@@ -5,6 +5,92 @@ import { useTheme } from '@fitness-tracker/ui';
 import { useWorkoutStore } from '../../stores/workoutStore';
 import { useProfileStore } from '../../stores/profileStore';
 
+import { Animated, Dimensions } from 'react-native';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const CONFETTI_COLORS = ['#90D5FF', '#5FBDFF', '#C5E8FF', '#FFFFFF', '#FFD700', '#FF9F43'];
+
+interface ConfettiParticle {
+  id: number;
+  x: number;
+  size: number;
+  color: string;
+  delay: number;
+  duration: number;
+  animY: Animated.Value;
+  animX: Animated.Value;
+  animRotate: Animated.Value;
+}
+
+const SubtleConfetti = () => {
+  const particles = React.useRef<ConfettiParticle[]>(
+    Array.from({ length: 30 }).map((_, i) => ({
+      id: i,
+      x: Math.random() * SCREEN_WIDTH,
+      size: Math.random() * 8 + 6,
+      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)] || '#90D5FF',
+      delay: Math.random() * 1200,
+      duration: Math.random() * 1500 + 2000,
+      animY: new Animated.Value(-20),
+      animX: new Animated.Value(0),
+      animRotate: new Animated.Value(0),
+    }))
+  ).current;
+
+  React.useEffect(() => {
+    particles.forEach((p) => {
+      Animated.sequence([
+        Animated.delay(p.delay),
+        Animated.parallel([
+          Animated.timing(p.animY, {
+            toValue: SCREEN_HEIGHT + 20,
+            duration: p.duration,
+            useNativeDriver: true,
+          }),
+          Animated.timing(p.animX, {
+            toValue: (Math.random() - 0.5) * 120,
+            duration: p.duration,
+            useNativeDriver: true,
+          }),
+          Animated.timing(p.animRotate, {
+            toValue: Math.random() * 360,
+            duration: p.duration,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start();
+    });
+  }, [particles]);
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {particles.map((p) => (
+        <Animated.View
+          key={p.id}
+          style={{
+            position: 'absolute',
+            left: p.x,
+            width: p.size,
+            height: p.size,
+            borderRadius: p.size / 2,
+            backgroundColor: p.color,
+            transform: [
+              { translateY: p.animY },
+              { translateX: p.animX },
+              {
+                rotate: p.animRotate.interpolate({
+                  inputRange: [0, 360],
+                  outputRange: ['0deg', '360deg'],
+                }),
+              },
+            ],
+          }}
+        />
+      ))}
+    </View>
+  );
+};
+
 export const WorkoutCompleteModal = () => {
   const theme = useTheme();
   const { lastFinishedSession, clearLastFinishedSession } = useWorkoutStore();
@@ -78,8 +164,9 @@ export const WorkoutCompleteModal = () => {
 
   return (
     <Modal visible={true} animationType="slide" transparent onRequestClose={clearLastFinishedSession}>
-      <View style={styles.overlay}>
-        <View
+      <Pressable style={styles.overlay} onPress={clearLastFinishedSession}>
+        <SubtleConfetti />
+        <Pressable
           style={[
             styles.card,
             {
@@ -88,6 +175,7 @@ export const WorkoutCompleteModal = () => {
               borderRadius: theme.radius.lg,
             },
           ]}
+          onPress={(e) => e.stopPropagation()}
         >
           <View style={styles.iconContainer}>
             <Ionicons name="barbell" size={48} color={theme.colors.primary} />
@@ -140,8 +228,8 @@ export const WorkoutCompleteModal = () => {
               AWESOME
             </Text>
           </Pressable>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 };

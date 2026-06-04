@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 'react-native-reanimated';
+import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@fitness-tracker/ui';
 
@@ -13,6 +14,24 @@ export const RestTimer = () => {
   const [timeLeft, setTimeLeft] = useState(restTimer.durationSeconds);
   const [collapsed, setCollapsed] = useState(false);
   const translateY = useSharedValue(0);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editVal, setEditVal] = useState('');
+
+  const handleFinishEdit = () => {
+    setIsEditing(false);
+    let seconds = 0;
+    if (editVal.includes(':')) {
+      const parts = editVal.split(':');
+      const mins = parseInt(parts[0] || '0', 10);
+      const secs = parseInt(parts[1] || '0', 10);
+      seconds = mins * 60 + secs;
+    } else {
+      seconds = parseInt(editVal, 10) || 0;
+    }
+    if (seconds > 0) {
+      startRestTimer(seconds);
+    }
+  };
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
@@ -41,7 +60,6 @@ export const RestTimer = () => {
 
   const setCollapsedJS = (v: boolean) => setCollapsed(v);
 
-  // Drag the handle up to expand, down to minimize.
   const pan = Gesture.Pan()
     .onUpdate((e) => {
       translateY.value = e.translationY;
@@ -63,6 +81,14 @@ export const RestTimer = () => {
   const isLow = restTimer.isRunning && remaining <= 10;
   const timerColor = isLow ? theme.colors.accent : theme.colors.primary;
 
+  const totalDuration = restTimer.durationSeconds || 90;
+  const elapsedPct = restTimer.isRunning && totalDuration > 0 ? (totalDuration - remaining) / totalDuration : 0;
+  const angle = `${elapsedPct * 360}deg`;
+
+  const R = 54;
+  const C = 2 * Math.PI * R;
+  const strokeDashoffset = C * (1 - elapsedPct);
+
   return (
     <GestureDetector gesture={pan}>
       <Animated.View
@@ -80,7 +106,7 @@ export const RestTimer = () => {
         {collapsed ? (
           <Pressable style={styles.collapsedRow} onPress={() => setCollapsed(false)}>
             <Text style={[styles.collapsedLabel, { color: theme.colors.muted }]}>REST</Text>
-            <Text style={[styles.collapsedTime, { color: timerColor }]}>{formatTime(remaining)}</Text>
+            <Text style={[styles.collapsedTime, { color: theme.colors.text }]}>{formatTime(remaining)}</Text>
             <View style={styles.collapsedControls}>
               {restTimer.isRunning ? (
                 <Pressable hitSlop={8} onPress={stopRestTimer} testID="stop-timer-btn">
@@ -97,11 +123,74 @@ export const RestTimer = () => {
         ) : (
           <>
             <Text style={[styles.label, { color: theme.colors.muted }]}>Rest Timer</Text>
-            <Text style={[styles.timerText, { color: timerColor }]}>{formatTime(remaining)}</Text>
+            
+            {/* Circular Clock Face */}
+            <View style={[styles.clockFace, { borderColor: theme.colors.border }]}>
+              <Svg width={140} height={140} style={{ transform: [{ rotate: '-90deg' }], position: 'absolute' }}>
+                <Circle
+                  cx="70"
+                  cy="70"
+                  r={R}
+                  stroke={theme.colors.border}
+                  strokeWidth="5"
+                  fill="transparent"
+                />
+                {elapsedPct > 0 && (
+                  <Circle
+                    cx="70"
+                    cy="70"
+                    r={R}
+                    stroke={timerColor}
+                    strokeWidth="5"
+                    fill="transparent"
+                    strokeDasharray={C}
+                    strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                  />
+                )}
+              </Svg>
+              <View style={[styles.needleContainer, { transform: [{ rotate: angle }] }]}>
+                <View style={[styles.needle, { backgroundColor: timerColor }]} />
+              </View>
+              <View style={[styles.clockDot, { backgroundColor: timerColor }]} />
+              
+              {isEditing ? (
+                <TextInput
+                  style={[
+                    styles.timerText,
+                    {
+                      color: theme.colors.text,
+                      borderBottomWidth: 1,
+                      borderBottomColor: theme.colors.primary,
+                      textAlign: 'center',
+                      minWidth: 90,
+                    }
+                  ]}
+                  value={editVal}
+                  onChangeText={setEditVal}
+                  keyboardType="numbers-and-punctuation"
+                  autoFocus
+                  onSubmitEditing={handleFinishEdit}
+                  onBlur={handleFinishEdit}
+                />
+              ) : (
+                <Pressable onPress={() => {
+                  if (!restTimer.isRunning) {
+                    setIsEditing(true);
+                    setEditVal(formatTime(remaining));
+                  }
+                }}>
+                  <Text style={[styles.timerText, { color: theme.colors.text }]}>
+                    {formatTime(remaining)}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+
             <View style={styles.controls}>
               {restTimer.isRunning ? (
-                <Pressable style={[styles.btn, { borderColor: theme.colors.border }]} onPress={stopRestTimer} testID="stop-timer-btn">
-                  <Text style={[styles.btnText, { color: theme.colors.text }]}>Pause</Text>
+                <Pressable style={[styles.btn, { backgroundColor: '#ea580c', borderColor: '#ea580c' }]} onPress={stopRestTimer} testID="stop-timer-btn">
+                  <Text style={[styles.btnText, { color: '#ffffff' }]}>Pause</Text>
                 </Pressable>
               ) : (
                 <Pressable
@@ -112,14 +201,27 @@ export const RestTimer = () => {
                   <Text style={[styles.btnText, { color: theme.colors.background }]}>Start</Text>
                 </Pressable>
               )}
-              <Pressable style={[styles.btn, { borderColor: theme.colors.border }]} onPress={() => startRestTimer(Math.max(0, timeLeft - 10))}>
-                <Text style={[styles.btnText, { color: theme.colors.text }]}>−10s</Text>
-              </Pressable>
-              <Pressable style={[styles.btn, { borderColor: theme.colors.border }]} onPress={() => startRestTimer(timeLeft + 30)}>
-                <Text style={[styles.btnText, { color: theme.colors.text }]}>+30s</Text>
-              </Pressable>
               <Pressable style={[styles.btn, { borderColor: theme.colors.border }]} onPress={resetRestTimer} testID="reset-timer-btn">
                 <Text style={[styles.btnText, { color: theme.colors.accent }]}>Reset</Text>
+              </Pressable>
+            </View>
+
+            {/* Time Adjustments Grid */}
+            <View style={styles.gridControls}>
+              <Pressable style={[styles.miniBtn, { borderColor: theme.colors.border }]} onPress={() => startRestTimer(Math.max(0, timeLeft - 30))}>
+                <Text style={[styles.miniBtnText, { color: theme.colors.text }]}>−30s</Text>
+              </Pressable>
+              <Pressable style={[styles.miniBtn, { borderColor: theme.colors.border }]} onPress={() => startRestTimer(Math.max(0, timeLeft - 10))}>
+                <Text style={[styles.miniBtnText, { color: theme.colors.text }]}>−10s</Text>
+              </Pressable>
+              <Pressable style={[styles.miniBtn, { borderColor: theme.colors.border }]} onPress={() => startRestTimer(timeLeft + 10)}>
+                <Text style={[styles.miniBtnText, { color: theme.colors.text }]}>+10s</Text>
+              </Pressable>
+              <Pressable style={[styles.miniBtn, { borderColor: theme.colors.border }]} onPress={() => startRestTimer(timeLeft + 30)}>
+                <Text style={[styles.miniBtnText, { color: theme.colors.text }]}>+30s</Text>
+              </Pressable>
+              <Pressable style={[styles.miniBtn, { borderColor: theme.colors.border }]} onPress={() => startRestTimer(timeLeft + 60)}>
+                <Text style={[styles.miniBtnText, { color: theme.colors.text }]}>+1m</Text>
               </Pressable>
             </View>
           </>
@@ -156,29 +258,78 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 4,
   },
+  clockFace: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    marginVertical: 16,
+  },
+  needleContainer: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+  },
+  needle: {
+    width: 2,
+    height: 55,
+    marginTop: 10,
+    borderRadius: 1,
+  },
+  clockDot: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    zIndex: 2,
+  },
   timerText: {
     fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 52,
-    marginBottom: 16,
+    fontSize: 28,
     fontVariant: ['tabular-nums'],
+    zIndex: 1,
   },
   controls: {
     flexDirection: 'row',
     gap: 8,
-    flexWrap: 'wrap',
     justifyContent: 'center',
   },
   btn: {
     borderWidth: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 9999,
-    minWidth: 64,
+    minWidth: 80,
     alignItems: 'center',
   },
   btnText: {
     fontFamily: 'SpaceGrotesk_600SemiBold',
     fontSize: 14,
+  },
+  gridControls: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  miniBtn: {
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    minWidth: 50,
+    alignItems: 'center',
+    backgroundColor: 'rgba(144, 213, 255, 0.05)',
+  },
+  miniBtnText: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 12,
   },
   collapsedRow: {
     flexDirection: 'row',

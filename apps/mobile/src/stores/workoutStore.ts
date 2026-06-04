@@ -15,8 +15,8 @@ import { z } from 'zod';
 import { useHistoryStore } from './historyStore';
 import { useAchievementStore } from './achievementStore';
 import { useExerciseStore } from './exerciseStore';
-import { useProfileStore } from './profileStore';
 import { LOCAL_USER_ID } from './local-user';
+import { useProfileStore } from './profileStore';
 import { createHydratedStorage } from './storage';
 
 const workoutPersistedSchema = z.object({

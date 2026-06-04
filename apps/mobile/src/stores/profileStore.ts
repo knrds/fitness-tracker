@@ -15,7 +15,6 @@ import {
 } from '@fitness-tracker/domain';
 import { z } from 'zod';
 import { useHistoryStore } from './historyStore';
-import { useWorkoutStore } from './workoutStore';
 import { useExerciseStore } from './exerciseStore';
 import { useBodyMetricStore } from './bodyMetricStore';
 import { useProgramStore, getDefaultTemplates, getDefaultPrograms } from './programStore';
@@ -145,6 +144,8 @@ export const useProfileStore = create<ProfileState>()(
         useHistoryStore.setState({ sessions: [] });
 
         // 3. Workout Store
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { useWorkoutStore } = require('./workoutStore');
         useWorkoutStore.setState({
           status: 'idle',
           sessionId: undefined,

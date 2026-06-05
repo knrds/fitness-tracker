@@ -28,8 +28,8 @@ export const RestTimer = () => {
     let seconds = 0;
     if (editVal.includes(':')) {
       const parts = editVal.split(':');
-      const mins = parseInt(parts[0] || '0', 10);
-      const secs = parseInt(parts[1] || '0', 10);
+      const mins = parseInt(parts[0] || '0', 10) || 0;
+      const secs = parseInt(parts[1] || '0', 10) || 0;
       seconds = mins * 60 + secs;
     } else {
       seconds = parseInt(editVal, 10) || 0;

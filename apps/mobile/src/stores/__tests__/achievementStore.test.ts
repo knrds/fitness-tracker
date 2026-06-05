@@ -47,11 +47,11 @@ describe('achievementStore', () => {
       id: 'session-1',
       userId: 'user-1',
       name: 'Chest Day',
-      startedAt: new Date(),
-      completedAt: new Date(),
+      startedAt: new Date('2026-06-03T10:00:00'),
+      completedAt: new Date('2026-06-03T10:30:00'),
       durationSeconds: 1800,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date('2026-06-03T10:00:00'),
+      updatedAt: new Date('2026-06-03T10:30:00'),
       exercises: [
         {
           id: 's-ex-1',
@@ -108,11 +108,11 @@ describe('achievementStore', () => {
       id: 'session-2',
       userId: 'user-1',
       name: 'Powerlifting Session',
-      startedAt: new Date(),
-      completedAt: new Date(),
+      startedAt: new Date('2026-06-03T11:00:00'),
+      completedAt: new Date('2026-06-03T11:40:00'),
       durationSeconds: 2400,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date('2026-06-03T11:00:00'),
+      updatedAt: new Date('2026-06-03T11:40:00'),
       exercises: [
         {
           id: 's-ex-2',

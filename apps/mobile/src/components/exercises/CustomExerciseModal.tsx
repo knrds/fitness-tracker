@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -28,6 +28,16 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
   const [muscle, setMuscle] = useState<MuscleGroup | ''>('');
   const [equipment, setEq] = useState<Equipment | ''>('');
   const [trackMode, setTrackMode] = useState<'reps' | 'duration'>('reps');
+
+  useEffect(() => {
+    if (visible) {
+      setName('');
+      setInstructions('');
+      setMuscle('');
+      setEq('');
+      setTrackMode('reps');
+    }
+  }, [visible]);
 
   const handleSave = () => {
     if (!name.trim()) return Alert.alert('Error', 'Name is required');

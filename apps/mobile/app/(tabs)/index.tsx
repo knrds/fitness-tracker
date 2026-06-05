@@ -9,10 +9,11 @@ import {
   Animated,
   Platform,
   Modal,
+  Alert,
 } from 'react-native';
 import { useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { WorkoutSession } from '@fitness-tracker/domain';
+import { WorkoutTemplate } from '@fitness-tracker/domain';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { useHistoryStore } from '../../src/stores/historyStore';
@@ -26,17 +27,50 @@ export default function HomeScreen() {
   const router = useRouter();
   const theme = useTheme();
 
-  const { startWorkout, status } = useWorkoutStore();
+  const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
   const { profile } = useProfileStore();
   const { getStreak, getSessionsByDateDesc } = useHistoryStore();
   const { level, xp } = useAchievementStore();
-  const { programs } = useProgramStore();
+  const { programs, templates } = useProgramStore();
   const { exercises } = useExerciseStore();
 
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const slideAnim = React.useRef(new Animated.Value(20)).current;
   const [showXpTooltip, setShowXpTooltip] = React.useState(false);
-  const [selectedSession, setSelectedSession] = React.useState<WorkoutSession | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = React.useState<WorkoutTemplate | null>(null);
+
+  const handleStartTemplate = (template: WorkoutTemplate) => {
+    const start = () => {
+      startWorkoutFromTemplate(template);
+      router.push('/workout/session');
+    };
+
+    if (status === 'active' || status === 'paused') {
+      if (Platform.OS === 'web') {
+        if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
+          const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
+          if (
+            confirmFn?.(
+              'An active workout is already in progress. Do you want to discard it and start this template instead?',
+            )
+          ) {
+            start();
+          }
+        }
+      } else {
+        Alert.alert(
+          'Workout In Progress',
+          'An active workout is already in progress. Do you want to discard it and start this template instead?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Discard & Start', style: 'destructive', onPress: start },
+          ],
+        );
+      }
+    } else {
+      start();
+    }
+  };
 
   React.useEffect(() => {
     Animated.parallel([
@@ -237,8 +271,8 @@ export default function HomeScreen() {
           )}
         </Card>
 
-        {/* Recent Workouts */}
-        {sessions.length > 0 && (
+        {/* Saved Workouts (Templates) */}
+        {templates.length > 0 && (
           <>
             <Text
               style={[
@@ -246,33 +280,22 @@ export default function HomeScreen() {
                 theme.typography.heading,
               ]}
             >
-              RECENT WORKOUTS
+              SAVED WORKOUTS
             </Text>
             <View style={{ gap: 12, marginBottom: 16 }}>
-              {sessions.slice(0, 4).map((session) => {
-                const exerciseNames = session.exercises
-                  .map((se) => exercises.find((e) => e.id === se.exerciseId)?.name)
+              {templates.slice(0, 4).map((template) => {
+                const exerciseNames = template.exercises
+                  .map((te) => exercises.find((e) => e.id === te.exerciseId)?.name)
                   .filter(Boolean)
                   .join(', ');
 
-                const totalSets = session.exercises.reduce(
-                  (sum, ex) => sum + ex.sets.filter((s) => s.completed).length,
-                  0,
-                );
-                const totalVolume = session.exercises.reduce(
-                  (sum, ex) =>
-                    sum +
-                    ex.sets
-                      .filter((s) => s.completed && s.weight)
-                      .reduce((sSum, s) => sSum + s.weight! * (s.reps || 0), 0),
-                  0,
-                );
+                const totalSets = template.exercises.reduce((sum, ex) => sum + ex.targetSets, 0);
 
                 return (
                   <Card
-                    key={session.id}
+                    key={template.id}
                     padding="md"
-                    onPress={() => setSelectedSession(session)}
+                    onPress={() => setSelectedTemplate(template)}
                     style={styles.recentActivityCard}
                   >
                     <View style={styles.recentActivityHeader}>
@@ -285,10 +308,7 @@ export default function HomeScreen() {
                           },
                         ]}
                       >
-                        {session.name || 'Workout'}
-                      </Text>
-                      <Text style={[{ color: theme.colors.muted, ...theme.typography.caption }]}>
-                        {new Date(session.startedAt).toLocaleDateString()}
+                        {template.name}
                       </Text>
                     </View>
                     <Text
@@ -303,17 +323,17 @@ export default function HomeScreen() {
                       numberOfLines={2}
                       ellipsizeMode="tail"
                     >
-                      {exerciseNames || `${session.exercises.length} Exercises`}
+                      {exerciseNames || `${template.exercises.length} Exercises`}
                     </Text>
                     <View style={{ flexDirection: 'row', gap: 16, marginTop: 4 }}>
                       <Text style={[{ color: theme.colors.muted }, theme.typography.caption]}>
-                        Sets: <Text style={{ color: theme.colors.text }}>{totalSets}</Text>
+                        Exercises:{' '}
+                        <Text style={{ color: theme.colors.text }}>
+                          {template.exercises.length}
+                        </Text>
                       </Text>
                       <Text style={[{ color: theme.colors.muted }, theme.typography.caption]}>
-                        Vol:{' '}
-                        <Text style={{ color: theme.colors.text }}>
-                          {Math.round(totalVolume)} kg
-                        </Text>
+                        Sets: <Text style={{ color: theme.colors.text }}>{totalSets}</Text>
                       </Text>
                     </View>
                   </Card>
@@ -381,16 +401,16 @@ export default function HomeScreen() {
         </Card>
       </Animated.View>
 
-      {/* Workout Summary Popup */}
+      {/* Workout Template Summary Popup */}
       <Modal
-        visible={selectedSession !== null}
+        visible={selectedTemplate !== null}
         transparent
         animationType="slide"
-        onRequestClose={() => setSelectedSession(null)}
+        onRequestClose={() => setSelectedTemplate(null)}
       >
-        <Pressable style={styles.summaryOverlay} onPress={() => setSelectedSession(null)}>
+        <Pressable style={styles.summaryOverlay} onPress={() => setSelectedTemplate(null)}>
           <View style={styles.summarySheet} onStartShouldSetResponder={() => true}>
-            {selectedSession && (
+            {selectedTemplate && (
               <>
                 <View style={styles.summaryGripArea}>
                   <View style={[styles.summaryGrip, { backgroundColor: theme.colors.border }]} />
@@ -401,19 +421,7 @@ export default function HomeScreen() {
                     { color: theme.colors.text, ...theme.typography.heading },
                   ]}
                 >
-                  {selectedSession.name}
-                </Text>
-                <Text
-                  style={[
-                    styles.summaryDate,
-                    { color: theme.colors.muted, ...theme.typography.caption },
-                  ]}
-                >
-                  {new Date(selectedSession.startedAt).toLocaleDateString(undefined, {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
+                  {selectedTemplate.name}
                 </Text>
 
                 <View style={styles.summaryStatsRow}>
@@ -424,9 +432,7 @@ export default function HomeScreen() {
                         { color: theme.colors.primary, ...theme.typography.display },
                       ]}
                     >
-                      {selectedSession.durationSeconds
-                        ? `${Math.floor(selectedSession.durationSeconds / 60)}m`
-                        : '--'}
+                      {selectedTemplate.exercises.length}
                     </Text>
                     <Text
                       style={[
@@ -434,7 +440,7 @@ export default function HomeScreen() {
                         { color: theme.colors.muted, ...theme.typography.caption },
                       ]}
                     >
-                      DURATION
+                      EXERCISES
                     </Text>
                   </View>
                   <View style={styles.summaryStat}>
@@ -444,16 +450,7 @@ export default function HomeScreen() {
                         { color: theme.colors.primary, ...theme.typography.display },
                       ]}
                     >
-                      {Math.round(
-                        selectedSession.exercises.reduce(
-                          (sum, ex) =>
-                            sum +
-                            ex.sets
-                              .filter((s) => s.completed && s.weight)
-                              .reduce((sSum, s) => sSum + s.weight! * (s.reps || 0), 0),
-                          0,
-                        ),
-                      )}
+                      {selectedTemplate.exercises.reduce((sum, curr) => sum + curr.targetSets, 0)}
                     </Text>
                     <Text
                       style={[
@@ -461,38 +458,16 @@ export default function HomeScreen() {
                         { color: theme.colors.muted, ...theme.typography.caption },
                       ]}
                     >
-                      VOLUME
-                    </Text>
-                  </View>
-                  <View style={styles.summaryStat}>
-                    <Text
-                      style={[
-                        styles.summaryStatValue,
-                        { color: theme.colors.primary, ...theme.typography.display },
-                      ]}
-                    >
-                      {selectedSession.exercises.reduce(
-                        (sum, ex) => sum + ex.sets.filter((s) => s.completed).length,
-                        0,
-                      )}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.summaryStatLabel,
-                        { color: theme.colors.muted, ...theme.typography.caption },
-                      ]}
-                    >
-                      SETS
+                      TOTAL SETS
                     </Text>
                   </View>
                 </View>
 
                 <ScrollView style={styles.summaryExercises} showsVerticalScrollIndicator={false}>
-                  {selectedSession.exercises.map((ex) => {
-                    const exInfo = exercises.find((e) => e.id === ex.exerciseId);
-                    const completedSets = ex.sets.filter((s) => s.completed);
+                  {selectedTemplate.exercises.map((te, idx) => {
+                    const exInfo = exercises.find((e) => e.id === te.exerciseId);
                     return (
-                      <View key={ex.id} style={styles.summaryExRow}>
+                      <View key={te.id || idx} style={styles.summaryExRow}>
                         <Text
                           style={[
                             styles.summaryExName,
@@ -504,13 +479,10 @@ export default function HomeScreen() {
                         <Text
                           style={[
                             styles.summaryExDetail,
-                            { color: theme.colors.muted, ...theme.typography.caption },
+                            { color: theme.colors.primary, ...theme.typography.caption },
                           ]}
                         >
-                          {completedSets.length} sets
-                          {completedSets[0]?.weight
-                            ? ` · ${completedSets[0].weight}kg × ${completedSets[0].reps ?? '?'}`
-                            : ''}
+                          {te.targetSets}s × {te.targetReps ?? '8-10'}r
                         </Text>
                       </View>
                     );
@@ -520,9 +492,9 @@ export default function HomeScreen() {
                 <Pressable
                   style={[styles.summaryDetailBtn, { backgroundColor: theme.colors.primary }]}
                   onPress={() => {
-                    const id = selectedSession.id;
-                    setSelectedSession(null);
-                    router.push(`/history/${id}` as unknown as Parameters<typeof router.push>[0]);
+                    const tmpl = selectedTemplate;
+                    setSelectedTemplate(null);
+                    handleStartTemplate(tmpl);
                   }}
                 >
                   <Text
@@ -531,7 +503,7 @@ export default function HomeScreen() {
                       { color: theme.colors.background, ...theme.typography.button },
                     ]}
                   >
-                    VIEW FULL DETAILS
+                    START WORKOUT
                   </Text>
                 </Pressable>
               </>

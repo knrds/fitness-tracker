@@ -1602,20 +1602,18 @@ BLOCK 2 — ERSTE HÄRTUNG (Codex)
 [x] TypeScript-Härtung (strict checks with zero errors)
 [x] → pnpm typecheck strikt grün
 
-BLOCK 3 — DESIGN-FUNDAMENT (Gemini Designer)  ← NÄCHSTER SCHRITT
-[ ] Stitch-Prompt (siehe docs/stitch-block3-prompt.md) im Google Stitch Designer
-    nutzen → exportierte Screens/Tokens als visuelle Referenz
-[ ] Design-Konzept → docs/design-system.md (aus Stitch-Output ableiten) → MEIN OK
-[ ] Design-System implementieren (packages/ui: theme + Button/Card/Input/Badge/
-    Modal/EmptyState/LoadingSkeleton); bestehende Screens schrittweise umstellen
+BLOCK 3 — DESIGN-FUNDAMENT (Gemini Designer)
+[x] Stitch-Prompt (Stitch Designer export used as reference)
+[x] Design-Konzept → docs/design-system.md created and aligned
+[x] Design-System implementieren (packages/ui: theme + Button/Card/Input/Badge/Modal/EmptyState/LoadingSkeleton); all screens migrated to dark mode sky blue theme
 
 BLOCK 4 — PREMIUM UI (Gemini Designer)
-[ ] Premium Workout-Screen
-[ ] Home-Dashboard
-[ ] Progress-Charts
-[ ] Micro-Interactions
+[x] Premium Workout-Screen (RestTimer visual overhaul, automated play, plate loader modal)
+[x] Home-Dashboard (Recent workouts cards, XP bar tooltip, level progression)
+[x] Progress-Charts (Interactive chart with gold PR marker highlights, details tooltips)
+[x] Micro-Interactions (Smooth Animated modal slide/fade, list reordering via PanResponder drag & drop)
 
-BLOCK 5 — BACKEND (Gemini Builder)
+BLOCK 5 — BACKEND (Gemini Builder)  ← NÄCHSTER SCHRITT
 [ ] MANUELL: Supabase Projekt + Schema
 [ ] Mission 10: Auth
 [ ] Mission 11: Cloud Sync

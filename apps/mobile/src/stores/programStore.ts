@@ -287,6 +287,7 @@ export interface ProgramState {
   createTemplate: (template: Partial<WorkoutTemplate>) => void;
   updateTemplate: (id: UUID, updates: Partial<WorkoutTemplate>) => void;
   deleteTemplate: (id: UUID) => void;
+  updateTemplatesOrder: (templates: WorkoutTemplate[]) => void;
 }
 
 const programPersistedSchema = z.object({
@@ -381,6 +382,11 @@ export const useProgramStore = create<ProgramState>()(
         set((state) => ({
           templates: state.templates.filter((t) => t.id !== id),
         })),
+
+      updateTemplatesOrder: (templates) =>
+        set({
+          templates,
+        }),
     }),
     {
       name: 'program-storage',

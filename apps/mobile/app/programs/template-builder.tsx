@@ -1,5 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, Pressable } from 'react-native';
+import React, { useState, useRef, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  ScrollView,
+  Pressable,
+  PanResponder,
+  Animated,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useProgramStore } from '../../src/stores/programStore';
@@ -32,6 +41,68 @@ export default function WorkoutTemplateBuilderScreen() {
   );
 
   const [isExerciseModalVisible, setExerciseModalVisible] = useState(false);
+
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const dragY = useRef(new Animated.Value(0)).current;
+  const draggingExerciseRef = useRef<TemplateExercise | null>(null);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
+  const itemLayouts = useRef<Record<string, { y: number; height: number }>>({});
+
+  const panResponder = useMemo(() => {
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (e, gestureState) => {
+        return Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderGrant: () => {
+        const te = draggingExerciseRef.current;
+        if (te) {
+          setActiveDragId(te.id);
+          setScrollEnabled(false);
+          dragY.setValue(0);
+        }
+      },
+      onPanResponderMove: (e, gestureState) => {
+        dragY.setValue(gestureState.dy);
+      },
+      onPanResponderRelease: (e, gestureState) => {
+        const te = draggingExerciseRef.current;
+        if (te) {
+          const layout = itemLayouts.current[te.id];
+          if (layout) {
+            const dropY = layout.y + gestureState.dy;
+            const otherExercises = templateExercises.filter((item) => item.id !== te.id);
+            let insertIndex = 0;
+            for (let i = 0; i < otherExercises.length; i++) {
+              const other = otherExercises[i];
+              if (other) {
+                const otherLayout = itemLayouts.current[other.id];
+                if (otherLayout) {
+                  const centerY = otherLayout.y + otherLayout.height / 2;
+                  if (dropY > centerY) {
+                    insertIndex = i + 1;
+                  }
+                }
+              }
+            }
+
+            const reordered = [...otherExercises];
+            reordered.splice(insertIndex, 0, te);
+            const finalReordered = reordered.map((item, idx) => ({ ...item, order: idx }));
+            setTemplateExercises(finalReordered);
+          }
+        }
+        setActiveDragId(null);
+        setScrollEnabled(true);
+        dragY.setValue(0);
+      },
+      onPanResponderTerminate: () => {
+        setActiveDragId(null);
+        setScrollEnabled(true);
+        dragY.setValue(0);
+      },
+    });
+  }, [templateExercises]);
 
   if (programId && !program) {
     return (
@@ -105,7 +176,7 @@ export default function WorkoutTemplateBuilderScreen() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} scrollEnabled={scrollEnabled}>
         <Text style={styles.label}>Workout Name</Text>
         <TextInput
           style={styles.input}
@@ -127,18 +198,48 @@ export default function WorkoutTemplateBuilderScreen() {
         <Text style={styles.sectionTitle}>Exercises</Text>
         {templateExercises.map((te, index) => {
           const ex = exercises.find((e) => e.id === te.exerciseId);
+          const isDraggingThis = te.id === activeDragId;
           return (
-            <View
+            <Animated.View
               key={te.id}
+              onLayout={(e) => {
+                if (activeDragId !== te.id) {
+                  itemLayouts.current[te.id] = {
+                    y: e.nativeEvent.layout.y,
+                    height: e.nativeEvent.layout.height,
+                  };
+                }
+              }}
               style={[
                 styles.exerciseCard,
                 { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+                isDraggingThis && {
+                  transform: [{ translateY: dragY }],
+                  zIndex: 9999,
+                  opacity: 0.85,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.35,
+                  shadowRadius: 6,
+                  elevation: 5,
+                },
               ]}
             >
               <View style={styles.exHeader}>
-                <Text style={[styles.exName, { color: theme.colors.text }]}>
-                  {index + 1}. {ex?.name || 'Unknown'}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View
+                    style={styles.dragHandle}
+                    onTouchStart={() => {
+                      draggingExerciseRef.current = te;
+                    }}
+                    {...panResponder.panHandlers}
+                  >
+                    <Ionicons name="reorder-two" size={24} color={theme.colors.primary} />
+                  </View>
+                  <Text style={[styles.exName, { color: theme.colors.text }]}>
+                    {index + 1}. {ex?.name || 'Unknown'}
+                  </Text>
+                </View>
                 <Pressable onPress={() => removeExercise(te.id)} hitSlop={10}>
                   <Ionicons name="trash-outline" size={20} color="#ef4444" />
                 </Pressable>
@@ -249,7 +350,7 @@ export default function WorkoutTemplateBuilderScreen() {
                   placeholderTextColor={theme.colors.muted}
                 />
               </View>
-            </View>
+            </Animated.View>
           );
         })}
 
@@ -400,4 +501,10 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   addExText: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 16, textTransform: 'uppercase' },
+  dragHandle: {
+    paddingRight: 8,
+    paddingVertical: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   Pressable,
   Alert,
   Platform,
   Modal,
   Share,
   ScrollView,
+  PanResponder,
+  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,11 +23,72 @@ import { WorkoutTemplate } from '@fitness-tracker/domain';
 export default function WorkoutsScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { templates, deleteTemplate } = useProgramStore();
+  const { templates, deleteTemplate, updateTemplatesOrder } = useProgramStore();
   const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
   const { exercises } = useExerciseStore();
   const [menuTemplateId, setMenuTemplateId] = useState<string | null>(null);
   const [summaryTemplateId, setSummaryTemplateId] = useState<string | null>(null);
+
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const dragY = useRef(new Animated.Value(0)).current;
+  const draggingTemplateRef = useRef<WorkoutTemplate | null>(null);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
+  const itemLayouts = useRef<Record<string, { y: number; height: number }>>({});
+
+  const panResponder = useMemo(() => {
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (e, gestureState) => {
+        return Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderGrant: () => {
+        const t = draggingTemplateRef.current;
+        if (t) {
+          setActiveDragId(t.id);
+          setScrollEnabled(false);
+          dragY.setValue(0);
+        }
+      },
+      onPanResponderMove: (e, gestureState) => {
+        dragY.setValue(gestureState.dy);
+      },
+      onPanResponderRelease: (e, gestureState) => {
+        const t = draggingTemplateRef.current;
+        if (t) {
+          const layout = itemLayouts.current[t.id];
+          if (layout) {
+            const dropY = layout.y + gestureState.dy;
+            const otherTemplates = templates.filter((item) => item.id !== t.id);
+            let insertIndex = 0;
+            for (let i = 0; i < otherTemplates.length; i++) {
+              const otherTmpl = otherTemplates[i];
+              if (otherTmpl) {
+                const otherLayout = itemLayouts.current[otherTmpl.id];
+                if (otherLayout) {
+                  const centerY = otherLayout.y + otherLayout.height / 2;
+                  if (dropY > centerY) {
+                    insertIndex = i + 1;
+                  }
+                }
+              }
+            }
+
+            const reordered = [...otherTemplates];
+            reordered.splice(insertIndex, 0, t);
+            updateTemplatesOrder(reordered);
+          }
+        }
+        setActiveDragId(null);
+        setScrollEnabled(true);
+        dragY.setValue(0);
+      },
+      onPanResponderTerminate: () => {
+        setActiveDragId(null);
+        setScrollEnabled(true);
+        dragY.setValue(0);
+      },
+    });
+  }, [templates, updateTemplatesOrder]);
 
   const handleStartEmpty = () => {
     if (status === 'idle' || status === 'finished') {
@@ -105,52 +167,90 @@ export default function WorkoutsScreen() {
   const menuTemplate = templates.find((t) => t.id === menuTemplateId) || null;
   const summaryTemplate = templates.find((t) => t.id === summaryTemplateId) || null;
 
-  const renderTemplate = ({ item }: { item: WorkoutTemplate }) => {
-    const exerciseNames = item.exercises
-      .map((te) => exercises.find((e) => e.id === te.exerciseId)?.name)
-      .filter(Boolean)
-      .join(', ');
-
-    return (
-      <Pressable style={styles.card} onPress={() => setSummaryTemplateId(item.id)}>
-        <View style={styles.cardInfo}>
-          <Text style={styles.cardTitle}>{item.name}</Text>
-          <Text style={styles.cardSubtitle} numberOfLines={2} ellipsizeMode="tail">
-            {exerciseNames || `${item.exercises.length} Exercises`}
-          </Text>
-        </View>
-        <Pressable style={styles.kebabBtn} hitSlop={10} onPress={() => setMenuTemplateId(item.id)}>
-          <Ionicons name="ellipsis-vertical" size={20} color="#8A8D9F" />
-        </Pressable>
-      </Pressable>
-    );
-  };
-
   return (
     <View style={styles.container}>
-      <View style={styles.quickStart}>
-        <Text style={styles.sectionTitle}>Quick Start</Text>
-        <Pressable style={styles.emptyWorkoutBtn} onPress={handleStartEmpty}>
-          <Text style={styles.emptyWorkoutBtnText}>
-            {status === 'active' || status === 'paused'
-              ? 'Resume Current Workout'
-              : '+ Start Empty Workout'}
-          </Text>
-        </Pressable>
-      </View>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} scrollEnabled={scrollEnabled}>
+        <View style={styles.quickStart}>
+          <Text style={styles.sectionTitle}>Quick Start</Text>
+          <Pressable style={styles.emptyWorkoutBtn} onPress={handleStartEmpty}>
+            <Text style={styles.emptyWorkoutBtnText}>
+              {status === 'active' || status === 'paused'
+                ? 'Resume Current Workout'
+                : '+ Start Empty Workout'}
+            </Text>
+          </Pressable>
+        </View>
 
-      <Text style={[styles.sectionTitle, { paddingHorizontal: 16 }]}>My Templates</Text>
-      <FlatList
-        data={templates}
-        keyExtractor={(item) => item.id}
-        renderItem={renderTemplate}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            No templates saved yet. Finish a workout and save it as a template.
-          </Text>
-        }
-      />
+        <Text style={[styles.sectionTitle, { paddingHorizontal: 16 }]}>My Templates</Text>
+        <View style={styles.list}>
+          {templates.map((item) => {
+            const isDraggingThis = item.id === activeDragId;
+            const exerciseNames = item.exercises
+              .map((te) => exercises.find((e) => e.id === te.exerciseId)?.name)
+              .filter(Boolean)
+              .join(', ');
+
+            return (
+              <Animated.View
+                key={item.id}
+                onLayout={(e) => {
+                  if (activeDragId !== item.id) {
+                    itemLayouts.current[item.id] = {
+                      y: e.nativeEvent.layout.y,
+                      height: e.nativeEvent.layout.height,
+                    };
+                  }
+                }}
+                style={[
+                  styles.card,
+                  isDraggingThis && {
+                    transform: [{ translateY: dragY }],
+                    zIndex: 9999,
+                    opacity: 0.85,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.35,
+                    shadowRadius: 6,
+                    elevation: 5,
+                  },
+                ]}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View
+                    style={styles.dragHandle}
+                    onTouchStart={() => {
+                      draggingTemplateRef.current = item;
+                    }}
+                    {...panResponder.panHandlers}
+                  >
+                    <Ionicons name="reorder-two" size={24} color={theme.colors.primary} />
+                  </View>
+
+                  <Pressable style={styles.cardInfo} onPress={() => setSummaryTemplateId(item.id)}>
+                    <Text style={styles.cardTitle}>{item.name}</Text>
+                    <Text style={styles.cardSubtitle} numberOfLines={2} ellipsizeMode="tail">
+                      {exerciseNames || `${item.exercises.length} Exercises`}
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.kebabBtn}
+                    hitSlop={10}
+                    onPress={() => setMenuTemplateId(item.id)}
+                  >
+                    <Ionicons name="ellipsis-vertical" size={20} color="#8A8D9F" />
+                  </Pressable>
+                </View>
+              </Animated.View>
+            );
+          })}
+          {templates.length === 0 && (
+            <Text style={styles.emptyText}>
+              No templates saved yet. Finish a workout and save it as a template.
+            </Text>
+          )}
+        </View>
+      </ScrollView>
 
       {/* Template Action Menu */}
       <Modal
@@ -463,5 +563,11 @@ const styles = StyleSheet.create({
   },
   modalStartBtnText: {
     fontSize: 15,
+  },
+  dragHandle: {
+    paddingRight: 8,
+    paddingVertical: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

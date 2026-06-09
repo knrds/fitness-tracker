@@ -1,15 +1,23 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, Pressable } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { ExerciseRow } from '../../src/components/exercises/ExerciseRow';
 import { CustomExerciseModal } from '../../src/components/exercises/CustomExerciseModal';
 import { useTheme, EmptyState } from '@fitness-tracker/ui';
 import { Ionicons } from '@expo/vector-icons';
-import { MuscleGroup } from '@fitness-tracker/domain';
+import { Equipment, MovementPattern, MuscleGroup } from '@fitness-tracker/domain';
 
 const MUSCLE_FILTERS = [
   { id: 'all', label: 'All Muscles' },
+  { id: 'favorites', label: 'Favorites' },
+  { id: 'powerlifting', label: 'Powerlifting' },
+  { id: 'calisthenics', label: 'Calisthenics' },
+  { id: 'warmup', label: 'Warmup' },
+  { id: 'warmup_cardio', label: 'Warmup Cardio' },
+  { id: 'strength', label: 'Strength' },
   { id: 'favorites', label: '★ Favorites' },
   { id: MuscleGroup.Chest, label: 'Chest' },
   { id: MuscleGroup.UpperBack, label: 'Back' }, // We'll map 'Back' to upper back for the filter
@@ -17,20 +25,121 @@ const MUSCLE_FILTERS = [
   { id: MuscleGroup.FrontDelts, label: 'Shoulders' },
   { id: MuscleGroup.Biceps, label: 'Arms' },
   { id: MuscleGroup.Abs, label: 'Core' },
+  { id: MuscleGroup.Obliques, label: 'Obliques' },
   { id: MuscleGroup.FullBody, label: 'Full Body' },
 ];
 
+const WARMUP_KEYWORDS = [
+  'warm',
+  'stretch',
+  'mobility',
+  'foam',
+  'dynamic',
+  'jump',
+  'skipping',
+  'walk',
+  'jog',
+  'bike',
+  'rower',
+  'treadmill',
+  'elliptical',
+];
+
+const isCardioExercise = (exercise: {
+  name: string;
+  equipment: Equipment;
+  movementPattern: MovementPattern;
+}) =>
+  exercise.movementPattern === MovementPattern.Cardio || exercise.equipment === Equipment.Cardio;
+
+const isWarmupExercise = (exercise: {
+  name: string;
+  equipment: Equipment;
+  movementPattern: MovementPattern;
+}) => {
+  const lowerName = exercise.name.toLowerCase();
+  return isCardioExercise(exercise) || WARMUP_KEYWORDS.some((keyword) => lowerName.includes(keyword));
+};
+
+const isPowerliftingExercise = (exercise: { name: string; equipment: Equipment }) => {
+  const lowerName = exercise.name.toLowerCase();
+  const isMainLift =
+    lowerName.includes('squat') ||
+    lowerName.includes('bench press') ||
+    lowerName.includes('deadlift');
+  return isMainLift && [Equipment.Barbell, Equipment.SmithMachine].includes(exercise.equipment);
+};
+
+const isCalisthenicsExercise = (exercise: {
+  name: string;
+  equipment: Equipment;
+  movementPattern: MovementPattern;
+}) => {
+  const lowerName = exercise.name.toLowerCase();
+  return (
+    exercise.equipment === Equipment.Bodyweight ||
+    exercise.equipment === Equipment.Trx ||
+    [
+      'pullup',
+      'pull-up',
+      'chin',
+      'dip',
+      'push-up',
+      'pushup',
+      'muscle up',
+      'muscle-up',
+      'plank',
+      'handstand',
+      'sit-up',
+    ].some((keyword) => lowerName.includes(keyword))
+  );
+};
+
+const isObliqueLikeExercise = (exercise: {
+  name: string;
+  primaryMuscles: MuscleGroup[];
+  secondaryMuscles: MuscleGroup[];
+  movementPattern: MovementPattern;
+}) => {
+  const lowerName = exercise.name.toLowerCase();
+  return (
+    exercise.primaryMuscles.includes(MuscleGroup.Obliques) ||
+    exercise.secondaryMuscles.includes(MuscleGroup.Obliques) ||
+    exercise.movementPattern === MovementPattern.Rotation ||
+    ['oblique', 'side bend', 'side plank', 'russian twist', 'woodchop', 'wood chop', 'twist'].some(
+      (keyword) => lowerName.includes(keyword),
+    )
+  );
+};
+
 export default function ExercisesScreen() {
   const theme = useTheme();
+  const params = useLocalSearchParams<{ muscle?: string }>();
+  const insets = useSafeAreaInsets();
   const { filteredExercises, favoriteIds, toggleFavorite, searchQuery, setSearchQuery } =
     useExerciseStore();
   const historyStore = useHistoryStore();
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (params.muscle) {
+      setSelectedMuscle(params.muscle);
+    }
+  }, [params.muscle]);
+
   const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'most_used' | 'recently_used'>(
     'name_asc',
   );
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const visibleFilters = React.useMemo(
+    () =>
+      MUSCLE_FILTERS.filter(
+        (item, index, allItems) =>
+          allItems.findIndex((candidate) => candidate.id === item.id) === index,
+      ),
+    [],
+  );
 
   // Compute frequencies and recency
   const { exerciseUsageCount, exerciseLastUsed } = React.useMemo(() => {
@@ -58,7 +167,28 @@ export default function ExercisesScreen() {
       if (selectedMuscle === 'favorites') {
         return favoriteIds.includes(ex.id);
       }
-      return selectedMuscle ? ex.primaryMuscles.includes(selectedMuscle as MuscleGroup) : true;
+      if (selectedMuscle === 'powerlifting') {
+        return isPowerliftingExercise(ex);
+      }
+      if (selectedMuscle === 'calisthenics') {
+        return isCalisthenicsExercise(ex);
+      }
+      if (selectedMuscle === 'warmup') {
+        return isWarmupExercise(ex);
+      }
+      if (selectedMuscle === 'warmup_cardio') {
+        return isCardioExercise(ex);
+      }
+      if (selectedMuscle === 'strength') {
+        return !isCardioExercise(ex);
+      }
+      if (selectedMuscle === MuscleGroup.Obliques) {
+        return isObliqueLikeExercise(ex);
+      }
+      return selectedMuscle
+        ? ex.primaryMuscles.includes(selectedMuscle as MuscleGroup) ||
+            ex.secondaryMuscles.includes(selectedMuscle as MuscleGroup)
+        : true;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -84,7 +214,12 @@ export default function ExercisesScreen() {
     });
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: theme.colors.background, paddingTop: Math.max(insets.top, 16) },
+      ]}
+    >
       <View style={styles.header}>
         <Text
           style={[styles.headerTitle, { color: theme.colors.text, ...theme.typography.heading }]}
@@ -194,7 +329,7 @@ export default function ExercisesScreen() {
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
-          data={MUSCLE_FILTERS}
+          data={visibleFilters}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.filterList}
           renderItem={({ item }) => {
@@ -231,7 +366,10 @@ export default function ExercisesScreen() {
       <FlatList
         data={displayExercises}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: Math.max(insets.bottom + 20, 100) },
+        ]}
         renderItem={({ item }) => (
           <ExerciseRow
             exercise={item}
@@ -255,7 +393,6 @@ export default function ExercisesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 48,
   },
   header: {
     flexDirection: 'row',

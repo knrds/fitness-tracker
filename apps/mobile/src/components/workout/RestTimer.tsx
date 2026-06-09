@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, Dimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -18,10 +18,16 @@ export const RestTimer = () => {
   const { restTimer, startRestTimer, stopRestTimer, tickRestTimer, resetRestTimer } =
     useWorkoutStore();
   const [timeLeft, setTimeLeft] = useState(restTimer.durationSeconds);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const translateY = useSharedValue(0);
   const [isEditing, setIsEditing] = useState(false);
   const [editVal, setEditVal] = useState('');
+
+  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+  const bubbleX = useSharedValue(screenWidth - 16 - 60);
+  const bubbleY = useSharedValue(screenHeight - 160);
+  const startX = useSharedValue(0);
+  const startY = useSharedValue(0);
 
   const handleFinishEdit = () => {
     setIsEditing(false);
@@ -58,6 +64,12 @@ export const RestTimer = () => {
     };
   }, [restTimer.isRunning, restTimer.endsAt, restTimer.durationSeconds, tickRestTimer]);
 
+  useEffect(() => {
+    if (collapsed && !restTimer.isRunning && timeLeft === 0) {
+      setCollapsed(false);
+    }
+  }, [restTimer.isRunning, timeLeft, collapsed]);
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -79,8 +91,39 @@ export const RestTimer = () => {
       translateY.value = withSpring(0, { damping: 18, stiffness: 200 });
     });
 
+  const bubblePan = Gesture.Pan()
+    .onStart(() => {
+      startX.value = bubbleX.value;
+      startY.value = bubbleY.value;
+    })
+    .onUpdate((e) => {
+      bubbleX.value = startX.value + e.translationX;
+      bubbleY.value = startY.value + e.translationY;
+    })
+    .onEnd((e) => {
+      const midPoint = screenWidth / 2;
+      const endX = bubbleX.value + e.velocityX * 0.1;
+      const targetX = endX < midPoint ? 16 : screenWidth - 16 - 60;
+
+      const endY = bubbleY.value + e.velocityY * 0.1;
+      const targetY = Math.max(80, Math.min(screenHeight - 180, endY));
+
+      bubbleX.value = withSpring(targetX, { damping: 15, stiffness: 120 });
+      bubbleY.value = withSpring(targetY, { damping: 15, stiffness: 120 });
+    });
+
+  const bubbleTap = Gesture.Tap().onEnd(() => {
+    runOnJS(setCollapsedJS)(false);
+  });
+
+  const composedBubbleGesture = Gesture.Exclusive(bubblePan, bubbleTap);
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
+  }));
+
+  const bubbleAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: bubbleX.value }, { translateY: bubbleY.value }],
   }));
 
   const remaining = Math.max(0, timeLeft);
@@ -90,11 +133,66 @@ export const RestTimer = () => {
   const totalDuration = restTimer.durationSeconds || 90;
   const elapsedPct =
     restTimer.isRunning && totalDuration > 0 ? (totalDuration - remaining) / totalDuration : 0;
-  const angle = `${elapsedPct * 360}deg`;
 
   const R = 54;
   const C = 2 * Math.PI * R;
   const strokeDashoffset = C * (1 - elapsedPct);
+
+  const bubbleR = 24;
+  const bubbleC = 2 * Math.PI * bubbleR;
+  const bubbleStrokeDashoffset = bubbleC * (1 - elapsedPct);
+
+  const useFloatingBubble = false;
+  const showBubble = useFloatingBubble && collapsed && (restTimer.isRunning || timeLeft > 0);
+
+  if (showBubble) {
+    return (
+      <GestureDetector gesture={composedBubbleGesture}>
+        <Animated.View
+          style={[
+            styles.bubbleContainer,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: timerColor,
+            },
+            bubbleAnimatedStyle,
+          ]}
+          testID="rest-timer-bubble"
+        >
+          <Svg
+            width={60}
+            height={60}
+            style={{ transform: [{ rotate: '-90deg' }], position: 'absolute' }}
+          >
+            <Circle
+              cx="30"
+              cy="30"
+              r={bubbleR}
+              stroke={theme.colors.border}
+              strokeWidth="3"
+              fill="transparent"
+            />
+            {elapsedPct > 0 && (
+              <Circle
+                cx="30"
+                cy="30"
+                r={bubbleR}
+                stroke={timerColor}
+                strokeWidth="3"
+                fill="transparent"
+                strokeDasharray={bubbleC}
+                strokeDashoffset={bubbleStrokeDashoffset}
+                strokeLinecap="round"
+              />
+            )}
+          </Svg>
+          <Text style={[styles.bubbleTime, { color: theme.colors.text }]}>
+            {formatTime(remaining)}
+          </Text>
+        </Animated.View>
+      </GestureDetector>
+    );
+  }
 
   return (
     <GestureDetector gesture={pan}>
@@ -170,10 +268,6 @@ export const RestTimer = () => {
                   />
                 )}
               </Svg>
-              <View style={[styles.needleContainer, { transform: [{ rotate: angle }] }]}>
-                <View style={[styles.needle, { backgroundColor: timerColor }]} />
-              </View>
-              <View style={[styles.clockDot, { backgroundColor: timerColor }]} />
 
               {isEditing ? (
                 <TextInput
@@ -402,5 +496,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
+  },
+  bubbleContainer: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
+    zIndex: 9999,
+  },
+  bubbleTime: {
+    position: 'absolute',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 11,
+    textAlign: 'center',
   },
 });

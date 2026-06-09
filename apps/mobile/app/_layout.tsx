@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Platform, Modal, View, Text, StyleSheet, Pressable } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
   useFonts,
@@ -15,6 +15,7 @@ import { ThemeProvider, useTheme } from '@fitness-tracker/ui';
 
 import { AchievementCelebration } from '../src/components/workout/AchievementCelebration';
 import { WorkoutCompleteModal } from '../src/components/workout/WorkoutCompleteModal';
+import { useAuthStore } from '../src/stores/authStore';
 import { useWorkoutStore } from '../src/stores/workoutStore';
 
 SplashScreen.preventAutoHideAsync();
@@ -146,6 +147,24 @@ function StartupWorkoutChecker() {
 
 function RootNavigator() {
   const theme = useTheme();
+  const router = useRouter();
+  const pathname = usePathname();
+  const { initialize, isConfigured, isInitialized, isLoading, session } = useAuthStore();
+
+  useEffect(() => {
+    initialize().catch(() => {});
+  }, [initialize]);
+
+  useEffect(() => {
+    if (!isConfigured || !isInitialized || isLoading) return;
+
+    const isAuthRoute = pathname.startsWith('/auth');
+    if (!session && !isAuthRoute) {
+      router.replace('/auth/login');
+    } else if (session && isAuthRoute) {
+      router.replace('/');
+    }
+  }, [isConfigured, isInitialized, isLoading, pathname, router, session]);
 
   return (
     <>
@@ -161,6 +180,8 @@ function RootNavigator() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="profile" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/register" options={{ headerShown: false }} />
         <Stack.Screen name="programs/template-builder" options={{ headerShown: false }} />
         <Stack.Screen name="workout/quick-start" options={{ headerShown: false }} />
       </Stack>

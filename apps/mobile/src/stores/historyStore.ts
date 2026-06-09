@@ -6,6 +6,8 @@ import {
   ExerciseSet,
   WorkoutSessionSchema,
   calculateStreak,
+  getBestWeights,
+  summarizeSessionExercise,
 } from '@fitness-tracker/domain';
 import { z } from 'zod';
 import { createHydratedStorage } from './storage';
@@ -57,40 +59,16 @@ export const useHistoryStore = create<HistoryStore>()(
         return calculateStreak(get().sessions);
       },
 
-      getPRs: () => {
-        const prs: Record<string, number> = {};
-        get().sessions.forEach((session) => {
-          session.exercises.forEach((ex) => {
-            ex.sets.forEach((set) => {
-              // Exclude warmup sets and verify weight is set
-              if (set.completed && set.weight && set.reps && set.type !== 'warmup') {
-                const weight = set.weight;
-                if (!prs[ex.exerciseId] || weight > prs[ex.exerciseId]!) {
-                  prs[ex.exerciseId] = weight;
-                }
-              }
-            });
-          });
-        });
-        return prs;
-      },
+      getPRs: () => getBestWeights(get().sessions),
 
       getExerciseVolumeHistory: (exerciseId) => {
         const history: { date: Date; volume: number }[] = [];
         const sessions = get().getSessionsByDateDesc().reverse(); // Chronological for charts
 
         sessions.forEach((session) => {
-          let volume = 0;
-          session.exercises.forEach((ex) => {
-            if (ex.exerciseId === exerciseId) {
-              ex.sets.forEach((set) => {
-                // Exclude warmup sets for volume calculation
-                if (set.completed && set.weight && set.reps && set.type !== 'warmup') {
-                  volume += set.weight * set.reps;
-                }
-              });
-            }
-          });
+          const volume = session.exercises
+            .filter((ex) => ex.exerciseId === exerciseId)
+            .reduce((sum, ex) => sum + summarizeSessionExercise(ex).totalVolume, 0);
           if (volume > 0) {
             history.push({ date: session.startedAt, volume });
           }

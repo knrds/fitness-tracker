@@ -44,6 +44,8 @@ export default function WorkoutTemplateBuilderScreen() {
 
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const dragY = useRef(new Animated.Value(0)).current;
+  const dragScale = useRef(new Animated.Value(1)).current;
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const draggingExerciseRef = useRef<TemplateExercise | null>(null);
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const itemLayouts = useRef<Record<string, { y: number; height: number }>>({});
@@ -60,10 +62,39 @@ export default function WorkoutTemplateBuilderScreen() {
           setActiveDragId(te.id);
           setScrollEnabled(false);
           dragY.setValue(0);
+          dragScale.setValue(1);
+          Animated.spring(dragScale, {
+            toValue: 1.03,
+            useNativeDriver: true,
+            tension: 100,
+            friction: 6,
+          }).start();
         }
       },
       onPanResponderMove: (e, gestureState) => {
         dragY.setValue(gestureState.dy);
+        const te = draggingExerciseRef.current;
+        if (te) {
+          const layout = itemLayouts.current[te.id];
+          if (layout) {
+            const dropY = layout.y + gestureState.dy;
+            const otherExercises = templateExercises.filter((item) => item.id !== te.id);
+            let insertIndex = 0;
+            for (let i = 0; i < otherExercises.length; i++) {
+              const other = otherExercises[i];
+              if (other) {
+                const otherLayout = itemLayouts.current[other.id];
+                if (otherLayout) {
+                  const centerY = otherLayout.y + otherLayout.height / 2;
+                  if (dropY > centerY) {
+                    insertIndex = i + 1;
+                  }
+                }
+              }
+            }
+            setHoverIndex(insertIndex);
+          }
+        }
       },
       onPanResponderRelease: (e, gestureState) => {
         const te = draggingExerciseRef.current;
@@ -92,14 +123,44 @@ export default function WorkoutTemplateBuilderScreen() {
             setTemplateExercises(finalReordered);
           }
         }
-        setActiveDragId(null);
-        setScrollEnabled(true);
-        dragY.setValue(0);
+        Animated.parallel([
+          Animated.spring(dragY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 8,
+          }),
+          Animated.spring(dragScale, {
+            toValue: 1,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 8,
+          }),
+        ]).start(() => {
+          setActiveDragId(null);
+          setHoverIndex(null);
+          setScrollEnabled(true);
+        });
       },
       onPanResponderTerminate: () => {
-        setActiveDragId(null);
-        setScrollEnabled(true);
-        dragY.setValue(0);
+        Animated.parallel([
+          Animated.spring(dragY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 8,
+          }),
+          Animated.spring(dragScale, {
+            toValue: 1,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 8,
+          }),
+        ]).start(() => {
+          setActiveDragId(null);
+          setHoverIndex(null);
+          setScrollEnabled(true);
+        });
       },
     });
   }, [templateExercises]);
@@ -199,6 +260,12 @@ export default function WorkoutTemplateBuilderScreen() {
         {templateExercises.map((te, index) => {
           const ex = exercises.find((e) => e.id === te.exerciseId);
           const isDraggingThis = te.id === activeDragId;
+          const otherExercises = templateExercises.filter((item) => item.id !== activeDragId);
+          const isHovered =
+            activeDragId !== null &&
+            hoverIndex !== null &&
+            otherExercises[hoverIndex]?.id === te.id;
+
           return (
             <Animated.View
               key={te.id}
@@ -213,8 +280,14 @@ export default function WorkoutTemplateBuilderScreen() {
               style={[
                 styles.exerciseCard,
                 { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+                isHovered && {
+                  borderColor: '#90D5FF',
+                  borderWidth: 1.5,
+                  borderStyle: 'dashed',
+                  backgroundColor: 'rgba(144, 213, 255, 0.05)',
+                },
                 isDraggingThis && {
-                  transform: [{ translateY: dragY }],
+                  transform: [{ translateY: dragY }, { scale: dragScale }],
                   zIndex: 9999,
                   opacity: 0.85,
                   shadowColor: '#000',
@@ -227,15 +300,15 @@ export default function WorkoutTemplateBuilderScreen() {
             >
               <View style={styles.exHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <View
+                  <Pressable
                     style={styles.dragHandle}
-                    onTouchStart={() => {
+                    onPressIn={() => {
                       draggingExerciseRef.current = te;
                     }}
                     {...panResponder.panHandlers}
                   >
                     <Ionicons name="reorder-two" size={24} color={theme.colors.primary} />
-                  </View>
+                  </Pressable>
                   <Text style={[styles.exName, { color: theme.colors.text }]}>
                     {index + 1}. {ex?.name || 'Unknown'}
                   </Text>

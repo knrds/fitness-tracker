@@ -16,7 +16,12 @@ import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { SaveTemplateModal } from '../../src/components/workout/SaveTemplateModal';
-import { TemplateExercise, SessionExercise, summarizeWorkout } from '@fitness-tracker/domain';
+import {
+  TemplateExercise,
+  SessionExercise,
+  summarizeWorkout,
+  summarizeSessionExercise,
+} from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
 
 export default function WorkoutDetailScreen() {
@@ -185,11 +190,7 @@ export default function WorkoutDetailScreen() {
 
         {session.exercises.map((ex, index) => {
           const exerciseDef = exercises.find((e) => e.id === ex.exerciseId);
-          const completedSets = ex.sets.filter((s) => s.completed);
-          const volumeKg = completedSets.reduce(
-            (sum, s) => sum + (s.weight || 0) * (s.reps || 0),
-            0,
-          );
+          const volumeKg = summarizeSessionExercise(ex).totalVolume;
           const volume = isImperial ? Math.round(volumeKg * 2.20462) : volumeKg;
 
           return (

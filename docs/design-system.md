@@ -1,64 +1,79 @@
 # Design System: Volt Performance Fitness
 
-## Ästhetik & Ausrichtung
+## Direction
 
-- **Stil**: Modern, kraftvoll, premium, kompromisslos
-- **Referenz**: Zwischen Whoop, Oura und Strava (Dark Mode)
-- **Kernprinzipien**:
-  - Keine Drop-Shadows. Tiefe entsteht nur durch Oberflächenfarben-Hierarchie und scharfe 1px-Rahmen (`#2A2B31`).
-  - "Floating"-Ästhetik durch großzügiges Padding (24px) um die Cards.
+- **Style:** modern, premium, focused, performance-oriented.
+- **Reference space:** Whoop, Oura, Strava, and native fitness dashboards in dark mode.
+- **V1 UI language:** English. New screens, empty states, errors, buttons, and labels should use English consistently. Existing German copy should be migrated during the consistency pass, not mixed further.
+- **Design principle:** dense enough for repeated training use, but still high-contrast and motivating. Avoid marketing-page composition inside the app.
 
-## Farbpalette (Dark Mode Primär)
+## Color Palette
 
-| Farbe               | Hex-Code  | Verwendung                                                  |
-| :------------------ | :-------- | :---------------------------------------------------------- |
-| **Primary**         | `#C6FF00` | Buttons, aktive States, Progress Bars, zentrale Datenpunkte |
-| **Background**      | `#0B0B0F` | App-Hintergrund, Deep Canvas                                |
-| **Surface**         | `#1A1C23` | Cards, Bottom Sheet Modals, Sticky Headers                  |
-| **Text**            | `#F4F5F7` | Primärer Fließtext, aktive Werte                            |
-| **Muted**           | `#2A2B31` | Sekundärtext, 1px Card-Rahmen, inaktive Icons               |
-| **Accent (Danger)** | `#FF3366` | Destruktive Aktionen, High-Heart-Rate Alerts                |
+| Token              | Hex       | Usage                                                       |
+| :----------------- | :-------- | :---------------------------------------------------------- |
+| **Primary**        | `#90D5FF` | Buttons, active states, progress bars, selected data points |
+| **Primary Strong** | `#5FBDFF` | Pressed/hovered primary states, strong accents              |
+| **Primary Soft**   | `#C5E8FF` | Subtle highlights, chart fills, inactive primary surfaces   |
+| **Background**     | `#0B0B0F` | App canvas, splash/adaptive icon background                 |
+| **Surface**        | `#1A1C23` | Cards, sheets, sticky headers, tab surfaces                 |
+| **Elevated**       | `#20232B` | Active rows, focused inputs, raised drag items              |
+| **Border**         | `#2A2B31` | 1px dividers and container borders                          |
+| **Text**           | `#F4F5F7` | Primary text and stat values                                |
+| **Muted**          | `#8A8D9F` | Secondary text, inactive icons                              |
+| **Warning/PR**     | `#FFB020` | PR markers, achievement highlights                          |
+| **Danger**         | `#FF3366` | Destructive actions and validation errors                   |
 
-_(Hinweis: Für einen zukünftigen Light Mode werden diese Werte systemisch invertiert bzw. separat definiert, der Fokus liegt aber zu 100% auf diesem Dark-Mode-Premium-Look.)_
+Dark mode is the primary and release target. The splash screen and adaptive icon background must remain `#0B0B0F`, not white.
 
-## Typografie
+## Typography
 
-Eine unverwechselbare, technische Ästhetik.
+- **Display/Numerals:** `Space Grotesk` with tabular numerals for weights, level, streak, timers, and chart values.
+- **Headings:** `Space Grotesk`, 700, 24-32px, uppercase for screen titles.
+- **Body:** `Manrope`, 500, 16px for lists, forms, and explanatory text.
+- **Buttons:** `Space Grotesk`, 600, 15-16px, uppercase for primary actions.
+- **Captions:** `Space Grotesk`, 400-600, 11-12px, uppercase for labels and metadata.
 
-- **Display/Numerals**: `Space Grotesk` (tabular numerals enabled) - für große Zahlen (Gewichte, Level, Streak).
-- **Headings**: `Space Grotesk`, 700, 24-32px, Uppercase - für Screen-Titel.
-- **Body**: `Manrope`, 500, 16px, +0.2px Letter Spacing - für Listen, Beschreibungen.
-- **Buttons**: `Space Grotesk`, 600, 16px, Uppercase.
-- **Caption/Small Text**: `Space Grotesk`, 400, 12px, Uppercase, +1px Letter Spacing - für Labels, Metadaten.
+Do not use negative letter spacing or viewport-scaled font sizes.
 
-## Spacing-System
+## Spacing
 
-Das Layout basiert auf einem strikten Grid:
+- `4px` micro gaps.
+- `8px` compact controls and chips.
+- `12px` inner element spacing.
+- `16px` default stack spacing.
+- `24px` screen/card padding.
+- `32px` major section gaps.
+- `48px` large empty-state breathing room.
 
-- `4px` / `8px` (sm)
-- `12px`
-- `16px` (md)
-- `24px` (lg) - Standard-Padding für den Floating-Look
-- `32px`
-- `48px`
+## Components
 
-## Komponenten-Stil
+- **Cards:** `#1A1C23`, 1px `#2A2B31` border, 12-16px radius, 16-24px padding. Do not nest cards inside cards.
+- **Buttons:** primary uses `#90D5FF` background with `#0B0B0F` text; secondary uses surface + border; ghost uses transparent background with text/icon color.
+- **Inputs:** surface/elevated fill, 1px border, primary border on focus, clear error copy using `#FF3366`.
+- **Badges/Chips:** compact, readable, and semantic. Use icon+text where it improves scanning.
+- **Charts:** primary line/area in `#90D5FF`; PR markers use `#FFB020`; tooltips should not cover neighboring content.
+- **Modals/Sheets:** dark overlay, elevated surface, clear close affordance, click-outside/tap-outside dismiss when safe.
+- **Tab bar:** active center action may use a subtle glow/shadow. Other depth should come from color hierarchy and borders.
 
-- **Border-Radius-Skala**:
-  - `16px` für primäre Cards/Container.
-  - `12px` für innere Elemente und Buttons.
-  - `8px` für kleine Hit-Areas (z.B. Checkboxen).
-- **Schatten-Stufen**: Keine Drop-Shadows! Flat, modern, abgetrennt durch 1px Borders (`#2A2B31`).
-- **Card-Stil**: `#1A1C23` Surface-Color, 1px Border (`#2A2B31`), 16px Radius, 24px Padding.
-- **Button-Varianten**:
-  - _Primary_: Background `#C6FF00`, Text `#0B0B0F`.
-  - _Secondary_: Surface `#1A1C23`, Border `#2A2B31`, Text `#F4F5F7`.
-  - _Ghost_: Transparent, Text `#F4F5F7` oder `#C6FF00` bei Hover/Active.
-  - _Danger_: Background `#FF3366` oder Text `#FF3366` in Ghost/Secondary-Variante.
+## States
 
-## Micro-Interactions & Animationen
+Every list-like or remote/persistent surface should define:
 
-- Press-Scale `0.96` via Reanimated bei Buttons und interaktiven Cards.
-- Haptisches Feedback (expo-haptics) bei Set-Abschluss, Button-Klicks.
-- Checkbox füllt sich `#C6FF00`, Set-Zeile wird auf 50% Opacity gedimmt.
-- Skeletons (`#1A1C23` pulsierend) statt klassischer Lade-Spinner.
+- **Empty:** concise English title, one helpful line, and a clear next action where relevant.
+- **Loading:** skeletons or stable placeholders; avoid layout jumps.
+- **Error:** user-actionable English message plus retry/dismiss action.
+- **Disabled:** visible contrast difference without relying only on opacity.
+- **Destructive confirmation:** required for irreversible actions such as clearing all local data.
+
+## Motion
+
+- Press-scale around `0.96` for buttons and interactive cards.
+- Haptics for set completion, important confirmations, and achievement moments.
+- Use `Animated`/Reanimated for sheets, drag-and-drop, timers, and high-frequency interactions.
+- Animation must never block logging a set or finishing a workout.
+
+## Screen Structure
+
+- Split large screens into feature components when a file grows beyond roughly 300-400 lines or mixes unrelated workflows.
+- Keep domain calculations out of screens. Use `packages/domain/src/logic/` helpers for volume, PRs, e1RM, streaks, and workout summaries.
+- Prefer stable dimensions for boards, stat tiles, tabs, and chart areas so text, icons, and loading states do not shift layout.

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, TextInput, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@fitness-tracker/ui';
+import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 
 import { useProfileStore } from '../../stores/profileStore';
 
@@ -82,6 +83,27 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
   });
   visualPlates.sort((a, b) => b - a);
 
+  const AVAILABLE_PLATES = [25, 20, 15, 10, 5, 2.5, 1.25];
+
+  const handleAddPlate = (plateWeight: number) => {
+    const currentWeight = parseFloat(inputWeight) || 0;
+    const baseKg = isImperial ? currentWeight / 2.20462 : currentWeight;
+    const base = baseKg < 20 ? 20 : baseKg;
+    const newWeightKg = base + 2 * plateWeight;
+    const displayVal = isImperial ? newWeightKg * 2.20462 : newWeightKg;
+    setInputWeight(displayVal.toFixed(1).replace(/\.0$/, ''));
+  };
+
+  const handleRemovePlate = (plateWeight: number) => {
+    const currentWeight = parseFloat(inputWeight) || 0;
+    const baseKg = isImperial ? currentWeight / 2.20462 : currentWeight;
+    if (baseKg > 20) {
+      const newWeightKg = Math.max(20, baseKg - 2 * plateWeight);
+      const displayVal = isImperial ? newWeightKg * 2.20462 : newWeightKg;
+      setInputWeight(displayVal.toFixed(1).replace(/\.0$/, ''));
+    }
+  };
+
   const renderPlate = (weight: number, key: string) => {
     const meta = PLATE_METADATA[weight] || {
       color: '#94a3b8',
@@ -90,24 +112,48 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
       width: 12,
     };
     return (
-      <View
+      <Pressable
         key={key}
+        onPress={() => handleRemovePlate(weight)}
         style={[
           styles.plateBlock,
           {
-            backgroundColor: meta.color,
             height: meta.height,
             width: meta.width,
             borderColor: 'rgba(0,0,0,0.25)',
+            position: 'relative',
+            overflow: 'hidden',
           },
         ]}
       >
+        <Svg height="100%" width="100%" style={StyleSheet.absoluteFillObject}>
+          <Defs>
+            <LinearGradient id={`grad-${weight}-${key}`} x1="0%" y1="0%" x2="100%" y2="0%">
+              <Stop offset="0%" stopColor={meta.color} stopOpacity="1" />
+              <Stop offset="30%" stopColor="#ffffff" stopOpacity="0.35" />
+              <Stop offset="70%" stopColor={meta.color} stopOpacity="1" />
+              <Stop offset="100%" stopColor="#000000" stopOpacity="0.45" />
+            </LinearGradient>
+          </Defs>
+          <Rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            fill={`url(#grad-${weight}-${key})`}
+            rx={3}
+            ry={3}
+          />
+        </Svg>
         <Text
-          style={[styles.plateLabel, { color: meta.labelColor, fontSize: meta.width < 14 ? 6 : 8 }]}
+          style={[
+            styles.plateLabel,
+            { color: meta.labelColor, fontSize: meta.width < 14 ? 6 : 8, zIndex: 1 },
+          ]}
         >
           {weight}
         </Text>
-      </View>
+      </Pressable>
     );
   };
 
@@ -176,6 +222,42 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
             </View>
           </View>
 
+          {/* Load Plates Row */}
+          <View style={styles.addPlatesContainer}>
+            <Text style={[styles.inputLabel, { color: theme.colors.muted }]}>
+              Load Plates (per side)
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.platesScroll}
+            >
+              {AVAILABLE_PLATES.map((weight) => {
+                const meta = PLATE_METADATA[weight] || { color: '#94a3b8', labelColor: '#ffffff' };
+                const displayWeight = isImperial ? weight * 2.20462 : weight;
+                const formattedWeight = displayWeight.toFixed(1).replace(/\.0$/, '');
+                return (
+                  <Pressable
+                    key={weight}
+                    style={[styles.addPlateChip, { backgroundColor: meta.color }]}
+                    onPress={() => handleAddPlate(weight)}
+                  >
+                    <Text style={[styles.addPlateChipText, { color: meta.labelColor }]}>
+                      +{formattedWeight} {isImperial ? 'lb' : 'kg'}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+              <Pressable
+                style={[styles.resetBarBtn, { borderColor: theme.colors.border }]}
+                onPress={() => setInputWeight(isImperial ? '44' : '20')}
+              >
+                <Ionicons name="refresh-outline" size={16} color={theme.colors.accent} />
+                <Text style={[styles.resetBarBtnText, { color: theme.colors.accent }]}>Clear</Text>
+              </Pressable>
+            </ScrollView>
+          </View>
+
           {targetWeightKg > 20 && (
             <View
               style={[
@@ -209,13 +291,17 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
             ) : (
               <View style={styles.summaryContainer}>
                 <Text style={[styles.summaryHeader, { color: theme.colors.muted }]}>
-                  Plates per side
+                  Plates per side (Tap to remove)
                 </Text>
                 {platesPerSide.map((item, idx) => {
                   const displayWeight = isImperial ? item.weight * 2.20462 : item.weight;
                   const formattedWeight = displayWeight.toFixed(1).replace(/\.0$/, '');
                   return (
-                    <View key={idx} style={styles.summaryRow}>
+                    <Pressable
+                      key={idx}
+                      style={styles.summaryRow}
+                      onPress={() => handleRemovePlate(item.weight)}
+                    >
                       <View
                         style={[
                           styles.colorIndicator,
@@ -226,7 +312,7 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
                         <Text style={styles.boldText}>{item.count}×</Text> {item.weight} kg{' '}
                         {isImperial ? `(${formattedWeight} lbs)` : ''}
                       </Text>
-                    </View>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -417,5 +503,45 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope_500Medium',
     fontSize: 13,
     flex: 1,
+  },
+  addPlatesContainer: {
+    marginBottom: 20,
+  },
+  platesScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  addPlateChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 64,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  addPlateChipText: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 12,
+  },
+  resetBarBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 4,
+    backgroundColor: 'rgba(144, 213, 255, 0.05)',
+  },
+  resetBarBtnText: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 12,
   },
 });

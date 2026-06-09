@@ -5,7 +5,12 @@ import {
   calculateStreak,
   calculateLongestStreak,
   detectPRs,
+  getBestE1RMs,
+  getBestWeights,
+  getExerciseProgressHistory,
+  formatDateLocal,
   summarizeWorkout,
+  summarizeSessionExercise,
   WorkoutSession,
 } from '../index';
 
@@ -110,6 +115,12 @@ describe('calculateStreak & calculateLongestStreak', () => {
     expect(calculateLongestStreak([])).toBe(0);
   });
 
+  it('formats date keys from local calendar parts', () => {
+    const date = new Date(2026, 5, 8, 23, 30, 0);
+
+    expect(formatDateLocal(date)).toBe('2026-06-08');
+  });
+
   it('calculates streaks timezone safely', () => {
     const today = new Date();
     const yesterday = new Date(today.getTime() - dayMs);
@@ -197,5 +208,80 @@ describe('summarizeWorkout', () => {
     expect(summary.durationSeconds).toBe(1200);
     expect(summary.setCount).toBe(1);
     expect(summary.totalVolume).toBe(500);
+  });
+});
+
+describe('analytics helpers', () => {
+  it('summarizes a session exercise without counting warmups as working volume', () => {
+    const session = createMockSession('s1', new Date(), [
+      {
+        exerciseId: EX_UUID_1,
+        sets: [
+          { weight: 60, reps: 10, type: 'warmup', completed: true },
+          { weight: 100, reps: 5, type: 'working', completed: true },
+          { weight: 110, reps: 3, type: 'working', completed: true },
+          { weight: 120, reps: 1, type: 'working', completed: false },
+        ],
+      },
+    ]);
+
+    const summary = summarizeSessionExercise(session.exercises[0]!);
+
+    expect(summary.completedSetCount).toBe(3);
+    expect(summary.workingSetCount).toBe(2);
+    expect(summary.totalVolume).toBe(830);
+    expect(summary.maxWeight).toBe(110);
+    expect(summary.averageWeight).toBe(105);
+  });
+
+  it('returns warmup-safe best weights and e1RMs', () => {
+    const sessions = [
+      createMockSession('s1', new Date('2026-06-01T10:00:00'), [
+        {
+          exerciseId: EX_UUID_1,
+          sets: [
+            { weight: 150, reps: 1, type: 'warmup' },
+            { weight: 100, reps: 5, type: 'working' },
+          ],
+        },
+      ]),
+      createMockSession('s2', new Date('2026-06-02T10:00:00'), [
+        {
+          exerciseId: EX_UUID_1,
+          sets: [{ weight: 105, reps: 5, type: 'working' }],
+        },
+      ]),
+    ];
+
+    expect(getBestWeights(sessions)[EX_UUID_1]).toBe(105);
+    expect(getBestE1RMs(sessions)[EX_UUID_1]?.weight).toBe(105);
+  });
+
+  it('builds chronological exercise progress and marks e1RM PR points', () => {
+    const sessions = [
+      createMockSession('s1', new Date('2026-06-01T10:00:00'), [
+        {
+          exerciseId: EX_UUID_1,
+          sets: [{ weight: 100, reps: 5, type: 'working' }],
+        },
+      ]),
+      createMockSession('s2', new Date('2026-06-02T10:00:00'), [
+        {
+          exerciseId: EX_UUID_1,
+          sets: [
+            { weight: 80, reps: 10, type: 'warmup' },
+            { weight: 105, reps: 5, type: 'working' },
+          ],
+        },
+      ]),
+    ];
+
+    const points = getExerciseProgressHistory(EX_UUID_1, sessions);
+
+    expect(points).toHaveLength(2);
+    expect(points[0]?.volume).toBe(500);
+    expect(points[0]?.isPR).toBe(true);
+    expect(points[1]?.volume).toBe(525);
+    expect(points[1]?.isPR).toBe(true);
   });
 });

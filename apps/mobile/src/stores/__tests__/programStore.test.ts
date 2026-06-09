@@ -1,4 +1,13 @@
-import { useProgramStore } from '../programStore';
+import { ProgramSchema, WorkoutTemplateSchema } from '@fitness-tracker/domain';
+
+import { getDefaultPrograms, getDefaultTemplates, useProgramStore } from '../programStore';
+
+let mockUuidCounter = 0;
+
+const mockMakeUuid = () => {
+  mockUuidCounter += 1;
+  return `11111111-1111-4111-8111-${String(mockUuidCounter).padStart(12, '0')}`;
+};
 
 jest.mock('react-native-mmkv', () => ({
   MMKV: jest.fn().mockImplementation(() => ({
@@ -9,11 +18,12 @@ jest.mock('react-native-mmkv', () => ({
 }));
 
 jest.mock('expo-crypto', () => ({
-  randomUUID: () => 'mock-uuid-123',
+  randomUUID: () => mockMakeUuid(),
 }));
 
 describe('programStore', () => {
   beforeEach(() => {
+    mockUuidCounter = 0;
     // reset state manually since we don't have a reset function
     useProgramStore.setState({ programs: [], templates: [] });
   });
@@ -52,5 +62,15 @@ describe('programStore', () => {
 
     useProgramStore.getState().deleteTemplate('t1');
     expect(useProgramStore.getState().templates.length).toBe(0);
+  });
+
+  it('uses UUID-compatible IDs for seeded templates and programs', () => {
+    getDefaultTemplates().forEach((template) => {
+      expect(WorkoutTemplateSchema.safeParse(template).success).toBe(true);
+    });
+
+    getDefaultPrograms().forEach((program) => {
+      expect(ProgramSchema.safeParse(program).success).toBe(true);
+    });
   });
 });

@@ -1,11 +1,14 @@
 import React from 'react';
-import { Modal, View, Text, StyleSheet, Pressable } from 'react-native';
+import { Animated, Dimensions, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@fitness-tracker/ui';
-import { useWorkoutStore } from '../../stores/workoutStore';
-import { useProfileStore } from '../../stores/profileStore';
 
-import { Animated, Dimensions } from 'react-native';
+import { summarizeSessionExercise, summarizeWorkout } from '@fitness-tracker/domain';
+import { useTheme } from '@fitness-tracker/ui';
+
+import { getCaffeineWarningLevel, useCaffeineStore } from '../../stores/caffeineStore';
+import { useExerciseStore } from '../../stores/exerciseStore';
+import { useProfileStore } from '../../stores/profileStore';
+import { useWorkoutStore } from '../../stores/workoutStore';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CONFETTI_COLORS = ['#90D5FF', '#5FBDFF', '#C5E8FF', '#FFFFFF', '#FFD700', '#FF9F43'];
@@ -67,24 +70,26 @@ const SubtleConfetti = () => {
       {particles.map((p) => (
         <Animated.View
           key={p.id}
-          style={{
-            position: 'absolute',
-            left: p.x,
-            width: p.size,
-            height: p.size,
-            borderRadius: p.size / 2,
-            backgroundColor: p.color,
-            transform: [
-              { translateY: p.animY },
-              { translateX: p.animX },
-              {
-                rotate: p.animRotate.interpolate({
-                  inputRange: [0, 360],
-                  outputRange: ['0deg', '360deg'],
-                }),
-              },
-            ],
-          }}
+          style={[
+            styles.confettiParticle,
+            {
+              left: p.x,
+              width: p.size,
+              height: p.size,
+              borderRadius: p.size / 2,
+              backgroundColor: p.color,
+              transform: [
+                { translateY: p.animY },
+                { translateX: p.animX },
+                {
+                  rotate: p.animRotate.interpolate({
+                    inputRange: [0, 360],
+                    outputRange: ['0deg', '360deg'],
+                  }),
+                },
+              ],
+            },
+          ]}
         />
       ))}
     </View>
@@ -95,23 +100,14 @@ export const WorkoutCompleteModal = () => {
   const theme = useTheme();
   const { lastFinishedSession, clearLastFinishedSession } = useWorkoutStore();
   const { profile } = useProfileStore();
+  const exerciseDefinitions = useExerciseStore((state) => state.exercises);
+  const caffeineEnabled = useCaffeineStore((state) => state.isEnabled);
+  const lastWorkoutCaffeineMg = useCaffeineStore((state) => state.lastWorkoutMg);
   const isImperial = profile.preferredUnits === 'imperial';
 
   if (!lastFinishedSession) return null;
 
-  const totalSets = lastFinishedSession.exercises.reduce(
-    (sum, ex) => sum + ex.sets.filter((s) => s.completed).length,
-    0,
-  );
-
-  const totalVolume = lastFinishedSession.exercises.reduce(
-    (sum, ex) =>
-      sum +
-      ex.sets
-        .filter((s) => s.completed && s.weight)
-        .reduce((sSum, s) => sSum + s.weight! * (s.reps || 0), 0),
-    0,
-  );
+  const summary = summarizeWorkout(lastFinishedSession);
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) return '--:--';
@@ -126,49 +122,172 @@ export const WorkoutCompleteModal = () => {
     const displayVol = isImperial ? Math.round(volumeKg * 2.20462) : Math.round(volumeKg);
     const unit = isImperial ? 'lbs' : 'kg';
 
-    if (volumeKg <= 0) return `You completed a session!`;
-
+    if (volumeKg <= 0) return 'You completed a session. The logbook still respects the ritual.';
     if (volumeKg < 100) {
-      const p = (displayVol / (isImperial ? 22 : 10)).toFixed(1).replace(/\.0$/, '');
-      return `You lifted ${displayVol} ${unit}! That's equivalent to the weight of ${p} adult house cats. 🐱`;
+      const plates = (displayVol / (isImperial ? 5.5 : 2.5)).toFixed(0);
+      return `You lifted ${displayVol} ${unit}. That is like quietly moving ${plates} tiny change plates while pretending it was just a warmup.`;
     }
     if (volumeKg < 300) {
-      const p = (displayVol / (isImperial ? 110 : 50)).toFixed(1).replace(/\.0$/, '');
-      return `You lifted ${displayVol} ${unit}! That's about the weight of ${p} heavy punching bags. 🥊`;
+      const crates = (displayVol / (isImperial ? 44 : 20)).toFixed(1).replace(/\.0$/, '');
+      return `You moved ${displayVol} ${unit}. Gym folklore translation: about ${crates} loaded water crates, but with better form.`;
     }
     if (volumeKg < 800) {
-      const pStr = (displayVol / (isImperial ? 330 : 150)).toFixed(1).replace(/\.0$/, '');
-      return `You lifted ${displayVol} ${unit}! That's equivalent to the weight of ${pStr} classic Vespa scooters. 🛵`;
+      const benches = (displayVol / (isImperial ? 100 : 45)).toFixed(1).replace(/\.0$/, '');
+      return `${displayVol} ${unit} of work. That is roughly ${benches} adjustable benches worth of iron traffic.`;
     }
     if (volumeKg < 1500) {
-      const pStr = (displayVol / (isImperial ? 1100 : 500)).toFixed(1).replace(/\.0$/, '');
-      return `You lifted ${displayVol} ${unit}! That's about the weight of ${pStr} grand pianos. 🎹`;
+      const plates = (displayVol / (isImperial ? 44 : 20)).toFixed(0);
+      return `${displayVol} ${unit} today. Your workout basically negotiated with ${plates} full-size 20 kg plates.`;
     }
     if (volumeKg < 3000) {
-      const pStr = (displayVol / (isImperial ? 2200 : 1000)).toFixed(1).replace(/\.0$/, '');
-      return `You lifted ${displayVol} ${unit}! That's equivalent to the weight of ${pStr} saltwater crocodiles. 🐊`;
+      const machines = (displayVol / (isImperial ? 440 : 200)).toFixed(1).replace(/\.0$/, '');
+      return `${displayVol} ${unit} moved. That is about ${machines} cable stacks being politely bullied by your logbook.`;
     }
     if (volumeKg < 6000) {
-      const pStr = (displayVol / (isImperial ? 4400 : 2000)).toFixed(1).replace(/\.0$/, '');
-      return `You lifted ${displayVol} ${unit}! That's about the weight of ${pStr} hippopotamuses. 🦛`;
+      const racks = (displayVol / (isImperial ? 990 : 450)).toFixed(1).replace(/\.0$/, '');
+      return `${displayVol} ${unit}. That is ${racks} fully loaded squat racks of cumulative chaos.`;
     }
     if (volumeKg < 12000) {
-      const pStr = (displayVol / (isImperial ? 11000 : 5000)).toFixed(1).replace(/\.0$/, '');
-      return `You lifted ${displayVol} ${unit}! That's equivalent to the weight of ${pStr} fully grown African elephants. 🐘`;
+      const cars = (displayVol / (isImperial ? 3300 : 1500)).toFixed(1).replace(/\.0$/, '');
+      return `${displayVol} ${unit}. Your session volume could move ${cars} compact cars one disciplined rep at a time.`;
     }
-    const pStr = (displayVol / (isImperial ? 26400 : 12000)).toFixed(1).replace(/\.0$/, '');
-    return `You lifted ${displayVol} ${unit}! That's about the weight of ${pStr} double-decker buses! 🚌 Absolutely massive!`;
+    const trucks = (displayVol / (isImperial ? 22000 : 10000)).toFixed(1).replace(/\.0$/, '');
+    return `${displayVol} ${unit}. That is ${trucks} small moving trucks of work. Your spreadsheet is probably standing up to applaud.`;
   };
 
-  const displayVolVal = isImperial ? Math.round(totalVolume * 2.20462) : Math.round(totalVolume);
+  const getDeterministicIndex = (values: string[], modulo: number) => {
+    if (modulo <= 0) return 0;
+    return (
+      values
+        .join('|')
+        .split('')
+        .reduce((sum, char) => sum + char.charCodeAt(0), 0) % modulo
+    );
+  };
+
+  const getWorkoutFunFact = (): string => {
+    const sessionExerciseIds = lastFinishedSession.exercises.map((exercise) => exercise.exerciseId);
+    const sessionDefinitions = sessionExerciseIds
+      .map((exerciseId) => exerciseDefinitions.find((exercise) => exercise.id === exerciseId))
+      .filter(Boolean);
+    const hasCardio = sessionDefinitions.some(
+      (exercise) =>
+        exercise?.movementPattern === 'cardio' || exercise?.equipment === 'cardio_machine',
+    );
+    const hasWarmups = lastFinishedSession.exercises.some((exercise) =>
+      exercise.sets.some((set) => set.completed && set.type === 'warmup'),
+    );
+    const workingSummaries = lastFinishedSession.exercises
+      .map((exercise) => {
+        const exerciseSummary = summarizeSessionExercise(exercise);
+        const definition = exerciseDefinitions.find((item) => item.id === exercise.exerciseId);
+        return {
+          exercise,
+          definition,
+          summary: exerciseSummary,
+        };
+      })
+      .filter((item) => item.summary.totalVolume > 0);
+    const topExercise = workingSummaries.reduce<(typeof workingSummaries)[number] | null>(
+      (best, item) => {
+        if (!best || item.summary.totalVolume > best.summary.totalVolume) return item;
+        return best;
+      },
+      null,
+    );
+    const workingSetCount = workingSummaries.reduce(
+      (sum, item) => sum + item.summary.workingSetCount,
+      0,
+    );
+    const volumePerSet = workingSetCount > 0 ? summary.totalVolume / workingSetCount : 0;
+    const displayVolumePerSet = isImperial
+      ? Math.round(volumePerSet * 2.20462)
+      : Math.round(volumePerSet);
+    const displayTopExerciseVolume =
+      topExercise && isImperial
+        ? Math.round(topExercise.summary.totalVolume * 2.20462)
+        : Math.round(topExercise?.summary.totalVolume ?? 0);
+    const unit = isImperial ? 'lbs' : 'kg';
+    const facts = [
+      getVolumeFunFact(summary.totalVolume),
+      getVolumeFunFact(summary.totalVolume),
+      `Performance note: ${workingSetCount} working sets averaged ${displayVolumePerSet} ${unit} each. Same set count plus a little more load or reps is the cleanest progress signal.`,
+    ];
+
+    if (topExercise) {
+      facts.push(
+        `Session signal: ${topExercise.definition?.name ?? 'one exercise'} carried ${displayTopExerciseVolume} ${unit} of working volume today.`,
+      );
+    }
+
+    if (summary.durationSeconds > 0 && summary.totalVolume > 0) {
+      const volumePerHour = Math.round((summary.totalVolume / summary.durationSeconds) * 3600);
+      const displayVolumePerHour = isImperial
+        ? Math.round(volumePerHour * 2.20462)
+        : volumePerHour;
+      facts.push(
+        `Density check: this session moved about ${displayVolumePerHour} ${unit} per hour. Useful when comparing similar workouts later.`,
+      );
+    }
+
+    if (hasCardio) {
+      facts.push(
+        'Cardio note: easy aerobic work is not just calorie math; it also builds the engine that helps you recover between hard sets.',
+        'Cardio fact: a stronger aerobic base can make heavy sessions feel less like a software update at 1%.',
+      );
+    }
+
+    if (hasWarmups) {
+      facts.push(
+        'Warmup fact: ramping sets are rehearsal reps. The goal is better bar speed and cleaner positions, not sneaky fatigue.',
+      );
+    }
+
+    if (summary.durationSeconds && summary.durationSeconds >= 2700) {
+      facts.push(
+        'Science tip: longer rests can preserve rep quality. If performance drops fast, two to three calm minutes may beat rushing.',
+      );
+    }
+
+    if (summary.setCount >= 12) {
+      facts.push(
+        'Programming tip: productive volume is the volume you can recover from. Repeatable progress beats random heroic set archaeology.',
+      );
+    }
+
+    facts.push(
+      'Technique tip: the most underrated PR is making the same weight look smoother than last time.',
+      'Science tip: muscle growth is less about one magical rep range and more about hard, trackable sets with enough recovery.',
+    );
+
+    return facts[getDeterministicIndex([lastFinishedSession.id, String(summary.setCount)], facts.length)]!;
+  };
+
+  const getCaffeineFunFact = (caffeineMg: number): string | null => {
+    if (caffeineMg <= 0) return null;
+
+    const warningLevel = getCaffeineWarningLevel(caffeineMg);
+    const espressoEquivalent = (caffeineMg / 63).toFixed(1).replace(/\.0$/, '');
+    if (warningLevel === 'extreme') {
+      return `Caffeine fact: ${caffeineMg} mg is roughly ${espressoEquivalent} espressos. That is well beyond the usual daily guideline territory, so treat recovery and sleep seriously.`;
+    }
+    if (warningLevel === 'high') {
+      return `Caffeine fact: ${caffeineMg} mg is around ${espressoEquivalent} espressos. Useful as a log entry, but tomorrow's sleep score may want a lawyer.`;
+    }
+    if (caffeineMg >= 200) {
+      return `Caffeine fact: ${caffeineMg} mg is about ${espressoEquivalent} espressos. A noticeable pre-session push for many people.`;
+    }
+    return `Caffeine fact: ${caffeineMg} mg is about ${espressoEquivalent} espresso shots. Small enough to track, big enough to explain suspiciously enthusiastic warmups.`;
+  };
+
+  const workoutFact = getWorkoutFunFact();
+  const caffeineFact = caffeineEnabled ? getCaffeineFunFact(lastWorkoutCaffeineMg) : null;
+  const displayVolVal = isImperial
+    ? Math.round(summary.totalVolume * 2.20462)
+    : Math.round(summary.totalVolume);
 
   return (
-    <Modal
-      visible={true}
-      animationType="slide"
-      transparent
-      onRequestClose={clearLastFinishedSession}
-    >
+    <Modal visible animationType="slide" transparent onRequestClose={clearLastFinishedSession}>
       <Pressable style={styles.overlay} onPress={clearLastFinishedSession}>
         <SubtleConfetti />
         <Pressable
@@ -193,7 +312,6 @@ export const WorkoutCompleteModal = () => {
             Great session! Here is what you achieved today:
           </Text>
 
-          {/* Stats Grid */}
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
               <Text
@@ -202,7 +320,7 @@ export const WorkoutCompleteModal = () => {
                   { color: theme.colors.primary, ...theme.typography.display },
                 ]}
               >
-                {formatDuration(lastFinishedSession.durationSeconds)}
+                {formatDuration(summary.durationSeconds)}
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.muted }]}>TIME</Text>
             </View>
@@ -213,7 +331,7 @@ export const WorkoutCompleteModal = () => {
                   { color: theme.colors.primary, ...theme.typography.display },
                 ]}
               >
-                {totalSets}
+                {summary.setCount}
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.muted }]}>SETS</Text>
             </View>
@@ -232,7 +350,6 @@ export const WorkoutCompleteModal = () => {
             </View>
           </View>
 
-          {/* Fun Fact Section */}
           <View
             style={[
               styles.factContainer,
@@ -241,8 +358,13 @@ export const WorkoutCompleteModal = () => {
           >
             <Text style={[styles.factTitle, { color: theme.colors.primary }]}>💡 FUN FACT</Text>
             <Text style={[styles.factText, { color: theme.colors.text }]}>
-              {getVolumeFunFact(totalVolume)}
+              {workoutFact}
             </Text>
+            {caffeineFact && (
+              <Text style={[styles.factText, styles.factTextSecondary, { color: theme.colors.text }]}>
+                {caffeineFact}
+              </Text>
+            )}
           </View>
 
           <Pressable
@@ -274,6 +396,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
+  },
+  confettiParticle: {
+    position: 'absolute',
   },
   card: {
     borderWidth: 1,
@@ -338,6 +463,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope_500Medium',
     fontSize: 13,
     lineHeight: 18,
+  },
+  factTextSecondary: {
+    marginTop: 10,
   },
   button: {
     height: 52,

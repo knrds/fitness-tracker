@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useRouter, Href } from 'expo-router';
 import { useTheme, Input, Button } from '@fitness-tracker/ui';
-import { supabase } from '../../src/utils/supabase';
+import { useAuthStore } from '../../src/stores/authStore';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -18,39 +18,34 @@ export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { signUp, isLoading } = useAuthStore();
 
   const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
       return Alert.alert('Error', 'Please fill in all fields.');
     }
 
-    setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
+      const result = await signUp({
         email: email.trim(),
         password,
-        options: {
-          data: {
-            display_name: name.trim(),
-          },
-        },
+        displayName: name.trim(),
       });
 
-      if (error) {
-        Alert.alert('Sign Up Failed', error.message);
-      } else {
+      if (result.error) {
+        Alert.alert('Sign Up Failed', result.error);
+      } else if (result.needsEmailVerification) {
         Alert.alert(
           'Success',
           'Registration successful! Please check your email for a verification link.',
           [{ text: 'OK', onPress: () => router.push('/auth/login' as Href) }],
         );
+      } else {
+        router.replace('/' as Href);
       }
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'An unexpected error occurred.';
       Alert.alert('Error', errMsg);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -94,7 +89,7 @@ export default function RegisterScreen() {
           <Button
             title="SIGN UP"
             variant="primary"
-            isLoading={loading}
+            isLoading={isLoading}
             onPress={handleRegister}
             style={styles.button}
           />

@@ -1,7 +1,13 @@
 import { useAchievementStore } from '../achievementStore';
 import { useHistoryStore } from '../historyStore';
 import { useExerciseStore } from '../exerciseStore';
-import { WorkoutSession, MuscleGroup, Equipment, MovementPattern } from '@fitness-tracker/domain';
+import {
+  ACHIEVEMENTS,
+  WorkoutSession,
+  MuscleGroup,
+  Equipment,
+  MovementPattern,
+} from '@fitness-tracker/domain';
 
 jest.mock('react-native-mmkv', () => ({
   MMKV: jest.fn().mockImplementation(() => ({
@@ -10,6 +16,34 @@ jest.mock('react-native-mmkv', () => ({
     delete: jest.fn(),
   })),
 }));
+
+const createBenchSession = (id: string, completedAt: Date): WorkoutSession => ({
+  id,
+  userId: 'user-1',
+  name: 'Bench Practice',
+  startedAt: completedAt,
+  completedAt,
+  durationSeconds: 1800,
+  createdAt: completedAt,
+  updatedAt: completedAt,
+  exercises: [
+    {
+      id: `${id}-exercise`,
+      exerciseId: 'ex-bench',
+      order: 0,
+      sets: [
+        {
+          id: `${id}-set`,
+          setNumber: 1,
+          type: 'working',
+          completed: true,
+          weight: 100,
+          reps: 5,
+        },
+      ],
+    },
+  ],
+});
 
 describe('achievementStore', () => {
   beforeEach(() => {
@@ -151,5 +185,35 @@ describe('achievementStore', () => {
     // Level = Math.floor(785 / 500) + 1 = 2
     expect(state.level).toBe(2);
     expect(state.levelUpTo).toBe(2);
+  });
+
+  it('unlocks exercise-specific niche achievements from cumulative history', () => {
+    const sessions = Array.from({ length: 10 }, (_, index) =>
+      createBenchSession(`bench-session-${index}`, new Date(2026, 5, index + 1, 18)),
+    );
+
+    sessions.forEach((session) => useHistoryStore.getState().addSession(session));
+    useAchievementStore.getState().awardXpAndCheckAchievements(sessions[9]!);
+
+    const state = useAchievementStore.getState();
+
+    expect(state.unlockedAchievements['bench_specialist']).toBeDefined();
+    expect(state.unlockedAchievements['powerlifting_apprentice']).toBeDefined();
+    expect(state.unlockedAchievements['bench_technician']).toBeUndefined();
+  });
+
+  it('unlocks meta achievements based on other non-meta achievements', () => {
+    const unlockedAchievements = Object.fromEntries(
+      ACHIEVEMENTS.filter((achievement) => achievement.category !== 'meta' && !achievement.repeatable)
+        .slice(0, 5)
+        .map((achievement) => [achievement.id, new Date('2026-06-01').toISOString()]),
+    );
+    const session = createBenchSession('meta-session', new Date('2026-06-09T18:00:00'));
+
+    useAchievementStore.setState({ unlockedAchievements });
+    useHistoryStore.getState().addSession(session);
+    useAchievementStore.getState().awardXpAndCheckAchievements(session);
+
+    expect(useAchievementStore.getState().unlockedAchievements['meta_ach_5']).toBeDefined();
   });
 });

@@ -13,6 +13,10 @@ jest.mock('expo-av', () => ({
   },
 }));
 
+jest.mock('@expo/vector-icons', () => ({
+  Ionicons: () => null,
+}));
+
 describe('RestTimer', () => {
   beforeEach(() => {
     useWorkoutStore.getState().resetWorkout();
@@ -34,7 +38,8 @@ describe('RestTimer', () => {
   it('allows custom time entry via TextInput when clicked', () => {
     const { getByText, getByDisplayValue } = render(<RestTimer />);
 
-    // Tap on the time text to enter edit mode
+    // First tap expands the collapsed timer, second tap enters edit mode.
+    fireEvent.press(getByText('1:30'));
     fireEvent.press(getByText('1:30'));
 
     // The input should be visible with current value
@@ -54,6 +59,7 @@ describe('RestTimer', () => {
     const { getByText, getByDisplayValue } = render(<RestTimer />);
 
     fireEvent.press(getByText('1:30'));
+    fireEvent.press(getByText('1:30'));
     const input = getByDisplayValue('1:30');
 
     fireEvent.changeText(input, '45');
@@ -66,6 +72,7 @@ describe('RestTimer', () => {
   it('guards against invalid time input', () => {
     const { getByText, getByDisplayValue } = render(<RestTimer />);
 
+    fireEvent.press(getByText('1:30'));
     fireEvent.press(getByText('1:30'));
     const input = getByDisplayValue('1:30');
 

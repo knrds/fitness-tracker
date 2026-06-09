@@ -1,23 +1,99 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ACHIEVEMENTS } from '@fitness-tracker/domain';
 import { useTheme } from '@fitness-tracker/ui';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withDelay,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 import { useAchievementStore } from '../../stores/achievementStore';
 
 const GOLD = '#FFB020';
+
+const ConfettiParticle = ({ index }: { index: number }) => {
+  const startX = Math.random() * 320 - 160;
+  const endX = startX + (Math.random() * 120 - 60);
+  const startY = -60;
+  const endY = 460 + Math.random() * 240;
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = withDelay(
+      Math.random() * 800,
+      withTiming(1, {
+        duration: 2500 + Math.random() * 1200,
+        easing: Easing.out(Easing.quad),
+      }),
+    );
+  }, [progress]);
+
+  const animStyle = useAnimatedStyle(() => {
+    const x = startX + (endX - startX) * progress.value;
+    const y = startY + (endY - startY) * progress.value;
+    const rotate = `${progress.value * 360 * (index % 2 === 0 ? 1 : -1)}deg`;
+    const scale = 0.6 + (1 - progress.value) * 0.7;
+    const opacity = 1 - progress.value;
+
+    return {
+      position: 'absolute',
+      transform: [{ translateX: x }, { translateY: y }, { rotate }, { scale }],
+      opacity,
+    };
+  });
+
+  const colors = ['#90D5FF', '#FFB020', '#C6FF00', '#FF3366', '#3b82f6', '#22c55e'];
+  const color = colors[index % colors.length];
+
+  return (
+    <Animated.View
+      style={[
+        animStyle,
+        {
+          width: index % 3 === 0 ? 8 : 12,
+          height: index % 3 === 0 ? 12 : 8,
+          backgroundColor: color,
+          borderRadius: index % 2 === 0 ? 0 : 4,
+        },
+      ]}
+    />
+  );
+};
+
+const ConfettiRain = () => {
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {Array.from({ length: 45 }).map((_, idx) => (
+        <ConfettiParticle key={idx} index={idx} />
+      ))}
+    </View>
+  );
+};
 
 export const AchievementCelebration = () => {
   const { newlyUnlocked, levelUpTo, clearCelebrations } = useAchievementStore();
   const theme = useTheme();
 
   const isVisible = newlyUnlocked.length > 0 || levelUpTo !== null;
+
+  useEffect(() => {
+    if (isVisible) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    }
+  }, [isVisible]);
+
   if (!isVisible) return null;
 
   return (
     <Modal visible={isVisible} animationType="fade" transparent onRequestClose={clearCelebrations}>
       <Pressable style={styles.overlay} onPress={clearCelebrations}>
+        {/* Render interactive confetti overlay */}
+        <ConfettiRain />
         <Pressable
           style={[
             styles.card,

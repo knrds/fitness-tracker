@@ -11,16 +11,16 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0B0B0F"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fitnessracker.app"
+      "bundleIdentifier": "com.fitnesstracker.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0B0B0F"
       },
       "package": "com.fitnesstracker.app"
     },

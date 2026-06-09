@@ -13,8 +13,28 @@ import {
 import * as Crypto from 'expo-crypto';
 import { z } from 'zod';
 
-import { LOCAL_USER_ID } from './local-user';
+import { getCurrentUserId, LOCAL_USER_ID } from './local-user';
 import { createHydratedStorage } from './storage';
+
+const DEFAULT_TEMPLATE_IDS = {
+  gk: '10000000-0000-4000-8000-000000000001',
+  ok: '10000000-0000-4000-8000-000000000002',
+  uk: '10000000-0000-4000-8000-000000000003',
+  push: '10000000-0000-4000-8000-000000000004',
+  pull: '10000000-0000-4000-8000-000000000005',
+  legs: '10000000-0000-4000-8000-000000000006',
+} as const;
+
+const DEFAULT_PROGRAM_IDS = {
+  gk: '20000000-0000-4000-8000-000000000001',
+  ppl: '20000000-0000-4000-8000-000000000002',
+  okuk: '20000000-0000-4000-8000-000000000003',
+} as const;
+
+function makeDefaultProgramWorkoutId(family: number, week: number, day: number, order = 0): string {
+  const suffix = `${family}${String(week).padStart(2, '0')}${String(day).padStart(2, '0')}${String(order).padStart(7, '0')}`;
+  return `30000000-0000-4000-8000-${suffix}`;
+}
 
 function getExerciseIdByName(name: string): string {
   const ex = EXERCISES.find((e) => e.name.toLowerCase() === name.toLowerCase());
@@ -44,7 +64,7 @@ export function getDefaultTemplates(): WorkoutTemplate[] {
 
   return [
     {
-      id: 'template-gk-gk-gk-gk-gk-gk-gk-gk-gk-gk',
+      id: DEFAULT_TEMPLATE_IDS.gk,
       userId: LOCAL_USER_ID,
       name: 'Ganzkörper (GK)',
       isArchived: false,
@@ -61,7 +81,7 @@ export function getDefaultTemplates(): WorkoutTemplate[] {
       ].filter((e) => e.exerciseId !== ''),
     },
     {
-      id: 'template-ok-ok-ok-ok-ok-ok-ok-ok-ok-ok',
+      id: DEFAULT_TEMPLATE_IDS.ok,
       userId: LOCAL_USER_ID,
       name: 'Oberkörper (OK)',
       isArchived: false,
@@ -78,7 +98,7 @@ export function getDefaultTemplates(): WorkoutTemplate[] {
       ].filter((e) => e.exerciseId !== ''),
     },
     {
-      id: 'template-uk-uk-uk-uk-uk-uk-uk-uk-uk-uk',
+      id: DEFAULT_TEMPLATE_IDS.uk,
       userId: LOCAL_USER_ID,
       name: 'Unterkörper (UK)',
       isArchived: false,
@@ -94,7 +114,7 @@ export function getDefaultTemplates(): WorkoutTemplate[] {
       ].filter((e) => e.exerciseId !== ''),
     },
     {
-      id: 'template-push-push-push-push-push-push',
+      id: DEFAULT_TEMPLATE_IDS.push,
       userId: LOCAL_USER_ID,
       name: 'Push',
       isArchived: false,
@@ -109,7 +129,7 @@ export function getDefaultTemplates(): WorkoutTemplate[] {
       ].filter((e) => e.exerciseId !== ''),
     },
     {
-      id: 'template-pull-pull-pull-pull-pull-pull',
+      id: DEFAULT_TEMPLATE_IDS.pull,
       userId: LOCAL_USER_ID,
       name: 'Pull',
       isArchived: false,
@@ -125,7 +145,7 @@ export function getDefaultTemplates(): WorkoutTemplate[] {
       ].filter((e) => e.exerciseId !== ''),
     },
     {
-      id: 'template-legs-legs-legs-legs-legs-legs',
+      id: DEFAULT_TEMPLATE_IDS.legs,
       userId: LOCAL_USER_ID,
       name: 'Legs',
       isArchived: false,
@@ -154,22 +174,22 @@ export function getDefaultPrograms(): Program[] {
     // GK (Mon, Wed, Fri)
     gkWorkouts.push(
       {
-        id: `gk-w${w}-d1`,
-        templateId: 'template-gk-gk-gk-gk-gk-gk-gk-gk-gk-gk',
+        id: makeDefaultProgramWorkoutId(1, w, 1),
+        templateId: DEFAULT_TEMPLATE_IDS.gk,
         week: w,
         dayOfWeek: 1,
         order: 0,
       },
       {
-        id: `gk-w${w}-d3`,
-        templateId: 'template-gk-gk-gk-gk-gk-gk-gk-gk-gk-gk',
+        id: makeDefaultProgramWorkoutId(1, w, 3),
+        templateId: DEFAULT_TEMPLATE_IDS.gk,
         week: w,
         dayOfWeek: 3,
         order: 0,
       },
       {
-        id: `gk-w${w}-d5`,
-        templateId: 'template-gk-gk-gk-gk-gk-gk-gk-gk-gk-gk',
+        id: makeDefaultProgramWorkoutId(1, w, 5),
+        templateId: DEFAULT_TEMPLATE_IDS.gk,
         week: w,
         dayOfWeek: 5,
         order: 0,
@@ -179,22 +199,22 @@ export function getDefaultPrograms(): Program[] {
     // PPL (Mon, Wed, Fri)
     pplWorkouts.push(
       {
-        id: `ppl-w${w}-d1`,
-        templateId: 'template-push-push-push-push-push-push',
+        id: makeDefaultProgramWorkoutId(2, w, 1),
+        templateId: DEFAULT_TEMPLATE_IDS.push,
         week: w,
         dayOfWeek: 1,
         order: 0,
       },
       {
-        id: `ppl-w${w}-d3`,
-        templateId: 'template-pull-pull-pull-pull-pull-pull',
+        id: makeDefaultProgramWorkoutId(2, w, 3),
+        templateId: DEFAULT_TEMPLATE_IDS.pull,
         week: w,
         dayOfWeek: 3,
         order: 0,
       },
       {
-        id: `ppl-w${w}-d5`,
-        templateId: 'template-legs-legs-legs-legs-legs-legs',
+        id: makeDefaultProgramWorkoutId(2, w, 5),
+        templateId: DEFAULT_TEMPLATE_IDS.legs,
         week: w,
         dayOfWeek: 5,
         order: 0,
@@ -204,29 +224,29 @@ export function getDefaultPrograms(): Program[] {
     // OK/UK (Mon, Tue, Thu, Fri)
     okukWorkouts.push(
       {
-        id: `okuk-w${w}-d1`,
-        templateId: 'template-ok-ok-ok-ok-ok-ok-ok-ok-ok-ok',
+        id: makeDefaultProgramWorkoutId(3, w, 1),
+        templateId: DEFAULT_TEMPLATE_IDS.ok,
         week: w,
         dayOfWeek: 1,
         order: 0,
       },
       {
-        id: `okuk-w${w}-d2`,
-        templateId: 'template-uk-uk-uk-uk-uk-uk-uk-uk-uk-uk',
+        id: makeDefaultProgramWorkoutId(3, w, 2),
+        templateId: DEFAULT_TEMPLATE_IDS.uk,
         week: w,
         dayOfWeek: 2,
         order: 0,
       },
       {
-        id: `okuk-w${w}-d4`,
-        templateId: 'template-ok-ok-ok-ok-ok-ok-ok-ok-ok-ok',
+        id: makeDefaultProgramWorkoutId(3, w, 4),
+        templateId: DEFAULT_TEMPLATE_IDS.ok,
         week: w,
         dayOfWeek: 4,
         order: 0,
       },
       {
-        id: `okuk-w${w}-d5`,
-        templateId: 'template-uk-uk-uk-uk-uk-uk-uk-uk-uk-uk',
+        id: makeDefaultProgramWorkoutId(3, w, 5),
+        templateId: DEFAULT_TEMPLATE_IDS.uk,
         week: w,
         dayOfWeek: 5,
         order: 0,
@@ -236,7 +256,7 @@ export function getDefaultPrograms(): Program[] {
 
   return [
     {
-      id: 'program-gk-gk-gk-gk-gk-gk-gk-gk-gk-gk',
+      id: DEFAULT_PROGRAM_IDS.gk,
       userId: LOCAL_USER_ID,
       name: 'Ganzkörper Routine (3x/Woche)',
       description:
@@ -248,7 +268,7 @@ export function getDefaultPrograms(): Program[] {
       updatedAt: now,
     },
     {
-      id: 'program-ppl-ppl-ppl-ppl-ppl-ppl-ppl-ppl',
+      id: DEFAULT_PROGRAM_IDS.ppl,
       userId: LOCAL_USER_ID,
       name: 'Push / Pull / Legs Split',
       description:
@@ -260,7 +280,7 @@ export function getDefaultPrograms(): Program[] {
       updatedAt: now,
     },
     {
-      id: 'program-okuk-okuk-okuk-okuk-okuk-okuk-ok',
+      id: DEFAULT_PROGRAM_IDS.okuk,
       userId: LOCAL_USER_ID,
       name: 'Oberkörper / Unterkörper Split (4x/Woche)',
       description:
@@ -314,7 +334,7 @@ export const useProgramStore = create<ProgramState>()(
           const newProgram = {
             ...programPartial,
             id: programPartial.id || Crypto.randomUUID(),
-            userId: LOCAL_USER_ID, // MVP scope
+            userId: getCurrentUserId(),
             name: programPartial.name || 'New Program',
             durationWeeks: programPartial.durationWeeks || 4,
             workouts: programPartial.workouts || [],
@@ -361,7 +381,7 @@ export const useProgramStore = create<ProgramState>()(
           const newTemplate = {
             ...templatePartial,
             id: templatePartial.id || Crypto.randomUUID(),
-            userId: LOCAL_USER_ID,
+            userId: getCurrentUserId(),
             name: templatePartial.name || 'New Template',
             exercises: templatePartial.exercises || [],
             isArchived: templatePartial.isArchived ?? false,

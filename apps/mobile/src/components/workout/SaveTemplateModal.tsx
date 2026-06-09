@@ -8,9 +8,19 @@ interface Props {
   onClose: () => void;
   onSave: (name: string) => void;
   onSkip: () => void;
+  templateId?: string | undefined;
+  onUpdate?: () => void;
 }
 
-export const SaveTemplateModal = ({ visible, defaultName, onClose, onSave, onSkip }: Props) => {
+export const SaveTemplateModal = ({
+  visible,
+  defaultName,
+  onClose,
+  onSave,
+  onSkip,
+  templateId,
+  onUpdate,
+}: Props) => {
   const theme = useTheme();
   const [name, setName] = useState(defaultName);
 
@@ -50,13 +60,51 @@ export const SaveTemplateModal = ({ visible, defaultName, onClose, onSave, onSki
           onPress={(e) => e.stopPropagation()}
         >
           <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
-            Save as Template?
+            {templateId ? 'Template aktualisieren?' : 'Als Template speichern?'}
           </Text>
           <Text style={[styles.subtitle, { color: theme.colors.muted }]}>
-            Save this workout&apos;s exercises and sets to perform it again later.
+            {templateId
+              ? 'Du hast das Training angepasst. Möchtest du das bestehende Template überschreiben oder ein neues erstellen?'
+              : 'Speichere dieses Training als Template ab, um es später einfach wiederholen zu können.'}
           </Text>
 
-          <Text style={[styles.label, { color: theme.colors.muted }]}>Template Name</Text>
+          {templateId && onUpdate && (
+            <Pressable
+              style={[
+                styles.btn,
+                {
+                  backgroundColor: theme.colors.primary,
+                  borderRadius: theme.radius.md,
+                  marginBottom: 20,
+                  height: 52,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                },
+              ]}
+              onPress={onUpdate}
+            >
+              <Text
+                style={[
+                  styles.btnText,
+                  {
+                    color: theme.colors.background,
+                    ...theme.typography.button,
+                    fontWeight: 'bold',
+                  },
+                ]}
+              >
+                Bestehendes Template aktualisieren
+              </Text>
+            </Pressable>
+          )}
+
+          {templateId && (
+            <View style={{ height: 1, backgroundColor: theme.colors.border, marginBottom: 20 }} />
+          )}
+
+          <Text style={[styles.label, { color: theme.colors.muted }]}>
+            {templateId ? 'Oder als neues speichern unter:' : 'Template-Name'}
+          </Text>
           <TextInput
             style={[
               styles.input,
@@ -68,9 +116,9 @@ export const SaveTemplateModal = ({ visible, defaultName, onClose, onSave, onSki
             ]}
             value={name}
             onChangeText={setName}
-            placeholder="e.g. Leg Day"
+            placeholder="z.B. Push Workout"
             placeholderTextColor={theme.colors.muted}
-            autoFocus
+            autoFocus={!templateId}
           />
 
           <View style={styles.actions}>
@@ -84,23 +132,31 @@ export const SaveTemplateModal = ({ visible, defaultName, onClose, onSave, onSki
               <Text
                 style={[styles.btnText, { color: theme.colors.muted, ...theme.typography.button }]}
               >
-                Skip
+                Nicht speichern
               </Text>
             </Pressable>
             <Pressable
               style={[
                 styles.btn,
-                { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md },
+                {
+                  backgroundColor: templateId ? 'transparent' : theme.colors.primary,
+                  borderColor: templateId ? theme.colors.primary : 'transparent',
+                  borderWidth: templateId ? 1 : 0,
+                  borderRadius: theme.radius.md,
+                },
               ]}
               onPress={handleSave}
             >
               <Text
                 style={[
                   styles.btnText,
-                  { color: theme.colors.background, ...theme.typography.button },
+                  {
+                    color: templateId ? theme.colors.primary : theme.colors.background,
+                    ...theme.typography.button,
+                  },
                 ]}
               >
-                Save
+                {templateId ? 'Als neues speichern' : 'Speichern'}
               </Text>
             </Pressable>
           </View>

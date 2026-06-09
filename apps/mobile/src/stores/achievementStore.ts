@@ -3,7 +3,9 @@ import { persist } from 'zustand/middleware';
 import {
   WorkoutSession,
   ACHIEVEMENTS,
+  Equipment,
   MuscleGroup,
+  MovementPattern,
   calculateVolume,
   detectPRs,
 } from '@fitness-tracker/domain';
@@ -105,6 +107,149 @@ export const useAchievementStore = create<AchievementState>()(
           });
         });
 
+        const earlyWorkoutCount = historyStore.sessions.filter((s) => {
+          if (!s.completedAt) return false;
+          return new Date(s.completedAt).getHours() < 8;
+        }).length;
+        const lateWorkoutCount = historyStore.sessions.filter((s) => {
+          if (!s.completedAt) return false;
+          return new Date(s.completedAt).getHours() >= 21;
+        }).length;
+        const weekendWorkoutCount = historyStore.sessions.filter((s) => {
+          if (!s.completedAt) return false;
+          const day = new Date(s.completedAt).getDay();
+          return day === 0 || day === 6;
+        }).length;
+        const notedWorkoutCount = historyStore.sessions.filter((s) => {
+          const hasSessionNote = typeof s.notes === 'string' && s.notes.trim().length > 0;
+          const hasExerciseNote = s.exercises.some(
+            (ex) => typeof ex.notes === 'string' && ex.notes.trim().length > 0,
+          );
+          return hasSessionNote || hasExerciseNote;
+        }).length;
+        const supersetWorkoutCount = historyStore.sessions.filter((s) =>
+          s.exercises.some(
+            (ex) => typeof ex.supersetGroup === 'string' && ex.supersetGroup.trim().length > 0,
+          ),
+        ).length;
+        const warmupWorkoutCount = historyStore.sessions.filter((s) =>
+          s.exercises.some((ex) => ex.sets.some((set) => set.completed && set.type === 'warmup')),
+        ).length;
+        const cardioWorkoutCount = historyStore.sessions.filter((s) =>
+          s.exercises.some((ex) => {
+            const def = exerciseStore.exercises.find((e) => e.id === ex.exerciseId);
+            const isCardio =
+              def && (def.movementPattern === 'cardio' || def.equipment === 'cardio_machine');
+            return isCardio && ex.sets.some((set) => set.completed);
+          }),
+        ).length;
+        const exerciseWorkoutCount = (predicate: (name: string) => boolean) =>
+          historyStore.sessions.filter((s) =>
+            s.exercises.some((ex) => {
+              const def = exerciseStore.exercises.find((e) => e.id === ex.exerciseId);
+              return Boolean(
+                def &&
+                  predicate(def.name.toLowerCase()) &&
+                  ex.sets.some((set) => set.completed),
+              );
+            }),
+          ).length;
+        const muscleWorkoutCount = (muscles: MuscleGroup[]) =>
+          historyStore.sessions.filter((s) =>
+            s.exercises.some((ex) => {
+              const def = exerciseStore.exercises.find((e) => e.id === ex.exerciseId);
+              if (!def) return false;
+              const trained = [...def.primaryMuscles, ...def.secondaryMuscles].some((muscle) =>
+                muscles.includes(muscle),
+              );
+              return trained && ex.sets.some((set) => set.completed);
+            }),
+          ).length;
+        const equipmentWorkoutCount = (equipment: Equipment[]) =>
+          historyStore.sessions.filter((s) =>
+            s.exercises.some((ex) => {
+              const def = exerciseStore.exercises.find((e) => e.id === ex.exerciseId);
+              return Boolean(
+                def && equipment.includes(def.equipment) && ex.sets.some((set) => set.completed),
+              );
+            }),
+          ).length;
+        const movementWorkoutCount = (patterns: MovementPattern[]) =>
+          historyStore.sessions.filter((s) =>
+            s.exercises.some((ex) => {
+              const def = exerciseStore.exercises.find((e) => e.id === ex.exerciseId);
+              return Boolean(
+                def &&
+                  patterns.includes(def.movementPattern) &&
+                  ex.sets.some((set) => set.completed),
+              );
+            }),
+          ).length;
+        const benchWorkoutCount = exerciseWorkoutCount((name) => name.includes('bench press'));
+        const squatWorkoutCount = exerciseWorkoutCount((name) => name.includes('squat'));
+        const deadliftWorkoutCount = exerciseWorkoutCount((name) => name.includes('deadlift'));
+        const pullupWorkoutCount = exerciseWorkoutCount(
+          (name) => name.includes('pullup') || name.includes('pull-up') || name.includes('chin'),
+        );
+        const dipWorkoutCount = exerciseWorkoutCount((name) => name.includes('dip'));
+        const rowWorkoutCount = exerciseWorkoutCount((name) => name.includes('row'));
+        const curlWorkoutCount = exerciseWorkoutCount((name) => name.includes('curl'));
+        const overheadPressWorkoutCount = exerciseWorkoutCount(
+          (name) => name.includes('shoulder press') || name.includes('overhead press'),
+        );
+        const coreWorkoutCount = muscleWorkoutCount([MuscleGroup.Abs, MuscleGroup.Obliques]);
+        const shoulderWorkoutCount = muscleWorkoutCount([
+          MuscleGroup.FrontDelts,
+          MuscleGroup.SideDelts,
+          MuscleGroup.RearDelts,
+        ]);
+        const backWorkoutCount = muscleWorkoutCount([
+          MuscleGroup.UpperBack,
+          MuscleGroup.Lats,
+          MuscleGroup.LowerBack,
+          MuscleGroup.Traps,
+        ]);
+        const armWorkoutCount = muscleWorkoutCount([
+          MuscleGroup.Biceps,
+          MuscleGroup.Triceps,
+          MuscleGroup.Forearms,
+        ]);
+        const legWorkoutCount = muscleWorkoutCount([
+          MuscleGroup.Quads,
+          MuscleGroup.Hamstrings,
+          MuscleGroup.Glutes,
+          MuscleGroup.Calves,
+        ]);
+        const posteriorChainWorkoutCount = muscleWorkoutCount([
+          MuscleGroup.Hamstrings,
+          MuscleGroup.Glutes,
+          MuscleGroup.LowerBack,
+        ]);
+        const calfWorkoutCount = muscleWorkoutCount([MuscleGroup.Calves]);
+        const horizontalPushWorkoutCount = movementWorkoutCount([MovementPattern.HorizontalPush]);
+        const rotationWorkoutCount = movementWorkoutCount([MovementPattern.Rotation]);
+        const dumbbellWorkoutCount = equipmentWorkoutCount([Equipment.Dumbbell]);
+        const cableWorkoutCount = equipmentWorkoutCount([Equipment.Cable]);
+        const machineWorkoutCount = equipmentWorkoutCount([
+          Equipment.Machine,
+          Equipment.SmithMachine,
+        ]);
+        const calisthenicsWorkoutCount = equipmentWorkoutCount([
+          Equipment.Bodyweight,
+          Equipment.Trx,
+        ]);
+        const powerliftingWorkoutCount = historyStore.sessions.filter((s) =>
+          s.exercises.some((ex) => {
+            const def = exerciseStore.exercises.find((e) => e.id === ex.exerciseId);
+            if (!def || !ex.sets.some((set) => set.completed)) return false;
+            const name = def.name.toLowerCase();
+            return (
+              [Equipment.Barbell, Equipment.SmithMachine].includes(def.equipment) &&
+              (name.includes('squat') || name.includes('bench press') || name.includes('deadlift'))
+            );
+          }),
+        ).length;
+
         const cumulativeMetric = (category: string, achId: string): number => {
           switch (category) {
             case 'workouts':
@@ -120,71 +265,95 @@ export const useAchievementStore = create<AchievementState>()(
             case 'muscles':
               return trainedMuscles.size;
             case 'time': {
-              if (achId === 'early_bird') {
-                return historyStore.sessions.some((s) => {
-                  if (!s.completedAt) return false;
-                  const date = new Date(s.completedAt);
-                  return date.getHours() < 8;
-                })
-                  ? 1
-                  : 0;
+              if (achId === 'early_bird' || achId === 'early_bird_5') {
+                return earlyWorkoutCount;
               }
-              if (achId === 'night_owl') {
-                return historyStore.sessions.some((s) => {
-                  if (!s.completedAt) return false;
-                  const date = new Date(s.completedAt);
-                  return date.getHours() >= 21;
-                })
-                  ? 1
-                  : 0;
+              if (achId === 'night_owl' || achId === 'night_owl_5') {
+                return lateWorkoutCount;
               }
-              if (achId === 'weekend_warrior') {
-                return historyStore.sessions.some((s) => {
-                  if (!s.completedAt) return false;
-                  const date = new Date(s.completedAt);
-                  const day = date.getDay(); // 0 = Sunday, 6 = Saturday
-                  return day === 0 || day === 6;
-                })
-                  ? 1
-                  : 0;
+              if (achId === 'weekend_warrior' || achId === 'weekend_warrior_5') {
+                return weekendWorkoutCount;
               }
               return 0;
             }
             case 'niche': {
-              if (achId === 'mind_over_matter') {
-                return historyStore.sessions.filter((s) => {
-                  const hasSessionNote = typeof s.notes === 'string' && s.notes.trim().length > 0;
-                  const hasExNote = s.exercises.some(
-                    (ex) => typeof ex.notes === 'string' && ex.notes.trim().length > 0,
-                  );
-                  return hasSessionNote || hasExNote;
-                }).length;
+              if (achId === 'mind_over_matter' || achId === 'note_archivist') {
+                return notedWorkoutCount;
               }
-              if (achId === 'superset_enthusiast') {
-                return historyStore.sessions.filter((s) =>
-                  s.exercises.some(
-                    (ex) =>
-                      typeof ex.supersetGroup === 'string' && ex.supersetGroup.trim().length > 0,
-                  ),
-                ).length;
+              if (achId === 'superset_enthusiast' || achId === 'superset_scientist') {
+                return supersetWorkoutCount;
               }
-              if (achId === 'warmup_champion') {
-                return historyStore.sessions.filter((s) =>
-                  s.exercises.some((ex) =>
-                    ex.sets.some((set) => set.completed && set.type === 'warmup'),
-                  ),
-                ).length;
+              if (achId === 'warmup_champion' || achId === 'warmup_ritualist') {
+                return warmupWorkoutCount;
               }
-              if (achId === 'cardio_lover') {
-                return historyStore.sessions.filter((s) =>
-                  s.exercises.some((ex) => {
-                    const def = exerciseStore.exercises.find((e) => e.id === ex.exerciseId);
-                    const isCardio =
-                      def &&
-                      (def.movementPattern === 'cardio' || def.equipment === 'cardio_machine');
-                    return isCardio && ex.sets.some((set) => set.completed);
-                  }),
-                ).length;
+              if (achId === 'cardio_lover' || achId === 'zone_two_scout') {
+                return cardioWorkoutCount;
+              }
+              if (['bench_specialist', 'bench_technician'].includes(achId)) {
+                return benchWorkoutCount;
+              }
+              if (['squat_specialist', 'squat_cartographer'].includes(achId)) {
+                return squatWorkoutCount;
+              }
+              if (['deadlift_specialist', 'hinge_archivist'].includes(achId)) {
+                return deadliftWorkoutCount;
+              }
+              if (['pullup_pioneer', 'vertical_pull_veteran'].includes(achId)) {
+                return pullupWorkoutCount;
+              }
+              if (achId === 'dip_diplomat') {
+                return dipWorkoutCount;
+              }
+              if (achId === 'row_scholar') {
+                return rowWorkoutCount;
+              }
+              if (achId === 'curl_accountant') {
+                return curlWorkoutCount;
+              }
+              if (achId === 'press_overhead_club') {
+                return overheadPressWorkoutCount;
+              }
+              if (achId === 'shoulder_cartographer') {
+                return shoulderWorkoutCount;
+              }
+              if (achId === 'back_day_cartographer') {
+                return backWorkoutCount;
+              }
+              if (achId === 'arm_day_accountant') {
+                return armWorkoutCount;
+              }
+              if (achId === 'calf_raises_club') {
+                return calfWorkoutCount;
+              }
+              if (['core_cartographer', 'oblique_operator'].includes(achId)) {
+                return coreWorkoutCount;
+              }
+              if (achId === 'leg_day_loyalist') {
+                return legWorkoutCount;
+              }
+              if (achId === 'posterior_chain_club') {
+                return posteriorChainWorkoutCount;
+              }
+              if (achId === 'horizontal_push_historian') {
+                return horizontalPushWorkoutCount;
+              }
+              if (achId === 'rotation_scholar') {
+                return rotationWorkoutCount;
+              }
+              if (achId === 'dumbbell_native') {
+                return dumbbellWorkoutCount;
+              }
+              if (achId === 'cable_cartographer') {
+                return cableWorkoutCount;
+              }
+              if (achId === 'machine_room_regular') {
+                return machineWorkoutCount;
+              }
+              if (['calisthenics_cadet', 'bodyweight_bard'].includes(achId)) {
+                return calisthenicsWorkoutCount;
+              }
+              if (['powerlifting_apprentice', 'big_three_regular'].includes(achId)) {
+                return powerliftingWorkoutCount;
               }
               return 0;
             }
@@ -201,7 +370,7 @@ export const useAchievementStore = create<AchievementState>()(
           }
         };
 
-        const sessionMetric = (category: string): number => {
+        const sessionMetric = (category: string, achId: string): number => {
           switch (category) {
             case 'workouts':
               return 1;
@@ -210,6 +379,9 @@ export const useAchievementStore = create<AchievementState>()(
             case 'pr':
               return sessionPrCount;
             case 'session':
+              if (achId === 'rep_session_sets_50') {
+                return sessionSetCount;
+              }
               return sessionSetCount;
             default:
               return 0;
@@ -219,7 +391,7 @@ export const useAchievementStore = create<AchievementState>()(
         // --- Evaluate achievements (Two-pass to check meta achievements in the same workout) ---
         ACHIEVEMENTS.filter((ach) => ach.category !== 'meta').forEach((ach) => {
           if (ach.repeatable) {
-            if (sessionMetric(ach.category) >= ach.targetValue) {
+            if (sessionMetric(ach.category, ach.id) >= ach.targetValue) {
               repeatCounts[ach.id] = (repeatCounts[ach.id] || 0) + 1;
               tempXp += ach.xpReward;
             }

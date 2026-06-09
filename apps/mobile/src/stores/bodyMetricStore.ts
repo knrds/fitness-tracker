@@ -4,7 +4,7 @@ import { BodyMetric, UUID, BodyMetricSchema } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
 import { z } from 'zod';
 
-import { LOCAL_USER_ID } from './local-user';
+import { getCurrentUserId } from './local-user';
 import { createHydratedStorage } from './storage';
 
 export interface BodyMetricStore {
@@ -36,7 +36,7 @@ export const useBodyMetricStore = create<BodyMetricStore>()(
           const newMetric: BodyMetric = {
             ...metric,
             id: Crypto.randomUUID(),
-            userId: LOCAL_USER_ID,
+            userId: getCurrentUserId(),
             createdAt: new Date(),
           };
           // Sort descending: newest first

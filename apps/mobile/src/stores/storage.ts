@@ -14,6 +14,16 @@ export function createHydratedStorage<T extends object>(
   schema: z.ZodType<T>,
   defaultPersistedState: T,
 ): PersistStorage<T> {
+  const isServer = typeof globalThis === 'undefined' || !('window' in globalThis);
+
+  if (isServer) {
+    return {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    };
+  }
+
   const storage = new MMKV({ id: storageId });
 
   return {

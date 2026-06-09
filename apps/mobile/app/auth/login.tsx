@@ -10,37 +10,34 @@ import {
 } from 'react-native';
 import { useRouter, Href } from 'expo-router';
 import { useTheme, Input, Button } from '@fitness-tracker/ui';
-import { supabase } from '../../src/utils/supabase';
+import { useAuthStore } from '../../src/stores/authStore';
 
 export default function LoginScreen() {
   const router = useRouter();
   const theme = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { signIn, isLoading } = useAuthStore();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       return Alert.alert('Error', 'Please fill in all fields.');
     }
 
-    setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const result = await signIn({
         email: email.trim(),
         password,
       });
 
-      if (error) {
-        Alert.alert('Login Failed', error.message);
+      if (result.error) {
+        Alert.alert('Login Failed', result.error);
       } else {
         // Auth state listener in _layout.tsx will navigate to (tabs) automatically
       }
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'An unexpected error occurred.';
       Alert.alert('Error', errMsg);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -77,7 +74,7 @@ export default function LoginScreen() {
           <Button
             title="LOG IN"
             variant="primary"
-            isLoading={loading}
+            isLoading={isLoading}
             onPress={handleLogin}
             style={styles.button}
           />

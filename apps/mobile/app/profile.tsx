@@ -9,10 +9,9 @@ import {
   Alert,
   Share,
   Modal,
-  SafeAreaView,
   Image,
-  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -20,11 +19,16 @@ import { useProfileStore } from '../src/stores/profileStore';
 import { useBodyMetricStore } from '../src/stores/bodyMetricStore';
 import { FitnessGoal, ExperienceLevel, UnitSystem, BiologicalSex } from '@fitness-tracker/domain';
 import { useExerciseStore } from '../src/stores/exerciseStore';
+import { useAuthStore } from '../src/stores/authStore';
+import { useCaffeineStore } from '../src/stores/caffeineStore';
 import { ExercisePickerModal } from '../src/components/workout/ExercisePickerModal';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { profile, updateProfile, getStatistics, clearAllData, exportData } = useProfileStore();
+  const { isConfigured: isAuthConfigured, signOut } = useAuthStore();
+  const { isEnabled: caffeineEnabled, setEnabled: setCaffeineEnabled } = useCaffeineStore();
 
   const [name, setName] = useState(profile.displayName);
   const [goal, setGoal] = useState<FitnessGoal | ''>(profile.fitnessGoal || '');
@@ -226,6 +230,13 @@ export default function ProfileScreen() {
     );
   };
 
+  const handleSignOut = async () => {
+    const result = await signOut();
+    if (result.error) {
+      Alert.alert('Sign Out Failed', result.error);
+    }
+  };
+
   const formatGoal = (g: FitnessGoal) => {
     return g
       .split('_')
@@ -264,8 +275,8 @@ export default function ProfileScreen() {
     .slice(0, 2);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
+    <View style={styles.safeArea}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
         <Pressable onPress={() => router.back()} hitSlop={15} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#90D5FF" />
         </Pressable>
@@ -273,7 +284,13 @@ export default function ProfileScreen() {
         <View style={styles.headerRight} />
       </View>
 
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(insets.bottom + 16, 40) },
+        ]}
+      >
         {/* Profile Picture */}
         <View style={styles.avatarSection}>
           <Pressable onPress={handlePickImage} style={styles.avatarContainer}>
@@ -471,6 +488,32 @@ export default function ProfileScreen() {
             </View>
           </Pressable>
 
+          <Pressable
+            style={styles.settingsRow}
+            onPress={() => setCaffeineEnabled(!caffeineEnabled)}
+          >
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="flash-outline" size={22} color="#8A8D9F" />
+              <Text style={styles.settingsLabel}>Caffeine Tracker</Text>
+            </View>
+            <View style={styles.settingsRowRight}>
+              <Text style={styles.settingsValue}>{caffeineEnabled ? 'On' : 'Off'}</Text>
+              <View
+                style={[
+                  styles.togglePill,
+                  caffeineEnabled ? styles.togglePillActive : styles.togglePillInactive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.toggleKnob,
+                    caffeineEnabled ? styles.toggleKnobActive : styles.toggleKnobInactive,
+                  ]}
+                />
+              </View>
+            </View>
+          </Pressable>
+
           <View style={styles.settingsRowVertical}>
             <View style={styles.settingsRowLeft}>
               <Ionicons name="eye-outline" size={22} color="#8A8D9F" />
@@ -573,6 +616,16 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={18} color="#8A8D9F" />
           </Pressable>
 
+          {isAuthConfigured && (
+            <Pressable style={styles.settingsRow} onPress={handleSignOut}>
+              <View style={styles.settingsRowLeft}>
+                <Ionicons name="log-out-outline" size={22} color="#8A8D9F" />
+                <Text style={styles.settingsLabel}>Sign Out</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#8A8D9F" />
+            </Pressable>
+          )}
+
           <Pressable style={[styles.settingsRow, styles.lastRow]} onPress={handleResetData}>
             <View style={styles.settingsRowLeft}>
               <Ionicons name="trash-outline" size={22} color="#ef4444" />
@@ -618,7 +671,7 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -632,7 +685,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 14 : 48,
     paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#2A2B31',
@@ -800,6 +852,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Manrope_500Medium',
     color: '#8A8D9F',
+  },
+  togglePill: {
+    width: 42,
+    height: 24,
+    borderRadius: 12,
+    padding: 3,
+    justifyContent: 'center',
+  },
+  togglePillActive: {
+    backgroundColor: '#90D5FF',
+  },
+  togglePillInactive: {
+    backgroundColor: '#2A2B31',
+  },
+  toggleKnob: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#0B0B0F',
+  },
+  toggleKnobActive: {
+    alignSelf: 'flex-end',
+  },
+  toggleKnobInactive: {
+    alignSelf: 'flex-start',
   },
   dangerText: {
     color: '#ef4444',

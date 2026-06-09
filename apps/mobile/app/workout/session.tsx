@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,18 @@ import {
   TextInput,
   Platform,
   Alert,
+  PanResponder,
+  Animated,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { useProfileStore } from '../../src/stores/profileStore';
 import * as Crypto from 'expo-crypto';
 import { useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { TemplateExercise, SessionExercise } from '@fitness-tracker/domain';
+import { TemplateExercise, SessionExercise, summarizeSessionExercise } from '@fitness-tracker/domain';
 
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { SessionExerciseCard } from '../../src/components/workout/SessionExerciseCard';
@@ -21,6 +27,11 @@ import { RestTimer } from '../../src/components/workout/RestTimer';
 import { ExercisePickerModal } from '../../src/components/workout/ExercisePickerModal';
 import { SaveTemplateModal } from '../../src/components/workout/SaveTemplateModal';
 import { useProgramStore } from '../../src/stores/programStore';
+import {
+  CAFFEINE_PRESETS,
+  getCaffeineWarningLevel,
+  useCaffeineStore,
+} from '../../src/stores/caffeineStore';
 import { useTheme, Button, Card } from '@fitness-tracker/ui';
 
 export default function WorkoutSessionScreen() {
@@ -38,13 +49,174 @@ export default function WorkoutSessionScreen() {
     pausedAt,
     accumulatedPauseMs,
     resetWorkout,
+    reorderExercises,
+    startRestTimer,
+    stopRestTimer,
+    templateId,
   } = useWorkoutStore();
-  const { createTemplate } = useProgramStore();
+  const { createTemplate, updateTemplate } = useProgramStore();
 
   const [pickerVisible, setPickerVisible] = useState(false);
   const [saveModalVisible, setSaveModalVisible] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [customCaffeineMg, setCustomCaffeineMg] = useState('');
+
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const dragY = useRef(new Animated.Value(0)).current;
+  const dragScale = useRef(new Animated.Value(1)).current;
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const draggingExerciseRef = useRef<SessionExercise | null>(null);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
+  const itemLayouts = useRef<Record<string, { y: number; height: number }>>({});
+
+  const [showHUD, setShowHUD] = useState(false);
+  const { restTimer } = useWorkoutStore();
+  const {
+    isEnabled: caffeineEnabled,
+    currentWorkoutMg,
+    addPreset,
+    addCustomAmount,
+    setCurrentWorkoutMg,
+  } = useCaffeineStore();
+  const [restRemaining, setRestRemaining] = useState(0);
+  const [islandExpanded, setIslandExpanded] = useState(false);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    const endsAt = restTimer.endsAt;
+    if (restTimer.isRunning && endsAt) {
+      const update = () => {
+        const endsAtTime = endsAt instanceof Date ? endsAt.getTime() : new Date(endsAt).getTime();
+        const rem = Math.max(0, Math.ceil((endsAtTime - Date.now()) / 1000));
+        setRestRemaining(rem);
+      };
+      update();
+      timer = setInterval(update, 500);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [restTimer.isRunning, restTimer.endsAt]);
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const yOffset = event.nativeEvent.contentOffset.y;
+    setShowHUD(yOffset > 100);
+  };
+
+  const panResponder = useMemo(() => {
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (e, gestureState) => {
+        return Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderGrant: () => {
+        const ex = draggingExerciseRef.current;
+        if (ex) {
+          setActiveDragId(ex.id);
+          setScrollEnabled(false);
+          dragY.setValue(0);
+          dragScale.setValue(1);
+          Animated.spring(dragScale, {
+            toValue: 1.03,
+            useNativeDriver: true,
+            tension: 100,
+            friction: 6,
+          }).start();
+        }
+      },
+      onPanResponderMove: (e, gestureState) => {
+        dragY.setValue(gestureState.dy);
+        const ex = draggingExerciseRef.current;
+        if (ex) {
+          const layout = itemLayouts.current[ex.id];
+          if (layout) {
+            const dropY = layout.y + gestureState.dy;
+            const otherExercises = exercises.filter((item) => item.id !== ex.id);
+            let insertIndex = 0;
+            for (let i = 0; i < otherExercises.length; i++) {
+              const other = otherExercises[i];
+              if (other) {
+                const otherLayout = itemLayouts.current[other.id];
+                if (otherLayout) {
+                  const centerY = otherLayout.y + otherLayout.height / 2;
+                  if (dropY > centerY) {
+                    insertIndex = i + 1;
+                  }
+                }
+              }
+            }
+            setHoverIndex(insertIndex);
+          }
+        }
+      },
+      onPanResponderRelease: (e, gestureState) => {
+        const ex = draggingExerciseRef.current;
+        if (ex) {
+          const layout = itemLayouts.current[ex.id];
+          if (layout) {
+            const dropY = layout.y + gestureState.dy;
+            const otherExercises = exercises.filter((item) => item.id !== ex.id);
+            let insertIndex = 0;
+            for (let i = 0; i < otherExercises.length; i++) {
+              const other = otherExercises[i];
+              if (other) {
+                const otherLayout = itemLayouts.current[other.id];
+                if (otherLayout) {
+                  const centerY = otherLayout.y + otherLayout.height / 2;
+                  if (dropY > centerY) {
+                    insertIndex = i + 1;
+                  }
+                }
+              }
+            }
+
+            const reordered = [...otherExercises];
+            reordered.splice(insertIndex, 0, ex);
+            reorderExercises(reordered);
+          }
+        }
+        Animated.parallel([
+          Animated.spring(dragY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 8,
+          }),
+          Animated.spring(dragScale, {
+            toValue: 1,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 8,
+          }),
+        ]).start(() => {
+          setActiveDragId(null);
+          setHoverIndex(null);
+          setScrollEnabled(true);
+        });
+      },
+      onPanResponderTerminate: () => {
+        Animated.parallel([
+          Animated.spring(dragY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 8,
+          }),
+          Animated.spring(dragScale, {
+            toValue: 1,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 8,
+          }),
+        ]).start(() => {
+          setActiveDragId(null);
+          setHoverIndex(null);
+          setScrollEnabled(true);
+        });
+      },
+    });
+  }, [exercises, reorderExercises]);
 
   useEffect(() => {
     const calculateElapsed = () => {
@@ -87,18 +259,49 @@ export default function WorkoutSessionScreen() {
 
   const mapToTemplateExercises = (sessionExercises: SessionExercise[]): TemplateExercise[] => {
     return sessionExercises.map((ex) => {
-      const firstSet = ex.sets[0];
+      const workingSets = ex.sets.filter((s) => s.type !== 'warmup');
+      const firstSet = workingSets[0] || ex.sets[0];
       return {
         id: Crypto.randomUUID(),
         exerciseId: ex.exerciseId,
         order: ex.order,
-        targetSets: ex.sets.length > 0 ? ex.sets.length : 1,
+        targetSets: workingSets.length > 0 ? workingSets.length : 1,
         ...(firstSet?.reps !== undefined ? { targetReps: firstSet.reps } : {}),
         ...(firstSet?.weight !== undefined ? { targetWeight: firstSet.weight } : {}),
         ...(firstSet?.rpe !== undefined ? { targetRpe: firstSet.rpe } : {}),
         ...(ex.notes !== undefined ? { notes: ex.notes } : {}),
       };
     });
+  };
+
+  const checkIfTemplateChanged = () => {
+    if (!templateId) return false;
+    const { templates } = useProgramStore.getState();
+    const originalTemplate = templates.find((t) => t.id === templateId);
+    if (!originalTemplate) return false;
+
+    // 1. Check if number of exercises changed
+    if (originalTemplate.exercises.length !== exercises.length) return true;
+
+    for (let i = 0; i < exercises.length; i++) {
+      const liveEx = exercises[i];
+      if (!liveEx) continue;
+      const tmplEx = originalTemplate.exercises.find((te) => te.exerciseId === liveEx.exerciseId);
+
+      // 2. Check if exercise is added, removed or replaced
+      if (!tmplEx) return true;
+      // 3. Check if exercise order changed
+      if (liveEx.order !== tmplEx.order) return true;
+
+      // 4. Check if number of sets (excluding warmups) changed
+      const workingSets = liveEx.sets.filter((s) => s.type !== 'warmup');
+      if (workingSets.length !== tmplEx.targetSets) return true;
+
+      // 5. Check if exercise notes changed
+      if ((liveEx.notes || '') !== (tmplEx.notes || '')) return true;
+    }
+
+    return false;
   };
 
   const finalizeWorkout = async () => {
@@ -112,6 +315,7 @@ export default function WorkoutSessionScreen() {
       return;
     }
 
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     router.replace('/');
   };
 
@@ -122,7 +326,26 @@ export default function WorkoutSessionScreen() {
       finalizeWorkout();
       return;
     }
+
+    if (templateId) {
+      const hasChanged = checkIfTemplateChanged();
+      if (!hasChanged) {
+        // No changes to template, just save the workout session history and exit!
+        finalizeWorkout();
+        return;
+      }
+    }
+
     setSaveModalVisible(true);
+  };
+
+  const handleUpdateTemplate = () => {
+    if (isFinishing || !templateId) return;
+    updateTemplate(templateId, {
+      exercises: mapToTemplateExercises(exercises),
+    });
+    setSaveModalVisible(false);
+    finalizeWorkout();
   };
 
   const handleSaveTemplate = (templateName: string) => {
@@ -190,6 +413,47 @@ export default function WorkoutSessionScreen() {
     );
   };
 
+  const completedSetsCount = exercises.reduce(
+    (acc, ex) => acc + ex.sets.filter((s) => s.completed).length,
+    0,
+  );
+  const totalSetsCount = exercises.reduce((acc, ex) => acc + ex.sets.length, 0);
+  const progressPercent = totalSetsCount > 0 ? (completedSetsCount / totalSetsCount) * 100 : 0;
+
+  const totalVolume = exercises.reduce(
+    (sum, exercise) => sum + summarizeSessionExercise(exercise).totalVolume,
+    0,
+  );
+  const preferredUnits = useProfileStore.getState().profile?.preferredUnits || 'metric';
+  const isImperial = preferredUnits === 'imperial';
+  const volumeDisplay = isImperial ? Math.round(totalVolume * 2.20462) : Math.round(totalVolume);
+  const caffeineWarningLevel = getCaffeineWarningLevel(currentWorkoutMg);
+  const caffeineTrollText =
+    currentWorkoutMg > 1500 ? 'Come on jetzt trollst du aber...' : null;
+  const caffeineWarningText =
+    caffeineTrollText ??
+    (caffeineWarningLevel === 'extreme'
+      ? 'Extreme intake. Consider slowing down and hydrate.'
+      : caffeineWarningLevel === 'high'
+        ? 'High caffeine day. Keep an eye on jitters and sleep.'
+        : null);
+
+  const handleAddCustomCaffeine = () => {
+    const amount = parseInt(customCaffeineMg, 10);
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    addCustomAmount(amount);
+    setCustomCaffeineMg('');
+  };
+
+  const headerHeight =
+    Platform.OS === 'ios' ? (restTimer.isRunning ? 120 : 84) : restTimer.isRunning ? 90 : 64;
+
+  const headerPaddingTop =
+    Platform.OS === 'ios' ? (restTimer.isRunning ? 80 : 48) : restTimer.isRunning ? 48 : 16;
+
+  const hudPaddingTop =
+    Platform.OS === 'ios' ? (restTimer.isRunning ? 76 : 48) : restTimer.isRunning ? 50 : 16;
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Stack.Screen
@@ -197,38 +461,339 @@ export default function WorkoutSessionScreen() {
           headerShown: false,
         }}
       />
-      {/* Sticky Header */}
+
+      {/* Mock Dynamic Island */}
+      {restTimer.isRunning && (
+        <Animated.View
+          style={[
+            styles.islandContainer,
+            {
+              backgroundColor: '#000',
+              borderColor: 'rgba(255, 255, 255, 0.15)',
+              borderWidth: 1,
+              width: islandExpanded ? 250 : 120,
+              borderRadius: 20,
+              top: Platform.OS === 'ios' ? 44 : 8,
+              zIndex: 1000000,
+            },
+          ]}
+        >
+          <Pressable
+            onPress={() => setIslandExpanded(!islandExpanded)}
+            style={styles.islandContent}
+          >
+            {islandExpanded ? (
+              <View style={styles.islandExpandedRow}>
+                <View style={styles.islandLeft}>
+                  <View style={[styles.hudDot, { backgroundColor: '#4ade80', marginRight: 6 }]} />
+                  <Text
+                    style={[
+                      styles.islandText,
+                      { color: '#ffffff', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 12 },
+                    ]}
+                  >
+                    Rest: {formatElapsed(Math.max(0, restRemaining))}
+                  </Text>
+                </View>
+                <View style={styles.islandControls}>
+                  <Pressable
+                    hitSlop={6}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      startRestTimer(Math.max(0, restRemaining) + 30);
+                    }}
+                    style={styles.islandBtn}
+                  >
+                    <Text style={styles.islandBtnText}>+30s</Text>
+                  </Pressable>
+                  <Pressable
+                    hitSlop={6}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      stopRestTimer();
+                    }}
+                    style={styles.islandBtn}
+                  >
+                    <Text style={[styles.islandBtnText, { color: '#ef4444' }]}>Pause</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.islandCollapsedRow}>
+                <View style={[styles.hudDot, { backgroundColor: '#4ade80', marginRight: 6 }]} />
+                <Ionicons
+                  name="timer-outline"
+                  size={12}
+                  color="#ffffff"
+                  style={{ marginRight: 4 }}
+                />
+                <Text
+                  style={[
+                    styles.islandText,
+                    { color: '#ffffff', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 12 },
+                  ]}
+                >
+                  {formatElapsed(Math.max(0, restRemaining))}
+                </Text>
+              </View>
+            )}
+          </Pressable>
+        </Animated.View>
+      )}
+
+      {/* Unified Header */}
       <View
         style={[
-          styles.header,
-          { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.muted },
+          styles.headerContainer,
+          {
+            backgroundColor: theme.colors.surface,
+            borderBottomColor: showHUD ? theme.colors.border : theme.colors.muted,
+            height: headerHeight,
+            paddingTop: showHUD ? hudPaddingTop : headerPaddingTop,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 99999,
+          },
         ]}
       >
-        <View style={styles.headerLeft}>
-          <Pressable onPress={handleBackAction} style={{ paddingRight: 16 }}>
-            <Ionicons name="close" size={24} color={theme.colors.muted} />
-          </Pressable>
-          <View>
-            <Text style={[{ color: theme.colors.text, fontSize: 18 }, theme.typography.heading]}>
-              {name}
-            </Text>
-            <Text style={[{ color: theme.colors.primary, fontSize: 20 }, theme.typography.display]}>
-              {formatElapsed(elapsed)}
-            </Text>
+        {showHUD ? (
+          <View key="hud-header" style={styles.hudRow}>
+            <View style={styles.hudStatsGroup}>
+              <View style={styles.hudCol}>
+                <Ionicons
+                  name="barbell-outline"
+                  size={16}
+                  color={theme.colors.muted}
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={[styles.hudText, { color: theme.colors.text }]} numberOfLines={1}>
+                  {volumeDisplay} {isImperial ? 'lbs' : 'kg'}
+                </Text>
+              </View>
+              <View style={styles.hudCol}>
+                <Ionicons
+                  name="time-outline"
+                  size={16}
+                  color={theme.colors.muted}
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={[styles.hudText, { color: theme.colors.text }]} numberOfLines={1}>
+                  {formatElapsed(elapsed)}
+                </Text>
+              </View>
+            </View>
+            <Button
+              title="FINISH"
+              variant="primary"
+              onPress={handleFinish}
+              style={styles.hudFinishButton}
+            />
           </View>
-        </View>
-        <Button
-          title="FINISH"
-          variant="primary"
-          onPress={handleFinish}
-          style={{ height: 40, paddingHorizontal: 16 }}
-        />
+        ) : (
+          <View key="standard-header" style={styles.standardHeaderContent}>
+            <View style={styles.headerLeft}>
+              <Pressable onPress={handleBackAction} style={{ paddingRight: 16 }}>
+                <Ionicons name="close" size={24} color={theme.colors.muted} />
+              </Pressable>
+              <View>
+                <Text
+                  style={[{ color: theme.colors.text, fontSize: 18 }, theme.typography.heading]}
+                >
+                  {name}
+                </Text>
+                <Text
+                  style={[{ color: theme.colors.primary, fontSize: 20 }, theme.typography.display]}
+                >
+                  {formatElapsed(elapsed)}
+                </Text>
+              </View>
+            </View>
+            <Button
+              title="FINISH"
+              variant="primary"
+              onPress={handleFinish}
+              style={{ height: 40, paddingHorizontal: 16 }}
+            />
+          </View>
+        )}
+
+        {/* Progress Bar */}
+        {totalSetsCount > 0 && (
+          <View
+            style={{
+              height: 2,
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              backgroundColor: theme.colors.border,
+            }}
+          >
+            <View
+              style={{
+                height: '100%',
+                width: `${progressPercent}%`,
+                backgroundColor: theme.colors.primary,
+              }}
+            />
+          </View>
+        )}
       </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        {exercises.map((ex) => (
-          <SessionExerciseCard key={ex.id} sessionExercise={ex} />
-        ))}
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={[styles.contentContainer, { paddingTop: headerHeight }]}
+        scrollEnabled={scrollEnabled}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
+        {caffeineEnabled && (
+          <Card padding="md" style={styles.caffeineCard}>
+            <View style={styles.caffeineHeader}>
+              <View style={styles.caffeineTitleRow}>
+                <Ionicons name="flash-outline" size={16} color={theme.colors.primary} />
+                <Text style={[styles.caffeineTitle, { color: theme.colors.text }]}>
+                  Caffeine
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.caffeineAmount,
+                  {
+                    color:
+                      caffeineWarningLevel === 'normal'
+                        ? theme.colors.primary
+                        : caffeineWarningLevel === 'high'
+                          ? '#FFB020'
+                          : theme.colors.accent,
+                  },
+                ]}
+              >
+                {currentWorkoutMg} mg
+              </Text>
+            </View>
+            {caffeineWarningText && (
+              <Text
+                style={[
+                  caffeineTrollText ? styles.caffeineTrollWarning : styles.caffeineWarning,
+                  {
+                    color: caffeineTrollText ? '#FFE8E8' : theme.colors.accent,
+                    backgroundColor: caffeineTrollText ? '#B00020' : 'transparent',
+                  },
+                ]}
+              >
+                {caffeineWarningText}
+              </Text>
+            )}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.caffeinePresetRow}
+            >
+              {CAFFEINE_PRESETS.map((preset) => (
+                <Pressable
+                  key={preset.id}
+                  style={[styles.caffeineChip, { borderColor: theme.colors.border }]}
+                  onPress={() => addPreset(preset.id)}
+                >
+                  <Text style={[styles.caffeineChipName, { color: theme.colors.text }]}>
+                    {preset.name}
+                  </Text>
+                  <Text style={[styles.caffeineChipMeta, { color: theme.colors.muted }]}>
+                    +{preset.caffeineMg} mg
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+            <View style={styles.caffeineCustomRow}>
+              <TextInput
+                style={[
+                  styles.caffeineInput,
+                  {
+                    color: theme.colors.text,
+                    borderColor: theme.colors.border,
+                    backgroundColor: theme.colors.background,
+                  },
+                ]}
+                value={customCaffeineMg}
+                onChangeText={setCustomCaffeineMg}
+                placeholder="mg"
+                placeholderTextColor={theme.colors.muted}
+                keyboardType="numeric"
+                onSubmitEditing={handleAddCustomCaffeine}
+              />
+              <Pressable
+                style={[styles.caffeineSmallButton, { borderColor: theme.colors.border }]}
+                onPress={handleAddCustomCaffeine}
+              >
+                <Text style={[styles.caffeineSmallButtonText, { color: theme.colors.primary }]}>
+                  Add
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.caffeineSmallButton, { borderColor: theme.colors.border }]}
+                onPress={() => setCurrentWorkoutMg(0)}
+              >
+                <Text style={[styles.caffeineSmallButtonText, { color: theme.colors.muted }]}>
+                  Clear
+                </Text>
+              </Pressable>
+            </View>
+          </Card>
+        )}
+
+        {exercises.map((ex) => {
+          const isDraggingThis = ex.id === activeDragId;
+          const otherExercises = exercises.filter((item) => item.id !== activeDragId);
+          const isHovered =
+            activeDragId !== null &&
+            hoverIndex !== null &&
+            otherExercises[hoverIndex]?.id === ex.id;
+
+          return (
+            <Animated.View
+              key={ex.id}
+              onLayout={(e) => {
+                if (activeDragId !== ex.id) {
+                  itemLayouts.current[ex.id] = {
+                    y: e.nativeEvent.layout.y,
+                    height: e.nativeEvent.layout.height,
+                  };
+                }
+              }}
+              style={[
+                isHovered && {
+                  borderColor: '#90D5FF',
+                  borderWidth: 1.5,
+                  borderStyle: 'dashed',
+                  backgroundColor: 'rgba(144, 213, 255, 0.05)',
+                  borderRadius: theme.radius.md || 12,
+                },
+                isDraggingThis && {
+                  transform: [{ translateY: dragY }, { scale: dragScale }],
+                  zIndex: 9999,
+                  opacity: 0.85,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.35,
+                  shadowRadius: 6,
+                  elevation: 5,
+                },
+              ]}
+            >
+              <SessionExerciseCard
+                sessionExercise={ex}
+                dragHandlers={panResponder.panHandlers}
+                onDragStart={() => {
+                  draggingExerciseRef.current = ex;
+                }}
+                isDragging={isDraggingThis}
+              />
+            </Animated.View>
+          );
+        })}
 
         <Button
           title="+ ADD EXERCISE"
@@ -276,6 +841,8 @@ export default function WorkoutSessionScreen() {
         onClose={() => setSaveModalVisible(false)}
         onSave={handleSaveTemplate}
         onSkip={handleSkipTemplate}
+        templateId={templateId}
+        onUpdate={handleUpdateTemplate}
       />
     </View>
   );
@@ -290,14 +857,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  header: {
+  headerContainer: {
+    borderBottomWidth: 1,
+    paddingHorizontal: 24,
+    overflow: 'hidden',
+  },
+  hudRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 48,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
+    alignSelf: 'stretch',
+    flex: 1,
+    gap: 10,
+    paddingBottom: 8,
+  },
+  hudStatsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    minWidth: 0,
+    gap: 14,
+  },
+  hudFinishButton: {
+    height: 34,
+    paddingHorizontal: 12,
+    flexShrink: 0,
+  },
+  standardHeaderContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    flex: 1,
+    paddingBottom: 8,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -316,11 +908,170 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 100,
   },
+  caffeineCard: {
+    marginBottom: 16,
+  },
+  caffeineHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  caffeineTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minWidth: 0,
+    flex: 1,
+  },
+  caffeineTitle: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 14,
+    textTransform: 'uppercase',
+  },
+  caffeineAmount: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 18,
+    fontVariant: ['tabular-nums'],
+  },
+  caffeineWarning: {
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 8,
+  },
+  caffeineTrollWarning: {
+    alignSelf: 'flex-start',
+    borderRadius: 10,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 16,
+    lineHeight: 22,
+    marginTop: 10,
+    overflow: 'hidden',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  caffeinePresetRow: {
+    gap: 8,
+    paddingVertical: 12,
+  },
+  caffeineChip: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    minWidth: 104,
+  },
+  caffeineChipName: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 12,
+  },
+  caffeineChipMeta: {
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  caffeineCustomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  caffeineInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    height: 40,
+    minWidth: 72,
+    paddingHorizontal: 12,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 14,
+    fontVariant: ['tabular-nums'],
+  },
+  caffeineSmallButton: {
+    borderWidth: 1,
+    borderRadius: 10,
+    height: 40,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  caffeineSmallButtonText: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 12,
+    textTransform: 'uppercase',
+  },
   notesContainer: {
     marginBottom: 24,
   },
   notesInput: {
     minHeight: 60,
     textAlignVertical: 'top',
+  },
+  hudCol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  hudText: {
+    fontSize: 12,
+    fontFamily: 'SpaceGrotesk_700Bold',
+  },
+  hudDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  islandContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 48 : 12,
+    alignSelf: 'center',
+    height: 38,
+    zIndex: 999999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 10,
+    overflow: 'hidden',
+  },
+  islandContent: {
+    flex: 1,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  islandCollapsedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  islandExpandedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  islandLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  islandText: {
+    fontSize: 12,
+    fontFamily: 'SpaceGrotesk_700Bold',
+  },
+  islandControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  islandBtn: {
+    backgroundColor: '#1C1E26',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 99,
+  },
+  islandBtnText: {
+    color: '#90D5FF',
+    fontSize: 10,
+    fontFamily: 'SpaceGrotesk_700Bold',
   },
 });

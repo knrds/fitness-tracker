@@ -12,12 +12,17 @@ import {
   BiologicalSexSchema,
   calculateVolume,
   calculateLongestStreak,
+  formatDateLocal,
 } from '@fitness-tracker/domain';
 import { z } from 'zod';
 import { useHistoryStore } from './historyStore';
 import { useExerciseStore } from './exerciseStore';
 import { useBodyMetricStore } from './bodyMetricStore';
 import { useProgramStore, getDefaultTemplates, getDefaultPrograms } from './programStore';
+import { useAchievementStore } from './achievementStore';
+import { useWorkoutStore } from './workoutStore';
+import { useCaffeineStore } from './caffeineStore';
+import { useHydrationStore } from './hydrationStore';
 import { createHydratedStorage } from './storage';
 
 export interface Profile {
@@ -146,27 +151,7 @@ export const useProfileStore = create<ProfileState>()(
         useHistoryStore.setState({ sessions: [] });
 
         // 3. Workout Store
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { useWorkoutStore } = require('./workoutStore');
-        useWorkoutStore.setState({
-          status: 'idle',
-          sessionId: undefined,
-          templateId: undefined,
-          programId: undefined,
-          name: '',
-          startedAt: undefined,
-          pausedAt: undefined,
-          accumulatedPauseMs: 0,
-          elapsedSeconds: 0,
-          currentExerciseIndex: 0,
-          currentSetIndex: 0,
-          exercises: [],
-          restTimer: {
-            isRunning: false,
-            durationSeconds: 90,
-          },
-          notes: '',
-        });
+        useWorkoutStore.getState().resetWorkout();
 
         // 4. Exercise Store
         useExerciseStore.setState({
@@ -178,15 +163,33 @@ export const useProfileStore = create<ProfileState>()(
           favoriteIds: [],
           customExercises: [],
           exerciseRestDurations: {},
+          persistentNotes: {},
         });
 
         // 5. Body Metric Store
         useBodyMetricStore.setState({ metrics: [] });
 
-        // 6. Program Store
+        // 6. Achievement Store
+        useAchievementStore.getState().resetAchievements();
+
+        // 7. Program Store
         useProgramStore.setState({
           programs: getDefaultPrograms(),
           templates: getDefaultTemplates(),
+        });
+
+        // 8. Caffeine Store
+        useCaffeineStore.setState({
+          isEnabled: true,
+          currentWorkoutMg: 0,
+          lastWorkoutMg: 0,
+        });
+
+        // 9. Hydration Store
+        useHydrationStore.setState({
+          dateKey: formatDateLocal(new Date()),
+          dailyGoalMl: 2500,
+          todayIntakeMl: 0,
         });
       },
 

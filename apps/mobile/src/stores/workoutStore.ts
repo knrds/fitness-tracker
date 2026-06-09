@@ -7,6 +7,7 @@ import {
   UUID,
   WorkoutSession,
   WorkoutTemplate,
+  UnitSystem,
   ActiveWorkoutStatusSchema,
   SessionExerciseSchema,
 } from '@fitness-tracker/domain';
@@ -15,8 +16,8 @@ import { z } from 'zod';
 import { useHistoryStore } from './historyStore';
 import { useAchievementStore } from './achievementStore';
 import { useExerciseStore } from './exerciseStore';
-import { LOCAL_USER_ID } from './local-user';
-import { useProfileStore } from './profileStore';
+import { useCaffeineStore } from './caffeineStore';
+import { getCurrentUserId } from './local-user';
 import { createHydratedStorage } from './storage';
 
 const workoutPersistedSchema = z.object({
@@ -64,6 +65,21 @@ const removeSupersetGroup = (exercise: SessionExercise): SessionExercise => {
   return nextExercise;
 };
 
+const createSetFromPreviousPerformance = (set: ExerciseSet, index: number): ExerciseSet => ({
+  id: Crypto.randomUUID(),
+  setNumber: index + 1,
+  type: set.type,
+  completed: false,
+  ...(set.weight !== undefined ? { weight: set.weight } : {}),
+  ...(set.reps !== undefined ? { reps: set.reps } : {}),
+  ...(set.rpe !== undefined ? { rpe: set.rpe } : {}),
+  ...(set.rir !== undefined ? { rir: set.rir } : {}),
+  ...(set.restSeconds !== undefined ? { restSeconds: set.restSeconds } : {}),
+  ...(set.durationSeconds !== undefined ? { durationSeconds: set.durationSeconds } : {}),
+  ...(set.distanceMeters !== undefined ? { distanceMeters: set.distanceMeters } : {}),
+  ...(set.notes !== undefined ? { notes: set.notes } : {}),
+});
+
 export interface WorkoutActions {
   startWorkout: (name?: string) => void;
   startWorkoutFromTemplate: (template: WorkoutTemplate, programId?: UUID) => void;
@@ -89,9 +105,14 @@ export interface WorkoutActions {
   // New Actions
   updateWorkoutNotes: (notes: string) => void;
   updateExerciseNotes: (sessionExerciseId: UUID, notes: string) => void;
-  calculateWarmupSets: (sessionExerciseId: UUID, targetWeight: number) => void;
+  calculateWarmupSets: (
+    sessionExerciseId: UUID,
+    targetWeight: number,
+    unitSystem?: UnitSystem,
+  ) => void;
   toggleSuperset: (sessionExerciseId: UUID) => void;
   clearLastFinishedSession: () => void;
+  reorderExercises: (exercises: SessionExercise[]) => void;
 }
 
 export type WorkoutStore = Omit<
@@ -114,7 +135,8 @@ export const useWorkoutStore = create<WorkoutStore>()(
       ...defaultState,
       lastUpdatedAt: new Date(),
 
-      startWorkout: (name = 'New Workout') =>
+      startWorkout: (name = 'New Workout') => {
+        useCaffeineStore.getState().resetCurrentWorkout();
         set({
           ...defaultState,
           status: 'active',
@@ -122,9 +144,11 @@ export const useWorkoutStore = create<WorkoutStore>()(
           startedAt: new Date(),
           sessionId: Crypto.randomUUID(),
           lastUpdatedAt: new Date(),
-        }),
+        });
+      },
 
-      startWorkoutFromSession: (session) =>
+      startWorkoutFromSession: (session) => {
+        useCaffeineStore.getState().resetCurrentWorkout();
         set(() => {
           const exercises: SessionExercise[] = session.exercises.map((sEx) => {
             const sets: ExerciseSet[] = sEx.sets.map((sSet) => ({
@@ -156,9 +180,11 @@ export const useWorkoutStore = create<WorkoutStore>()(
             exercises,
             lastUpdatedAt: new Date(),
           };
-        }),
+        });
+      },
 
-      startWorkoutFromTemplate: (template, programId) =>
+      startWorkoutFromTemplate: (template, programId) => {
+        useCaffeineStore.getState().resetCurrentWorkout();
         set(() => {
           const exercises: SessionExercise[] = template.exercises.map((tEx) => {
             const sets: ExerciseSet[] = [];
@@ -195,7 +221,8 @@ export const useWorkoutStore = create<WorkoutStore>()(
             exercises,
             lastUpdatedAt: new Date(),
           };
-        }),
+        });
+      },
 
       pauseWorkout: () =>
         set((state) => {
@@ -250,7 +277,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
 
         const session: WorkoutSession = {
           id: state.sessionId || Crypto.randomUUID(),
-          userId: LOCAL_USER_ID,
+          userId: getCurrentUserId(),
           name: state.name,
           ...(state.templateId ? { templateId: state.templateId } : {}),
           ...(state.programId ? { programId: state.programId } : {}),
@@ -263,6 +290,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
           updatedAt: new Date(),
         };
 
+        useCaffeineStore.getState().captureFinishedWorkout();
         set({
           ...defaultState,
           status: 'finished',
@@ -280,20 +308,28 @@ export const useWorkoutStore = create<WorkoutStore>()(
 
       addExercise: (exerciseId) =>
         set((state) => {
+          const previousPerformance = useHistoryStore.getState().getPreviousPerformance(exerciseId);
+          const previousSets =
+            previousPerformance?.sets.map((set, index) =>
+              createSetFromPreviousPerformance(set, index),
+            ) ?? [];
           const newExercise: SessionExercise = {
             id: Crypto.randomUUID(),
             exerciseId,
             order: state.exercises.length,
-            sets: [
-              {
-                id: Crypto.randomUUID(),
-                setNumber: 1,
-                type: 'working',
-                completed: false,
-                weight: 0,
-                reps: 0,
-              },
-            ],
+            sets:
+              previousSets.length > 0
+                ? previousSets
+                : [
+                    {
+                      id: Crypto.randomUUID(),
+                      setNumber: 1,
+                      type: 'working',
+                      completed: false,
+                      weight: 0,
+                      reps: 0,
+                    },
+                  ],
           };
           return {
             exercises: [...state.exercises, newExercise],
@@ -400,7 +436,10 @@ export const useWorkoutStore = create<WorkoutStore>()(
         set((state) => {
           const exercises = state.exercises.map((ex) => {
             if (ex.id !== sessionExerciseId) return ex;
-            return { ...ex, sets: ex.sets.filter((s) => s.id !== setId) };
+            const sets = ex.sets
+              .filter((s) => s.id !== setId)
+              .map((s, index) => ({ ...s, setNumber: index + 1 }));
+            return { ...ex, sets };
           });
           return { exercises, lastUpdatedAt: new Date() };
         }),
@@ -476,10 +515,9 @@ export const useWorkoutStore = create<WorkoutStore>()(
           return { exercises, lastUpdatedAt: new Date() };
         }),
 
-      calculateWarmupSets: (sessionExerciseId, targetWeight) =>
+      calculateWarmupSets: (sessionExerciseId, targetWeight, unitSystem = 'metric') =>
         set((state) => {
-          const preferredUnits = useProfileStore.getState().profile?.preferredUnits || 'metric';
-          const isImperial = preferredUnits === 'imperial';
+          const isImperial = unitSystem === 'imperial';
           const roundStep = isImperial ? 5 : 2.5;
 
           const roundToStep = (val: number) => {
@@ -570,6 +608,12 @@ export const useWorkoutStore = create<WorkoutStore>()(
           }
 
           return { exercises, lastUpdatedAt: new Date() };
+        }),
+
+      reorderExercises: (exercises) =>
+        set({
+          exercises: exercises.map((ex, idx) => ({ ...ex, order: idx })),
+          lastUpdatedAt: new Date(),
         }),
     }),
     {

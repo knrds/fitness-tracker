@@ -1,9 +1,48 @@
-import { Tabs } from 'expo-router';
+import React from 'react';
+import { Tabs, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@fitness-tracker/ui';
+import { StyleSheet, Platform, Pressable, Animated } from 'react-native';
 
 export default function TabLayout() {
   const theme = useTheme();
+  const pathname = usePathname();
+  const isHomeFocused = pathname === '/';
+
+  // Animated value for pulsing Home button glow
+  const glowAnim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: false,
+        }),
+        Animated.timing(glowAnim, {
+          toValue: 0,
+          duration: 1500,
+          useNativeDriver: false,
+        }),
+      ]),
+    ).start();
+  }, [glowAnim]);
+
+  const animatedShadowRadius = glowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [6, 14],
+  });
+
+  const animatedShadowOpacity = glowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.4, 0.9],
+  });
+
+  const animatedElevation = glowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [8, 14],
+  });
 
   return (
     <Tabs
@@ -15,37 +54,71 @@ export default function TabLayout() {
           backgroundColor: theme.colors.background,
           borderTopColor: theme.colors.border,
           borderTopWidth: 1,
+          height: Platform.OS === 'ios' ? 88 : 64,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          paddingTop: 8,
         },
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="history"
         options={{
-          title: 'Home',
-          tabBarLabel: 'Home',
+          title: 'History',
+          tabBarLabel: 'History',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'analytics' : 'analytics-outline'} size={22} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="workouts"
         options={{
-          title: 'Workout',
-          tabBarLabel: 'Workout',
+          title: 'Plans',
+          tabBarLabel: 'Plans',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'barbell' : 'barbell-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'barbell' : 'barbell-outline'} size={22} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="programs"
+        name="index"
         options={{
-          title: 'Programs',
-          tabBarLabel: 'Programs',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={24} color={color} />
-          ),
+          title: 'Home',
+          tabBarLabel: () => null,
+          tabBarButton: (props) => {
+            const focused = isHomeFocused;
+            return (
+              <Pressable
+                onPress={props.onPress}
+                onLongPress={props.onLongPress}
+                style={[props.style, styles.centerTabContainer]}
+              >
+                <Animated.View
+                  style={[
+                    styles.centerTabCircle,
+                    {
+                      backgroundColor: focused ? theme.colors.primary : '#1A1C23',
+                      borderColor: focused ? theme.colors.primary : theme.colors.muted,
+                      borderWidth: 2,
+                    },
+                    focused && {
+                      shadowColor: theme.colors.primary,
+                      shadowOffset: { width: 0, height: 0 },
+                      shadowOpacity: animatedShadowOpacity,
+                      shadowRadius: animatedShadowRadius,
+                      elevation: animatedElevation,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={focused ? 'home' : 'home-outline'}
+                    size={26}
+                    color={focused ? theme.colors.background : theme.colors.muted}
+                  />
+                </Animated.View>
+              </Pressable>
+            );
+          },
         }}
       />
       <Tabs.Screen
@@ -54,7 +127,7 @@ export default function TabLayout() {
           title: 'Exercises',
           tabBarLabel: 'Exercises',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'list' : 'list-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'list' : 'list-outline'} size={22} color={color} />
           ),
         }}
       />
@@ -64,20 +137,36 @@ export default function TabLayout() {
           title: 'Body',
           tabBarLabel: 'Body',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'body' : 'body-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'body' : 'body-outline'} size={22} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="history"
+        name="programs"
         options={{
-          title: 'History',
-          tabBarLabel: 'History',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'analytics' : 'analytics-outline'} size={24} color={color} />
-          ),
+          href: null,
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  centerTabContainer: {
+    top: Platform.OS === 'ios' ? -12 : -16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centerTabCircle: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+});

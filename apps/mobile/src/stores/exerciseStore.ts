@@ -10,7 +10,7 @@ import {
 import * as Crypto from 'expo-crypto';
 import { z } from 'zod';
 
-import { LOCAL_USER_ID } from './local-user';
+import { getCurrentUserId } from './local-user';
 import { createHydratedStorage } from './storage';
 
 function filterExercises(
@@ -133,7 +133,7 @@ export const useExerciseStore = create<ExerciseState>()(
             ...data,
             id: Crypto.randomUUID(),
             isCustom: true,
-            ownerId: LOCAL_USER_ID,
+            ownerId: getCurrentUserId(),
             createdAt: new Date(),
             updatedAt: new Date(),
           };

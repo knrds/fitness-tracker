@@ -9,8 +9,20 @@ import {
   Platform,
   Modal,
   ScrollView,
+  GestureResponderHandlers,
+  ViewStyle,
+  Dimensions,
+  Animated,
+  PanResponder,
 } from 'react-native';
-import { SessionExercise, ExerciseSet, SetType, estimateOneRepMax } from '@fitness-tracker/domain';
+import * as Haptics from 'expo-haptics';
+import {
+  SessionExercise,
+  ExerciseSet,
+  SetType,
+  estimateOneRepMax,
+  summarizeSessionExercise,
+} from '@fitness-tracker/domain';
 import { useWorkoutStore } from '../../stores/workoutStore';
 import { useExerciseStore } from '../../stores/exerciseStore';
 import { useProfileStore } from '../../stores/profileStore';
@@ -21,9 +33,17 @@ import { Ionicons } from '@expo/vector-icons';
 
 interface Props {
   sessionExercise: SessionExercise;
+  dragHandlers?: GestureResponderHandlers;
+  onDragStart?: () => void;
+  isDragging?: boolean;
 }
 
-export const SessionExerciseCard = ({ sessionExercise }: Props) => {
+export const SessionExerciseCard = ({
+  sessionExercise,
+  dragHandlers,
+  onDragStart,
+  isDragging: _isDragging = false,
+}: Props) => {
   const theme = useTheme();
   const { exercises, persistentNotes, setPersistentNote } = useExerciseStore();
   const {
@@ -40,12 +60,17 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
   const isImperial = profile.preferredUnits === 'imperial';
 
   const getPreviousPerformance = useHistoryStore((state) => state.getPreviousPerformance);
+  const historySessions = useHistoryStore((state) => state.sessions);
   const lastPerformance = React.useMemo(
     () => getPreviousPerformance(sessionExercise.exerciseId),
     [getPreviousPerformance, sessionExercise.exerciseId],
   );
   const [plateCalcVisible, setPlateCalcVisible] = useState(false);
   const [infoModalVisible, setInfoModalVisible] = useState(false);
+  const [optionsVisible, setOptionsVisible] = useState(false);
+  const [showNotes, setShowNotes] = useState(
+    () => !!sessionExercise.notes || !!persistentNotes[sessionExercise.exerciseId],
+  );
 
   const exercise = exercises.find((e) => e.id === sessionExercise.exerciseId);
   if (!exercise) return null;
@@ -112,7 +137,7 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
 
     const targetWeightKg = firstSetWithWeight.weight!;
     const targetWeightDisplay = isImperial ? targetWeightKg * 2.20462 : targetWeightKg;
-    calculateWarmupSets(sessionExercise.id, targetWeightDisplay);
+    calculateWarmupSets(sessionExercise.id, targetWeightDisplay, profile.preferredUnits);
   };
 
   const getPrevPerformanceText = () => {
@@ -172,12 +197,32 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
   };
 
   // Calculate statistics for the (i) modal
-  const sessionVolume = sessionExercise.sets
-    .filter((s) => s.completed && s.type !== 'warmup')
-    .reduce((acc, curr) => acc + (curr.weight || 0) * (curr.reps || 0), 0);
+  const sessionVolume = summarizeSessionExercise(sessionExercise).totalVolume;
+  const previousVolume = React.useMemo(() => {
+    if (!lastPerformance) return 0;
+    return summarizeSessionExercise({
+      id: sessionExercise.id,
+      exerciseId: sessionExercise.exerciseId,
+      order: sessionExercise.order,
+      sets: lastPerformance.sets,
+    }).totalVolume;
+  }, [lastPerformance, sessionExercise.exerciseId, sessionExercise.id, sessionExercise.order]);
+  const volumeDeltaPercent =
+    previousVolume > 0 ? ((sessionVolume - previousVolume) / previousVolume) * 100 : null;
+  const volumeDeltaLabel =
+    volumeDeltaPercent === null
+      ? 'NEW'
+      : `${volumeDeltaPercent >= 0 ? '+' : ''}${volumeDeltaPercent.toFixed(0)}%`;
+  const volumeDeltaColor =
+    volumeDeltaPercent === null
+      ? theme.colors.muted
+      : volumeDeltaPercent > 0
+        ? '#22c55e'
+        : volumeDeltaPercent < 0
+          ? '#ef4444'
+          : theme.colors.primary;
 
   const stats = React.useMemo(() => {
-    const historySessions = useHistoryStore.getState().sessions;
     let maxWeight = 0;
     let totalWeight = 0;
     let completedSetsCount = 0;
@@ -186,23 +231,18 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
     historySessions.forEach((s) => {
       s.exercises.forEach((ex) => {
         if (ex.exerciseId === sessionExercise.exerciseId) {
-          ex.sets.forEach((set) => {
-            if (set.completed && set.type !== 'warmup') {
-              if (set.weight) {
-                if (set.weight > maxWeight) maxWeight = set.weight;
-                totalWeight += set.weight;
-                completedSetsCount++;
-                lifetimeVolume += set.weight * (set.reps || 0);
-              }
-            }
-          });
+          const summary = summarizeSessionExercise(ex);
+          maxWeight = Math.max(maxWeight, summary.maxWeight);
+          totalWeight += summary.averageWeight * summary.workingSetCount;
+          completedSetsCount += summary.workingSetCount;
+          lifetimeVolume += summary.totalVolume;
         }
       });
     });
 
     const avgWeight = completedSetsCount > 0 ? totalWeight / completedSetsCount : 0;
     return { maxWeight, avgWeight, lifetimeVolume };
-  }, [sessionExercise.exerciseId]);
+  }, [historySessions, sessionExercise.exerciseId]);
 
   return (
     <Card
@@ -228,6 +268,24 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
         </View>
       )}
       <View style={styles.titleRow}>
+        {dragHandlers && (
+          <View
+            {...dragHandlers}
+            onPointerDown={onDragStart}
+            onTouchStart={onDragStart}
+            style={
+              {
+                paddingRight: 10,
+                paddingVertical: 4,
+                justifyContent: 'center',
+                alignItems: 'center',
+                cursor: 'grab',
+              } as unknown as ViewStyle
+            }
+          >
+            <Ionicons name="reorder-two" size={24} color={theme.colors.primary} />
+          </View>
+        )}
         <View style={styles.titleCol}>
           <Text
             style={[
@@ -254,15 +312,12 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
               <Ionicons name="barbell-outline" size={24} color={theme.colors.muted} />
             </Pressable>
           )}
-          <Pressable onPress={handleToggleSuperset} style={styles.iconBtn}>
-            <Ionicons
-              name="link"
-              size={24}
-              color={sessionExercise.supersetGroup ? theme.colors.primary : theme.colors.muted}
-            />
-          </Pressable>
-          <Pressable onPress={confirmDeleteExercise} style={styles.deleteExBtn}>
-            <Ionicons name="trash-outline" size={20} color="#ef4444" />
+          <Pressable
+            onPress={() => setOptionsVisible(true)}
+            style={styles.iconBtn}
+            testID="exercise-options-btn"
+          >
+            <Ionicons name="ellipsis-horizontal" size={24} color={theme.colors.muted} />
           </Pressable>
         </View>
       </View>
@@ -286,24 +341,35 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
           </Text>
         )}
         <Text style={[styles.columnHeader, styles.doneCol, { color: theme.colors.muted }]}>✓</Text>
+        {Platform.OS === 'web' && (
+          <Text style={[styles.columnHeader, styles.deleteCol, { color: theme.colors.muted }]} />
+        )}
       </View>
 
-      {sessionExercise.sets.map((set, idx) => (
-        <SetRow
-          key={set.id}
-          set={set}
-          index={idx}
-          sessionExerciseId={sessionExercise.id}
-          isImperial={isImperial}
-          isCardio={isCardio}
-          showRpe={showRpe}
-          showRir={showRir}
-          exerciseName={exercise.name}
-          onUpdate={(updates) => updateSet(sessionExercise.id, set.id, updates)}
-          onComplete={() => completeSet(sessionExercise.id, set.id)}
-          onDelete={() => removeSet(sessionExercise.id, set.id)}
-        />
-      ))}
+      {sessionExercise.sets.map((set, idx) => {
+        const prevSet =
+          idx > 0 ? sessionExercise.sets[idx - 1] : lastPerformance?.sets[0] || undefined;
+        return (
+          <SetRow
+            key={set.id}
+            set={set}
+            index={idx}
+            sessionExerciseId={sessionExercise.id}
+            isImperial={isImperial}
+            isCardio={isCardio}
+            showRpe={showRpe}
+            showRir={showRir}
+            exerciseName={exercise.name}
+            onUpdate={(updates) => updateSet(sessionExercise.id, set.id, updates)}
+            onComplete={() => {
+              completeSet(sessionExercise.id, set.id);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+            }}
+            onDelete={() => removeSet(sessionExercise.id, set.id)}
+            prevSet={prevSet}
+          />
+        );
+      })}
 
       <View style={styles.footerRow}>
         <Button title="+ ADD SET" variant="ghost" onPress={() => addSet(sessionExercise.id)} />
@@ -311,44 +377,136 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
       </View>
 
       {/* Exercise Notes Section */}
-      <View style={styles.notesSection}>
-        <View style={styles.noteField}>
-          <Text style={[styles.noteLabel, { color: theme.colors.muted }]}>
-            📌 Sticky Note (Always Visible)
-          </Text>
-          <TextInput
-            style={[
-              styles.noteInput,
-              { color: theme.colors.text, borderColor: theme.colors.border },
-            ]}
-            value={persistentNotes[sessionExercise.exerciseId] || ''}
-            onChangeText={(text) => setPersistentNote(sessionExercise.exerciseId, text)}
-            placeholder="Log general tips, seat adjustments, etc."
-            placeholderTextColor={theme.colors.muted}
-          />
+      {showNotes && (
+        <View style={styles.notesSection}>
+          <View style={styles.noteField}>
+            <Text style={[styles.noteLabel, { color: theme.colors.muted }]}>
+              📌 Sticky Note (Always Visible)
+            </Text>
+            <TextInput
+              style={[
+                styles.noteInput,
+                { color: theme.colors.text, borderColor: theme.colors.border },
+              ]}
+              value={persistentNotes[sessionExercise.exerciseId] || ''}
+              onChangeText={(text) => setPersistentNote(sessionExercise.exerciseId, text)}
+              placeholder="Log general tips, seat adjustments, etc."
+              placeholderTextColor={theme.colors.muted}
+            />
+          </View>
+          <View style={styles.noteField}>
+            <Text style={[styles.noteLabel, { color: theme.colors.muted }]}>
+              📝 Workout Note (This Session Only)
+            </Text>
+            <TextInput
+              style={[
+                styles.noteInput,
+                { color: theme.colors.text, borderColor: theme.colors.border },
+              ]}
+              value={sessionExercise.notes || ''}
+              onChangeText={(text) => updateExerciseNotes(sessionExercise.id, text)}
+              placeholder="How did this exercise feel today?"
+              placeholderTextColor={theme.colors.muted}
+            />
+          </View>
         </View>
-        <View style={styles.noteField}>
-          <Text style={[styles.noteLabel, { color: theme.colors.muted }]}>
-            📝 Workout Note (This Session Only)
-          </Text>
-          <TextInput
-            style={[
-              styles.noteInput,
-              { color: theme.colors.text, borderColor: theme.colors.border },
-            ]}
-            value={sessionExercise.notes || ''}
-            onChangeText={(text) => updateExerciseNotes(sessionExercise.id, text)}
-            placeholder="How did this exercise feel today?"
-            placeholderTextColor={theme.colors.muted}
-          />
-        </View>
-      </View>
+      )}
 
       <PlateCalculatorModal
         visible={plateCalcVisible}
         initialWeightKg={sessionExercise.sets[0]?.weight || 0}
         onClose={() => setPlateCalcVisible(false)}
       />
+
+      {/* Exercise Options Modal */}
+      <Modal
+        visible={optionsVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOptionsVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setOptionsVisible(false)}>
+          <Pressable
+            style={[
+              styles.modalCard,
+              { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text
+              style={[styles.modalTitle, { color: theme.colors.text, ...theme.typography.heading }]}
+            >
+              Übungs-Optionen
+            </Text>
+
+            <Pressable
+              style={styles.optionRow}
+              onPress={() => {
+                setShowNotes(!showNotes);
+                setOptionsVisible(false);
+              }}
+            >
+              <Ionicons
+                name={showNotes ? 'eye-off-outline' : 'document-text-outline'}
+                size={20}
+                color={theme.colors.primary}
+              />
+              <Text style={[styles.optionText, { color: theme.colors.text }]}>
+                {showNotes ? 'Notizen ausblenden' : 'Notizen einblenden'}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.optionRow}
+              onPress={() => {
+                setOptionsVisible(false);
+                handleToggleSuperset();
+              }}
+            >
+              <Ionicons
+                name="link-outline"
+                size={20}
+                color={sessionExercise.supersetGroup ? theme.colors.primary : theme.colors.muted}
+              />
+              <Text style={[styles.optionText, { color: theme.colors.text }]}>
+                {sessionExercise.supersetGroup ? 'Supersatz trennen' : 'Als Supersatz koppeln'}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.optionRow}
+              onPress={() => {
+                setOptionsVisible(false);
+                confirmDeleteExercise();
+              }}
+            >
+              <Ionicons name="trash-outline" size={20} color="#ef4444" />
+              <Text style={[styles.optionText, { color: '#ef4444' }]}>Übung löschen</Text>
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.modalCloseBtn,
+                {
+                  backgroundColor: theme.colors.border,
+                  borderRadius: theme.radius.md,
+                  marginTop: 16,
+                },
+              ]}
+              onPress={() => setOptionsVisible(false)}
+            >
+              <Text
+                style={[
+                  styles.modalCloseBtnText,
+                  { color: theme.colors.text, ...theme.typography.button },
+                ]}
+              >
+                Abbrechen
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Exercise Info Modal */}
       <Modal
@@ -375,11 +533,24 @@ export const SessionExerciseCard = ({ sessionExercise }: Props) => {
             <View style={styles.infoStatsGrid}>
               <View style={styles.infoStatBox}>
                 <Text style={[styles.infoStatLabel, { color: theme.colors.muted }]}>
-                  Session Vol
+                  Exercise Vol
                 </Text>
                 <Text style={[styles.infoStatValue, { color: theme.colors.primary }]}>
                   {isImperial ? Math.round(sessionVolume * 2.20462) : Math.round(sessionVolume)}{' '}
                   {isImperial ? 'lbs' : 'kg'}
+                </Text>
+              </View>
+              <View style={styles.infoStatBox}>
+                <Text style={[styles.infoStatLabel, { color: theme.colors.muted }]}>
+                  Vs Last
+                </Text>
+                <Text
+                  style={[
+                    styles.infoStatValue,
+                    { color: volumeDeltaColor },
+                  ]}
+                >
+                  {volumeDeltaLabel}
                 </Text>
               </View>
               <View style={styles.infoStatBox}>
@@ -509,6 +680,7 @@ interface SetRowProps {
   onUpdate: (updates: Partial<ExerciseSet>) => void;
   onComplete: () => void;
   onDelete: () => void;
+  prevSet?: ExerciseSet | undefined;
 }
 
 const SetRow = ({
@@ -521,9 +693,72 @@ const SetRow = ({
   exerciseName,
   onUpdate,
   onComplete,
+  onDelete,
+  prevSet,
 }: SetRowProps) => {
   const theme = useTheme();
   const isDone = set.completed;
+  const [isWeightFocused, setIsWeightFocused] = useState(false);
+  const swipeX = React.useRef(new Animated.Value(0)).current;
+
+  const resetSwipe = React.useCallback(() => {
+    Animated.spring(swipeX, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 90,
+      friction: 9,
+    }).start();
+  }, [swipeX]);
+
+  const handleDeleteSet = React.useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    onDelete();
+    swipeX.setValue(0);
+  }, [onDelete, swipeX]);
+
+  const swipeResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          Platform.OS !== 'web' &&
+          Math.abs(gestureState.dx) > 12 &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.2,
+        onPanResponderMove: (_, gestureState) => {
+          swipeX.setValue(Math.min(0, Math.max(-96, gestureState.dx)));
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          if (gestureState.dx < -72) {
+            Animated.timing(swipeX, {
+              toValue: -96,
+              duration: 120,
+              useNativeDriver: true,
+            }).start(handleDeleteSet);
+            return;
+          }
+          resetSwipe();
+        },
+        onPanResponderTerminate: resetSwipe,
+      }),
+    [handleDeleteSet, resetSwipe, swipeX],
+  );
+
+  const handleWeightModifier = (amount: number) => {
+    const currentVal = set.weight || 0;
+    const modifierKg = isImperial ? amount / 2.20462 : amount;
+    const newVal = Math.max(0, currentVal + modifierKg);
+    onUpdate({ weight: newVal });
+  };
+
+  const handleCopyLastSet = () => {
+    if (prevSet) {
+      onUpdate({
+        ...(prevSet.weight !== undefined ? { weight: prevSet.weight } : {}),
+        ...(prevSet.reps !== undefined ? { reps: prevSet.reps } : {}),
+        ...(prevSet.rpe !== undefined ? { rpe: prevSet.rpe } : {}),
+        ...(prevSet.rir !== undefined ? { rir: prevSet.rir } : {}),
+      });
+    }
+  };
 
   // Format Level (unconverted weight for cardio) or normal weight
   const getDisplayWeight = () => {
@@ -620,32 +855,47 @@ const SetRow = ({
 
   return (
     <View style={styles.rowContainer}>
-      <View
-        style={[
-          styles.row,
-          isDone && {
-            borderColor: theme.colors.primary,
-            backgroundColor: 'rgba(144, 213, 255, 0.07)',
-          },
-        ]}
-      >
-        <Pressable onPress={cycleSetType} style={[styles.setCol, styles.centerAlign]}>
-          {getSetTypeBadge()}
-        </Pressable>
-        <TextInput
-          style={[
-            styles.input,
-            styles.inputCol,
-            { color: theme.colors.text, backgroundColor: theme.colors.background },
-            isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface },
-          ]}
-          keyboardType="numeric"
-          value={getDisplayWeight()}
-          onChangeText={handleWeightChange}
-          placeholder="-"
-          placeholderTextColor={theme.colors.muted}
-        />
-        {isCardio ? (
+      <View style={styles.swipeFrame}>
+        {Platform.OS !== 'web' && (
+          <View style={[styles.swipeDeleteBackground, { backgroundColor: '#ef4444' }]}>
+            <Ionicons name="trash-outline" size={18} color="#ffffff" />
+          </View>
+        )}
+        <Animated.View
+          {...(Platform.OS !== 'web' ? swipeResponder.panHandlers : {})}
+          style={{ transform: [{ translateX: swipeX }] }}
+        >
+          <View
+            style={[
+              styles.row,
+              { backgroundColor: theme.colors.surface },
+              isDone && {
+                borderColor: theme.colors.primary,
+                backgroundColor: 'rgba(144, 213, 255, 0.07)',
+              },
+            ]}
+          >
+            <Pressable onPress={cycleSetType} style={[styles.setCol, styles.centerAlign]}>
+              {getSetTypeBadge()}
+            </Pressable>
+            <TextInput
+              style={[
+                styles.input,
+                styles.inputCol,
+                { color: theme.colors.text, backgroundColor: theme.colors.background },
+                isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface },
+              ]}
+              keyboardType="numeric"
+              value={getDisplayWeight()}
+              onChangeText={handleWeightChange}
+              placeholder="-"
+              placeholderTextColor={theme.colors.muted}
+              onFocus={() => setIsWeightFocused(true)}
+              onBlur={() => {
+                setTimeout(() => setIsWeightFocused(false), 300);
+              }}
+            />
+            {isCardio ? (
           <TextInput
             style={[
               styles.input,
@@ -710,26 +960,68 @@ const SetRow = ({
             placeholder="-"
             placeholderTextColor={theme.colors.muted}
           />
-        )}
-        <Pressable
-          style={[
-            styles.doneBtn,
-            styles.doneCol,
-            {
-              backgroundColor: isDone ? theme.colors.primary : theme.colors.background,
-              borderWidth: 1,
-              borderColor: isDone ? theme.colors.primary : theme.colors.border,
-            },
-          ]}
-          onPress={onComplete}
-        >
-          <Ionicons
-            name="checkmark"
-            size={20}
-            color={isDone ? theme.colors.background : theme.colors.muted}
-          />
-        </Pressable>
+            )}
+            <Pressable
+              style={[
+                styles.doneBtn,
+                styles.doneCol,
+                {
+                  backgroundColor: isDone ? theme.colors.primary : theme.colors.background,
+                  borderWidth: 1,
+                  borderColor: isDone ? theme.colors.primary : theme.colors.border,
+                },
+              ]}
+              onPress={onComplete}
+            >
+              <Ionicons
+                name="checkmark"
+                size={isSmallScreen ? 16 : 20}
+                color={isDone ? theme.colors.background : theme.colors.muted}
+              />
+            </Pressable>
+            {Platform.OS === 'web' && (
+              <Pressable
+                style={[
+                  styles.deleteSetBtn,
+                  styles.deleteCol,
+                  { borderColor: theme.colors.border, backgroundColor: theme.colors.background },
+                ]}
+                onPress={handleDeleteSet}
+                hitSlop={6}
+              >
+                <Ionicons name="close" size={16} color="#ef4444" />
+              </Pressable>
+            )}
+          </View>
+        </Animated.View>
       </View>
+      {isWeightFocused && !isCardio && (
+        <View style={styles.accessoryRow}>
+          <Pressable style={styles.accessoryBtn} onPressIn={() => handleWeightModifier(-5)}>
+            <Text style={styles.accessoryBtnText}>-5</Text>
+          </Pressable>
+          <Pressable style={styles.accessoryBtn} onPressIn={() => handleWeightModifier(-2.5)}>
+            <Text style={styles.accessoryBtnText}>-2.5</Text>
+          </Pressable>
+          <Pressable style={styles.accessoryBtn} onPressIn={() => handleWeightModifier(-1.25)}>
+            <Text style={styles.accessoryBtnText}>-1.25</Text>
+          </Pressable>
+          <Pressable style={styles.accessoryBtn} onPressIn={() => handleWeightModifier(1.25)}>
+            <Text style={styles.accessoryBtnText}>+1.25</Text>
+          </Pressable>
+          <Pressable style={styles.accessoryBtn} onPressIn={() => handleWeightModifier(2.5)}>
+            <Text style={styles.accessoryBtnText}>+2.5</Text>
+          </Pressable>
+          <Pressable style={styles.accessoryBtn} onPressIn={() => handleWeightModifier(5)}>
+            <Text style={styles.accessoryBtnText}>+5</Text>
+          </Pressable>
+          {prevSet && (
+            <Pressable style={styles.accessoryBtnCopy} onPressIn={handleCopyLastSet}>
+              <Text style={styles.accessoryBtnTextCopy}>Copy Prev</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
       {e1rm > 0 && (
         <View style={styles.e1rmRow}>
           <Text style={[styles.e1rmText, { color: theme.colors.muted }]}>
@@ -740,6 +1032,10 @@ const SetRow = ({
     </View>
   );
 };
+
+const { width: screenWidth } = Dimensions.get('window');
+const isSmallScreen = screenWidth < 375;
+const isMediumScreen = screenWidth < 415;
 
 const styles = StyleSheet.create({
   card: {
@@ -780,16 +1076,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   columnHeader: {
-    fontSize: 12,
+    fontSize: isSmallScreen ? 10 : 12,
     fontWeight: '600',
     textAlign: 'center',
   },
   setCol: { width: 30, textAlign: 'center' },
   inputCol: { flex: 1, textAlign: 'center' },
-  doneCol: { width: 44, textAlign: 'center' },
+  doneCol: { width: isSmallScreen ? 36 : 44, textAlign: 'center' },
+  deleteCol: { width: 34, textAlign: 'center' },
 
   rowContainer: {
     marginBottom: 8,
+  },
+  swipeFrame: {
+    borderRadius: 10,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  swipeDeleteBackground: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: 96,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   row: {
     flexDirection: 'row',
@@ -801,7 +1112,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   cell: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 13 : 16,
     fontWeight: '600',
   },
   centerAlign: {
@@ -820,10 +1131,10 @@ const styles = StyleSheet.create({
   },
   input: {
     borderRadius: 8,
-    marginHorizontal: 4,
+    marginHorizontal: isSmallScreen ? 2 : 4,
     paddingVertical: 6,
-    paddingHorizontal: 8,
-    fontSize: 16,
+    paddingHorizontal: isSmallScreen ? 4 : 8,
+    fontSize: isSmallScreen ? 13 : isMediumScreen ? 14 : 16,
     textAlign: 'center',
     fontWeight: '500',
     borderWidth: 1,
@@ -834,6 +1145,14 @@ const styles = StyleSheet.create({
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  deleteSetBtn: {
+    borderWidth: 1,
+    borderRadius: 8,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 4,
   },
   e1rmRow: {
     paddingLeft: 38,
@@ -920,6 +1239,18 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     gap: 10,
   },
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A2B31',
+    gap: 12,
+  },
+  optionText: {
+    fontSize: 15,
+    fontFamily: 'Manrope_500Medium',
+  },
   noteField: {
     flexDirection: 'column',
   },
@@ -937,5 +1268,43 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'Manrope_500Medium',
     backgroundColor: '#0B0B0F',
+  },
+  accessoryRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    backgroundColor: '#1E222B',
+    borderRadius: 8,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#2A2B31',
+  },
+  accessoryBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#2A2B31',
+    borderRadius: 6,
+    minWidth: 40,
+    alignItems: 'center',
+  },
+  accessoryBtnText: {
+    color: '#90D5FF',
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 12,
+  },
+  accessoryBtnCopy: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#90D5FF',
+    borderRadius: 6,
+    marginLeft: 6,
+  },
+  accessoryBtnTextCopy: {
+    color: '#0B0B0F',
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 12,
   },
 });

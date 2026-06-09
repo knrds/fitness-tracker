@@ -11,18 +11,22 @@ import {
   ScrollView,
   PanResponder,
   Animated,
+  ViewStyle,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@fitness-tracker/ui';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { WorkoutTemplate } from '@fitness-tracker/domain';
+import ProgramListScreen from './programs';
 
 export default function WorkoutsScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { templates, deleteTemplate, updateTemplatesOrder } = useProgramStore();
   const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
   const { exercises } = useExerciseStore();
@@ -167,57 +171,100 @@ export default function WorkoutsScreen() {
   const menuTemplate = templates.find((t) => t.id === menuTemplateId) || null;
   const summaryTemplate = templates.find((t) => t.id === summaryTemplateId) || null;
 
+  const [activeTab, setActiveTab] = useState<'workouts' | 'programs'>('workouts');
+
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} scrollEnabled={scrollEnabled}>
-        <View style={styles.quickStart}>
-          <Text style={styles.sectionTitle}>Quick Start</Text>
-          <Pressable style={styles.emptyWorkoutBtn} onPress={handleStartEmpty}>
-            <Text style={styles.emptyWorkoutBtnText}>
-              {status === 'active' || status === 'paused'
-                ? 'Resume Current Workout'
-                : '+ Start Empty Workout'}
-            </Text>
-          </Pressable>
-        </View>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: theme.colors.background, paddingTop: Math.max(insets.top, 16) },
+      ]}
+    >
+      {/* Top Segmented Control Tab Toggle */}
+      <View style={styles.tabToggleHeader}>
+        <Pressable
+          style={[styles.tabToggleBtn, activeTab === 'workouts' && styles.tabToggleBtnActive]}
+          onPress={() => setActiveTab('workouts')}
+        >
+          <Text
+            style={[
+              styles.tabToggleBtnText,
+              { color: activeTab === 'workouts' ? theme.colors.primary : theme.colors.muted },
+            ]}
+          >
+            TEMPLATES
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.tabToggleBtn, activeTab === 'programs' && styles.tabToggleBtnActive]}
+          onPress={() => setActiveTab('programs')}
+        >
+          <Text
+            style={[
+              styles.tabToggleBtnText,
+              { color: activeTab === 'programs' ? theme.colors.primary : theme.colors.muted },
+            ]}
+          >
+            PROGRAMS
+          </Text>
+        </Pressable>
+      </View>
 
-        <Text style={[styles.sectionTitle, { paddingHorizontal: 16 }]}>My Templates</Text>
-        <View style={styles.list}>
-          {templates.map((item) => {
-            const isDraggingThis = item.id === activeDragId;
-            const exerciseNames = item.exercises
-              .map((te) => exercises.find((e) => e.id === te.exerciseId)?.name)
-              .filter(Boolean)
-              .join(', ');
+      {activeTab === 'workouts' ? (
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 20, 100) }}
+          scrollEnabled={scrollEnabled}
+        >
+          <View style={styles.quickStart}>
+            <Text style={styles.sectionTitle}>Quick Start</Text>
+            <Pressable style={styles.emptyWorkoutBtn} onPress={handleStartEmpty}>
+              <Text style={styles.emptyWorkoutBtnText}>
+                {status === 'active' || status === 'paused'
+                  ? 'Resume Current Workout'
+                  : '+ Start Empty Workout'}
+              </Text>
+            </Pressable>
+          </View>
 
-            return (
-              <Animated.View
-                key={item.id}
-                onLayout={(e) => {
-                  if (activeDragId !== item.id) {
-                    itemLayouts.current[item.id] = {
-                      y: e.nativeEvent.layout.y,
-                      height: e.nativeEvent.layout.height,
-                    };
-                  }
-                }}
-                style={[
-                  styles.card,
-                  isDraggingThis && {
-                    transform: [{ translateY: dragY }],
-                    zIndex: 9999,
-                    opacity: 0.85,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.35,
-                    shadowRadius: 6,
-                    elevation: 5,
-                  },
-                ]}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Text style={[styles.sectionTitle, { paddingHorizontal: 16 }]}>My Templates</Text>
+          <View style={styles.list}>
+            {templates.map((item) => {
+              const isDraggingThis = item.id === activeDragId;
+              const exerciseNames = item.exercises
+                .map((te) => exercises.find((e) => e.id === te.exerciseId)?.name)
+                .filter(Boolean)
+                .join(', ');
+
+              return (
+                <Animated.View
+                  key={item.id}
+                  onLayout={(e) => {
+                    if (activeDragId !== item.id) {
+                      itemLayouts.current[item.id] = {
+                        y: e.nativeEvent.layout.y,
+                        height: e.nativeEvent.layout.height,
+                      };
+                    }
+                  }}
+                  style={[
+                    styles.card,
+                    isDraggingThis && {
+                      transform: [{ translateY: dragY }],
+                      zIndex: 9999,
+                      opacity: 0.85,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.35,
+                      shadowRadius: 6,
+                      elevation: 5,
+                    },
+                  ]}
+                >
                   <View
-                    style={styles.dragHandle}
+                    style={[styles.dragHandle, { cursor: 'grab' } as unknown as ViewStyle]}
+                    onPointerDown={() => {
+                      draggingTemplateRef.current = item;
+                    }}
                     onTouchStart={() => {
                       draggingTemplateRef.current = item;
                     }}
@@ -226,7 +273,10 @@ export default function WorkoutsScreen() {
                     <Ionicons name="reorder-two" size={24} color={theme.colors.primary} />
                   </View>
 
-                  <Pressable style={styles.cardInfo} onPress={() => setSummaryTemplateId(item.id)}>
+                  <Pressable
+                    style={[styles.cardInfo, { marginLeft: 12 }]}
+                    onPress={() => setSummaryTemplateId(item.id)}
+                  >
                     <Text style={styles.cardTitle}>{item.name}</Text>
                     <Text style={styles.cardSubtitle} numberOfLines={2} ellipsizeMode="tail">
                       {exerciseNames || `${item.exercises.length} Exercises`}
@@ -240,17 +290,19 @@ export default function WorkoutsScreen() {
                   >
                     <Ionicons name="ellipsis-vertical" size={20} color="#8A8D9F" />
                   </Pressable>
-                </View>
-              </Animated.View>
-            );
-          })}
-          {templates.length === 0 && (
-            <Text style={styles.emptyText}>
-              No templates saved yet. Finish a workout and save it as a template.
-            </Text>
-          )}
-        </View>
-      </ScrollView>
+                </Animated.View>
+              );
+            })}
+            {templates.length === 0 && (
+              <Text style={styles.emptyText}>
+                No templates saved yet. Finish a workout and save it as a template.
+              </Text>
+            )}
+          </View>
+        </ScrollView>
+      ) : (
+        <ProgramListScreen />
+      )}
 
       {/* Template Action Menu */}
       <Modal
@@ -411,6 +463,27 @@ export default function WorkoutsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0B0B0F' },
+  tabToggleHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#1A1C23',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A2B31',
+  },
+  tabToggleBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabToggleBtnActive: {
+    borderBottomColor: '#90D5FF',
+  },
+  tabToggleBtnText: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 12,
+    letterSpacing: 1,
+  },
   quickStart: {
     padding: 16,
     marginBottom: 8,

@@ -32,33 +32,44 @@
 
 ## 1. AKTUELLER STAND
 
-> ✅ **Stand 2026-06-04:** All core tasks from Block 1 (M6–M9), Block 2 (H0, bug fixes, TS hardening), and the UI/UX polish additions (modals, reordering, cardio metrics, recent summaries) are complete.
+> ✅ **Stand 2026-06-09:** Block 1 (M6-M9), Block 2/H0, Premium UI polish, and the current stabilization pass on `feat/ui-volt-premium-completion` are implemented and verified with `pnpm typecheck`, `pnpm lint`, `pnpm test` (98 tests: 29 domain + 69 mobile), mobile `jest --coverage` (81.11% statements), and `pnpm build`.
 >
-> 🔀 **Branch & UI Polish updates (2026-06-04):**
+> 🔀 **Current branch updates (2026-06-09):**
 >
 > - **Smooth Animated Modals:** Custom `<Modal>` component rewritten to use `Animated` for backdrop fade and container slide translations on open and close.
 > - **PR highlights on Progress Charts:** Volume history Progress charts now calculate historical PRs using e1RM and highlight PR workouts with gold dots (`#FFB020`). Tapping dots reveals volume details alongside a "★ NEW PR!" indicator.
 > - **Interactive XP Tooltip:** Level card on the Home Screen shows the exact numerical XP progress (`X / 500 XP`) when hovered (web) or pressed (mobile).
 > - **Unique Achievement Icons:** Replaced repeated Ionicon names in `achievements.ts` to ensure every achievement has a unique, distinct icon representing its milestone.
 > - **Program List Drag-and-Drop:** Converted `FlatList` to custom `ScrollView` in `(tabs)/programs.tsx`, enabling vertical drag-and-drop sorting via `PanResponder` and `Animated` using a `reorder-two` handle, persisting the new order via `updateProgramsOrder`.
-> - **Home Recent Workouts:** Added a list of the 4 most recent completed workouts under the Today card on the Home screen. Tapping a card opens a modal summary details sheet with click-outside-to-dismiss support.
+> - **Home Saved Workouts/Templates:** Home and Workouts now emphasize saved workout/template summaries instead of a separate "recent workouts" feature description.
 > - **Workout/Template Subtitles:** Added a 2-line truncated list of exercise names as a subtitle for template cards in `(tabs)/workouts.tsx` and history cards in `(tabs)/history.tsx`.
 > - **Custom Exercise Tracking Mode:** Added a tracking mode toggle ("Reps & Weight" vs "Duration & Level") to `CustomExerciseModal.tsx`. Selecting duration maps `movementPattern` to `MovementPattern.Cardio`, enabling cardio level and minutes:seconds tracking for custom movements.
-> - **Compiles & Passes:** `pnpm typecheck` ✅, `pnpm test` (all tests passed) ✅, `pnpm lint` ✅.
+> - **Stabilization:** Warmup-safe analytics helpers (`summarizeSessionExercise`, `getExerciseProgressHistory`, `getBestWeights`, `getBestE1RMs`) are exported from the domain layer and used by History, workout completion, Session HUD, and exercise stats.
+> - **Workout Session UX:** Rest timer starts collapsed, remains reachable after minimizing, and the compact scrolled HUD now keeps `FINISH` available. Newly added exercises inherit the latest logged values/sets for that exercise.
+> - **Exercise Insights:** Exercise info now shows exercise-specific working volume vs last session with red/blue/green percent coloring; warmup volume is excluded.
+> - **Exercise Library Filters:** Favorite appears directly after All; Powerlifting, Calisthenics, Warmup, Warmup Cardio, Strength, and Obliques filtering are available without domain enum changes.
+> - **Tracking Extensions:** Local caffeine tracking can be toggled in settings, uses presets/custom mg, warns for high/extreme intake, and shows the explicit over-1500mg troll guard. Hydration tracking in Body supports goals plus 250 ml / 500 ml / 1 l add and subtract actions.
+> - **Body & History Rework:** Body has quicker same-day metric entry plus progression history. History consistency supports week/month views with stacked same-day workout blocks, and Volume History crosshair selection is aligned to tapped points.
+> - **Heatmap & Obliques:** Body heatmap intensity now scales with trained working volume, and oblique-like exercises contribute to Obliques coverage.
+> - **Achievements Expansion:** Added long-range workout/volume/PR/exercise milestones, meta achievements, exercise-specific badges, equipment/movement-pattern niche badges, and higher repeatable session achievements.
+> - **Workout Facts:** Finish-modal facts are biased toward training volume, set density, top exercise contribution, cardio, warmups, and short science tips; caffeine facts only show when caffeine tracking is enabled.
+> - **Auth foundation:** `authStore`, Supabase environment detection, Login/Register routes, root auth guard, and Profile sign-out exist. Cloud sync and full local-to-cloud user migration remain open.
+> - **Release prep partial:** `icon.png`, `adaptive-icon.png`, and `splash-icon.png` exist; splash/adaptive backgrounds are dark (`#0B0B0F`); bundle IDs were corrected from the typoed `com.fitnessracker.app` shape to `com.fitnesstracker.app`.
+> - **Compiles & Passes:** `pnpm typecheck` ✅, `pnpm test` (98) ✅, mobile `jest --coverage` ✅ (81.11% statements), `pnpm lint` ✅, `pnpm build` ✅.
 >
 > ⚠️ **Potential Issues / Notes for Codex:**
 >
-> 1. **Progress Chart Performance:** The `getProgressHistory` calculation on the progress chart loops chronologically through all sessions on every render/tab click. If a user logs 500+ workouts, this may cause a frame drop. Codex should implement memoization for this logic.
+> 1. **Progress Chart Performance:** Progress history now uses a domain helper, but the UI should still memoize chart inputs for users with 500+ logged workouts.
 > 2. **ScrollView rendering overhead:** Changing the list of programs in `(tabs)/programs.tsx` from `FlatList` to `ScrollView` allows measuring Y positions for reordering. For long program lists (e.g. 50+ programs), rendering them all at once could introduce minor performance overhead. Codex should check if this needs windowing/optimization.
 > 3. **Cardio custom exercise validation:** The new tracking mode maps "duration" to `MovementPattern.Cardio`. Codex should verify that when exporting workouts or syncing, cardio sets (where `weight` stores the Level and duration is tracked in `durationSeconds`) do not trigger standard volume validation logic that assumes weight in kg/lbs.
-> 4. **Pointer Hover Events on Mobile Web:** `onPointerEnter` and `onPointerLeave` work well for web hover, but might behave inconsistently on older touch-screen browsers.
-> 5. **Zod Parsing Overhead:** Zod validation on MMKV storage hydration is thorough, but ensure it is fast enough as database size grows.
+> 4. **Auth Migration:** Until Cloud Sync exists, new local records use the current Supabase user ID when available and fall back to `LOCAL_USER_ID`. Mission 11 must define the migration/claim strategy before uploading local data.
+> 5. **Remaining Test Gaps:** Regression coverage exists for the new helpers and key stores, but drag-and-drop reorder, template summary modal, and root redirect UI should still get focused component tests.
 
 ---
 
 Tatsächlicher Stand:
 
-**Auf `main` gemerged:**
+**Auf `main` gemerged bzw. im aktuellen Arbeitsstand enthalten:**
 
 - ✅ Monorepo (Expo 52, pnpm workspaces, TypeScript strict)
 - ✅ Datenmodell (11 Tabellen, alle Types, Zod-Schemas)
@@ -74,8 +85,9 @@ Tatsächlicher Stand:
 - ✅ Mission 7: Achievements + Gamification
 - ✅ Mission 8: Body Tracking + Profil
 - ✅ Mission 9: Workout-Verbesserungen
+- ✅ Current stabilization pass: warmup-safe analytics consumers, UUID-safe seed data, full local data clear, local body date keys, auth foundation, release asset placeholders, and updated tests.
 
-### ✅ Architektur-Schulden — BEHOBEN (Mission H0, gemerged)
+### ✅ Architektur-Schulden — BEHOBEN / AKTUELL GEHÄRTET (Mission H0 + 2026-06-08)
 
 Der Code-Review (2026-06-03) hatte die untenstehenden Punkte ergeben. Sie wurden in
 **Mission H0** (`fix/domain-logic-hardening`, via PR #8 gemerged) behoben und sind
@@ -94,6 +106,9 @@ verbindlich, damit sie nicht zurückkehren:
 7. ✅ **Workout-Timer driftfrei** — `elapsedSeconds` aus `startedAt` abgeleitet.
 8. ✅ **Leeres-Workout-Guard** in `finishWorkout` (kein History-Eintrag, kein XP).
 9. ✅ **MMKV-Migrationsstrategie** (`version` + `migrate`) pro persistentem Store.
+10. ✅ **Seed-Daten UUID-konform.** Default-Programme/Templates nutzen schemafähige IDs.
+11. ✅ **`clearAllData()` vollständig.** Profil-Reset bereinigt Achievements, Notes, aktives Workout, last-finished Modal-State, Programme/Templates und lokale Stores.
+12. ✅ **Auth-Grundlage vorhanden.** Supabase Auth ist begonnen, aber Cloud Sync und Migration von lokalen Daten auf echte User-IDs sind noch offen.
 
 ---
 
@@ -110,16 +125,19 @@ Kanonische Helfer (nach Mission H0 vorhanden — vorher NICHT neu erfinden,
 sondern H0 abwarten oder dort ergänzen):
 
 - `calculateVolume(session, { includeWarmups: false })`
-- `estimateOneRepMax(weight, reps)` (Epley: `weight * (1 + reps / 30)`)
+- `estimateOneRepMax(weight, reps, rpe?, rir?, exerciseName?)` (adaptive e1RM: RIR/RPE erweitern die effektiven Wiederholungen; Divisor abhängig vom Übungstyp, Legacy-Fallback `30`)
 - `calculateStreak(sessions)` (lokales Datum, **kein** `toISOString()`)
 - `detectPRs(session, history)` (e1RM-basiert, Warmups ausgeschlossen)
+- `summarizeSessionExercise(sessionExercise)` (completed Sets, Arbeitsvolumen, Max-/Durchschnittsgewicht ohne Warmups)
+- `getExerciseProgressHistory(exerciseId, sessions, exerciseName?)` (chronologische Chart-Punkte + e1RM-PR-Markierung)
+- `getBestWeights(sessions)` und `getBestE1RMs(sessions, exerciseNames?)`
 - `summarizeWorkout(session)` (Dauer, Volumen, Sätze, PRs)
   **Niemals** dieselbe Berechnung in zwei Dateien duplizieren.
 
 **2. Warmups zählen nie als Arbeitsvolumen oder PR.** Jede Volumen-/PR-/
 Statistik-Berechnung MUSS `set.type` berücksichtigen (`warmup` ausschließen).
 
-**3. PRs sind e1RM-basiert** (geschätztes 1RM via Epley), nicht „max Gewicht".
+**3. PRs sind e1RM-basiert** (geschätztes 1RM via adaptiver Formel), nicht „max Gewicht".
 
 **4. Datumsvergleiche immer in lokaler Zeit.** Tages-Keys als `YYYY-MM-DD`
 (lokal), nie `Date.toISOString()` (UTC verschiebt den Tag).
@@ -127,7 +145,7 @@ Statistik-Berechnung MUSS `set.type` berücksichtigen (`warmup` ausschließen).
 **5. MMKV-Persistenz:**
 
 - Genau **ein** gemeinsamer Storage-Helper
-  (`apps/mobile/src/stores/storage.ts`, z.B. `createMMKVStorage<T>(id)`).
+  (`apps/mobile/src/stores/storage.ts`, `createHydratedStorage<T>(id, schema, defaults)`).
   `reviveDates`/`customStorage` NICHT mehr pro Store kopieren.
 - Beim Hydrieren wird der State gegen das passende **Zod-Schema** aus
   `@fitness-tracker/domain` validiert (DoD #3). Ungültige Daten → sauberer
@@ -555,7 +573,9 @@ LEITPLANKEN für diese Mission:
 
 8. Echtzeit e1RM-Schätzer:
    Berechne für jeden Satz beim Eintragen das geschätzte 1-Rep Max
-   (Epley-Formel: weight * (1 + reps / 30)) und zeige es als kleine Muted-Info an.
+   über `estimateOneRepMax(weight, reps, rpe?, rir?, exerciseName?)` und zeige es
+   als kleine Muted-Info an. Die aktuelle Formel ist adaptiv: RIR/RPE erhöhen
+   die effektiven Wiederholungen, der Divisor hängt vom Übungstyp ab.
 
 9. RIR (Reps in Reserve) Erfassung:
    Neben RPE auch RIR (0 bis 5+) als alternatives/ergänzendes Tracking-Feld ermöglichen.
@@ -591,7 +611,8 @@ gelisteten Architektur-Schulden.
    Funktionen (kein React/RN/MMKV), jede mit Vitest-Test:
    - calculateVolume(session, { includeWarmups }): summiert weight*reps NUR über
      completed Sets; schließt type === 'warmup' aus wenn includeWarmups false.
-   - estimateOneRepMax(weight, reps): Epley = weight * (1 + reps / 30).
+   - estimateOneRepMax(weight, reps, rpe?, rir?, exerciseName?): adaptive e1RM-
+     Formel mit RIR/RPE und Übungstyp-Divisor; Legacy-Fallback bleibt `30`.
    - calculateStreak(sessions): lokaler Tages-Key 'YYYY-MM-DD', NICHT toISOString.
    - detectPRs(session, history): e1RM-basiert, Warmups ausgeschlossen; gibt neue
      PRs mit Delta zurück.
@@ -603,7 +624,8 @@ gelisteten Architektur-Schulden.
    - useAchievementCheck: eigene Volumen-Schleife entfernen, Helfer nutzen.
 
 3. Gemeinsamer MMKV-Helper apps/mobile/src/stores/storage.ts:
-   createMMKVStorage<T>(id) kapselt reviveDates + customStorage. Alle Stores
+   createHydratedStorage<T>(id, schema, defaults) kapselt reviveDates + customStorage.
+   Alle Stores
    (workout, history, achievement, body, profile, exercise, program) nutzen ihn.
    Pro Store: Hydration validiert gegen das passende Zod-Schema; bei Fehler
    sauberer Default statt Crash. version + migrate-Funktion ergänzen.
@@ -853,7 +875,7 @@ Zeitraum-Filter:
 
 Charts:
 - Volumen über Zeit (Linien-Chart) pro Übung oder gesamt
-- 1RM-Entwicklung (geschätzter 1RM via Epley-Formel)
+- 1RM-Entwicklung (geschätzter 1RM via adaptiver e1RM-Formel)
 - Trainings-Heatmap-Kalender (wie GitHub Contributions:
   Raster der letzten 12 Wochen, Farbe = Trainingsvolumen)
 - Muskelgruppen-Verteilung (Donut-Chart der letzten 4 Wochen)
@@ -917,6 +939,14 @@ pnpm test. Merge nicht nach main.
 
 ## 10. BLOCK 5 — BACKEND & SYNC
 
+> **Status 2026-06-08:** Supabase/Auth ist begonnen, aber Block 5 ist noch nicht
+> abgeschlossen. Vorhanden sind `apps/mobile/src/utils/supabase.ts`,
+> `apps/mobile/src/stores/authStore.ts`, Login/Register-Routen, Root-Auth-Guard
+> und Sign-out im Profile Screen. Offen bleiben Supabase-Projekt/.env auf echten
+> Geräten, Passwort-Reset/Email-Verifikation als vollständiger UX-Flow,
+> Cloud Sync, Konfliktlösung und die Migration lokaler `LOCAL_USER_ID`-Daten auf
+> echte Supabase-User-IDs.
+
 ### MANUELL VOR MISSION 10:
 
 1. Auf supabase.com: Neues Projekt anlegen
@@ -940,21 +970,22 @@ Committe die .env NIEMALS (ist in .gitignore).
 
 Implementiere:
 
-1. packages/db/src/client.ts:
+1. apps/mobile/src/utils/supabase.ts:
    Supabase Client mit den Env-Variablen
-   Export: supabase
+   Export: supabase + isSupabaseConfigured
 
 2. authStore.ts (Zustand):
-   session: Session | null
-   user: User | null
-   isLoading: boolean
-   signUp(email, password)
-   signIn(email, password)
-   signOut()
-   onAuthStateChange listener
+    session: Session | null
+    user: User | null
+    isLoading: boolean
+    isConfigured/isInitialized
+    signUp(email, password)
+    signIn(email, password)
+    signOut()
+    onAuthStateChange listener
 
-3. AuthScreen (/app/auth.tsx):
-   Tab-Switch: Login / Registrierung
+3. Auth Screens:
+   /app/auth/login.tsx und /app/auth/register.tsx
    Email + Passwort Felder
    Fehler-Anzeige (falsches Passwort, bereits registriert)
    Passwort-Zurücksetzen Link (Supabase Magic Link)
@@ -965,8 +996,12 @@ Implementiere:
    Wenn session → normale App
 
 5. Session-Persistenz:
-   AsyncStorage oder MMKV für Session-Token
-   Automatisch einloggen bei App-Start
+   Supabase native session handling prüfen und auf echten Geräten testen.
+   Automatisch einloggen bei App-Start über authStore.initialize().
+
+6. Migration:
+   Vor Cloud Sync definieren, wie lokale Daten mit `LOCAL_USER_ID` auf die echte
+   `auth.uid()`-User-ID übertragen oder beansprucht werden.
 
 pnpm test. .env nicht committen. Merge nicht nach main.
 ```
@@ -1381,7 +1416,7 @@ Prüfe welche Stores noch keine oder wenige Tests haben.
 Schreibe Tests für:
 
 packages/domain:
-- Epley-1RM-Formel
+- Adaptive e1RM-Formel (`estimateOneRepMax`)
 - Volumen-Berechnung
 - Streak-Berechnung
 - Achievement-Bedingungen
@@ -1442,20 +1477,28 @@ pnpm test. Merge nicht nach main.
 
 ### Mission 22: Release-Vorbereitung
 
+> **Status 2026-06-08:** Teilweise erledigt. `app.json` enthält Version `1.0.0`,
+> Portrait-Orientation, Dark Splash (`#0B0B0F`), `icon.png`,
+> `adaptive-icon.png`, `splash-icon.png` und die aktuell verwendeten IDs
+> `com.fitnesstracker.app`. Vor Store-Upload final entscheiden, ob die
+> Bundle-/Package-ID owner-prefixed sein soll (z.B. `com.konradskwarski.fitnesstracker`);
+> nach dem ersten Store-Upload nicht mehr leicht ändern.
+
 ```
 Lies AGENTS.md. Branch: feat/release-prep
 
 1. app.json vollständig konfigurieren:
    name, slug, version: "1.0.0"
-   iOS: bundleIdentifier: "com.konradskwarski.fitnesstracker"
-   Android: package: "com.konradskwarski.fitnesstracker"
+   iOS: bundleIdentifier prüfen/finalisieren (aktuell: "com.fitnesstracker.app")
+   Android: package prüfen/finalisieren (aktuell: "com.fitnesstracker.app")
    Permissions: nur was wirklich gebraucht wird
    Orientation: portrait only
 
 2. App-Icon:
-   Erstelle einen Platzhalter-Icon (kraftvoll, simpel)
+   Platzhalter-Icons existieren; vor Release durch finale Assets ersetzen
    in /apps/mobile/assets/
-   icon.png (1024x1024), adaptive-icon.png, favicon.png, splash.png
+   icon.png (1024x1024), adaptive-icon.png, favicon.png, splash-icon.png
+   Splash/adaptive background bleibt dark (`#0B0B0F`), nicht weiß.
 
 3. EAS Build Konfiguration (eas.json):
    development: Expo Go kompatibel
@@ -1609,14 +1652,15 @@ BLOCK 3 — DESIGN-FUNDAMENT (Gemini Designer)
 
 BLOCK 4 — PREMIUM UI (Gemini Designer)
 [x] Premium Workout-Screen (RestTimer visual overhaul, automated play, plate loader modal)
-[x] Home-Dashboard (Recent workouts cards, XP bar tooltip, level progression)
+[x] Home-Dashboard (saved workouts/templates cards, XP bar tooltip, level progression)
 [x] Progress-Charts (Interactive chart with gold PR marker highlights, details tooltips)
 [x] Micro-Interactions (Smooth Animated modal slide/fade, list reordering via PanResponder drag & drop)
 
-BLOCK 5 — BACKEND (Gemini Builder)  ← NÄCHSTER SCHRITT
-[ ] MANUELL: Supabase Projekt + Schema
-[ ] Mission 10: Auth
-[ ] Mission 11: Cloud Sync
+BLOCK 5 — BACKEND (Gemini Builder)  ← IN ARBEIT
+[ ] MANUELL: Supabase Projekt + Schema/.env auf echten Geräten prüfen
+[x] Mission 10: Auth-Fundament (authStore, Login/Register, Root-Guard, Sign-out)
+[ ] Mission 10 Rest: Passwort-Reset, Email-Verifikation UX, echte Device-Session prüfen
+[ ] Mission 11: Cloud Sync + LOCAL_USER_ID-Migration
 
 BLOCK 6 — SOCIAL (Gemini Builder)
 [ ] MANUELL: Additive Migrations ausführen
@@ -1642,7 +1686,7 @@ BLOCK 9 — QUALITÄT (Builder + Codex)
 
 BLOCK 10 — RELEASE (Builder)
 [ ] Onboarding
-[ ] Release-Prep (Icons, app.json, Store-Listing)
+[ ] Release-Prep (app.json + Placeholder-Icons teilweise erledigt; EAS, Legal, Store-Listing offen)
 [ ] MANUELL: eas-cli installieren + Developer-Accounts
 [ ] Erster Build (Android Preview zuerst)
 
@@ -1670,16 +1714,15 @@ FERTIG: Testbare App auf echten Geräten ✅
 
 ---
 
-## 18. BRANCH-HYGIENE (Stand 2026-06-03)
+## 18. BRANCH-HYGIENE (Stand 2026-06-08)
 
-### Lage (aktualisiert 2026-06-03, Konsolidierung)
+### Lage (aktualisiert 2026-06-08, Stabilisierung)
 
-`main` ist vollständig konsolidiert und grün. Die komplette Bugfix-/Feature-Arbeit
-aus `fix/bugfixes` wurde nach `main` gemerged. Hintergrund: PR #9 hatte durch eine
-veraltete Branch-Referenz nur den ersten der fünf Commits erfasst — der Rest
-(Multi-Select Exercise Picker, Plate-Visualizer, RIR/RPE-e1RM, Restoration-Modal,
-Programm-Kalender, Achievement-Expansion u.a.) wurde per `git merge fix/bugfixes`
-nachgezogen. Verifiziert: `pnpm typecheck` ✅ · `pnpm test` (67) ✅ · `pnpm lint` ✅.
+`main` war nach der Konsolidierung grün; die aktuelle Stabilisierung läuft auf
+`feat/ui-volt-premium-completion` und ist noch nicht als `main`-Status zu lesen.
+Verifiziert auf diesem Branch: `pnpm typecheck` ✅ · `pnpm test` (85) ✅ ·
+mobile `jest --coverage` (75.6% statements) ✅ · `pnpm lint` ✅ ·
+`pnpm build`/Expo Export ✅.
 
 ### Bereinigte Branches
 
@@ -1690,8 +1733,8 @@ Gelöscht (lokal + GitHub), da vollständig in `main` enthalten:
 ### Aktive Branches
 
 - `main` — konsolidiert, grün, Single Source of Truth.
-- `fix/bugfixes` — Gemini arbeitet hier weiter; wird nach Abschluss erneut nach
-  `main` gemerged (dann als FF / sauberer Merge, da `main` jetzt synchron ist).
+- `feat/ui-volt-premium-completion` — aktueller Arbeitsbranch mit UI-Polish und
+  Stabilisierung. Nach Review als kurzlebigen PR gegen `main` behandeln.
 
 ### Regel ab jetzt
 
@@ -1701,5 +1744,5 @@ Merge-Konflikte. Pro Mission ein kurzlebiger Branch → PR → Merge → Branch 
 
 ---
 
-_Erstellt: Juni 2026 · zuletzt aktualisiert: 2026-06-03 (Branch-Konsolidierung,
-H0-Schulden als behoben markiert, Block-3-Stitch-Prompt) | Fitness-Tracker Projekt_
+_Erstellt: Juni 2026 · zuletzt aktualisiert: 2026-06-08 (Stabilisierung,
+Auth-Fundament, Release-Assets, Teststand 83) | Fitness-Tracker Projekt_

@@ -12,6 +12,7 @@ import {
   Share,
   PanResponder,
   Animated,
+  ViewStyle,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Crypto from 'expo-crypto';
@@ -378,7 +379,10 @@ export default function ProgramListScreen() {
             >
               <View style={styles.cardTopRow}>
                 <View
-                  style={styles.dragHandle}
+                  style={[styles.dragHandle, { cursor: 'grab' } as unknown as ViewStyle]}
+                  onPointerDown={() => {
+                    draggingProgramRef.current = item;
+                  }}
                   onTouchStart={() => {
                     draggingProgramRef.current = item;
                   }}

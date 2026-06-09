@@ -7,21 +7,26 @@ import {
   Pressable,
   Dimensions,
   Alert,
-  SafeAreaView,
   Animated,
   Platform,
+  TextInput,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
-import { BodyMetric, BodyMeasurements } from '@fitness-tracker/domain';
+import { BodyMetric, BodyMeasurements, formatDateLocal } from '@fitness-tracker/domain';
 import { useBodyMetricStore } from '../../src/stores/bodyMetricStore';
 import { useProfileStore } from '../../src/stores/profileStore';
+import { useHydrationStore } from '../../src/stores/hydrationStore';
 import { useTheme, Card, Modal, Input } from '@fitness-tracker/ui';
 
 export default function BodyTrackingScreen() {
   const theme = useTheme();
-  const { addMetric, getMetricHistory, getLatestMetric } = useBodyMetricStore();
+  const insets = useSafeAreaInsets();
+  const { metrics, addMetric, getMetricHistory, getLatestMetric } = useBodyMetricStore();
   const { profile } = useProfileStore();
+  const { dailyGoalMl, todayIntakeMl, addWater, removeWater, setDailyGoal, resetToday } =
+    useHydrationStore();
   const isImperial = profile.preferredUnits === 'imperial';
 
   const [activeChartTab, setActiveChartTab] = useState<'weight' | 'fat'>('weight');
@@ -60,9 +65,30 @@ export default function BodyTrackingScreen() {
   const [hips, setHips] = useState('');
   const [arms, setArms] = useState('');
   const [legs, setLegs] = useState('');
-  const [dateStr, setDateStr] = useState(new Date().toISOString().split('T')[0] || '');
+  const [dateStr, setDateStr] = useState(formatDateLocal(new Date()));
+  const [hydrationGoalInput, setHydrationGoalInput] = useState(String(dailyGoalMl));
 
   const latest = getLatestMetric();
+  const recentMetrics = metrics.slice(0, 8);
+  const hydrationProgress = dailyGoalMl > 0 ? Math.min(1, todayIntakeMl / dailyGoalMl) : 0;
+  const hydrationPercent = Math.round(hydrationProgress * 100);
+  const hydrationFact =
+    hydrationPercent >= 100
+      ? 'Your water meter is full. Tiny cellular high-fives are happening quietly.'
+      : hydrationPercent >= 70
+        ? 'Hydration is in the green zone. Your next set of organs is probably applauding politely.'
+        : hydrationPercent >= 35
+          ? 'Halfway-ish hydration: not heroic yet, but definitely no desert arc today.'
+          : 'Start with one glass. The most underrated performance supplement is still boring old water.';
+
+  const handleSaveHydrationGoal = () => {
+    const nextGoal = parseInt(hydrationGoalInput, 10);
+    if (!Number.isFinite(nextGoal) || nextGoal < 250) {
+      return Alert.alert('Error', 'Hydration goal must be at least 250 ml.');
+    }
+    setDailyGoal(nextGoal);
+    setHydrationGoalInput(String(nextGoal));
+  };
 
   const handleSave = () => {
     if (
@@ -77,7 +103,7 @@ export default function BodyTrackingScreen() {
       return Alert.alert('Error', 'Please enter at least one metric.');
     }
 
-    const parsedDate = new Date(dateStr + 'T12:00:00.000Z');
+    const parsedDate = new Date(`${dateStr}T12:00:00`);
     if (isNaN(parsedDate.getTime())) {
       return Alert.alert('Error', 'Please enter a valid date (YYYY-MM-DD).');
     }
@@ -151,7 +177,7 @@ export default function BodyTrackingScreen() {
     setHips('');
     setArms('');
     setLegs('');
-    setDateStr(new Date().toISOString().split('T')[0] || '');
+    setDateStr(formatDateLocal(new Date()));
     setModalVisible(false);
   };
 
@@ -315,8 +341,13 @@ export default function BodyTrackingScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: theme.colors.background, paddingTop: Math.max(insets.top, 16) },
+        ]}
+      >
         <Text
           style={[styles.headerTitle, { color: theme.colors.text, ...theme.typography.heading }]}
         >
@@ -331,7 +362,13 @@ export default function BodyTrackingScreen() {
         </Pressable>
       </View>
 
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(insets.bottom + 20, 100) },
+        ]}
+      >
         {/* Latest Overview Cards */}
         <View style={styles.overviewRow}>
           <Card style={styles.overviewCard} padding="md">
@@ -377,6 +414,183 @@ export default function BodyTrackingScreen() {
             </Text>
           </Card>
         </View>
+
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
+          ]}
+        >
+          QUICK ENTRY
+        </Text>
+        <Card padding="md" style={styles.quickEntryCard}>
+          <View style={styles.quickEntryRow}>
+            <TextInput
+              style={[
+                styles.quickInput,
+                {
+                  color: theme.colors.text,
+                  borderColor: theme.colors.border,
+                  backgroundColor: theme.colors.background,
+                },
+              ]}
+              value={dateStr}
+              onChangeText={setDateStr}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={theme.colors.muted}
+            />
+          </View>
+          <View style={styles.quickEntryRow}>
+            <TextInput
+              style={[
+                styles.quickInput,
+                {
+                  color: theme.colors.text,
+                  borderColor: theme.colors.border,
+                  backgroundColor: theme.colors.background,
+                },
+              ]}
+              value={weight}
+              onChangeText={setWeight}
+              keyboardType="numeric"
+              placeholder={`Weight ${isImperial ? 'lbs' : 'kg'}`}
+              placeholderTextColor={theme.colors.muted}
+            />
+            <TextInput
+              style={[
+                styles.quickInput,
+                {
+                  color: theme.colors.text,
+                  borderColor: theme.colors.border,
+                  backgroundColor: theme.colors.background,
+                },
+              ]}
+              value={bodyFat}
+              onChangeText={setBodyFat}
+              keyboardType="numeric"
+              placeholder="Body fat %"
+              placeholderTextColor={theme.colors.muted}
+            />
+          </View>
+          <View style={styles.quickActions}>
+            <Pressable
+              style={[styles.quickSaveBtn, { backgroundColor: theme.colors.primary }]}
+              onPress={handleSave}
+            >
+              <Text style={[styles.quickSaveText, { color: theme.colors.background }]}>
+                Save Today
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[styles.quickDetailsBtn, { borderColor: theme.colors.border }]}
+              onPress={() => setModalVisible(true)}
+            >
+              <Text style={[styles.quickDetailsText, { color: theme.colors.primary }]}>
+                More Metrics
+              </Text>
+            </Pressable>
+          </View>
+        </Card>
+
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
+          ]}
+        >
+          DRINKING
+        </Text>
+        <Card padding="md" style={styles.hydrationCard}>
+          <View style={styles.hydrationHeader}>
+            <View>
+              <Text style={[styles.hydrationLabel, { color: theme.colors.muted }]}>TODAY</Text>
+              <Text style={[styles.hydrationValue, { color: theme.colors.text }]}>
+                {todayIntakeMl.toLocaleString()} / {dailyGoalMl.toLocaleString()} ml
+              </Text>
+            </View>
+            <Text style={[styles.hydrationPercent, { color: theme.colors.primary }]}>
+              {hydrationPercent}%
+            </Text>
+          </View>
+          <View style={[styles.hydrationTrack, { backgroundColor: theme.colors.border }]}>
+            <View
+              style={[
+                styles.hydrationFill,
+                { backgroundColor: theme.colors.primary, width: `${hydrationPercent}%` },
+              ]}
+            />
+          </View>
+          <View style={styles.hydrationButtons}>
+            {[250, 500, 1000].map((amount) => (
+              <Pressable
+                key={amount}
+                style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
+                onPress={() => addWater(amount)}
+              >
+                <Text style={[styles.hydrationButtonText, { color: theme.colors.primary }]}>
+                  +{amount === 1000 ? '1 L' : `${amount} ml`}
+                </Text>
+              </Pressable>
+            ))}
+            {[
+              { amount: 250, label: '-250 ml' },
+              { amount: 500, label: '-500 ml' },
+              { amount: 1000, label: '-1 L' },
+            ].map((item) => (
+              <Pressable
+                key={`minus-${item.amount}`}
+                style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
+                onPress={() => removeWater(item.amount)}
+              >
+                <Text style={[styles.hydrationButtonText, { color: theme.colors.muted }]}>
+                  {item.label}
+                </Text>
+              </Pressable>
+            ))}
+            <Pressable
+              style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
+              onPress={resetToday}
+            >
+              <Text style={[styles.hydrationButtonText, { color: theme.colors.muted }]}>
+                Reset
+              </Text>
+            </Pressable>
+          </View>
+          <View style={styles.goalRow}>
+            <TextInput
+              style={[
+                styles.goalInput,
+                {
+                  color: theme.colors.text,
+                  borderColor: theme.colors.border,
+                  backgroundColor: theme.colors.background,
+                },
+              ]}
+              value={hydrationGoalInput}
+              onChangeText={setHydrationGoalInput}
+              keyboardType="numeric"
+              placeholder="Goal ml"
+              placeholderTextColor={theme.colors.muted}
+              onSubmitEditing={handleSaveHydrationGoal}
+            />
+            <Pressable
+              style={[styles.goalButton, { borderColor: theme.colors.border }]}
+              onPress={handleSaveHydrationGoal}
+            >
+              <Text style={[styles.goalButtonText, { color: theme.colors.primary }]}>
+                Save Goal
+              </Text>
+            </Pressable>
+          </View>
+          <View style={[styles.hydrationFactBox, { borderColor: theme.colors.border }]}>
+            <Text style={[styles.hydrationFactTitle, { color: theme.colors.primary }]}>
+              💡 FUN FACT
+            </Text>
+            <Text style={[styles.hydrationFactText, { color: theme.colors.text }]}>
+              {hydrationFact}
+            </Text>
+          </View>
+        </Card>
 
         {/* Charts Section */}
         <View style={styles.chartToggleContainer}>
@@ -427,6 +641,85 @@ export default function BodyTrackingScreen() {
         </View>
 
         {renderChart()}
+
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
+          ]}
+        >
+          PROGRESSION HISTORY
+        </Text>
+        <Card padding="md" style={styles.progressionCard}>
+          {recentMetrics.length === 0 ? (
+            <Text style={[styles.progressionEmpty, { color: theme.colors.muted }]}>
+              Log today&apos;s metrics to start your progression timeline.
+            </Text>
+          ) : (
+            recentMetrics.map((metric, index) => {
+              const previous = recentMetrics[index + 1];
+              const weightDelta =
+                metric.weightKg !== undefined && previous?.weightKg !== undefined
+                  ? metric.weightKg - previous.weightKg
+                  : null;
+              const fatDelta =
+                metric.bodyFatPercentage !== undefined &&
+                previous?.bodyFatPercentage !== undefined
+                  ? metric.bodyFatPercentage - previous.bodyFatPercentage
+                  : null;
+              const displayWeightDelta =
+                weightDelta !== null
+                  ? `${weightDelta >= 0 ? '+' : ''}${(
+                      isImperial ? weightDelta * 2.20462 : weightDelta
+                    ).toFixed(1)} ${isImperial ? 'lbs' : 'kg'}`
+                  : '--';
+              const displayFatDelta =
+                fatDelta !== null ? `${fatDelta >= 0 ? '+' : ''}${fatDelta.toFixed(1)}%` : '--';
+
+              return (
+                <View
+                  key={metric.id}
+                  style={[
+                    styles.progressionRow,
+                    index < recentMetrics.length - 1 && { borderBottomColor: theme.colors.border },
+                  ]}
+                >
+                  <View style={styles.progressionDateCol}>
+                    <Text style={[styles.progressionDate, { color: theme.colors.text }]}>
+                      {new Intl.DateTimeFormat('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                      }).format(metric.recordedAt)}
+                    </Text>
+                    <Text style={[styles.progressionSub, { color: theme.colors.muted }]}>
+                      {metric.weightKg ? displayWeight(metric.weightKg) : 'No weight'}
+                    </Text>
+                  </View>
+                  <View style={styles.progressionDeltaCol}>
+                    <Text
+                      style={[
+                        styles.progressionDelta,
+                        {
+                          color:
+                            weightDelta === null
+                              ? theme.colors.muted
+                              : weightDelta <= 0
+                                ? '#22c55e'
+                                : '#FFB020',
+                        },
+                      ]}
+                    >
+                      {displayWeightDelta}
+                    </Text>
+                    <Text style={[styles.progressionSub, { color: theme.colors.muted }]}>
+                      Fat {displayFatDelta}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })
+          )}
+        </Card>
 
         {/* Measurements Section */}
         <Text
@@ -572,7 +865,7 @@ export default function BodyTrackingScreen() {
           </View>
         </ScrollView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -585,7 +878,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: 48,
     paddingBottom: 16,
   },
   headerTitle: {},
@@ -610,6 +902,152 @@ const styles = StyleSheet.create({
   },
   overviewCard: {
     flex: 1,
+  },
+  quickEntryCard: {
+    marginBottom: 24,
+  },
+  quickEntryRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  quickInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 10,
+    height: 44,
+    paddingHorizontal: 12,
+    fontFamily: 'Manrope_600SemiBold',
+    fontSize: 14,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  quickSaveBtn: {
+    flex: 1,
+    height: 42,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickSaveText: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 12,
+    textTransform: 'uppercase',
+  },
+  quickDetailsBtn: {
+    flex: 1,
+    height: 42,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickDetailsText: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 12,
+    textTransform: 'uppercase',
+  },
+  hydrationCard: {
+    marginBottom: 24,
+  },
+  hydrationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  hydrationLabel: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 11,
+    letterSpacing: 1,
+  },
+  hydrationValue: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 22,
+    fontVariant: ['tabular-nums'],
+    marginTop: 2,
+  },
+  hydrationPercent: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 22,
+    fontVariant: ['tabular-nums'],
+  },
+  hydrationTrack: {
+    height: 10,
+    borderRadius: 5,
+    overflow: 'hidden',
+    marginTop: 14,
+  },
+  hydrationFill: {
+    height: '100%',
+    borderRadius: 5,
+  },
+  hydrationButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 14,
+  },
+  hydrationButton: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hydrationButtonText: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 12,
+    textTransform: 'uppercase',
+  },
+  goalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  goalInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 10,
+    height: 42,
+    paddingHorizontal: 12,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 14,
+    fontVariant: ['tabular-nums'],
+  },
+  goalButton: {
+    borderWidth: 1,
+    borderRadius: 10,
+    height: 42,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  goalButtonText: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 12,
+    textTransform: 'uppercase',
+  },
+  hydrationFactBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 14,
+  },
+  hydrationFactTitle: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 11,
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  hydrationFactText: {
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 13,
+    lineHeight: 18,
   },
   cardIcon: {
     marginBottom: 8,
@@ -636,6 +1074,43 @@ const styles = StyleSheet.create({
   },
   chart: {
     borderRadius: 16,
+  },
+  progressionCard: {
+    marginBottom: 24,
+  },
+  progressionEmpty: {
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  progressionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  progressionDateCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  progressionDeltaCol: {
+    alignItems: 'flex-end',
+  },
+  progressionDate: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 14,
+  },
+  progressionDelta: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 14,
+    fontVariant: ['tabular-nums'],
+  },
+  progressionSub: {
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 12,
+    marginTop: 2,
   },
   sectionTitle: {
     marginBottom: 16,

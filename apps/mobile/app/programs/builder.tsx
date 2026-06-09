@@ -11,6 +11,7 @@ import {
   Modal,
   PanResponder,
   Animated,
+  ViewStyle,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -462,7 +463,10 @@ export default function ProgramBuilderScreen() {
                     ]}
                   >
                     <View
-                      style={styles.dragHandle}
+                      style={[styles.dragHandle, { cursor: 'grab' } as unknown as ViewStyle]}
+                      onPointerDown={() => {
+                        draggingWorkoutRef.current = w;
+                      }}
                       onTouchStart={() => {
                         draggingWorkoutRef.current = w;
                       }}

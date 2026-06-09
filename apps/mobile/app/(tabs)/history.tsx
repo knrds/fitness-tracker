@@ -11,12 +11,20 @@ import {
   Animated,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useRouter } from 'expo-router';
 import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
-import { WorkoutSession, ACHIEVEMENTS, estimateOneRepMax } from '@fitness-tracker/domain';
+import {
+  WorkoutSession,
+  ACHIEVEMENTS,
+  formatDateLocal,
+  getExerciseProgressHistory,
+  summarizeWorkout,
+} from '@fitness-tracker/domain';
 
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
@@ -29,9 +37,15 @@ import { getLevelBadge } from '../../src/utils/level';
 export default function HistoryScreen() {
   const [activeTab, setActiveTab] = useState<'history' | 'progress' | 'achievements'>('history');
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: theme.colors.background, paddingTop: Math.max(insets.top, 16) },
+      ]}
+    >
       <View style={styles.header}>
         <Text
           style={[styles.headerTitle, { color: theme.colors.text, ...theme.typography.heading }]}
@@ -81,11 +95,52 @@ export default function HistoryScreen() {
 function HistoryView() {
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { exercises: allExercises } = useExerciseStore();
+  const profile = useProfileStore((state) => state.profile);
+  const isImperial = profile?.preferredUnits === 'imperial';
   useHistoryStore((state) => state.sessions);
   const { getSessionsByDateDesc } = useHistoryStore();
   const sessions = getSessionsByDateDesc();
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
+
+  const getVolumeFunFact = (volumeKg: number): string => {
+    const displayVol = isImperial ? Math.round(volumeKg * 2.20462) : Math.round(volumeKg);
+    const unit = isImperial ? 'lbs' : 'kg';
+
+    if (volumeKg <= 0) return `You completed a session!`;
+
+    if (volumeKg < 100) {
+      const p = (displayVol / (isImperial ? 22 : 10)).toFixed(1).replace(/\.0$/, '');
+      return `You lifted ${displayVol} ${unit}! That's equivalent to the weight of ${p} adult house cats. 🐱`;
+    }
+    if (volumeKg < 300) {
+      const p = (displayVol / (isImperial ? 110 : 50)).toFixed(1).replace(/\.0$/, '');
+      return `You lifted ${displayVol} ${unit}! That's about the weight of ${p} heavy punching bags. 🥊`;
+    }
+    if (volumeKg < 800) {
+      const pStr = (displayVol / (isImperial ? 330 : 150)).toFixed(1).replace(/\.0$/, '');
+      return `You lifted ${displayVol} ${unit}! That's equivalent to the weight of ${pStr} classic Vespa scooters. 🛵`;
+    }
+    if (volumeKg < 1500) {
+      const pStr = (displayVol / (isImperial ? 1100 : 500)).toFixed(1).replace(/\.0$/, '');
+      return `You lifted ${displayVol} ${unit}! That's about the weight of ${pStr} grand pianos. 🎹`;
+    }
+    if (volumeKg < 3000) {
+      const pStr = (displayVol / (isImperial ? 2200 : 1000)).toFixed(1).replace(/\.0$/, '');
+      return `You lifted ${displayVol} ${unit}! That's equivalent to the weight of ${pStr} saltwater crocodiles. 🐊`;
+    }
+    if (volumeKg < 6000) {
+      const pStr = (displayVol / (isImperial ? 4400 : 2000)).toFixed(1).replace(/\.0$/, '');
+      return `You lifted ${displayVol} ${unit}! That's about the weight of ${pStr} hippopotamuses. 🦛`;
+    }
+    if (volumeKg < 12000) {
+      const pStr = (displayVol / (isImperial ? 11000 : 5000)).toFixed(1).replace(/\.0$/, '');
+      return `You lifted ${displayVol} ${unit}! That's equivalent to the weight of ${pStr} fully grown African elephants. 🐘`;
+    }
+    const pStr = (displayVol / (isImperial ? 26400 : 12000)).toFixed(1).replace(/\.0$/, '');
+    return `You lifted ${displayVol} ${unit}! That's about the weight of ${pStr} double-decker buses! 🚌 Absolutely massive!`;
+  };
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
@@ -104,23 +159,17 @@ function HistoryView() {
   };
 
   const renderItem = ({ item }: { item: WorkoutSession }) => {
-    const totalSets = item.exercises.reduce(
-      (sum, ex) => sum + ex.sets.filter((s) => s.completed).length,
-      0,
-    );
-    const totalVolume = item.exercises.reduce(
-      (sum, ex) =>
-        sum +
-        ex.sets
-          .filter((s) => s.completed && s.weight)
-          .reduce((sSum, s) => sSum + s.weight! * (s.reps || 0), 0),
-      0,
-    );
+    const summary = summarizeWorkout(item);
 
     const exerciseNames = item.exercises
       .map((se) => allExercises.find((e) => e.id === se.exerciseId)?.name)
       .filter(Boolean)
       .join(', ');
+
+    const displayVolume = isImperial
+      ? Math.round(summary.totalVolume * 2.20462)
+      : Math.round(summary.totalVolume);
+    const volumeUnit = isImperial ? 'lbs' : 'kg';
 
     return (
       <Card style={styles.card} onPress={() => setSelectedSession(item)} padding="lg">
@@ -157,7 +206,7 @@ function HistoryView() {
                 { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' },
               ]}
             >
-              {formatDuration(item.durationSeconds)}
+              {formatDuration(summary.durationSeconds)}
             </Text>
             <Text
               style={[styles.statLabel, { color: theme.colors.muted, ...theme.typography.caption }]}
@@ -172,12 +221,12 @@ function HistoryView() {
                 { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' },
               ]}
             >
-              {Math.round(totalVolume)}
+              {displayVolume}
             </Text>
             <Text
               style={[styles.statLabel, { color: theme.colors.muted, ...theme.typography.caption }]}
             >
-              Volume
+              Volume ({volumeUnit})
             </Text>
           </View>
           <View style={styles.statItem}>
@@ -187,7 +236,7 @@ function HistoryView() {
                 { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' },
               ]}
             >
-              {totalSets}
+              {summary.setCount}
             </Text>
             <Text
               style={[styles.statLabel, { color: theme.colors.muted, ...theme.typography.caption }]}
@@ -200,20 +249,129 @@ function HistoryView() {
     );
   };
 
-  const summaryTotalSets =
-    selectedSession?.exercises.reduce(
-      (sum, ex) => sum + ex.sets.filter((s) => s.completed).length,
-      0,
-    ) ?? 0;
-  const summaryTotalVolume =
-    selectedSession?.exercises.reduce(
-      (sum, ex) =>
-        sum +
-        ex.sets
-          .filter((s) => s.completed && s.weight)
-          .reduce((sSum, s) => sSum + s.weight! * (s.reps || 0), 0),
-      0,
-    ) ?? 0;
+  const selectedSummary = selectedSession ? summarizeWorkout(selectedSession) : null;
+  const summaryTotalSets = selectedSummary?.setCount ?? 0;
+  const summaryTotalVolume = selectedSummary?.totalVolume ?? 0;
+
+  const summaryDisplayVolume = isImperial
+    ? Math.round(summaryTotalVolume * 2.20462)
+    : Math.round(summaryTotalVolume);
+  const volumeUnit = isImperial ? 'lbs' : 'kg';
+
+  const ConsistencyGrid = () => {
+    const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
+    const today = new Date();
+    const sessionsByDate = sessions.reduce<Record<string, number>>((acc, session) => {
+      const key = formatDateLocal(new Date(session.startedAt));
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    const days = React.useMemo(() => {
+      if (viewMode === 'week') {
+        return Array.from({ length: 7 }).map((_, index) => {
+          const date = new Date(today);
+          date.setDate(today.getDate() - 6 + index);
+          date.setHours(0, 0, 0, 0);
+          return date;
+        });
+      }
+
+      const first = new Date(today.getFullYear(), today.getMonth(), 1);
+      const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      return Array.from({ length: last.getDate() }).map((_, index) => {
+        const date = new Date(first);
+        date.setDate(index + 1);
+        date.setHours(0, 0, 0, 0);
+        return date;
+      });
+    }, [viewMode]);
+
+    return (
+      <Card padding="md" style={styles.consistencyCard}>
+        <View style={styles.consistencyHeader}>
+          <Text style={[styles.consistencyTitle, { color: theme.colors.text }]}>CONSISTENCY</Text>
+          <View style={[styles.consistencyToggle, { borderColor: theme.colors.border }]}>
+            {(['week', 'month'] as const).map((mode) => {
+              const selected = mode === viewMode;
+              return (
+                <Pressable
+                  key={mode}
+                  style={[
+                    styles.consistencyToggleBtn,
+                    selected && { backgroundColor: theme.colors.primary },
+                  ]}
+                  onPress={() => setViewMode(mode)}
+                >
+                  <Text
+                    style={[
+                      styles.consistencyToggleText,
+                      { color: selected ? theme.colors.background : theme.colors.muted },
+                    ]}
+                  >
+                    {mode.toUpperCase()}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+        <View
+          style={[
+            styles.consistencyDays,
+            viewMode === 'month' ? styles.consistencyDaysMonth : styles.consistencyDaysWeek,
+          ]}
+        >
+          {days.map((day) => {
+            const key = formatDateLocal(day);
+            const count = sessionsByDate[key] || 0;
+            const isToday = key === formatDateLocal(today);
+            return (
+              <View
+                key={key}
+                style={[
+                  styles.consistencyDay,
+                  { borderColor: isToday ? theme.colors.primary : theme.colors.border },
+                  viewMode === 'month' && styles.consistencyDayMonth,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.consistencyDayLabel,
+                    { color: isToday ? theme.colors.primary : theme.colors.muted },
+                  ]}
+                >
+                  {viewMode === 'week'
+                    ? new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(day)
+                    : day.getDate()}
+                </Text>
+                <View style={styles.consistencyBlocks}>
+                  {Array.from({ length: Math.min(count, 5) }).map((_, blockIndex) => (
+                    <View
+                      key={blockIndex}
+                      style={[
+                        styles.consistencyBlock,
+                        {
+                          backgroundColor:
+                            blockIndex < 3 ? theme.colors.primary : 'rgba(144, 213, 255, 0.55)',
+                        },
+                      ]}
+                    />
+                  ))}
+                </View>
+                <Text style={[styles.consistencyCount, { color: theme.colors.text }]}>
+                  {count > 0 ? count : ''}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+        <Text style={[styles.consistencyHint, { color: theme.colors.muted }]}>
+          Each stacked block is one workout on that day.
+        </Text>
+      </Card>
+    );
+  };
 
   return (
     <>
@@ -221,7 +379,8 @@ function HistoryView() {
         data={sessions}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom + 20, 100) }]}
+        ListHeaderComponent={ConsistencyGrid}
         ListEmptyComponent={
           <EmptyState
             title="NO WORKOUTS YET"
@@ -237,116 +396,112 @@ function HistoryView() {
         animationType="slide"
         onRequestClose={() => setSelectedSession(null)}
       >
-        <Pressable style={styles.summaryOverlay} onPress={() => setSelectedSession(null)}>
-          <View style={styles.summarySheet} onStartShouldSetResponder={() => true}>
+        <Pressable style={styles.modalOverlay} onPress={() => setSelectedSession(null)}>
+          <Pressable
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+                borderRadius: theme.radius.lg,
+                maxWidth: 400,
+                alignItems: 'center',
+              },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
             {selectedSession && (
               <>
-                <View style={styles.summaryGripArea}>
-                  <View style={[styles.summaryGrip, { backgroundColor: theme.colors.border }]} />
+                <Pressable
+                  style={styles.modalCloseBtn}
+                  onPress={() => setSelectedSession(null)}
+                  hitSlop={10}
+                >
+                  <Ionicons name="close" size={24} color={theme.colors.muted} />
+                </Pressable>
+
+                <View style={styles.modalIconContainer}>
+                  <Ionicons name="barbell" size={48} color={theme.colors.primary} />
                 </View>
+
                 <Text
                   style={[
-                    styles.summaryTitle,
-                    { color: theme.colors.text, ...theme.typography.heading },
+                    styles.modalTitle,
+                    {
+                      color: theme.colors.text,
+                      ...theme.typography.heading,
+                      textAlign: 'center',
+                      marginBottom: 8,
+                      fontSize: 22,
+                    },
                   ]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
                 >
-                  {selectedSession.name}
+                  {selectedSession.name.toUpperCase()}
                 </Text>
-                <Text
-                  style={[
-                    styles.summaryDate,
-                    { color: theme.colors.muted, ...theme.typography.caption },
-                  ]}
-                >
-                  {formatDate(selectedSession.startedAt)}
+
+                <Text style={[styles.modalSubtitle, { color: theme.colors.muted }]}>
+                  Completed on {formatDate(selectedSession.startedAt)}
                 </Text>
-                <View style={styles.summaryStatsRow}>
-                  <View style={styles.summaryStat}>
+
+                <View style={styles.modalStatsRow}>
+                  <View style={styles.modalStatBox}>
                     <Text
                       style={[
-                        styles.summaryStatValue,
+                        styles.modalStatVal,
                         { color: theme.colors.primary, ...theme.typography.display },
                       ]}
                     >
                       {formatDuration(selectedSession.durationSeconds)}
                     </Text>
-                    <Text
-                      style={[
-                        styles.summaryStatLabel,
-                        { color: theme.colors.muted, ...theme.typography.caption },
-                      ]}
-                    >
-                      DURATION
-                    </Text>
+                    <Text style={[styles.modalStatLabel, { color: theme.colors.muted }]}>TIME</Text>
                   </View>
-                  <View style={styles.summaryStat}>
+                  <View style={styles.modalStatBox}>
                     <Text
                       style={[
-                        styles.summaryStatValue,
-                        { color: theme.colors.primary, ...theme.typography.display },
-                      ]}
-                    >
-                      {Math.round(summaryTotalVolume)}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.summaryStatLabel,
-                        { color: theme.colors.muted, ...theme.typography.caption },
-                      ]}
-                    >
-                      VOLUME
-                    </Text>
-                  </View>
-                  <View style={styles.summaryStat}>
-                    <Text
-                      style={[
-                        styles.summaryStatValue,
+                        styles.modalStatVal,
                         { color: theme.colors.primary, ...theme.typography.display },
                       ]}
                     >
                       {summaryTotalSets}
                     </Text>
+                    <Text style={[styles.modalStatLabel, { color: theme.colors.muted }]}>SETS</Text>
+                  </View>
+                  <View style={styles.modalStatBox}>
                     <Text
                       style={[
-                        styles.summaryStatLabel,
-                        { color: theme.colors.muted, ...theme.typography.caption },
+                        styles.modalStatVal,
+                        { color: theme.colors.primary, ...theme.typography.display },
                       ]}
                     >
-                      SETS
+                      {summaryDisplayVolume}
+                    </Text>
+                    <Text style={[styles.modalStatLabel, { color: theme.colors.muted }]}>
+                      {volumeUnit.toUpperCase()}
                     </Text>
                   </View>
                 </View>
-                <View style={styles.summaryExercises}>
-                  {selectedSession.exercises.map((ex) => {
-                    const exInfo = allExercises.find((e) => e.id === ex.exerciseId);
-                    const completedSets = ex.sets.filter((s) => s.completed);
-                    return (
-                      <View key={ex.id} style={styles.summaryExRow}>
-                        <Text
-                          style={[
-                            styles.summaryExName,
-                            { color: theme.colors.text, ...theme.typography.body },
-                          ]}
-                        >
-                          {exInfo?.name || 'Unknown'}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.summaryExDetail,
-                            { color: theme.colors.muted, ...theme.typography.caption },
-                          ]}
-                        >
-                          {completedSets.length} sets
-                          {completedSets[0]?.weight
-                            ? ` · ${completedSets[0].weight}kg × ${completedSets[0].reps ?? '?'}`
-                            : ''}
-                        </Text>
-                      </View>
-                    );
-                  })}
+
+                <View
+                  style={[
+                    styles.modalFactContainer,
+                    { backgroundColor: theme.colors.background, borderColor: theme.colors.border },
+                  ]}
+                >
+                  <Text style={[styles.modalFactTitle, { color: theme.colors.primary }]}>
+                    💡 FUN FACT
+                  </Text>
+                  <Text style={[styles.modalFactText, { color: theme.colors.text }]}>
+                    {getVolumeFunFact(summaryTotalVolume)}
+                  </Text>
                 </View>
+
                 <Pressable
-                  style={[styles.summaryDetailBtn, { backgroundColor: theme.colors.primary }]}
+                  style={[
+                    styles.modalStartBtn,
+                    { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md },
+                  ]}
                   onPress={() => {
                     const id = selectedSession.id;
                     setSelectedSession(null);
@@ -355,7 +510,7 @@ function HistoryView() {
                 >
                   <Text
                     style={[
-                      styles.summaryDetailBtnText,
+                      styles.modalStartBtnText,
                       { color: theme.colors.background, ...theme.typography.button },
                     ]}
                   >
@@ -364,7 +519,7 @@ function HistoryView() {
                 </Pressable>
               </>
             )}
-          </View>
+          </Pressable>
         </Pressable>
       </Modal>
     </>
@@ -373,6 +528,7 @@ function HistoryView() {
 
 function ProgressView() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const historyStore = useHistoryStore();
   const { exercises } = useExerciseStore();
   const { profile } = useProfileStore();
@@ -388,13 +544,19 @@ function ProgressView() {
     date: string;
     volume: number;
     isPR: boolean;
+    e1rm?: number;
   } | null>(null);
+
+  const [crosshairIdx, setCrosshairIdx] = useState<number | null>(null);
+  const [crosshairX, setCrosshairX] = useState<number | null>(null);
 
   const chartFadeAnim = React.useRef(new Animated.Value(0)).current;
   const chartSlideAnim = React.useRef(new Animated.Value(20)).current;
 
   React.useEffect(() => {
     setSelectedPoint(null);
+    setCrosshairIdx(null);
+    setCrosshairX(null);
     chartFadeAnim.setValue(0);
     chartSlideAnim.setValue(20);
     Animated.parallel([
@@ -415,47 +577,7 @@ function ProgressView() {
 
   const getProgressHistory = (exerciseId: string) => {
     const exercise = exercises.find((e) => e.id === exerciseId);
-    const exerciseName = exercise?.name;
-
-    const points: { date: Date; volume: number; maxE1RM: number; isPR: boolean }[] = [];
-    const sortedSessions = [...historyStore.sessions].sort(
-      (a, b) => a.startedAt.getTime() - b.startedAt.getTime(),
-    );
-
-    let historicalMax = 0;
-
-    sortedSessions.forEach((session) => {
-      let volume = 0;
-      let sessionMaxE1RM = 0;
-
-      const ex = session.exercises.find((e) => e.exerciseId === exerciseId);
-      if (ex) {
-        ex.sets.forEach((set) => {
-          if (set.completed && set.weight && set.reps && set.type !== 'warmup') {
-            volume += set.weight * set.reps;
-            const e1rm = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir, exerciseName);
-            if (e1rm > sessionMaxE1RM) {
-              sessionMaxE1RM = e1rm;
-            }
-          }
-        });
-      }
-
-      if (volume > 0) {
-        const isPR = sessionMaxE1RM > historicalMax;
-        if (isPR) {
-          historicalMax = sessionMaxE1RM;
-        }
-        points.push({
-          date: session.startedAt,
-          volume,
-          maxE1RM: sessionMaxE1RM,
-          isPR,
-        });
-      }
-    });
-
-    return points;
+    return getExerciseProgressHistory(exerciseId, historyStore.sessions, exercise?.name);
   };
 
   const renderChart = () => {
@@ -478,6 +600,43 @@ function ProgressView() {
         </Card>
       );
     }
+
+    const chartWidth = screenWidth - 64;
+    const chartInsetX = 34;
+
+    const getPointX = (index: number) => {
+      if (history.length <= 1) return chartWidth / 2;
+      return chartInsetX + (index / (history.length - 1)) * (chartWidth - chartInsetX * 2);
+    };
+
+    const selectHistoryPoint = (index: number, pointX = getPointX(index)) => {
+      if (index < 0 || index >= history.length) return;
+      const item = history[index];
+      if (!item) return;
+      const vol = isImperial ? Math.round(item.volume * 2.20462) : Math.round(item.volume);
+      setCrosshairIdx(index);
+      setCrosshairX(pointX);
+      setSelectedPoint({
+        date: new Date(item.date).toLocaleDateString(),
+        volume: vol,
+        isPR: item.isPR,
+        e1rm: isImperial ? Math.round(item.maxE1RM * 2.20462) : Math.round(item.maxE1RM),
+      });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    };
+
+    const handleChartTouch = (touchX: number) => {
+      if (history.length < 2) return;
+      const printableWidth = chartWidth - chartInsetX * 2;
+      const clampedX = Math.max(0, Math.min(printableWidth, touchX - chartInsetX));
+      const ratio = clampedX / printableWidth;
+      const index = Math.round(ratio * (history.length - 1));
+
+      if (index !== crosshairIdx && index >= 0 && index < history.length) {
+        selectHistoryPoint(index);
+      }
+    };
+
     const data = {
       labels: history.map((h) =>
         new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(h.date),
@@ -490,6 +649,7 @@ function ProgressView() {
         },
       ],
     };
+
     return (
       <Animated.View
         style={[
@@ -524,8 +684,8 @@ function ProgressView() {
               size={16}
               color={selectedPoint.isPR ? '#FFB020' : theme.colors.primary}
             />
-            <Text style={[styles.tooltipText, { color: theme.colors.text }]}>
-              <Text style={{ fontFamily: 'SpaceGrotesk_700Bold' }}>{selectedPoint.date}</Text>:{' '}
+            <Text style={[styles.tooltipText, { color: theme.colors.text, fontSize: 11 }]}>
+              <Text style={{ fontFamily: 'SpaceGrotesk_700Bold' }}>{selectedPoint.date}</Text>: Vol:{' '}
               <Text
                 style={{
                   color: selectedPoint.isPR ? '#FFB020' : theme.colors.primary,
@@ -534,62 +694,98 @@ function ProgressView() {
               >
                 {selectedPoint.volume} {isImperial ? 'lbs' : 'kg'}
               </Text>
+              {selectedPoint.e1rm !== undefined && (
+                <>
+                  {' '}
+                  | e1RM:{' '}
+                  <Text style={{ color: theme.colors.primary, fontFamily: 'SpaceGrotesk_700Bold' }}>
+                    {selectedPoint.e1rm} {isImperial ? 'lbs' : 'kg'}
+                  </Text>
+                </>
+              )}
               {selectedPoint.isPR && (
                 <Text style={{ color: '#FFB020', fontFamily: 'SpaceGrotesk_700Bold' }}>
                   {' '}
-                  (★ NEW PR!)
+                  (★ PR!)
                 </Text>
               )}
             </Text>
-            <Pressable onPress={() => setSelectedPoint(null)} hitSlop={10}>
+            <Pressable
+              onPress={() => {
+                setSelectedPoint(null);
+                setCrosshairIdx(null);
+                setCrosshairX(null);
+              }}
+              hitSlop={10}
+            >
               <Ionicons name="close-circle" size={18} color={theme.colors.muted} />
             </Pressable>
           </View>
         ) : (
           <Text style={[styles.chartTipText, { color: theme.colors.muted }]}>
-            💡 Tap any point on the chart to see details
+            💡 Slide your finger across the chart to view e1RM & Volume
           </Text>
         )}
 
-        <LineChart
-          data={data}
-          width={screenWidth - 64}
-          height={220}
-          withInnerLines={false}
-          withOuterLines={false}
-          onDataPointClick={({ index }) => {
-            const item = history[index];
-            if (item) {
-              const vol = isImperial ? Math.round(item.volume * 2.20462) : Math.round(item.volume);
-              setSelectedPoint({
-                date: new Date(item.date).toLocaleDateString(),
-                volume: vol,
-                isPR: item.isPR,
-              });
-            }
-          }}
-          getDotColor={(dataPoint, dataPointIndex) => {
-            const point = history[dataPointIndex];
-            return point?.isPR ? '#FFB020' : theme.colors.primary;
-          }}
-          chartConfig={{
-            backgroundColor: theme.colors.surface,
-            backgroundGradientFrom: theme.colors.surface,
-            backgroundGradientTo: theme.colors.surface,
-            decimalPlaces: 0,
-            color: () => theme.colors.primary,
-            labelColor: () => theme.colors.muted,
-            propsForDots: { r: '6', strokeWidth: '2.5', stroke: theme.colors.surface },
-          }}
-          bezier
-          style={{ marginVertical: 8, borderRadius: 16 }}
-        />
+        <View
+          onStartShouldSetResponder={() => true}
+          onResponderGrant={(e) => handleChartTouch(e.nativeEvent.locationX)}
+          onResponderMove={(e) => handleChartTouch(e.nativeEvent.locationX)}
+          style={{ position: 'relative', overflow: 'visible' }}
+        >
+          <LineChart
+            data={data}
+            width={chartWidth}
+            height={220}
+            withInnerLines={false}
+            withOuterLines={false}
+            onDataPointClick={({ index, x }) => {
+              selectHistoryPoint(index, typeof x === 'number' ? x : getPointX(index));
+            }}
+            getDotColor={(dataPoint, dataPointIndex) => {
+              const point = history[dataPointIndex];
+              return point?.isPR ? '#FFB020' : theme.colors.primary;
+            }}
+            chartConfig={{
+              backgroundColor: theme.colors.surface,
+              backgroundGradientFrom: theme.colors.surface,
+              backgroundGradientTo: theme.colors.surface,
+              decimalPlaces: 0,
+              color: (opacity = 1) => `rgba(144, 213, 255, ${opacity})`,
+              labelColor: () => theme.colors.muted,
+              propsForDots: { r: '6', strokeWidth: '2.5', stroke: theme.colors.surface },
+            }}
+            bezier
+            style={{ marginVertical: 8, borderRadius: 16 }}
+          />
+
+          {crosshairX !== null && (
+            <View
+              style={{
+                position: 'absolute',
+                top: 16,
+                bottom: 24,
+                left: crosshairX,
+                width: 1.5,
+                backgroundColor: theme.colors.primary,
+                zIndex: 10,
+                shadowColor: theme.colors.primary,
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.6,
+                shadowRadius: 2,
+                pointerEvents: 'none',
+              }}
+            />
+          )}
+        </View>
       </Animated.View>
     );
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView
+      contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom + 20, 100) }]}
+    >
       <Text
         style={[
           styles.sectionTitle,
@@ -682,6 +878,7 @@ function AchievementBadge({ kind }: { kind: 'one_time' | 'repeatable' }) {
 
 function AchievementsView() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { xp, level, unlockedAchievements, repeatCounts } = useAchievementStore();
   const { getProgress } = useAchievementCheck();
 
@@ -694,7 +891,9 @@ function AchievementsView() {
   const lockedList = oneTime.filter((a) => unlockedAchievements[a.id] === undefined);
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView
+      contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom + 20, 100) }]}
+    >
       {/* Level Card */}
       <Card style={styles.levelCard} padding="lg">
         <View style={styles.levelHeader}>
@@ -925,7 +1124,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 48,
     paddingBottom: 16,
   },
   headerTitle: {},
@@ -1055,83 +1253,77 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   achProgressText: {},
-  summaryOverlay: {
+  modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(11, 11, 15, 0.7)',
-    justifyContent: 'flex-end',
-  },
-  summarySheet: {
-    backgroundColor: '#1A1C23',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-    maxHeight: '70%',
-  },
-  summaryGripArea: {
-    width: '100%',
+    backgroundColor: 'rgba(11, 11, 15, 0.85)',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 12,
+    padding: 24,
   },
-  summaryGrip: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
+  modalCard: {
+    borderWidth: 1,
+    padding: 24,
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 16,
   },
-  summaryTitle: {
-    fontSize: 22,
-    marginBottom: 4,
-  },
-  summaryDate: {
-    marginBottom: 20,
-  },
-  summaryStatsRow: {
+  modalHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 24,
-    gap: 12,
-  },
-  summaryStat: {
-    flex: 1,
     alignItems: 'center',
-    backgroundColor: '#0B0B0F',
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
+    marginBottom: 16,
+    width: '100%',
   },
-  summaryStatValue: {
+  modalTitle: {
     fontSize: 20,
-    marginBottom: 4,
+    flex: 1,
+    marginRight: 12,
   },
-  summaryStatLabel: {
-    fontSize: 10,
+  modalSummaryStatsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 20,
+    width: '100%',
   },
-  summaryExercises: {
+  modalStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  modalStatText: {
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 13,
+  },
+  summaryExerciseList: {
+    maxHeight: 250,
+    width: '100%',
     marginBottom: 24,
-    gap: 12,
   },
   summaryExRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#2A2B31',
+    width: '100%',
   },
   summaryExName: {
+    fontSize: 14,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
     flex: 1,
-    marginRight: 8,
+    marginRight: 12,
   },
-  summaryExDetail: {},
-  summaryDetailBtn: {
-    paddingVertical: 16,
-    borderRadius: 12,
+  summaryExDetails: {
+    fontSize: 13,
+    fontFamily: 'SpaceGrotesk_700Bold',
+  },
+  modalStartBtn: {
+    height: 52,
     alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
   },
-  summaryDetailBtnText: {
+  modalStartBtnText: {
     fontSize: 15,
   },
   tooltipContainer: {
@@ -1158,5 +1350,152 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     fontStyle: 'italic',
     textAlign: 'center',
+  },
+  consistencyCard: {
+    marginTop: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#2A2B31',
+  },
+  consistencyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  consistencyTitle: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  consistencyToggle: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  consistencyToggleBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  consistencyToggleText: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 10,
+    letterSpacing: 0.5,
+  },
+  consistencyDays: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  consistencyDaysWeek: {
+    justifyContent: 'space-between',
+  },
+  consistencyDaysMonth: {
+    flexWrap: 'wrap',
+  },
+  consistencyDay: {
+    flex: 1,
+    minWidth: 40,
+    minHeight: 82,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 6,
+    alignItems: 'center',
+  },
+  consistencyDayMonth: {
+    flexBasis: '12.8%',
+    flexGrow: 0,
+    minWidth: 0,
+    minHeight: 68,
+  },
+  consistencyDayLabel: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 10,
+    marginBottom: 6,
+  },
+  consistencyBlocks: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    gap: 3,
+    minHeight: 28,
+  },
+  consistencyBlock: {
+    width: 18,
+    height: 5,
+    borderRadius: 3,
+  },
+  consistencyCount: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 11,
+    minHeight: 14,
+    marginTop: 4,
+  },
+  consistencyHint: {
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 10,
+  },
+  modalIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(144, 213, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    alignSelf: 'center',
+  },
+  modalSubtitle: {
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  modalStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 24,
+  },
+  modalStatBox: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  modalStatVal: {
+    fontSize: 18,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    marginBottom: 4,
+  },
+  modalStatLabel: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 11,
+    letterSpacing: 0.5,
+  },
+  modalFactContainer: {
+    width: '100%',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  modalFactTitle: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 11,
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  modalFactText: {
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  modalCloseBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 10,
   },
 });

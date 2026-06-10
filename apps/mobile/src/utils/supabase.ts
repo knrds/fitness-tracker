@@ -1,10 +1,22 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MMKV } from 'react-native-mmkv';
 import { createClient } from '@supabase/supabase-js';
 
 const isServer = typeof globalThis === 'undefined' || !('window' in globalThis);
 
-// Setup dedicated MMKV storage for Supabase auth sessions (only on client)
-const storage = !isServer ? new MMKV({ id: 'supabase-auth-storage' }) : null;
+const createSupabaseStorage = (): MMKV | null => {
+  if (isServer) return null;
+
+  try {
+    return new MMKV({ id: 'supabase-auth-storage' });
+  } catch (error) {
+    console.warn('[Supabase] MMKV auth storage unavailable. Falling back to AsyncStorage.', error);
+    return null;
+  }
+};
+
+// Setup dedicated MMKV storage for Supabase auth sessions when available.
+const storage = createSupabaseStorage();
 
 type WebStorageLike = {
   getItem: (key: string) => string | null;
@@ -41,8 +53,10 @@ const removeTemporaryWebStorageItem = (key: string) => {
 };
 
 const supabaseStorage = {
-  getItem: (key: string): string | null => {
-    if (isServer || !storage) return null;
+  getItem: async (key: string): Promise<string | null> => {
+    if (isServer) return null;
+    if (!storage) return AsyncStorage.getItem(key);
+
     const mmkvValue = storage.getString(key);
     if (mmkvValue != null) return mmkvValue;
 
@@ -53,12 +67,20 @@ const supabaseStorage = {
     }
     return temporaryWebValue;
   },
-  setItem: (key: string, value: string): void => {
-    if (isServer || !storage) return;
+  setItem: async (key: string, value: string): Promise<void> => {
+    if (isServer) return;
+    if (!storage) {
+      await AsyncStorage.setItem(key, value);
+      return;
+    }
     storage.set(key, value);
   },
-  removeItem: (key: string): void => {
-    if (isServer || !storage) return;
+  removeItem: async (key: string): Promise<void> => {
+    if (isServer) return;
+    if (!storage) {
+      await AsyncStorage.removeItem(key);
+      return;
+    }
     storage.delete(key);
   },
 };

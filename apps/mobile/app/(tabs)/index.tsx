@@ -44,8 +44,9 @@ export default function HomeScreen() {
   const { programs, templates } = useProgramStore();
   const { exercises } = useExerciseStore();
 
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const slideAnim = React.useRef(new Animated.Value(20)).current;
+  const shouldAnimateEntrance = Platform.OS !== 'web';
+  const fadeAnim = React.useRef(new Animated.Value(shouldAnimateEntrance ? 0 : 1)).current;
+  const slideAnim = React.useRef(new Animated.Value(shouldAnimateEntrance ? 20 : 0)).current;
   const [selectedTemplate, setSelectedTemplate] = React.useState<WorkoutTemplate | null>(null);
 
   const sessions = getSessionsByDateDesc();
@@ -170,19 +171,21 @@ export default function HomeScreen() {
   };
 
   React.useEffect(() => {
+    if (!shouldAnimateEntrance) return;
+
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 500,
-        useNativeDriver: Platform.OS !== 'web',
+        useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 500,
-        useNativeDriver: Platform.OS !== 'web',
+        useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, shouldAnimateEntrance, slideAnim]);
 
   const streak = getStreak();
   const activeProgram = programs.find((p) => p.isActive);

@@ -32,9 +32,9 @@
 
 ## 1. AKTUELLER STAND
 
-> ✅ **Stand 2026-06-09:** Block 1 (M6-M9), Block 2/H0, Premium UI polish, and the current stabilization pass on `feat/ui-volt-premium-completion` are implemented and verified with `pnpm typecheck`, `pnpm lint`, `pnpm test` (98 tests: 29 domain + 69 mobile), mobile `jest --coverage` (81.11% statements), and `pnpm build`.
+> ✅ **Stand 2026-06-10:** Block 1 (M6-M9), Block 2/H0, Premium UI polish, the current stabilization pass, and the latest History drilldown/progress-chart fixes on `feat/ui-volt-premium-completion` are implemented and verified with `pnpm typecheck`, `pnpm lint`, `pnpm test` (98 tests: 29 domain + 69 mobile), mobile `jest --coverage`, and `pnpm build`.
 >
-> 🔀 **Current branch updates (2026-06-09):**
+> 🔀 **Current branch updates (2026-06-10):**
 >
 > - **Smooth Animated Modals:** Custom `<Modal>` component rewritten to use `Animated` for backdrop fade and container slide translations on open and close.
 > - **PR highlights on Progress Charts:** Volume history Progress charts now calculate historical PRs using e1RM and highlight PR workouts with gold dots (`#FFB020`). Tapping dots reveals volume details alongside a "★ NEW PR!" indicator.
@@ -50,6 +50,7 @@
 > - **Exercise Library Filters:** Favorite appears directly after All; Powerlifting, Calisthenics, Warmup, Warmup Cardio, Strength, and Obliques filtering are available without domain enum changes.
 > - **Tracking Extensions:** Local caffeine tracking can be toggled in settings, uses presets/custom mg, warns for high/extreme intake, and shows the explicit over-1500mg troll guard. Hydration tracking in Body supports goals plus 250 ml / 500 ml / 1 l add and subtract actions.
 > - **Body & History Rework:** Body has quicker same-day metric entry plus progression history. History consistency supports week/month views with stacked same-day workout blocks, and Volume History crosshair selection is aligned to tapped points.
+> - **History Drilldowns:** The History workout popup now shows concrete exercises and completed set rows with weight/reps, warmup markers, RPE/RIR, and per-exercise working volume. Filled consistency days are tappable and open all workouts logged on that date before drilling into the workout popup.
 > - **Heatmap & Obliques:** Body heatmap intensity now scales with trained working volume, and oblique-like exercises contribute to Obliques coverage.
 > - **Achievements Expansion:** Added long-range workout/volume/PR/exercise milestones, meta achievements, exercise-specific badges, equipment/movement-pattern niche badges, and higher repeatable session achievements.
 > - **Workout Facts:** Finish-modal facts are biased toward training volume, set density, top exercise contribution, cardio, warmups, and short science tips; caffeine facts only show when caffeine tracking is enabled.
@@ -1714,15 +1715,15 @@ FERTIG: Testbare App auf echten Geräten ✅
 
 ---
 
-## 18. BRANCH-HYGIENE (Stand 2026-06-08)
+## 18. BRANCH-HYGIENE (Stand 2026-06-10)
 
-### Lage (aktualisiert 2026-06-08, Stabilisierung)
+### Lage (aktualisiert 2026-06-10, Stabilisierung + History-Fixes)
 
-`main` war nach der Konsolidierung grün; die aktuelle Stabilisierung läuft auf
-`feat/ui-volt-premium-completion` und ist noch nicht als `main`-Status zu lesen.
-Verifiziert auf diesem Branch: `pnpm typecheck` ✅ · `pnpm test` (85) ✅ ·
-mobile `jest --coverage` (75.6% statements) ✅ · `pnpm lint` ✅ ·
-`pnpm build`/Expo Export ✅.
+`origin/main` ist im aktuellen Arbeitsbranch enthalten; die aktuelle Stabilisierung
+läuft weiterhin auf `feat/ui-volt-premium-completion` und ist noch nicht als
+`main`-Status zu lesen. Verifiziert auf diesem Branch: `pnpm typecheck` ✅ ·
+`pnpm lint` ✅ · `pnpm test` (98: 29 Domain + 69 Mobile) ✅ · mobile
+`jest --coverage` ✅ · `pnpm build`/Expo Export ✅.
 
 ### Bereinigte Branches
 
@@ -1734,7 +1735,8 @@ Gelöscht (lokal + GitHub), da vollständig in `main` enthalten:
 
 - `main` — konsolidiert, grün, Single Source of Truth.
 - `feat/ui-volt-premium-completion` — aktueller Arbeitsbranch mit UI-Polish und
-  Stabilisierung. Nach Review als kurzlebigen PR gegen `main` behandeln.
+  Stabilisierung plus History-Drilldown/Crosshair-Fixes. Nach Review als
+  kurzlebigen PR gegen `main` behandeln.
 
 ### Regel ab jetzt
 
@@ -1744,5 +1746,5 @@ Merge-Konflikte. Pro Mission ein kurzlebiger Branch → PR → Merge → Branch 
 
 ---
 
-_Erstellt: Juni 2026 · zuletzt aktualisiert: 2026-06-08 (Stabilisierung,
-Auth-Fundament, Release-Assets, Teststand 83) | Fitness-Tracker Projekt_
+_Erstellt: Juni 2026 · zuletzt aktualisiert: 2026-06-10 (Stabilisierung,
+History-Drilldowns, Progress-Crosshair, Teststand 98) | Fitness-Tracker Projekt_

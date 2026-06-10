@@ -32,12 +32,13 @@
 
 ## 1. AKTUELLER STAND
 
-> ✅ **Stand 2026-06-10:** Block 1 (M6-M9), Block 2/H0, Premium UI polish, the current stabilization pass, the latest History drilldown/progress-chart fixes, and the Expo SDK 54 upgrade on `feat/ui-volt-premium-completion` are implemented and verified with `pnpm typecheck`, `pnpm lint`, `pnpm test` (98 tests: 29 domain + 69 mobile), mobile `jest --coverage`, `pnpm build`, `expo install --check`, and `expo-doctor`.
+> ✅ **Stand 2026-06-10:** Block 1 (M6-M9), Block 2/H0, Premium UI polish, the current stabilization pass, the latest History drilldown/progress-chart fixes, and the Expo SDK 54 upgrade on `feat/ui-volt-premium-completion` are implemented and verified with `pnpm typecheck`, `pnpm lint`, `pnpm test` (98 tests: 29 domain + 69 mobile), mobile `jest --coverage`, `pnpm build`, `expo install --check`, `expo-doctor`, and the `pnpm dev` web preview smoke.
 >
 > 🔀 **Current branch updates (2026-06-10):**
 >
 > - **Expo SDK 54 Upgrade:** Mobile now runs Expo `~54.0.35`, React `19.1.0`, React Native `0.81.5`, Expo Router `~6.0.24`, Jest Expo `~54.0.17`, SDK-54 Expo modules, direct `expo-constants` / `react-native-worklets` peers, and Node engine `>=20.19.4`. Expo Go SDK 54 compatibility is restored.
 > - **SDK 54 boot/storage guardrails:** `RootLayout` only blocks native SplashScreen, web/static rendering no longer returns `null` while fonts load, Ionicons + Space Grotesk + Manrope fonts are preloaded, and MMKV remains the primary persistence path with a one-way fallback migration for temporary raw web `localStorage` keys.
+> - **Stable Web Preview:** `pnpm dev` now builds a static Expo web export and serves `apps/mobile/dist` on `http://localhost:8081`. The raw SDK 54 `expo start --web` static-dev middleware still hangs on this app's first web request; use `pnpm --filter @fitness-tracker/mobile dev:metro` only for diagnosing that path.
 > - **Smooth Animated Modals:** Custom `<Modal>` component rewritten to use `Animated` for backdrop fade and container slide translations on open and close.
 > - **PR highlights on Progress Charts:** Volume history Progress charts now calculate historical PRs using e1RM and highlight PR workouts with gold dots (`#FFB020`). Tapping dots reveals volume details alongside a "★ NEW PR!" indicator.
 > - **Interactive XP Tooltip:** Level card on the Home Screen shows the exact numerical XP progress (`X / 500 XP`) when hovered (web) or pressed (mobile).
@@ -69,6 +70,7 @@
 > 5. **Remaining Test Gaps:** Regression coverage exists for the new helpers and key stores, but drag-and-drop reorder, template summary modal, and root redirect UI should still get focused component tests.
 > 6. **Gemini SDK 54 visual QA:** After this upgrade Gemini should visually check iPhone Expo Go, icons, tabbar, splash/fonts, Home/History/Workout navigation, persistence after app restart/hard reload, and mobile proportions.
 > 7. **Remaining Web Shadow Migration:** The central tab shadow warning was addressed with `boxShadow`, but other non-blocking `shadow*` usages remain in deeper UI surfaces and should be handled in a dedicated design cleanup if web warnings still appear.
+> 8. **Raw Metro Web Devserver:** `pnpm --filter @fitness-tracker/mobile dev:metro` currently reproduces an SDK 54 static web devserver hang before the web route is served. Keep tracking Expo CLI/router updates; normal `pnpm dev` intentionally uses export + `expo serve` until that path is fixed.
 
 ---
 
@@ -265,7 +267,7 @@ git pull
 ### Testen vor jedem Merge
 
 ```powershell
-pnpm dev     # App starten, manuell testen
+pnpm dev     # Web preview starten (Expo export + expo serve auf localhost:8081)
 pnpm test    # alle Tests grün?
 pnpm typecheck  # TypeScript sauber?
 ```
@@ -1730,7 +1732,7 @@ läuft weiterhin auf `feat/ui-volt-premium-completion` und ist noch nicht als
 `pnpm typecheck` ✅ · `pnpm lint` ✅ · `pnpm test` (98: 29 Domain + 69 Mobile) ✅ · mobile
 `jest --coverage` ✅ (80.06% Statements) · `pnpm build`/Expo Export ✅ ·
 `pnpm --filter @fitness-tracker/mobile exec expo install --check` ✅ ·
-`pnpm dlx expo-doctor apps/mobile` ✅ (18/18).
+`pnpm dlx expo-doctor apps/mobile` ✅ (18/18) · `pnpm dev` web preview smoke ✅.
 
 ### Bereinigte Branches
 

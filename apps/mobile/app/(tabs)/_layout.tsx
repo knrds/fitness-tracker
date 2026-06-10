@@ -96,18 +96,24 @@ export default function TabLayout() {
                 <Animated.View
                   style={[
                     styles.centerTabCircle,
+                    Platform.OS === 'web'
+                      ? styles.centerTabCircleWebShadow
+                      : styles.centerTabCircleNativeShadow,
                     {
                       backgroundColor: focused ? theme.colors.primary : '#1A1C23',
                       borderColor: focused ? theme.colors.primary : theme.colors.muted,
                       borderWidth: 2,
                     },
-                    focused && {
-                      shadowColor: theme.colors.primary,
-                      shadowOffset: { width: 0, height: 0 },
-                      shadowOpacity: animatedShadowOpacity,
-                      shadowRadius: animatedShadowRadius,
-                      elevation: animatedElevation,
-                    },
+                    focused &&
+                      (Platform.OS === 'web'
+                        ? styles.centerTabFocusedWebShadow
+                        : {
+                            shadowColor: theme.colors.primary,
+                            shadowOffset: { width: 0, height: 0 },
+                            shadowOpacity: animatedShadowOpacity,
+                            shadowRadius: animatedShadowRadius,
+                            elevation: animatedElevation,
+                          }),
                   ]}
                 >
                   <Ionicons
@@ -163,10 +169,18 @@ const styles = StyleSheet.create({
     borderRadius: 27,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  centerTabCircleNativeShadow: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 6,
     elevation: 8,
+  },
+  centerTabCircleWebShadow: {
+    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
+  },
+  centerTabFocusedWebShadow: {
+    boxShadow: '0 0 18px rgba(144, 213, 255, 0.7)',
   },
 });

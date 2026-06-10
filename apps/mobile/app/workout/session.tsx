@@ -83,7 +83,7 @@ export default function WorkoutSessionScreen() {
   const [islandExpanded, setIslandExpanded] = useState(false);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setInterval> | undefined;
     const endsAt = restTimer.endsAt;
     if (restTimer.isRunning && endsAt) {
       const update = () => {
@@ -233,7 +233,7 @@ export default function WorkoutSessionScreen() {
 
     setElapsed(calculateElapsed());
 
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (status === 'active') {
       interval = setInterval(() => {
         setElapsed(calculateElapsed());

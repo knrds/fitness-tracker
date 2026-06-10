@@ -32,10 +32,12 @@
 
 ## 1. AKTUELLER STAND
 
-> ✅ **Stand 2026-06-10:** Block 1 (M6-M9), Block 2/H0, Premium UI polish, the current stabilization pass, and the latest History drilldown/progress-chart fixes on `feat/ui-volt-premium-completion` are implemented and verified with `pnpm typecheck`, `pnpm lint`, `pnpm test` (98 tests: 29 domain + 69 mobile), mobile `jest --coverage`, and `pnpm build`.
+> ✅ **Stand 2026-06-10:** Block 1 (M6-M9), Block 2/H0, Premium UI polish, the current stabilization pass, the latest History drilldown/progress-chart fixes, and the Expo SDK 54 upgrade on `feat/ui-volt-premium-completion` are implemented and verified with `pnpm typecheck`, `pnpm lint`, `pnpm test` (98 tests: 29 domain + 69 mobile), mobile `jest --coverage`, `pnpm build`, `expo install --check`, and `expo-doctor`.
 >
 > 🔀 **Current branch updates (2026-06-10):**
 >
+> - **Expo SDK 54 Upgrade:** Mobile now runs Expo `~54.0.35`, React `19.1.0`, React Native `0.81.5`, Expo Router `~6.0.24`, Jest Expo `~54.0.17`, SDK-54 Expo modules, direct `expo-constants` / `react-native-worklets` peers, and Node engine `>=20.19.4`. Expo Go SDK 54 compatibility is restored.
+> - **SDK 54 boot/storage guardrails:** `RootLayout` only blocks native SplashScreen, web/static rendering no longer returns `null` while fonts load, Ionicons + Space Grotesk + Manrope fonts are preloaded, and MMKV remains the primary persistence path with a one-way fallback migration for temporary raw web `localStorage` keys.
 > - **Smooth Animated Modals:** Custom `<Modal>` component rewritten to use `Animated` for backdrop fade and container slide translations on open and close.
 > - **PR highlights on Progress Charts:** Volume history Progress charts now calculate historical PRs using e1RM and highlight PR workouts with gold dots (`#FFB020`). Tapping dots reveals volume details alongside a "★ NEW PR!" indicator.
 > - **Interactive XP Tooltip:** Level card on the Home Screen shows the exact numerical XP progress (`X / 500 XP`) when hovered (web) or pressed (mobile).
@@ -56,7 +58,7 @@
 > - **Workout Facts:** Finish-modal facts are biased toward training volume, set density, top exercise contribution, cardio, warmups, and short science tips; caffeine facts only show when caffeine tracking is enabled.
 > - **Auth foundation:** `authStore`, Supabase environment detection, Login/Register routes, root auth guard, and Profile sign-out exist. Cloud sync and full local-to-cloud user migration remain open.
 > - **Release prep partial:** `icon.png`, `adaptive-icon.png`, and `splash-icon.png` exist; splash/adaptive backgrounds are dark (`#0B0B0F`); bundle IDs were corrected from the typoed `com.fitnessracker.app` shape to `com.fitnesstracker.app`.
-> - **Compiles & Passes:** `pnpm typecheck` ✅, `pnpm test` (98) ✅, mobile `jest --coverage` ✅ (81.11% statements), `pnpm lint` ✅, `pnpm build` ✅.
+> - **Compiles & Passes:** `pnpm install --frozen-lockfile` ✅, `pnpm typecheck` ✅, `pnpm lint` ✅, `pnpm test` (98) ✅, mobile `jest --coverage` ✅ (80.06% statements), `pnpm build`/Expo export ✅, `pnpm --filter @fitness-tracker/mobile exec expo install --check` ✅, `pnpm dlx expo-doctor apps/mobile` ✅ (18/18).
 >
 > ⚠️ **Potential Issues / Notes for Codex:**
 >
@@ -65,6 +67,8 @@
 > 3. **Cardio custom exercise validation:** The new tracking mode maps "duration" to `MovementPattern.Cardio`. Codex should verify that when exporting workouts or syncing, cardio sets (where `weight` stores the Level and duration is tracked in `durationSeconds`) do not trigger standard volume validation logic that assumes weight in kg/lbs.
 > 4. **Auth Migration:** Until Cloud Sync exists, new local records use the current Supabase user ID when available and fall back to `LOCAL_USER_ID`. Mission 11 must define the migration/claim strategy before uploading local data.
 > 5. **Remaining Test Gaps:** Regression coverage exists for the new helpers and key stores, but drag-and-drop reorder, template summary modal, and root redirect UI should still get focused component tests.
+> 6. **Gemini SDK 54 visual QA:** After this upgrade Gemini should visually check iPhone Expo Go, icons, tabbar, splash/fonts, Home/History/Workout navigation, persistence after app restart/hard reload, and mobile proportions.
+> 7. **Remaining Web Shadow Migration:** The central tab shadow warning was addressed with `boxShadow`, but other non-blocking `shadow*` usages remain in deeper UI surfaces and should be handled in a dedicated design cleanup if web warnings still appear.
 
 ---
 
@@ -72,7 +76,7 @@ Tatsächlicher Stand:
 
 **Auf `main` gemerged bzw. im aktuellen Arbeitsstand enthalten:**
 
-- ✅ Monorepo (Expo 52, pnpm workspaces, TypeScript strict)
+- ✅ Monorepo (Expo 54, pnpm workspaces, TypeScript strict)
 - ✅ Datenmodell (11 Tabellen, alle Types, Zod-Schemas)
 - ✅ AGENTS.md + CLAUDE.md + GEMINI.md
 - ✅ Skills (.agent/skills/)
@@ -1478,10 +1482,11 @@ pnpm test. Merge nicht nach main.
 
 ### Mission 22: Release-Vorbereitung
 
-> **Status 2026-06-08:** Teilweise erledigt. `app.json` enthält Version `1.0.0`,
+> **Status 2026-06-10:** Teilweise erledigt. `app.json` enthält Version `1.0.0`,
 > Portrait-Orientation, Dark Splash (`#0B0B0F`), `icon.png`,
 > `adaptive-icon.png`, `splash-icon.png` und die aktuell verwendeten IDs
-> `com.fitnesstracker.app`. Vor Store-Upload final entscheiden, ob die
+> `com.fitnesstracker.app`. Expo SDK 54 ist aktiv und mit Expo Go SDK 54 kompatibel.
+> Vor Store-Upload final entscheiden, ob die
 > Bundle-/Package-ID owner-prefixed sein soll (z.B. `com.konradskwarski.fitnesstracker`);
 > nach dem ersten Store-Upload nicht mehr leicht ändern.
 
@@ -1545,7 +1550,7 @@ Lies AGENTS.md und eas.json. Branch: feat/first-build
 Erstelle den ersten TestFlight/Preview Build:
 
 1. Expo-Konfiguration prüfen:
-   pnpm --filter @fitness-tracker/mobile exec expo doctor
+   pnpm dlx expo-doctor apps/mobile
    Alle Warnings beheben.
 
 2. EAS Build für Android (Preview, kein Store-Account nötig):
@@ -1717,13 +1722,15 @@ FERTIG: Testbare App auf echten Geräten ✅
 
 ## 18. BRANCH-HYGIENE (Stand 2026-06-10)
 
-### Lage (aktualisiert 2026-06-10, Stabilisierung + History-Fixes)
+### Lage (aktualisiert 2026-06-10, Stabilisierung + History-Fixes + Expo SDK 54)
 
 `origin/main` ist im aktuellen Arbeitsbranch enthalten; die aktuelle Stabilisierung
 läuft weiterhin auf `feat/ui-volt-premium-completion` und ist noch nicht als
-`main`-Status zu lesen. Verifiziert auf diesem Branch: `pnpm typecheck` ✅ ·
-`pnpm lint` ✅ · `pnpm test` (98: 29 Domain + 69 Mobile) ✅ · mobile
-`jest --coverage` ✅ · `pnpm build`/Expo Export ✅.
+`main`-Status zu lesen. Verifiziert auf diesem Branch: `pnpm install --frozen-lockfile` ✅ ·
+`pnpm typecheck` ✅ · `pnpm lint` ✅ · `pnpm test` (98: 29 Domain + 69 Mobile) ✅ · mobile
+`jest --coverage` ✅ (80.06% Statements) · `pnpm build`/Expo Export ✅ ·
+`pnpm --filter @fitness-tracker/mobile exec expo install --check` ✅ ·
+`pnpm dlx expo-doctor apps/mobile` ✅ (18/18).
 
 ### Bereinigte Branches
 
@@ -1746,5 +1753,5 @@ Merge-Konflikte. Pro Mission ein kurzlebiger Branch → PR → Merge → Branch 
 
 ---
 
-_Erstellt: Juni 2026 · zuletzt aktualisiert: 2026-06-10 (Stabilisierung,
-History-Drilldowns, Progress-Crosshair, Teststand 98) | Fitness-Tracker Projekt_
+_Erstellt: Juni 2026 · zuletzt aktualisiert: 2026-06-10 (Expo SDK 54,
+Stabilisierung, History-Drilldowns, Progress-Crosshair, Teststand 98) | Fitness-Tracker Projekt_

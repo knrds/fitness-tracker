@@ -7,7 +7,7 @@ const monorepoRoot = path.resolve(projectRoot, '../..');
 const config = getDefaultConfig(projectRoot);
 
 // Watch all files within the monorepo
-config.watchFolders = [monorepoRoot];
+config.watchFolders = Array.from(new Set([...(config.watchFolders || []), monorepoRoot]));
 
 // Resolve packages from monorepo root node_modules as fallback
 config.resolver.nodeModulesPaths = [

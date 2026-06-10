@@ -8,8 +8,9 @@ import {
   SpaceGrotesk_600SemiBold,
   SpaceGrotesk_700Bold,
 } from '@expo-google-fonts/space-grotesk';
-import { Manrope_500Medium } from '@expo-google-fonts/manrope';
+import { Manrope_500Medium, Manrope_600SemiBold } from '@expo-google-fonts/manrope';
 import * as SplashScreen from 'expo-splash-screen';
+import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useTheme } from '@fitness-tracker/ui';
 
@@ -18,7 +19,9 @@ import { WorkoutCompleteModal } from '../src/components/workout/WorkoutCompleteM
 import { useAuthStore } from '../src/stores/authStore';
 import { useWorkoutStore } from '../src/stores/workoutStore';
 
-SplashScreen.preventAutoHideAsync();
+if (Platform.OS !== 'web') {
+  SplashScreen.preventAutoHideAsync().catch(() => {});
+}
 
 function StartupWorkoutChecker() {
   const router = useRouter();
@@ -194,20 +197,41 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  const [fontWaitTimedOut, setFontWaitTimedOut] = useState(false);
   const [fontsLoaded, fontError] = useFonts({
+    ...Ionicons.font,
     SpaceGrotesk_400Regular,
     SpaceGrotesk_600SemiBold,
     SpaceGrotesk_700Bold,
     Manrope_500Medium,
+    Manrope_600SemiBold,
   });
+  const canRender = fontsLoaded || Boolean(fontError) || fontWaitTimedOut;
+  const isStaticWebRender = Platform.OS === 'web' && !('window' in globalThis);
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, fontError]);
+    if (canRender) return;
 
-  if (!fontsLoaded && !fontError) {
+    const timeout = setTimeout(
+      () => {
+        setFontWaitTimedOut(true);
+      },
+      Platform.OS === 'web' ? 2500 : 8000,
+    );
+
+    return () => clearTimeout(timeout);
+  }, [canRender]);
+
+  useEffect(() => {
+    if (canRender && Platform.OS !== 'web') {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [canRender]);
+
+  if (!canRender && !isStaticWebRender) {
+    if (Platform.OS === 'web') {
+      return <View style={styles.bootScreen} />;
+    }
     return null;
   }
 
@@ -221,6 +245,10 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
+  bootScreen: {
+    flex: 1,
+    backgroundColor: '#0B0B0F',
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(11, 11, 15, 0.85)',

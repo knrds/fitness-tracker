@@ -44,6 +44,18 @@ export default function TabLayout() {
     outputRange: [8, 14],
   });
 
+  const focusedWebGlow = {
+    boxShadow: `0 0 14px ${theme.colors.primary}`,
+  };
+
+  const focusedNativeGlow = {
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: animatedShadowOpacity,
+    shadowRadius: animatedShadowRadius,
+    elevation: animatedElevation,
+  };
+
   return (
     <Tabs
       screenOptions={{
@@ -101,13 +113,7 @@ export default function TabLayout() {
                       borderColor: focused ? theme.colors.primary : theme.colors.muted,
                       borderWidth: 2,
                     },
-                    focused && {
-                      shadowColor: theme.colors.primary,
-                      shadowOffset: { width: 0, height: 0 },
-                      shadowOpacity: animatedShadowOpacity,
-                      shadowRadius: animatedShadowRadius,
-                      elevation: animatedElevation,
-                    },
+                    focused && (Platform.OS === 'web' ? focusedWebGlow : focusedNativeGlow),
                   ]}
                 >
                   <Ionicons
@@ -163,10 +169,14 @@ const styles = StyleSheet.create({
     borderRadius: 27,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 8,
+    ...(Platform.OS === 'web'
+      ? { boxShadow: '0 4px 12px rgba(0, 0, 0, 0.35)' }
+      : {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.35,
+          shadowRadius: 6,
+          elevation: 8,
+        }),
   },
 });

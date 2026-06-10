@@ -48,8 +48,8 @@ export default function ExerciseDetailScreen() {
     }
   }, [exercise?.imageUrl, isPlaying]);
 
-  const getDisplayedImageUri = (): string | null => {
-    if (!exercise?.imageUrl) return null;
+  const getDisplayedImageUri = () => {
+    if (!exercise?.imageUrl) return undefined;
     if (currentImageIndex === 1 && exercise.imageUrl.endsWith('0.jpg')) {
       return exercise.imageUrl.replace('/0.jpg', '/1.jpg');
     }
@@ -121,7 +121,7 @@ export default function ExerciseDetailScreen() {
             style={styles.imageContainer}
           >
             <Image
-              source={getDisplayedImageUri()}
+              source={{ uri: getDisplayedImageUri() }}
               style={styles.image}
               contentFit="cover"
               onLoadStart={() => setImageLoading(true)}
@@ -300,7 +300,7 @@ export default function ExerciseDetailScreen() {
             </Pressable>
             <Pressable style={styles.fullscreenImageWrap} onPress={() => setIsPlaying((p) => !p)}>
               <Image
-                source={getDisplayedImageUri()}
+                source={{ uri: getDisplayedImageUri() }}
                 style={styles.fullscreenImage}
                 contentFit="contain"
               />

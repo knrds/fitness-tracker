@@ -6,40 +6,10 @@ const isServer = typeof globalThis === 'undefined' || !('window' in globalThis);
 // Setup dedicated MMKV storage for Supabase auth sessions (only on client)
 const storage = !isServer ? new MMKV({ id: 'supabase-auth-storage' }) : null;
 
-const getTemporaryWebStorageItem = (key: string) => {
-  if (typeof globalThis === 'undefined' || !('localStorage' in globalThis)) return null;
-
-  try {
-    return globalThis.localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-};
-
-const removeTemporaryWebStorageItem = (key: string) => {
-  if (typeof globalThis === 'undefined' || !('localStorage' in globalThis)) return;
-
-  try {
-    globalThis.localStorage.removeItem(key);
-  } catch {
-    // Ignore browsers that block localStorage cleanup.
-  }
-};
-
 const supabaseStorage = {
   getItem: (key: string): string | null => {
     if (isServer || !storage) return null;
-    const storedValue = storage.getString(key);
-    if (storedValue) return storedValue;
-
-    const temporaryWebValue = getTemporaryWebStorageItem(key);
-    if (temporaryWebValue) {
-      storage.set(key, temporaryWebValue);
-      removeTemporaryWebStorageItem(key);
-      return temporaryWebValue;
-    }
-
-    return null;
+    return storage.getString(key) ?? null;
   },
   setItem: (key: string, value: string): void => {
     if (isServer || !storage) return;
@@ -48,7 +18,6 @@ const supabaseStorage = {
   removeItem: (key: string): void => {
     if (isServer || !storage) return;
     storage.delete(key);
-    removeTemporaryWebStorageItem(key);
   },
 };
 

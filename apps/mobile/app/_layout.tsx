@@ -8,12 +8,7 @@ import {
   SpaceGrotesk_600SemiBold,
   SpaceGrotesk_700Bold,
 } from '@expo-google-fonts/space-grotesk';
-import {
-  Manrope_500Medium,
-  Manrope_600SemiBold,
-  Manrope_700Bold,
-} from '@expo-google-fonts/manrope';
-import { Ionicons } from '@expo/vector-icons';
+import { Manrope_500Medium } from '@expo-google-fonts/manrope';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useTheme } from '@fitness-tracker/ui';
@@ -23,9 +18,7 @@ import { WorkoutCompleteModal } from '../src/components/workout/WorkoutCompleteM
 import { useAuthStore } from '../src/stores/authStore';
 import { useWorkoutStore } from '../src/stores/workoutStore';
 
-if (Platform.OS !== 'web') {
-  SplashScreen.preventAutoHideAsync().catch(() => {});
-}
+SplashScreen.preventAutoHideAsync();
 
 function StartupWorkoutChecker() {
   const router = useRouter();
@@ -201,43 +194,20 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
-  const [fontWaitTimedOut, setFontWaitTimedOut] = useState(false);
-  const isStaticRender = typeof globalThis === 'undefined' || !('window' in globalThis);
   const [fontsLoaded, fontError] = useFonts({
-    ...Ionicons.font,
     SpaceGrotesk_400Regular,
     SpaceGrotesk_600SemiBold,
     SpaceGrotesk_700Bold,
     Manrope_500Medium,
-    Manrope_600SemiBold,
-    Manrope_700Bold,
   });
 
-  const canRender = fontsLoaded || !!fontError || fontWaitTimedOut;
-
   useEffect(() => {
-    if (fontsLoaded || fontError) return;
-
-    const timeout = setTimeout(
-      () => {
-        setFontWaitTimedOut(true);
-      },
-      Platform.OS === 'web' ? 2500 : 8000,
-    );
-
-    return () => clearTimeout(timeout);
-  }, [fontError, fontsLoaded]);
-
-  useEffect(() => {
-    if (Platform.OS !== 'web' && canRender) {
-      SplashScreen.hideAsync().catch(() => {});
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync();
     }
-  }, [canRender]);
+  }, [fontsLoaded, fontError]);
 
-  if (!canRender && !isStaticRender) {
-    if (Platform.OS === 'web') {
-      return <View style={styles.bootScreen} />;
-    }
+  if (!fontsLoaded && !fontError) {
     return null;
   }
 
@@ -251,10 +221,6 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  bootScreen: {
-    flex: 1,
-    backgroundColor: '#0B0B0F',
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(11, 11, 15, 0.85)',

@@ -6,12 +6,12 @@ import {
   StyleSheet,
   TextInput,
   Pressable,
+  SafeAreaView,
   ScrollView,
   Alert,
 } from 'react-native';
 import { MuscleGroup, Equipment, MovementPattern } from '@fitness-tracker/domain';
 import { useTheme } from '@fitness-tracker/ui';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useExerciseStore } from '../../stores/exerciseStore';
 

@@ -7,6 +7,7 @@ import {
   FlatList,
   TextInput,
   Pressable,
+  SafeAreaView,
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,7 +15,6 @@ import { UUID, Exercise } from '@fitness-tracker/domain';
 import { useTheme } from '@fitness-tracker/ui';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useExerciseStore } from '../../stores/exerciseStore';
 import { useHistoryStore } from '../../stores/historyStore';

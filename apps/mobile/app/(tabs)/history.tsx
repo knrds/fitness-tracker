@@ -23,6 +23,7 @@ import {
   ACHIEVEMENTS,
   formatDateLocal,
   getExerciseProgressHistory,
+  summarizeSessionExercise,
   summarizeWorkout,
 } from '@fitness-tracker/domain';
 
@@ -33,6 +34,11 @@ import { useAchievementCheck } from '../../src/hooks/useAchievementCheck';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { useTheme, Card, EmptyState } from '@fitness-tracker/ui';
 import { getLevelBadge } from '../../src/utils/level';
+
+type HistorySet = WorkoutSession['exercises'][number]['sets'][number];
+
+const CHART_PADDING_RIGHT = 64;
+const KG_TO_LBS = 2.20462;
 
 export default function HistoryScreen() {
   const [activeTab, setActiveTab] = useState<'history' | 'progress' | 'achievements'>('history');
@@ -99,10 +105,26 @@ function HistoryView() {
   const { exercises: allExercises } = useExerciseStore();
   const profile = useProfileStore((state) => state.profile);
   const isImperial = profile?.preferredUnits === 'imperial';
+  const volumeUnit = isImperial ? 'lbs' : 'kg';
   useHistoryStore((state) => state.sessions);
   const { getSessionsByDateDesc } = useHistoryStore();
   const sessions = getSessionsByDateDesc();
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
+  const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
+
+  const visibleSessions = selectedDayKey
+    ? sessions.filter((session) => formatDateLocal(new Date(session.startedAt)) === selectedDayKey)
+    : sessions;
+
+  const formatDateKey = (dateKey: string) => {
+    const [year = 0, month = 1, day = 1] = dateKey.split('-').map(Number);
+    return new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(new Date(year, month - 1, day));
+  };
 
   const getVolumeFunFact = (volumeKg: number): string => {
     const displayVol = isImperial ? Math.round(volumeKg * 2.20462) : Math.round(volumeKg);
@@ -158,6 +180,55 @@ function HistoryView() {
     return `${m}m`;
   };
 
+  const displayWeight = (weight?: number) => {
+    if (weight === undefined) return '-';
+    const value = isImperial ? weight * KG_TO_LBS : weight;
+    return value.toFixed(1).replace(/\.0$/, '');
+  };
+
+  const displayVolume = (volumeKg: number) => {
+    const value = isImperial ? volumeKg * KG_TO_LBS : volumeKg;
+    return Math.round(value).toLocaleString();
+  };
+
+  const getSetTypeMeta = (type: HistorySet['type']) => {
+    switch (type) {
+      case 'warmup':
+        return { label: 'W', name: 'Warmup' };
+      case 'drop':
+        return { label: 'D', name: 'Drop' };
+      case 'failure':
+        return { label: 'F', name: 'Failure' };
+      case 'amrap':
+        return { label: 'A', name: 'AMRAP' };
+      case 'backoff':
+        return { label: 'B', name: 'Backoff' };
+      default:
+        return null;
+    }
+  };
+
+  const formatSetLine = (set: HistorySet) => {
+    const load = set.weight !== undefined ? `${displayWeight(set.weight)} ${volumeUnit}` : null;
+    const reps = set.reps !== undefined ? `${set.reps} rep${set.reps === 1 ? '' : 's'}` : null;
+    const duration =
+      set.durationSeconds !== undefined && set.durationSeconds > 0
+        ? formatDuration(set.durationSeconds)
+        : null;
+    const distance =
+      set.distanceMeters !== undefined && set.distanceMeters > 0
+        ? `${(set.distanceMeters / 1000).toFixed(2).replace(/\.00$/, '')} km`
+        : null;
+
+    if (load && reps) return `${load} x ${set.reps}`;
+    if (reps) return reps;
+    if (duration && distance) return `${duration} - ${distance}`;
+    if (duration) return duration;
+    if (distance) return distance;
+    if (load) return load;
+    return 'Logged';
+  };
+
   const renderItem = ({ item }: { item: WorkoutSession }) => {
     const summary = summarizeWorkout(item);
 
@@ -166,10 +237,7 @@ function HistoryView() {
       .filter(Boolean)
       .join(', ');
 
-    const displayVolume = isImperial
-      ? Math.round(summary.totalVolume * 2.20462)
-      : Math.round(summary.totalVolume);
-    const volumeUnit = isImperial ? 'lbs' : 'kg';
+    const displayTotalVolume = displayVolume(summary.totalVolume);
 
     return (
       <Card style={styles.card} onPress={() => setSelectedSession(item)} padding="lg">
@@ -221,7 +289,7 @@ function HistoryView() {
                 { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' },
               ]}
             >
-              {displayVolume}
+              {displayTotalVolume}
             </Text>
             <Text
               style={[styles.statLabel, { color: theme.colors.muted, ...theme.typography.caption }]}
@@ -253,10 +321,7 @@ function HistoryView() {
   const summaryTotalSets = selectedSummary?.setCount ?? 0;
   const summaryTotalVolume = selectedSummary?.totalVolume ?? 0;
 
-  const summaryDisplayVolume = isImperial
-    ? Math.round(summaryTotalVolume * 2.20462)
-    : Math.round(summaryTotalVolume);
-  const volumeUnit = isImperial ? 'lbs' : 'kg';
+  const summaryDisplayVolume = displayVolume(summaryTotalVolume);
 
   const ConsistencyGrid = () => {
     const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
@@ -326,19 +391,26 @@ function HistoryView() {
             const key = formatDateLocal(day);
             const count = sessionsByDate[key] || 0;
             const isToday = key === formatDateLocal(today);
+            const isSelected = selectedDayKey === key;
             return (
-              <View
+              <Pressable
                 key={key}
+                onPress={() => setSelectedDayKey((current) => (current === key ? null : key))}
                 style={[
                   styles.consistencyDay,
-                  { borderColor: isToday ? theme.colors.primary : theme.colors.border },
+                  {
+                    backgroundColor: isSelected ? 'rgba(144, 213, 255, 0.13)' : 'transparent',
+                    borderColor: isSelected || isToday ? theme.colors.primary : theme.colors.border,
+                  },
                   viewMode === 'month' && styles.consistencyDayMonth,
                 ]}
+                accessibilityRole="button"
+                accessibilityLabel={`${formatDateKey(key)}, ${count} workout${count === 1 ? '' : 's'}`}
               >
                 <Text
                   style={[
                     styles.consistencyDayLabel,
-                    { color: isToday ? theme.colors.primary : theme.colors.muted },
+                    { color: isSelected || isToday ? theme.colors.primary : theme.colors.muted },
                   ]}
                 >
                   {viewMode === 'week'
@@ -362,7 +434,7 @@ function HistoryView() {
                 <Text style={[styles.consistencyCount, { color: theme.colors.text }]}>
                   {count > 0 ? count : ''}
                 </Text>
-              </View>
+              </Pressable>
             );
           })}
         </View>
@@ -376,15 +448,48 @@ function HistoryView() {
   return (
     <>
       <FlatList
-        data={sessions}
+        data={visibleSessions}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom + 20, 100) }]}
-        ListHeaderComponent={ConsistencyGrid}
+        ListHeaderComponent={
+          <>
+            <ConsistencyGrid />
+            {selectedDayKey && (
+              <View
+                style={[
+                  styles.dayFilterBar,
+                  { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+                ]}
+              >
+                <View style={styles.dayFilterTextWrap}>
+                  <Text style={[styles.dayFilterLabel, { color: theme.colors.muted }]}>
+                    SHOWING DAY
+                  </Text>
+                  <Text style={[styles.dayFilterDate, { color: theme.colors.text }]}>
+                    {formatDateKey(selectedDayKey)}
+                  </Text>
+                </View>
+                <Pressable
+                  style={[styles.dayFilterClear, { borderColor: theme.colors.border }]}
+                  onPress={() => setSelectedDayKey(null)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Show all workout history"
+                >
+                  <Ionicons name="close" size={16} color={theme.colors.muted} />
+                </Pressable>
+              </View>
+            )}
+          </>
+        }
         ListEmptyComponent={
           <EmptyState
-            title="NO WORKOUTS YET"
-            description="Your completed workouts will appear here."
+            title={selectedDayKey ? 'NO WORKOUTS THAT DAY' : 'NO WORKOUTS YET'}
+            description={
+              selectedDayKey
+                ? 'Tap another block or clear the filter to view the full history.'
+                : 'Your completed workouts will appear here.'
+            }
           />
         }
       />
@@ -405,6 +510,7 @@ function HistoryView() {
                 borderColor: theme.colors.border,
                 borderRadius: theme.radius.lg,
                 maxWidth: 400,
+                maxHeight: '90%',
                 alignItems: 'center',
               },
             ]}
@@ -481,6 +587,100 @@ function HistoryView() {
                       {volumeUnit.toUpperCase()}
                     </Text>
                   </View>
+                </View>
+
+                <View style={styles.summaryExerciseList}>
+                  <Text style={[styles.summarySectionTitle, { color: theme.colors.muted }]}>
+                    EXERCISES & SETS
+                  </Text>
+                  <ScrollView
+                    style={styles.summaryExerciseScroller}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    {selectedSession.exercises.map((exercise, index) => {
+                      const exerciseDef = allExercises.find(
+                        (item) => item.id === exercise.exerciseId,
+                      );
+                      const exerciseSummary = summarizeSessionExercise(exercise);
+                      const completedSets = exercise.sets.filter((set) => set.completed);
+                      return (
+                        <View
+                          key={exercise.id}
+                          style={[
+                            styles.summaryExBlock,
+                            {
+                              backgroundColor: theme.colors.background,
+                              borderColor: theme.colors.border,
+                            },
+                          ]}
+                        >
+                          <View style={styles.summaryExHeader}>
+                            <Text
+                              style={[styles.summaryExName, { color: theme.colors.text }]}
+                              numberOfLines={2}
+                            >
+                              {index + 1}. {exerciseDef?.name ?? 'Unknown Exercise'}
+                            </Text>
+                            <Text
+                              style={[styles.summaryExDetails, { color: theme.colors.primary }]}
+                            >
+                              {exerciseSummary.workingSetCount} sets -{' '}
+                              {displayVolume(exerciseSummary.totalVolume)} {volumeUnit}
+                            </Text>
+                          </View>
+                          <View style={styles.summarySetList}>
+                            {(completedSets.length > 0 ? completedSets : exercise.sets).map(
+                              (set) => {
+                                const typeMeta = getSetTypeMeta(set.type);
+                                return (
+                                  <View
+                                    key={set.id}
+                                    style={[
+                                      styles.summarySetPill,
+                                      { borderColor: theme.colors.border },
+                                      !set.completed && { opacity: 0.55 },
+                                    ]}
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.summarySetNumber,
+                                        { color: theme.colors.muted },
+                                      ]}
+                                    >
+                                      #{set.setNumber}
+                                    </Text>
+                                    <Text
+                                      style={[styles.summarySetText, { color: theme.colors.text }]}
+                                      numberOfLines={1}
+                                    >
+                                      {formatSetLine(set)}
+                                    </Text>
+                                    {typeMeta && (
+                                      <View
+                                        style={[
+                                          styles.summarySetTypeBadge,
+                                          { backgroundColor: 'rgba(144, 213, 255, 0.14)' },
+                                        ]}
+                                      >
+                                        <Text
+                                          style={[
+                                            styles.summarySetTypeText,
+                                            { color: theme.colors.primary },
+                                          ]}
+                                        >
+                                          {typeMeta.label}
+                                        </Text>
+                                      </View>
+                                    )}
+                                  </View>
+                                );
+                              },
+                            )}
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </ScrollView>
                 </View>
 
                 <View
@@ -602,11 +802,10 @@ function ProgressView() {
     }
 
     const chartWidth = screenWidth - 64;
-    const chartInsetX = 34;
 
     const getPointX = (index: number) => {
       if (history.length <= 1) return chartWidth / 2;
-      return chartInsetX + (index / (history.length - 1)) * (chartWidth - chartInsetX * 2);
+      return CHART_PADDING_RIGHT + (index * (chartWidth - CHART_PADDING_RIGHT)) / history.length;
     };
 
     const selectHistoryPoint = (index: number, pointX = getPointX(index)) => {
@@ -614,8 +813,9 @@ function ProgressView() {
       const item = history[index];
       if (!item) return;
       const vol = isImperial ? Math.round(item.volume * 2.20462) : Math.round(item.volume);
+      const clampedPointX = Math.max(0, Math.min(chartWidth, pointX));
       setCrosshairIdx(index);
-      setCrosshairX(pointX);
+      setCrosshairX(clampedPointX);
       setSelectedPoint({
         date: new Date(item.date).toLocaleDateString(),
         volume: vol,
@@ -627,13 +827,15 @@ function ProgressView() {
 
     const handleChartTouch = (touchX: number) => {
       if (history.length < 2) return;
-      const printableWidth = chartWidth - chartInsetX * 2;
-      const clampedX = Math.max(0, Math.min(printableWidth, touchX - chartInsetX));
-      const ratio = clampedX / printableWidth;
+      const firstPointX = getPointX(0);
+      const lastPointX = getPointX(history.length - 1);
+      const clampedX = Math.max(firstPointX, Math.min(lastPointX, touchX));
+      const ratio =
+        lastPointX === firstPointX ? 0 : (clampedX - firstPointX) / (lastPointX - firstPointX);
       const index = Math.round(ratio * (history.length - 1));
 
       if (index !== crosshairIdx && index >= 0 && index < history.length) {
-        selectHistoryPoint(index);
+        selectHistoryPoint(index, getPointX(index));
       }
     };
 
@@ -1295,9 +1497,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   summaryExerciseList: {
-    maxHeight: 250,
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 18,
+  },
+  summarySectionTitle: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 11,
+    letterSpacing: 1,
+    marginBottom: 10,
+  },
+  summaryExerciseScroller: {
+    maxHeight: 210,
+    width: '100%',
+  },
+  summaryExBlock: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+  },
+  summaryExHeader: {
+    marginBottom: 10,
   },
   summaryExRow: {
     flexDirection: 'row',
@@ -1315,6 +1535,41 @@ const styles = StyleSheet.create({
   },
   summaryExDetails: {
     fontSize: 13,
+    fontFamily: 'SpaceGrotesk_700Bold',
+  },
+  summarySetList: {
+    gap: 8,
+  },
+  summarySetPill: {
+    minHeight: 36,
+    borderWidth: 1,
+    borderRadius: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  summarySetNumber: {
+    width: 28,
+    fontSize: 11,
+    fontFamily: 'SpaceGrotesk_700Bold',
+  },
+  summarySetText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: 'Manrope_700Bold',
+  },
+  summarySetTypeBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  summarySetTypeText: {
+    fontSize: 10,
     fontFamily: 'SpaceGrotesk_700Bold',
   },
   modalStartBtn: {
@@ -1437,6 +1692,37 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 15,
     marginTop: 10,
+  },
+  dayFilterBar: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  dayFilterTextWrap: {
+    flex: 1,
+  },
+  dayFilterLabel: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 10,
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  dayFilterDate: {
+    fontFamily: 'Manrope_700Bold',
+    fontSize: 14,
+  },
+  dayFilterClear: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalIconContainer: {
     width: 80,

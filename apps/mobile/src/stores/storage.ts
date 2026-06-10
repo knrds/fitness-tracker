@@ -42,6 +42,16 @@ const parseStoredValue = <T extends object>(
   }
 };
 
+const getTemporaryWebStorageItem = (name: string) => {
+  if (typeof globalThis === 'undefined' || !('localStorage' in globalThis)) return null;
+
+  try {
+    return globalThis.localStorage.getItem(name);
+  } catch {
+    return null;
+  }
+};
+
 export function createHydratedStorage<T extends object>(
   storageId: string,
   schema: z.ZodType<T>,
@@ -61,7 +71,23 @@ export function createHydratedStorage<T extends object>(
 
   return {
     getItem: (name: string) => {
-      return parseStoredValue(storageId, schema, defaultPersistedState, storage.getString(name));
+      const storedValue = storage.getString(name);
+      if (storedValue) {
+        return parseStoredValue(storageId, schema, defaultPersistedState, storedValue);
+      }
+
+      const temporaryWebValue = getTemporaryWebStorageItem(name);
+      if (temporaryWebValue) {
+        storage.set(name, temporaryWebValue);
+        try {
+          globalThis.localStorage.removeItem(name);
+        } catch {
+          // Ignore browsers that block localStorage cleanup.
+        }
+        return parseStoredValue(storageId, schema, defaultPersistedState, temporaryWebValue);
+      }
+
+      return null;
     },
     setItem: (name: string, value: StorageValue<T>) => {
       storage.set(name, JSON.stringify(value));

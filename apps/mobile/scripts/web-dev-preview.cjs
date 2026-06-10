@@ -14,8 +14,8 @@ const commandOptions = {
   stdio: 'inherit',
 };
 
-console.log('[web] Building a static Expo web preview...');
-console.log('[web] Note: Expo SDK 54 static `expo start --web` currently hangs for this app.');
+console.log('[web] Building a single-page Expo web preview...');
+console.log('[web] Note: Expo SDK 54 `expo start --web` currently hangs for this app.');
 console.log('[web] Use `pnpm --filter @fitness-tracker/mobile dev:metro` only for diagnosing that path.');
 
 const exportResult = spawnSync(

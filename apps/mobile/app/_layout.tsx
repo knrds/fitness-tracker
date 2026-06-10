@@ -13,6 +13,7 @@ import {
   Manrope_600SemiBold,
   Manrope_700Bold,
 } from '@expo-google-fonts/manrope';
+import { Ionicons } from '@expo/vector-icons';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useTheme } from '@fitness-tracker/ui';
@@ -200,7 +201,10 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  const [fontWaitTimedOut, setFontWaitTimedOut] = useState(false);
+  const isStaticRender = typeof globalThis === 'undefined' || !('window' in globalThis);
   const [fontsLoaded, fontError] = useFonts({
+    ...Ionicons.font,
     SpaceGrotesk_400Regular,
     SpaceGrotesk_600SemiBold,
     SpaceGrotesk_700Bold,
@@ -209,13 +213,31 @@ export default function RootLayout() {
     Manrope_700Bold,
   });
 
+  const canRender = fontsLoaded || !!fontError || fontWaitTimedOut;
+
   useEffect(() => {
-    if (Platform.OS !== 'web' && (fontsLoaded || fontError)) {
+    if (fontsLoaded || fontError) return;
+
+    const timeout = setTimeout(
+      () => {
+        setFontWaitTimedOut(true);
+      },
+      Platform.OS === 'web' ? 2500 : 8000,
+    );
+
+    return () => clearTimeout(timeout);
+  }, [fontError, fontsLoaded]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' && canRender) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [fontsLoaded, fontError]);
+  }, [canRender]);
 
-  if (Platform.OS !== 'web' && !fontsLoaded && !fontError) {
+  if (!canRender && !isStaticRender) {
+    if (Platform.OS === 'web') {
+      return <View style={styles.bootScreen} />;
+    }
     return null;
   }
 
@@ -229,6 +251,10 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
+  bootScreen: {
+    flex: 1,
+    backgroundColor: '#0B0B0F',
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(11, 11, 15, 0.85)',

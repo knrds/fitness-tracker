@@ -1,5 +1,4 @@
 import { PersistStorage, StorageValue } from 'zustand/middleware';
-import { Platform } from 'react-native';
 import { MMKV } from 'react-native-mmkv';
 import { z } from 'zod';
 
@@ -43,26 +42,6 @@ const parseStoredValue = <T extends object>(
   }
 };
 
-const getLocalStorage = () => {
-  if (
-    Platform.OS !== 'web' ||
-    typeof globalThis === 'undefined' ||
-    !('localStorage' in globalThis)
-  ) {
-    return null;
-  }
-
-  try {
-    const storage = globalThis.localStorage;
-    const probeKey = '__fitness_tracker_storage_probe__';
-    storage.setItem(probeKey, '1');
-    storage.removeItem(probeKey);
-    return storage;
-  } catch {
-    return null;
-  }
-};
-
 export function createHydratedStorage<T extends object>(
   storageId: string,
   schema: z.ZodType<T>,
@@ -75,20 +54,6 @@ export function createHydratedStorage<T extends object>(
       getItem: () => null,
       setItem: () => {},
       removeItem: () => {},
-    };
-  }
-
-  const localStorage = getLocalStorage();
-  if (localStorage) {
-    return {
-      getItem: (name: string) =>
-        parseStoredValue(storageId, schema, defaultPersistedState, localStorage.getItem(name)),
-      setItem: (name: string, value: StorageValue<T>) => {
-        localStorage.setItem(name, JSON.stringify(value));
-      },
-      removeItem: (name: string) => {
-        localStorage.removeItem(name);
-      },
     };
   }
 

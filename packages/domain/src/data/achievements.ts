@@ -232,7 +232,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'pr',
     targetValue: 100,
     xpReward: 1200,
-    icon: 'crown',
+    icon: 'ribbon',
   },
   {
     id: 'prs_250',
@@ -828,7 +828,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'niche',
     targetValue: 25,
     xpReward: 460,
-    icon: 'git-compare-arrows',
+    icon: 'git-compare',
   },
   {
     id: 'machine_room_regular',

@@ -2,10 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MMKV } from 'react-native-mmkv';
 import { createClient } from '@supabase/supabase-js';
 
+import { isExpoGo } from './runtime';
+
 const isServer = typeof globalThis === 'undefined' || !('window' in globalThis);
 
 const createSupabaseStorage = (): MMKV | null => {
-  if (isServer) return null;
+  if (isServer || isExpoGo) return null;
 
   try {
     return new MMKV({ id: 'supabase-auth-storage' });

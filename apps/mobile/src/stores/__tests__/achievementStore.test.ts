@@ -1,6 +1,7 @@
 import { useAchievementStore } from '../achievementStore';
 import { useHistoryStore } from '../historyStore';
 import { useExerciseStore } from '../exerciseStore';
+import ioniconsGlyphMap from '@expo/vector-icons/build/vendor/react-native-vector-icons/glyphmaps/Ionicons.json';
 import {
   ACHIEVEMENTS,
   WorkoutSession,
@@ -16,6 +17,8 @@ jest.mock('react-native-mmkv', () => ({
     delete: jest.fn(),
   })),
 }));
+
+const ioniconNames = new Set(Object.keys(ioniconsGlyphMap));
 
 const createBenchSession = (id: string, completedAt: Date): WorkoutSession => ({
   id,
@@ -74,6 +77,13 @@ describe('achievementStore', () => {
     expect(state.unlockedAchievements).toEqual({});
     expect(state.newlyUnlocked).toEqual([]);
     expect(state.levelUpTo).toBeNull();
+  });
+
+  it('uses valid Ionicons names for every achievement icon', () => {
+    const invalidIcons = ACHIEVEMENTS.filter((achievement) => !ioniconNames.has(achievement.icon))
+      .map((achievement) => `${achievement.id}:${achievement.icon}`);
+
+    expect(invalidIcons).toEqual([]);
   });
 
   it('should award XP and unlock first_workout achievement on first session finished', () => {

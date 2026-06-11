@@ -32,13 +32,13 @@
 
 ## 1. AKTUELLER STAND
 
-> ✅ **Stand 2026-06-10:** Block 1 (M6-M9), Block 2/H0, Premium UI polish, the current stabilization pass, the latest History drilldown/progress-chart fixes, and the Expo SDK 54 upgrade on `feat/ui-volt-premium-completion` are implemented and verified with `pnpm typecheck`, `pnpm lint`, `pnpm test` (99 tests: 29 domain + 70 mobile), mobile `jest --coverage`, `pnpm build`, `expo install --check`, `expo-doctor`, and a browser/CDP `pnpm dev` smoke for runtime, fonts, icons, and visible Home content.
+> ✅ **Stand 2026-06-11:** Block 1 (M6-M9), Block 2/H0, Premium UI polish, the current stabilization pass, the latest History drilldown/progress-chart fixes, and the Expo SDK 54 upgrade on `feat/ui-volt-premium-completion` are implemented and verified with `pnpm typecheck`, `pnpm lint`, `pnpm test` (100 tests: 29 domain + 71 mobile), mobile `jest --coverage`, `pnpm build`, `expo install --check`, `expo-doctor`, and a browser/CDP `pnpm dev` smoke for runtime, fonts, icons, and visible Home content.
 >
-> 🔀 **Current branch updates (2026-06-10):**
+> 🔀 **Current branch updates (2026-06-11):**
 >
 > - **Expo SDK 54 Upgrade:** Mobile now runs Expo `~54.0.35`, React `19.1.0`, React Native `0.81.5`, Expo Router `~6.0.24`, Jest Expo `~54.0.17`, SDK-54 Expo modules, direct `expo-constants` / `react-native-worklets` peers, and Node engine `>=20.19.4`. Expo Go SDK 54 compatibility is restored.
 > - **SDK 54 boot/storage guardrails:** `RootLayout` only blocks native SplashScreen, web SPA rendering no longer returns `null` while fonts load, Ionicons + Space Grotesk + Manrope fonts are preloaded, and MMKV remains the primary persistence path with a one-way fallback migration for temporary raw web `localStorage` keys.
-> - **Expo Go storage fallback:** `@react-native-async-storage/async-storage@2.2.0` is installed as the Expo-Go-compatible fallback. Zustand persisted stores and Supabase auth now try MMKV first, then fall back to AsyncStorage if MMKV cannot create a native instance in Expo Go.
+> - **Expo Go storage fallback:** `@react-native-async-storage/async-storage@2.2.0` is installed as the Expo-Go-compatible fallback. Zustand persisted stores and Supabase auth use AsyncStorage directly inside Expo Go, avoiding noisy MMKV TurboModule warnings, while web/standalone builds still try MMKV first.
 > - **Stable Web Preview:** `pnpm dev` now builds a single-page Expo web export (`web.output: single`) and serves `apps/mobile/dist` on `http://localhost:8081`. Metro resolves `zustand/middleware` to its CommonJS entry so the browser bundle does not emit `import.meta` into Expo's classic script output. The raw SDK 54 `expo start --web` dev middleware still hangs on this app's first web request; use `pnpm --filter @fitness-tracker/mobile dev:metro` only for diagnosing that path.
 > - **Fast Expo Go Start:** Use `pnpm expo` from the repo root for iPhone/Expo Go. It starts the native LAN Metro server directly and skips the slow single-page web export. Use `pnpm expo:clear` only when caches must be rebuilt, and `pnpm expo:tunnel` if LAN discovery fails.
 > - **Expo Start Wrapper:** Mobile `start`, `ios`, and `android` scripts now call Expo through a tiny local Node wrapper that sets `EXPO_NO_DEPENDENCY_VALIDATION=1`, avoiding the Node 24/Expo CLI `Body is unusable` startup crash while preserving all passed CLI args.
@@ -59,10 +59,11 @@
 > - **History Drilldowns:** The History workout popup now shows concrete exercises and completed set rows with weight/reps, warmup markers, RPE/RIR, and per-exercise working volume. Filled consistency days are tappable and open all workouts logged on that date before drilling into the workout popup.
 > - **Heatmap & Obliques:** Body heatmap intensity now scales with trained working volume, and oblique-like exercises contribute to Obliques coverage.
 > - **Achievements Expansion:** Added long-range workout/volume/PR/exercise milestones, meta achievements, exercise-specific badges, equipment/movement-pattern niche badges, and higher repeatable session achievements.
+> - **Achievement Icon Hygiene:** Invalid Ionicons names are fixed and a mobile regression test now verifies that every achievement icon exists in the Ionicons glyph map.
 > - **Workout Facts:** Finish-modal facts are biased toward training volume, set density, top exercise contribution, cardio, warmups, and short science tips; caffeine facts only show when caffeine tracking is enabled.
 > - **Auth foundation:** `authStore`, Supabase environment detection, Login/Register routes, root auth guard, and Profile sign-out exist. Cloud sync and full local-to-cloud user migration remain open.
 > - **Release prep partial:** `icon.png`, `adaptive-icon.png`, and `splash-icon.png` exist; splash/adaptive backgrounds are dark (`#0B0B0F`); bundle IDs were corrected from the typoed `com.fitnessracker.app` shape to `com.fitnesstracker.app`.
-> - **Compiles & Passes:** `pnpm install --frozen-lockfile` ✅, `pnpm typecheck` ✅, `pnpm lint` ✅, `pnpm test` (99) ✅, mobile `jest --coverage` ✅ (79.5% statements), `pnpm build`/Expo export ✅, `pnpm --filter @fitness-tracker/mobile exec expo install --check` ✅, `pnpm dlx expo-doctor apps/mobile` ✅ (18/18), browser/CDP `pnpm dev` smoke ✅ (no runtime/console errors, Home visible, fonts/icons loaded).
+> - **Compiles & Passes:** `pnpm install --frozen-lockfile` ✅, `pnpm typecheck` ✅, `pnpm lint` ✅, `pnpm test` (100) ✅, mobile `jest --coverage --runInBand` ✅ (79.47% statements), `pnpm build`/Expo export ✅, `pnpm --filter @fitness-tracker/mobile exec expo install --check` ✅, `pnpm dlx expo-doctor apps/mobile` ✅ (18/18), browser/CDP `pnpm dev` smoke ✅ (no runtime/console errors, Home visible, fonts/icons loaded).
 >
 > ⚠️ **Potential Issues / Notes for Codex:**
 >
@@ -1726,15 +1727,15 @@ FERTIG: Testbare App auf echten Geräten ✅
 
 ---
 
-## 18. BRANCH-HYGIENE (Stand 2026-06-10)
+## 18. BRANCH-HYGIENE (Stand 2026-06-11)
 
-### Lage (aktualisiert 2026-06-10, Stabilisierung + History-Fixes + Expo SDK 54)
+### Lage (aktualisiert 2026-06-11, Stabilisierung + History-Fixes + Expo SDK 54)
 
 `origin/main` ist im aktuellen Arbeitsbranch enthalten; die aktuelle Stabilisierung
 läuft weiterhin auf `feat/ui-volt-premium-completion` und ist noch nicht als
 `main`-Status zu lesen. Verifiziert auf diesem Branch: `pnpm install --frozen-lockfile` ✅ ·
-`pnpm typecheck` ✅ · `pnpm lint` ✅ · `pnpm test` (99: 29 Domain + 70 Mobile) ✅ · mobile
-`jest --coverage` ✅ (79.5% Statements) · `pnpm build`/Expo Export ✅ ·
+`pnpm typecheck` ✅ · `pnpm lint` ✅ · `pnpm test` (100: 29 Domain + 71 Mobile) ✅ · mobile
+`jest --coverage --runInBand` ✅ (79.47% Statements) · `pnpm build`/Expo Export ✅ ·
 `pnpm --filter @fitness-tracker/mobile exec expo install --check` ✅ ·
 `pnpm dlx expo-doctor apps/mobile` ✅ (18/18) · browser/CDP `pnpm dev` smoke ✅
 (runtime/font/icon/Home render).
@@ -1762,4 +1763,4 @@ Merge-Konflikte. Pro Mission ein kurzlebiger Branch → PR → Merge → Branch 
 
 _Erstellt: Juni 2026 · zuletzt aktualisiert: 2026-06-11 (Expo SDK 54,
 Stabilisierung, History-Drilldowns, Progress-Crosshair, Fast Expo Go Start,
-Teststand 99) | Fitness-Tracker Projekt_
+Teststand 100) | Fitness-Tracker Projekt_

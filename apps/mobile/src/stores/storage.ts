@@ -3,6 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MMKV } from 'react-native-mmkv';
 import { z } from 'zod';
 
+import { isExpoGo } from '../utils/runtime';
+
 type WebStorageLike = {
   getItem: (key: string) => string | null;
   removeItem: (key: string) => void;
@@ -45,6 +47,10 @@ const removeTemporaryWebStorageItem = (name: string) => {
 };
 
 const createMMKVStorage = (storageId: string): MMKV | null => {
+  if (isExpoGo) {
+    return null;
+  }
+
   try {
     return new MMKV({ id: storageId });
   } catch (error) {

@@ -5,6 +5,10 @@
   "packageManager": "pnpm@11.5.0",
   "scripts": {
     "dev": "pnpm --filter @fitness-tracker/mobile dev",
+    "web": "pnpm --filter @fitness-tracker/mobile web",
+    "expo": "pnpm --filter @fitness-tracker/mobile start:lan",
+    "expo:clear": "pnpm --filter @fitness-tracker/mobile start:lan:clear",
+    "expo:tunnel": "pnpm --filter @fitness-tracker/mobile start:tunnel",
     "build": "pnpm --filter @fitness-tracker/mobile build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",

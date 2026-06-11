@@ -4,6 +4,9 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "node ./scripts/expo-start.cjs",
+    "start:lan": "node ./scripts/expo-start.cjs --host lan",
+    "start:lan:clear": "node ./scripts/expo-start.cjs --clear --host lan",
+    "start:tunnel": "node ./scripts/expo-start.cjs --clear --host tunnel",
     "dev": "node ./scripts/web-dev-preview.cjs",
     "dev:metro": "node ./scripts/expo-start.cjs --web",
     "android": "node ./scripts/expo-start.cjs --android",

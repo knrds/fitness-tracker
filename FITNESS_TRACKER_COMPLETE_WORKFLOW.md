@@ -40,6 +40,7 @@
 > - **SDK 54 boot/storage guardrails:** `RootLayout` only blocks native SplashScreen, web SPA rendering no longer returns `null` while fonts load, Ionicons + Space Grotesk + Manrope fonts are preloaded, and MMKV remains the primary persistence path with a one-way fallback migration for temporary raw web `localStorage` keys.
 > - **Expo Go storage fallback:** `@react-native-async-storage/async-storage@2.2.0` is installed as the Expo-Go-compatible fallback. Zustand persisted stores and Supabase auth now try MMKV first, then fall back to AsyncStorage if MMKV cannot create a native instance in Expo Go.
 > - **Stable Web Preview:** `pnpm dev` now builds a single-page Expo web export (`web.output: single`) and serves `apps/mobile/dist` on `http://localhost:8081`. Metro resolves `zustand/middleware` to its CommonJS entry so the browser bundle does not emit `import.meta` into Expo's classic script output. The raw SDK 54 `expo start --web` dev middleware still hangs on this app's first web request; use `pnpm --filter @fitness-tracker/mobile dev:metro` only for diagnosing that path.
+> - **Fast Expo Go Start:** Use `pnpm expo` from the repo root for iPhone/Expo Go. It starts the native LAN Metro server directly and skips the slow single-page web export. Use `pnpm expo:clear` only when caches must be rebuilt, and `pnpm expo:tunnel` if LAN discovery fails.
 > - **Expo Start Wrapper:** Mobile `start`, `ios`, and `android` scripts now call Expo through a tiny local Node wrapper that sets `EXPO_NO_DEPENDENCY_VALIDATION=1`, avoiding the Node 24/Expo CLI `Body is unusable` startup crash while preserving all passed CLI args.
 > - **Smooth Animated Modals:** Custom `<Modal>` component rewritten to use `Animated` for backdrop fade and container slide translations on open and close.
 > - **PR highlights on Progress Charts:** Volume history Progress charts now calculate historical PRs using e1RM and highlight PR workouts with gold dots (`#FFB020`). Tapping dots reveals volume details alongside a "★ NEW PR!" indicator.
@@ -269,6 +270,7 @@ git pull
 ### Testen vor jedem Merge
 
 ```powershell
+pnpm expo    # Expo Go / iPhone starten (LAN, ohne Web-Export)
 pnpm dev     # Web preview starten (single-page Expo export + expo serve auf localhost:8081)
 pnpm test    # alle Tests grün?
 pnpm typecheck  # TypeScript sauber?
@@ -1758,5 +1760,6 @@ Merge-Konflikte. Pro Mission ein kurzlebiger Branch → PR → Merge → Branch 
 
 ---
 
-_Erstellt: Juni 2026 · zuletzt aktualisiert: 2026-06-10 (Expo SDK 54,
-Stabilisierung, History-Drilldowns, Progress-Crosshair, Teststand 98) | Fitness-Tracker Projekt_
+_Erstellt: Juni 2026 · zuletzt aktualisiert: 2026-06-11 (Expo SDK 54,
+Stabilisierung, History-Drilldowns, Progress-Crosshair, Fast Expo Go Start,
+Teststand 99) | Fitness-Tracker Projekt_

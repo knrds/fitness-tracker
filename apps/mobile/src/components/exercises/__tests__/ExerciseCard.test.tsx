@@ -21,16 +21,14 @@ const mockExercise = {
 
 describe('ExerciseCard', () => {
   it('renders correctly', () => {
-    const { getByText } = render(
-      <ExerciseCard exercise={mockExercise} />
-    );
+    const { getByText } = render(<ExerciseCard exercise={mockExercise} />);
     expect(getByText('Test Bench Press')).toBeTruthy();
     expect(getByText('Barbell')).toBeTruthy();
   });
 
   it('shows favorite icon when isFavorite is true', () => {
     const { getByText } = render(
-      <ExerciseCard exercise={mockExercise} isFavorite={true} onToggleFavorite={jest.fn()} />
+      <ExerciseCard exercise={mockExercise} isFavorite={true} onToggleFavorite={jest.fn()} />,
     );
     expect(getByText('★')).toBeTruthy();
   });
@@ -38,9 +36,9 @@ describe('ExerciseCard', () => {
   it('calls onToggleFavorite when favorite button is pressed', () => {
     const onToggle = jest.fn();
     const { getByTestId } = render(
-      <ExerciseCard exercise={mockExercise} isFavorite={false} onToggleFavorite={onToggle} />
+      <ExerciseCard exercise={mockExercise} isFavorite={false} onToggleFavorite={onToggle} />,
     );
-    
+
     fireEvent.press(getByTestId('favorite-btn'));
     expect(onToggle).toHaveBeenCalledWith('test-id');
   });

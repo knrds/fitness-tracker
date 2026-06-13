@@ -3,3 +3,7 @@ export * from './estimateOneRepMax';
 export * from './calculateStreak';
 export * from './detectPRs';
 export * from './summarizeWorkout';
+export * from './summarizeSessionExercise';
+export * from './getExerciseProgressHistory';
+export * from './getBestWeights';
+export * from './getBestE1RMs';

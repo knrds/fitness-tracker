@@ -16,18 +16,18 @@ TypeScript domain layer shared across the codebase.
 
 ## Tech Stack
 
-| Concern            | Choice                         | Version    |
-| ------------------ | ------------------------------ | ---------- |
-| Package manager    | pnpm (workspaces)              | ≥ 9        |
-| Runtime/SDK        | Expo                           | 52         |
-| Framework          | React Native                   | 0.76       |
-| Navigation         | Expo Router (file-based)       | v4         |
-| Language           | TypeScript (strict)            | 5.3        |
-| State management   | Zustand                        | 5          |
-| Validation         | Zod                            | 3          |
-| Forms              | react-hook-form + @hookform/resolvers | 7 / 3 |
-| Local persistence  | react-native-mmkv             | 3          |
-| Backend (planned)  | Supabase (PostgreSQL + RLS)    | —          |
+| Concern           | Choice                                | Version |
+| ----------------- | ------------------------------------- | ------- |
+| Package manager   | pnpm (workspaces)                     | ≥ 9     |
+| Runtime/SDK       | Expo                                  | 52      |
+| Framework         | React Native                          | 0.76    |
+| Navigation        | Expo Router (file-based)              | v4      |
+| Language          | TypeScript (strict)                   | 5.3     |
+| State management  | Zustand                               | 5       |
+| Validation        | Zod                                   | 3       |
+| Forms             | react-hook-form + @hookform/resolvers | 7 / 3   |
+| Local persistence | react-native-mmkv                     | 3       |
+| Backend (planned) | Supabase (PostgreSQL + RLS)           | —       |
 
 > **Note:** Expo SDK 52 ships **Expo Router v4** (v3 belonged to SDK 51). Use v4
 > APIs.
@@ -79,6 +79,7 @@ another package.
 ## Code Conventions
 
 **Naming**
+
 - Components & types/interfaces: `PascalCase` (`WorkoutCard`, `ExerciseSet`).
 - Variables, functions, hooks: `camelCase` (`useActiveWorkout`).
 - Constants/enums values: enums use `PascalCase` members mapping to
@@ -88,6 +89,7 @@ another package.
 - Zod schemas are named `<Type>Schema` (e.g. `WorkoutSessionSchema`).
 
 **File layout (within a file)**
+
 1. Imports (see order below)
 2. Types / interfaces local to the file
 3. Constants
@@ -95,12 +97,14 @@ another package.
 5. Styles (`StyleSheet.create`) at the bottom for components
 
 **Import order** (blank line between groups):
+
 1. React / React Native
 2. Third-party packages
 3. Workspace packages (`@fitness-tracker/*`)
 4. Local/relative imports (`./`, `../`)
 
 **Style**
+
 - TypeScript strict; **no `any`** — use `unknown` and narrow.
 - No inline style objects — always `StyleSheet.create`.
 - Prefer derived state (`useMemo`, selectors) over `useEffect`-driven copies.
@@ -111,6 +115,7 @@ another package.
 ## MVP Scope
 
 **In scope**
+
 - Auth (Supabase) and a single user profile.
 - Exercise library (shared + custom) and custom exercise creation.
 - Workout templates and programs (multi-week scheduling).
@@ -119,6 +124,7 @@ another package.
 - Local-first via MMKV; sync to Supabase.
 
 **Explicitly OUT of scope (do not build)**
+
 - ❌ Social features (feeds, following, sharing, comments, leaderboards).
 - ❌ Marketplace / paid programs / in-app purchases.
 - ❌ AI coach / auto-generated programming / form analysis.
@@ -143,15 +149,15 @@ building it.
 
 Run from the repo root.
 
-| Command            | Effect                                                   |
-| ------------------ | -------------------------------------------------------- |
-| `pnpm install`     | Install all workspace dependencies.                      |
-| `pnpm dev`         | Start the Expo app (web). Alias for the mobile `dev`.    |
-| `pnpm build`       | `expo export` for the mobile app.                        |
-| `pnpm lint`        | ESLint across all packages (`pnpm -r lint`).             |
-| `pnpm typecheck`   | `tsc --noEmit` across all packages.                      |
-| `pnpm format`      | Prettier write across the repo.                          |
-| `pnpm test`        | Run all package test suites (`pnpm -r test`).            |
+| Command          | Effect                                                |
+| ---------------- | ----------------------------------------------------- |
+| `pnpm install`   | Install all workspace dependencies.                   |
+| `pnpm dev`       | Start the Expo app (web). Alias for the mobile `dev`. |
+| `pnpm build`     | `expo export` for the mobile app.                     |
+| `pnpm lint`      | ESLint across all packages (`pnpm -r lint`).          |
+| `pnpm typecheck` | `tsc --noEmit` across all packages.                   |
+| `pnpm format`    | Prettier write across the repo.                       |
+| `pnpm test`      | Run all package test suites (`pnpm -r test`).         |
 
 Platform variants: `pnpm --filter @fitness-tracker/mobile ios | android | web`.
 
@@ -205,6 +211,7 @@ A feature task is complete only when **all** of the following hold:
 ## App Architecture
 
 ### Zustand Stores (`apps/mobile/src/stores/`)
+
 - **`workoutStore.ts`**: Manages the active workout session logging state, elapsed time, set logs, rest timer countdown, superset groupings, and warmup set calculations.
 - **`historyStore.ts`**: Manages the completed workout sessions history, streak tracking, personal records (PRs), exercise volume history, and previous performance retrieval.
 - **`exerciseStore.ts`**: Manages the exercise library (built-in + custom), muscle/equipment filters, favorite exercise IDs, and custom default rest timer durations.
@@ -214,6 +221,7 @@ A feature task is complete only when **all** of the following hold:
 - **`programStore.ts`**: Manages structured training programs and reusable workout templates.
 
 ### Expo Router Screens (`apps/mobile/app/`)
+
 - **`/app/(tabs)/index.tsx`**: Home tab showing the welcome dashboard, current streak, active program workout preview, and upcoming achievements.
 - **`/app/(tabs)/workouts.tsx`**: Screen to start an empty workout, quick-start from templates, or go to template/program creation.
 - **`/app/(tabs)/exercises.tsx`**: Searchable exercise library with filtering by muscle group and equipment.
@@ -229,6 +237,7 @@ A feature task is complete only when **all** of the following hold:
 - **`/app/programs/template-builder.tsx`**: Reusable workout template designer.
 
 ### Core Components (`apps/mobile/src/components/`)
+
 - **`SessionExerciseCard.tsx`**: Renders exercise sets list in the active session, displaying previous performance, real-time e1RM estimates, RIR inputs, set type selectors (Warmup, Drop-set, Failure, Normal), superset connections, and the warmup calculator button.
 - **`RestTimer.tsx`**: Countdown overlay rest timer.
 - **`SaveTemplateModal.tsx`**: Modal requesting to save the completed session as a template.
@@ -241,12 +250,14 @@ A feature task is complete only when **all** of the following hold:
 ## Project Status
 
 ### Completed Missions (on `main`)
+
 - **✅ Mission 6: Stabilisierung + Templates**
 - **✅ Mission 7: Achievements + Gamification**
 - **✅ Mission 8: Body Tracking + Profil**
 - **✅ Mission 9: Workout-Verbesserungen**
 
 ### Mission 9 Features
+
 - **Set Types (Set-Typen)**: Cycle through Normal, Warmup (`W`), Drop-set (`D`), and Failure (`F`) set types with distinct color badges.
 - **Previous Performance**: Displays details of the previous completed sets and date for that exercise.
 - **e1RM & RIR**: Displays real-time estimated 1-Rep Max (Epley) and includes an RIR input next to RPE.
@@ -270,4 +281,3 @@ A feature task is complete only when **all** of the following hold:
 5. **MMKV Persistent Stores**: Persistent stores copy `reviveDates` and custom storage logic. This should be refactored into a single helper (`apps/mobile/src/stores/storage.ts`) that validates stored data against Zod schemas on hydration, and includes versioning + migration paths.
 6. **Timer Drift**: The elapsed active workout timer counts up using `setInterval` (prone to drift when backgrounded). It should derive elapsed seconds dynamically from `startedAt` + accumulated pause durations.
 7. **finishWorkout Guard**: Guard against saving sessions without any completed sets (should not record in history or award XP).
-

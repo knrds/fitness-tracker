@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Volt Performance Fitness - Active Workout</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#c1f20d",
+              "background-light": "#f8f8f5",
+              "background-dark": "#0B0B0F",
+              "surface": "#1A1C23",
+              "muted": "#2A2B31",
+              "text-primary": "#F4F5F7",
+              "accent": "#FF3366",
+            },
+            fontFamily: {
+              "display": ["Space Grotesk", "sans-serif"],
+              "body": ["Manrope", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "16px", "xl": "1.5rem", "full": "9999px", "button": "12px"},
+          },
+        },
+      }
+    </script>
+<style>
+        /* Custom Checkbox SVG Tick */
+        .check-custom:checked {
+            background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='%230B0B0F' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+            background-size: 100% 100%;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        
+        /* Hide scrollbar for clean look */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+
+        /* Number input clean up */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-dark text-text-primary font-body antialiased min-h-screen flex flex-col relative pb-24 selection:bg-primary selection:text-background-dark">
+<!-- Sticky Top Header -->
+<header class="sticky top-0 z-40 bg-background-dark/95 backdrop-blur-md border-b border-muted">
+<div class="flex items-center justify-between p-4">
+<button aria-label="Go Back" class="flex items-center justify-center size-12 rounded-full active:bg-surface transition-colors">
+<span class="material-symbols-outlined text-text-primary">arrow_back</span>
+</button>
+<h1 class="text-text-primary font-display font-bold text-xl uppercase tracking-wider">Push Day Power</h1>
+<div class="flex items-center justify-end w-12">
+<span class="font-display font-bold text-primary tabular-nums text-lg" id="global-timer">45:12</span>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto p-4 space-y-6">
+<!-- Exercise Card 1 -->
+<article class="bg-surface rounded-lg border border-muted p-4 space-y-4 shadow-lg">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h2 class="font-display font-bold text-lg text-text-primary uppercase">Barbell Bench Press</h2>
+<p class="text-sm text-gray-400 mt-1 font-medium tracking-wide">Last: 225 lbs x 8</p>
+</div>
+<button class="text-gray-400 hover:text-text-primary active:scale-95 transition-transform p-2">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<!-- Set Header Row -->
+<div class="grid grid-cols-[1fr_1.5fr_1.5fr_1.5fr_auto] gap-2 px-1 text-xs font-display font-medium text-gray-400 uppercase tracking-widest text-center">
+<div class="text-left">Set</div>
+<div>Prev</div>
+<div>LBS</div>
+<div>Reps</div>
+<div class="w-8 text-center flex justify-center"><span class="material-symbols-outlined text-[16px]">check</span></div>
+</div>
+<!-- Set Rows -->
+<div class="space-y-2">
+<!-- Completed Row -->
+<div class="grid grid-cols-[1fr_1.5fr_1.5fr_1.5fr_auto] gap-2 items-center opacity-50 transition-opacity bg-background-dark/50 p-2 rounded-lg border border-muted/50">
+<div class="font-display font-bold text-sm pl-2">1</div>
+<div class="text-sm text-gray-400 text-center tabular-nums">225 x 8</div>
+<div class="relative">
+<input class="w-full bg-surface border border-muted rounded text-center py-2 text-text-primary font-display font-bold tabular-nums focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" readonly="" type="number" value="225"/>
+</div>
+<div class="relative">
+<input class="w-full bg-surface border border-muted rounded text-center py-2 text-text-primary font-display font-bold tabular-nums focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" readonly="" type="number" value="8"/>
+</div>
+<div class="flex justify-center items-center w-8 h-8">
+<input checked="" class="check-custom appearance-none w-8 h-8 rounded border-2 border-muted bg-transparent checked:bg-primary checked:border-primary cursor-pointer transition-colors" disabled="" type="checkbox"/>
+</div>
+</div>
+<!-- Active Row -->
+<div class="grid grid-cols-[1fr_1.5fr_1.5fr_1.5fr_auto] gap-2 items-center bg-background-dark p-2 rounded-lg border border-muted">
+<div class="font-display font-bold text-sm pl-2">2</div>
+<div class="text-sm text-gray-400 text-center tabular-nums">225 x 8</div>
+<div class="relative group">
+<input class="w-full bg-surface border border-muted rounded text-center py-2 text-text-primary font-display font-bold tabular-nums focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-gray-600" placeholder="225" type="number"/>
+</div>
+<div class="relative">
+<input class="w-full bg-surface border border-muted rounded text-center py-2 text-text-primary font-display font-bold tabular-nums focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-gray-600" placeholder="8" type="number"/>
+</div>
+<div class="flex justify-center items-center w-8 h-8 relative">
+<input class="check-custom appearance-none w-8 h-8 rounded border-2 border-muted bg-surface checked:bg-primary checked:border-primary cursor-pointer transition-all hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1 focus:ring-offset-background-dark" id="set-2-check" type="checkbox"/>
+</div>
+</div>
+<!-- Upcoming Row -->
+<div class="grid grid-cols-[1fr_1.5fr_1.5fr_1.5fr_auto] gap-2 items-center bg-background-dark/30 p-2 rounded-lg border border-muted/30">
+<div class="font-display font-bold text-sm pl-2 text-gray-500">3</div>
+<div class="text-sm text-gray-500 text-center tabular-nums">225 x 8</div>
+<div class="relative">
+<input class="w-full bg-surface/50 border border-muted/50 rounded text-center py-2 text-gray-500 font-display font-bold tabular-nums focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-gray-600" placeholder="-" type="number"/>
+</div>
+<div class="relative">
+<input class="w-full bg-surface/50 border border-muted/50 rounded text-center py-2 text-gray-500 font-display font-bold tabular-nums focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-gray-600" placeholder="-" type="number"/>
+</div>
+<div class="flex justify-center items-center w-8 h-8">
+<input class="check-custom appearance-none w-8 h-8 rounded border-2 border-muted/50 bg-surface/50 cursor-pointer transition-colors" disabled="" type="checkbox"/>
+</div>
+</div>
+</div>
+<button class="w-full py-3 mt-4 rounded-lg font-display font-bold text-sm text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors uppercase tracking-widest flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">add</span> Add Set
+            </button>
+</article>
+<!-- Exercise Card 2 -->
+<article class="bg-surface rounded-lg border border-muted p-4 space-y-4 shadow-lg">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h2 class="font-display font-bold text-lg text-text-primary uppercase">Incline DB Press</h2>
+<p class="text-sm text-gray-400 mt-1 font-medium tracking-wide">Last: 80 lbs x 10</p>
+</div>
+<button class="text-gray-400 hover:text-text-primary active:scale-95 transition-transform p-2">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<!-- Set Header Row -->
+<div class="grid grid-cols-[1fr_1.5fr_1.5fr_1.5fr_auto] gap-2 px-1 text-xs font-display font-medium text-gray-400 uppercase tracking-widest text-center">
+<div class="text-left">Set</div>
+<div>Prev</div>
+<div>LBS</div>
+<div>Reps</div>
+<div class="w-8"></div>
+</div>
+<!-- Set Rows -->
+<div class="space-y-2">
+<!-- Active Row -->
+<div class="grid grid-cols-[1fr_1.5fr_1.5fr_1.5fr_auto] gap-2 items-center bg-background-dark p-2 rounded-lg border border-muted">
+<div class="font-display font-bold text-sm pl-2">1</div>
+<div class="text-sm text-gray-400 text-center tabular-nums">80 x 10</div>
+<div class="relative group">
+<input class="w-full bg-surface border border-muted rounded text-center py-2 text-text-primary font-display font-bold tabular-nums focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-gray-600" placeholder="80" type="number"/>
+</div>
+<div class="relative">
+<input class="w-full bg-surface border border-muted rounded text-center py-2 text-text-primary font-display font-bold tabular-nums focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-gray-600" placeholder="10" type="number"/>
+</div>
+<div class="flex justify-center items-center w-8 h-8 relative">
+<input class="check-custom appearance-none w-8 h-8 rounded border-2 border-muted bg-surface checked:bg-primary checked:border-primary cursor-pointer transition-all hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1 focus:ring-offset-background-dark" type="checkbox"/>
+</div>
+</div>
+</div>
+</article>
+<!-- Add Exercise Button -->
+<button class="w-full py-4 rounded-lg font-display font-bold text-primary border-2 border-dashed border-muted hover:border-primary/50 hover:bg-surface/50 transition-all uppercase tracking-widest flex items-center justify-center gap-2 mb-8">
+<span class="material-symbols-outlined">add_circle</span> Add Exercise
+        </button>
+</main>
+<!-- Sticky Bottom Action Bar -->
+<div class="fixed bottom-0 left-0 right-0 bg-background-dark border-t border-muted p-4 pb-safe z-40">
+<button class="w-full bg-primary text-background-dark font-display font-bold text-lg py-4 rounded-button uppercase tracking-widest hover:bg-[#aef000] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(193,242,13,0.15)] flex justify-center items-center gap-2">
+            Finish Workout
+        </button>
+</div>
+<!-- Rest Timer Overlay (Hidden by default, triggered by JS) -->
+<div class="fixed inset-x-0 bottom-0 top-auto z-50 transform translate-y-full transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] bg-surface border-t-2 border-primary rounded-t-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)]" id="rest-timer-modal">
+<div class="p-6 space-y-6">
+<div class="flex justify-between items-center">
+<h3 class="font-display font-bold text-gray-400 uppercase tracking-widest">Rest</h3>
+<button class="text-gray-400 hover:text-text-primary transition-colors" id="close-timer">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="text-center">
+<div class="font-display font-bold text-7xl text-primary tabular-nums tracking-tighter" id="countdown-display">01:30</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<button class="py-3 rounded-lg font-display font-bold text-text-primary bg-background-dark border border-muted hover:bg-muted transition-colors uppercase tracking-wider">
+                    +30s
+                </button>
+<button class="py-3 rounded-lg font-display font-bold text-background-dark bg-primary hover:bg-[#aef000] transition-colors uppercase tracking-wider" id="skip-timer">
+                    Skip
+                </button>
+</div>
+</div>
+</div>
+<!-- Backdrop for Modal -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 opacity-0 pointer-events-none transition-opacity duration-300" id="modal-backdrop"></div>
+<script>
+        // Simple Interaction Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const check = document.getElementById('set-2-check');
+            const row = check.closest('.grid');
+            const timerModal = document.getElementById('rest-timer-modal');
+            const backdrop = document.getElementById('modal-backdrop');
+            const closeTimerBtn = document.getElementById('close-timer');
+            const skipTimerBtn = document.getElementById('skip-timer');
+
+            function openTimer() {
+                timerModal.classList.remove('translate-y-full');
+                backdrop.classList.remove('opacity-0', 'pointer-events-none');
+            }
+
+            function closeTimer() {
+                timerModal.classList.add('translate-y-full');
+                backdrop.classList.add('opacity-0', 'pointer-events-none');
+            }
+
+            if (check) {
+                check.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        // Dim the row visually to indicate completion
+                        row.classList.add('opacity-50', 'bg-background-dark/50');
+                        row.classList.remove('bg-background-dark');
+                        
+                        // Disable inputs in that row visually
+                        const inputs = row.querySelectorAll('input[type="number"]');
+                        inputs.forEach(input => {
+                            input.setAttribute('readonly', 'true');
+                            input.classList.remove('focus:border-primary', 'focus:ring-1');
+                        });
+
+                        // Show timer overlay
+                        setTimeout(openTimer, 300); // slight delay for visual feedback of check
+                    } else {
+                        // Undo dimming
+                        row.classList.remove('opacity-50', 'bg-background-dark/50');
+                        row.classList.add('bg-background-dark');
+                        
+                        const inputs = row.querySelectorAll('input[type="number"]');
+                        inputs.forEach(input => {
+                            input.removeAttribute('readonly');
+                            input.classList.add('focus:border-primary', 'focus:ring-1');
+                        });
+                    }
+                });
+            }
+
+            [closeTimerBtn, skipTimerBtn, backdrop].forEach(el => {
+                if(el) el.addEventListener('click', closeTimer);
+            });
+        });
+    </script>
+</body></html>

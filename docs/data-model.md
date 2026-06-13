@@ -18,7 +18,7 @@ and the PostgreSQL/Supabase realisation in [schema.sql](./schema.sql).
     (`ProgramWorkout`).
   - A **WorkoutTemplate** prescribes exercises and targets
     (`TemplateExercise`).
-  - A **WorkoutSession** is the *performed* record, containing
+  - A **WorkoutSession** is the _performed_ record, containing
     `SessionExercise`s, each with logged `ExerciseSet`s.
 - **PersonalRecord** and **BodyMetric** are independent progress-tracking
   records owned by the user.

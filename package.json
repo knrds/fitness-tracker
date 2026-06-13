@@ -5,6 +5,10 @@
   "packageManager": "pnpm@11.5.0",
   "scripts": {
     "dev": "pnpm --filter @fitness-tracker/mobile dev",
+    "web": "pnpm --filter @fitness-tracker/mobile web",
+    "expo": "pnpm --filter @fitness-tracker/mobile start:lan",
+    "expo:clear": "pnpm --filter @fitness-tracker/mobile start:lan:clear",
+    "expo:tunnel": "pnpm --filter @fitness-tracker/mobile start:tunnel",
     "build": "pnpm --filter @fitness-tracker/mobile build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
@@ -12,14 +16,31 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
   },
   "devDependencies": {
+    "@react-native/js-polyfills": "0.81.5",
+    "@types/react": "~19.1.17",
     "@typescript-eslint/eslint-plugin": "^8.60.0",
     "@typescript-eslint/parser": "^8.60.0",
     "eslint": "^8.57.1",
+    "hermes-parser": "0.29.1",
+    "metro": "0.83.3",
+    "metro-babel-transformer": "0.83.3",
+    "metro-cache": "0.83.3",
+    "metro-cache-key": "0.83.3",
+    "metro-config": "0.83.3",
+    "metro-core": "0.83.3",
+    "metro-file-map": "0.83.3",
+    "metro-minify-terser": "0.83.3",
+    "metro-resolver": "0.83.3",
+    "metro-runtime": "0.83.3",
+    "metro-source-map": "0.83.3",
+    "metro-symbolicate": "0.83.3",
+    "metro-transform-plugins": "0.83.3",
+    "metro-transform-worker": "0.83.3",
     "prettier": "^3.4.2",
-    "typescript": "~5.3.3"
+    "typescript": "~5.9.3"
   },
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=20.19.4",
     "pnpm": ">=9.0.0"
   }
 }

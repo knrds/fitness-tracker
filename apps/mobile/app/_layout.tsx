@@ -1,32 +1,57 @@
 import React, { useEffect, useState } from 'react';
-import { Platform, Modal, View, Text, StyleSheet, Pressable } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Platform, Modal, View, Text, StyleSheet, Pressable, Keyboard } from 'react-native';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import {
+  useFonts,
+  SpaceGrotesk_400Regular,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+} from '@expo-google-fonts/space-grotesk';
+import { Manrope_500Medium, Manrope_600SemiBold } from '@expo-google-fonts/manrope';
+import * as SplashScreen from 'expo-splash-screen';
+import { Ionicons } from '@expo/vector-icons';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { ThemeProvider, useTheme, DialogProvider } from '@fitness-tracker/ui';
+
 import { AchievementCelebration } from '../src/components/workout/AchievementCelebration';
+import { WorkoutCompleteModal } from '../src/components/workout/WorkoutCompleteModal';
+import { KeyboardDoneAccessory } from '../src/components/workout/KeyboardDoneAccessory';
+import { useAuthStore } from '../src/stores/authStore';
 import { useWorkoutStore } from '../src/stores/workoutStore';
+import { getResumeWorkoutDecision } from '../src/utils/resumeWorkoutGuard';
+
+if (Platform.OS !== 'web') {
+  SplashScreen.preventAutoHideAsync().catch(() => {});
+}
 
 function StartupWorkoutChecker() {
   const router = useRouter();
   const { status, resetWorkout, resumeWorkout, startedAt } = useWorkoutStore();
   const [hasChecked, setHasChecked] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const theme = useTheme();
 
   useEffect(() => {
     if ((status === 'active' || status === 'paused') && !hasChecked) {
       setHasChecked(true);
 
-      const startedTime = startedAt ? new Date(startedAt) : null;
-      if (startedTime) {
-        const hoursElapsed = (Date.now() - startedTime.getTime()) / (1000 * 60 * 60);
-        if (hoursElapsed > 12) {
-          // Timeout: Discard the workout silently
-          resetWorkout();
-          return;
-        }
-      }
+      const { exercises, name, notes } = useWorkoutStore.getState();
+      const decision = getResumeWorkoutDecision({
+        status,
+        startedAt,
+        exercises,
+        name,
+        notes,
+        now: Date.now(),
+        staleAfterHours: 12,
+      });
 
-      // Show the premium custom in-app modal
-      setModalVisible(true);
+      if (decision === 'clear') {
+        resetWorkout();
+      } else if (decision === 'prompt') {
+        setModalVisible(true);
+      }
     }
   }, [status, hasChecked, startedAt, resetWorkout]);
 
@@ -54,21 +79,34 @@ function StartupWorkoutChecker() {
   }, []);
 
   return (
-    <Modal
-      visible={modalVisible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={() => {}}
-    >
+    <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => {}}>
       <View style={styles.modalOverlay}>
-        <View style={styles.modalCard}>
-          <Text style={styles.modalTitle}>Unfinished Workout</Text>
-          <Text style={styles.modalMessage}>
-            You have an active workout session in progress. Do you want to resume it or start a new one?
+        <View
+          style={[
+            styles.modalCard,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+              borderRadius: theme.radius.lg,
+            },
+          ]}
+        >
+          <Text
+            style={[styles.modalTitle, { color: theme.colors.text, ...theme.typography.heading }]}
+          >
+            Unfinished Workout
+          </Text>
+          <Text
+            style={[styles.modalMessage, { color: theme.colors.muted, ...theme.typography.body }]}
+          >
+            You have an active workout session in progress. Resume it or start fresh?
           </Text>
           <View style={styles.modalActions}>
             <Pressable
-              style={[styles.modalBtn, styles.resumeBtn]}
+              style={[
+                styles.modalBtn,
+                { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md },
+              ]}
               onPress={() => {
                 if (status === 'paused') {
                   resumeWorkout();
@@ -77,16 +115,38 @@ function StartupWorkoutChecker() {
                 router.push('/workout/session');
               }}
             >
-              <Text style={styles.resumeBtnText}>Resume Workout</Text>
+              <Text
+                style={[
+                  styles.modalBtnText,
+                  { color: theme.colors.background, ...theme.typography.button },
+                ]}
+              >
+                Resume Workout
+              </Text>
             </Pressable>
             <Pressable
-              style={[styles.modalBtn, styles.discardBtn]}
+              style={[
+                styles.modalBtn,
+                {
+                  backgroundColor: 'transparent',
+                  borderColor: theme.colors.border,
+                  borderWidth: 1,
+                  borderRadius: theme.radius.md,
+                },
+              ]}
               onPress={() => {
                 resetWorkout();
                 setModalVisible(false);
               }}
             >
-              <Text style={styles.discardBtnText}>Discard & Start New</Text>
+              <Text
+                style={[
+                  styles.modalBtnText,
+                  { color: theme.colors.accent, ...theme.typography.button },
+                ]}
+              >
+                Discard &amp; Start New
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -95,50 +155,164 @@ function StartupWorkoutChecker() {
   );
 }
 
-export default function RootLayout() {
+function RootNavigator() {
+  const theme = useTheme();
+  const router = useRouter();
+  const pathname = usePathname();
+  const { initialize, isConfigured, isInitialized, isLoading, session } = useAuthStore();
+
+  useEffect(() => {
+    initialize().catch(() => {});
+  }, [initialize]);
+
+  useEffect(() => {
+    Keyboard.dismiss();
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isConfigured || !isInitialized || isLoading) return;
+
+    const isAuthRoute = pathname.startsWith('/auth');
+    if (!session && !isAuthRoute) {
+      router.replace('/auth/login');
+    } else if (session && isAuthRoute) {
+      router.replace('/');
+    }
+  }, [isConfigured, isInitialized, isLoading, pathname, router, session]);
+
   return (
     <>
-      <Stack>
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: theme.colors.background },
+          headerTintColor: theme.colors.primary,
+          headerTitleStyle: { fontFamily: 'SpaceGrotesk_700Bold', color: theme.colors.text },
+          headerShadowVisible: false,
+          headerBackTitle: '',
+          contentStyle: { backgroundColor: theme.colors.background },
+        }}
+      >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="profile" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/register" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/verify" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/forgot-password" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/reset-password" options={{ headerShown: false }} />
+        <Stack.Screen name="programs/template-builder" options={{ headerShown: false }} />
+        <Stack.Screen name="workout/quick-start" options={{ headerShown: false }} />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
       <AchievementCelebration />
+      <WorkoutCompleteModal />
       <StartupWorkoutChecker />
+      <KeyboardDoneAccessory />
     </>
   );
 }
 
+export default function RootLayout() {
+  const [fontWaitTimedOut, setFontWaitTimedOut] = useState(false);
+  const [fontsLoaded, fontError] = useFonts({
+    ...Ionicons.font,
+    SpaceGrotesk_400Regular,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+  });
+  const canRender = fontsLoaded || Boolean(fontError) || fontWaitTimedOut;
+  const isStaticWebRender = Platform.OS === 'web' && !('window' in globalThis);
+
+  useEffect(() => {
+    if (canRender) return;
+
+    const timeout = setTimeout(
+      () => {
+        setFontWaitTimedOut(true);
+      },
+      Platform.OS === 'web' ? 2500 : 8000,
+    );
+
+    return () => clearTimeout(timeout);
+  }, [canRender]);
+
+  useEffect(() => {
+    if (canRender && Platform.OS !== 'web') {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [canRender]);
+
+  if (!canRender && !isStaticWebRender) {
+    if (Platform.OS === 'web') {
+      return <View style={styles.bootScreen} />;
+    }
+    return null;
+  }
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <DialogProvider>
+          {Platform.OS === 'web' && (
+            <style
+              dangerouslySetInnerHTML={{
+                __html: `
+              * {
+                scrollbar-width: thin;
+                scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+              }
+              ::-webkit-scrollbar {
+                width: 6px;
+                height: 6px;
+              }
+              ::-webkit-scrollbar-track {
+                background: transparent;
+              }
+              ::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.25);
+                border-radius: 999px;
+              }
+              ::-webkit-scrollbar-thumb:hover {
+                background: rgba(255, 255, 255, 0.45);
+              }
+            `,
+              }}
+            />
+          )}
+          <RootNavigator />
+        </DialogProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
+  );
+}
+
 const styles = StyleSheet.create({
+  bootScreen: {
+    flex: 1,
+    backgroundColor: '#0B0B0F',
+  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    backgroundColor: 'rgba(11, 11, 15, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   modalCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
+    borderWidth: 1,
     padding: 24,
     width: '100%',
     maxWidth: 380,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
     alignItems: 'center',
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '800',
-    color: '#0f172a',
     marginBottom: 12,
     textAlign: 'center',
   },
   modalMessage: {
     fontSize: 15,
-    color: '#475569',
     lineHeight: 22,
     textAlign: 'center',
     marginBottom: 24,
@@ -148,28 +322,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   modalBtn: {
-    paddingVertical: 14,
-    borderRadius: 10,
+    paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
   },
-  resumeBtn: {
-    backgroundColor: '#3b82f6',
-  },
-  resumeBtnText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  discardBtn: {
-    backgroundColor: '#f1f5f9',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  discardBtnText: {
-    color: '#ef4444',
-    fontWeight: '700',
-    fontSize: 16,
+  modalBtnText: {
+    fontSize: 15,
   },
 });

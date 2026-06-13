@@ -1,0 +1,187 @@
+# Volt Performance Fitness
+
+## Product Overview
+
+**The Pitch:** An elite, data-driven strength-training tracker designed for serious athletes. It replaces cluttered spreadsheets with a sleek, high-visibility interface optimized for mid-workout clarity and post-workout analytics.
+
+**For:** Dedicated lifters and performance athletes who care about progressive overload, exact rep tracking, and granular performance metrics.
+
+**Device:** mobile
+
+**Design Direction:** Modern & High-Tech. Matte near-black background with electric lime accents, utilizing floating data layouts, sleek tech-focused typography, and ultra-crisp 1px borders.
+
+**Inspired by:** Whoop, Oura, Strava (Dark Mode).
+
+---
+
+## Screens
+
+- **Home/Dashboard:** Quick-glance weekly readiness, next scheduled program, and vital stats summary.
+- **Active Workout:** Real-time tracking with large timer, dynamic progress bar, and floating exercise cards for set logging.
+- **Exercise Library:** Categorized, searchable database of movements with distinct muscle-group tags.
+- **Progress/Stats:** High-contrast line charts and bar graphs mapping volume and 1RM trends over time.
+- **Profile:** User settings, biometric data updates, and gamified achievement badges.
+
+---
+
+## Key Flows
+
+**Log a Workout:** Track an active session from start to finish.
+
+1. User is on **Home/Dashboard** -> sees **"Start Workout: Push Day" CTA**
+2. User clicks **CTA** -> navigates to **Active Workout**
+3. User completes sets, ticking checkboxes -> Progress bar fills, timer auto-starts rest periods
+4. User clicks **"Finish Workout"** -> Navigates to **Workout Detail** summary screen
+
+---
+
+<details>
+<summary>Design System</summary>
+
+## Color Palette
+
+- **Primary:** `#C6FF00` - Buttons, active states, progress bars, key data points
+- **Background:** `#0B0B0F` - App background, deep canvas
+- **Surface:** `#1A1C23` - Cards, bottom sheet modals, sticky headers
+- **Text:** `#F4F5F7` - Primary body text, active values
+- **Muted:** `#2A2B31` - Secondary text, 1px card borders, inactive icons
+- **Accent:** `#FF3366` - Destructive actions, high heart-rate alerts
+
+## Typography
+
+Distinctive, engineered aesthetic. Unapologetically modern.
+
+- **Headings:** `Space Grotesk`, 700, 24-32px, uppercase styling for main sections
+- **Body:** `Manrope`, 500, 16px, +0.2px letter spacing
+- **Small text:** `Space Grotesk`, 400, 12px, uppercase, +1px letter spacing
+- **Buttons:** `Space Grotesk`, 600, 16px, uppercase
+- **Numerals:** `Space Grotesk`, tabular numerals enabled
+
+**Style notes:** 16px border radius on primary cards, 12px on inner elements. Zero drop shadows. Depth achieved purely through surface color hierarchy and crisp 1px `#2A2B31` borders. "Floating" aesthetic created by generous 24px padding around cards.
+
+## Design Tokens
+
+```css
+:root {
+  --color-primary: #C6FF00;
+  --color-background: #0B0B0F;
+  --color-surface: #1A1C23;
+  --color-text: #F4F5F7;
+  --color-muted: #2A2B31;
+  --color-accent: #FF3366;
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-body: 'Manrope', sans-serif;
+  --radius-card: 16px;
+  --radius-button: 12px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --border-thin: 1px solid var(--color-muted);
+}
+```
+
+</details>
+
+---
+
+<details>
+<summary>Screen Specifications</summary>
+
+### Home/Dashboard
+
+**Purpose:** Landing screen to assess readiness and launch the day's training.
+
+**Layout:** Top status header, large central CTA card, scrollable recent activity below.
+
+**Key Elements:**
+- **Readiness Score:** 64px `Space Grotesk` numeral, `#C6FF00`, top-right alignment.
+- **Next Workout Card:** Floating surface `#1A1C23` card, 1px border, 24px padding. Contains "Upper Body Power" title and primary action button.
+- **Weekly Consistency Chart:** 7-day bar chart, `#C6FF00` for completed days, `#2A2B31` for missed/future days.
+
+**States:**
+- **Empty:** "No recent workouts. Time to build the baseline." text in `#2A2B31`.
+- **Loading:** Skeleton pulses in `#1A1C23`.
+
+**Components:**
+- **Primary CTA:** 100% width, 56px height, `#C6FF00` background, `#0B0B0F` text, "START WORKOUT".
+
+**Interactions:**
+- **Click [Start Workout]:** Haptic feedback, slide-up transition to Active Workout screen.
+
+### Active Workout
+
+**Purpose:** Frictionless logging during physical exertion.
+
+**Layout:** Sticky top header (timer), scrollable list of exercise cards, sticky bottom action bar.
+
+**Key Elements:**
+- **Global Timer:** Sticky top, `Space Grotesk` tabular numerals, 20px font size, `#F4F5F7`.
+- **Exercise Card:** `#1A1C23` background, 1px border. Contains exercise name, history sub-text, and rows for Sets/Reps/Weight.
+- **Set Row:** Grid layout (Set #, Previous Data, Weight Input, Reps Input, Checkbox).
+- **Completion Checkbox:** 32x32px hit area, 8px radius. Turns `#C6FF00` when tapped.
+
+**States:**
+- **Rest State:** Tapping a set checkbox triggers a 90s countdown modal in `#1A1C23`.
+
+**Components:**
+- **Rest Timer Overlay:** Full width, 80px height, `#C6FF00` border top, large countdown.
+
+**Interactions:**
+- **Click [Set Checkbox]:** Box fills `#C6FF00`, row background dims to 50% opacity, rest timer auto-starts.
+
+### Exercise Library
+
+**Purpose:** Browse, search, and select exercises to build or modify routines.
+
+**Layout:** Top search bar, horizontal scrolling filter pills, vertical list of exercise rows.
+
+**Key Elements:**
+- **Search Bar:** `#1A1C23` background, 48px height, `#2A2B31` border, 16px `Manrope` input.
+- **Filter Pills:** "Chest", "Back", "Legs". 32px height, 16px radius, 1px border. Selected pill gets `#C6FF00` text and border.
+- **Exercise Row:** 72px height, left-aligned thumbnail (48x48px, `#1A1C23` block), title, and muscle group tag.
+
+**States:**
+- **Empty Search:** "0 Exercises Found" centered text.
+
+**Components:**
+- **Muscle Tag:** 24px height, `#2A2B31` background, 12px `Space Grotesk` text.
+
+**Interactions:**
+- **Click [Filter Pill]:** Instantly filters list below, active pill animates to primary color.
+
+### Progress/Stats
+
+**Purpose:** Visualize long-term strength and volume trends.
+
+**Layout:** Segmented control top, hero chart middle, raw data list bottom.
+
+**Key Elements:**
+- **Segmented Control:** "1W | 1M | 3M | 1Y", 40px height, `#1A1C23` background. Active segment is `#C6FF00`.
+- **Hero Line Chart:** Plotting 1RM or Total Volume. X-axis grid lines in `#2A2B31`. Chart line is 3px `#C6FF00` stroke with a hard drop-off gradient underneath.
+- **Stat Cards:** 2-column grid. Floating `#1A1C23` cards. "Current 1RM: 315 lbs".
+
+**States:**
+- **Loading:** Chart area draws left-to-right line animation.
+
+**Components:**
+- **Stat Value:** 24px `Space Grotesk`, `#F4F5F7` text, left-aligned.
+
+**Interactions:**
+- **Scrub [Chart]:** Press and hold on chart displays tooltip with exact date and weight value, haptic tick on data points.
+
+</details>
+
+---
+
+<details>
+<summary>Build Guide</summary>
+
+**Stack:** HTML + Tailwind CSS v3
+
+**Build Order:**
+1. **Home/Dashboard** - Establishes the deep dark background, floating card aesthetics, and primary typography.
+2. **Active Workout** - Defines complex form inputs, checkboxes, grids, and sticky positioning critical to core loop.
+3. **Progress/Stats** - Introduces charting components and segmented controls.
+4. **Exercise Library** - Fleshes out list views, search inputs, and horizontal scrolling patterns.
+
+</details>

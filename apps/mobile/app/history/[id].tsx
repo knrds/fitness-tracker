@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert, Platform, Share } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, Pressable, Share } from 'react-native';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { SaveTemplateModal } from '../../src/components/workout/SaveTemplateModal';
-import { TemplateExercise, SessionExercise, summarizeWorkout } from '@fitness-tracker/domain';
+import {
+  TemplateExercise,
+  SessionExercise,
+  summarizeWorkout,
+  summarizeSessionExercise,
+} from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
+import { useDialog } from '@fitness-tracker/ui';
 
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -18,11 +24,12 @@ export default function WorkoutDetailScreen() {
   const { status: activeWorkoutStatus, startWorkoutFromSession } = useWorkoutStore();
   const { createTemplate } = useProgramStore();
   const { profile } = useProfileStore();
+  const { showAlert, showConfirm } = useDialog();
   const isImperial = profile.preferredUnits === 'imperial';
 
   const [saveModalVisible, setSaveModalVisible] = useState(false);
-  
-  const session = sessions.find(s => s.id === id);
+
+  const session = sessions.find((s) => s.id === id);
 
   if (!session) {
     return (
@@ -38,7 +45,7 @@ export default function WorkoutDetailScreen() {
       month: 'long',
       day: 'numeric',
       hour: 'numeric',
-      minute: '2-digit'
+      minute: '2-digit',
     }).format(new Date(date));
   };
 
@@ -51,7 +58,7 @@ export default function WorkoutDetailScreen() {
   };
 
   const mapToTemplateExercises = (sessionExercises: SessionExercise[]): TemplateExercise[] => {
-    return sessionExercises.map(ex => {
+    return sessionExercises.map((ex) => {
       const firstSet = ex.sets[0];
       return {
         id: Crypto.randomUUID(),
@@ -66,29 +73,23 @@ export default function WorkoutDetailScreen() {
     });
   };
 
-  const handleRepeatWorkout = () => {
+  const handleRepeatWorkout = async () => {
     const start = () => {
       startWorkoutFromSession(session);
       router.push('/workout/session' as unknown as Parameters<typeof router.push>[0]);
     };
 
     if (activeWorkoutStatus === 'active' || activeWorkoutStatus === 'paused') {
-      if (Platform.OS === 'web') {
-        if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
-          const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-          if (confirmFn?.("An active workout is already in progress. Do you want to discard it and repeat this workout instead?")) {
-            start();
-          }
-        }
-      } else {
-        Alert.alert(
-          "Workout In Progress",
-          "An active workout is already in progress. Do you want to discard it and repeat this workout instead?",
-          [
-            { text: "Cancel", style: "cancel" },
-            { text: "Discard & Start", style: "destructive", onPress: start }
-          ]
-        );
+      const shouldStart = await showConfirm({
+        title: 'Workout In Progress',
+        message:
+          'An active workout is already in progress. Do you want to discard it and repeat this workout instead?',
+        confirmLabel: 'Discard & Start',
+        cancelLabel: 'Keep Current',
+        destructive: true,
+      });
+      if (shouldStart) {
+        start();
       }
     } else {
       start();
@@ -119,20 +120,17 @@ export default function WorkoutDetailScreen() {
     }
   };
 
-  const handleSaveTemplate = (templateName: string) => {
+  const handleSaveTemplate = async (templateName: string) => {
     createTemplate({
       name: templateName,
       exercises: mapToTemplateExercises(session.exercises),
     });
     setSaveModalVisible(false);
-    if (Platform.OS === 'web') {
-      if (typeof globalThis !== 'undefined' && 'alert' in globalThis) {
-        const alertFn = (globalThis as { alert?: (msg: string) => void }).alert;
-        alertFn?.('Template saved successfully!');
-      }
-    } else {
-      Alert.alert('Success', 'Template saved successfully!');
-    }
+    await showAlert({
+      title: 'Success',
+      message: 'Template saved successfully!',
+      tone: 'success',
+    });
   };
 
   const displayWeight = (w?: number) => {
@@ -145,17 +143,21 @@ export default function WorkoutDetailScreen() {
 
   return (
     <View style={styles.outerContainer}>
+      <Stack.Screen options={{ title: session.name || 'Workout Details' }} />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>{session.name}</Text>
           <Text style={styles.date}>{formatDate(session.startedAt)}</Text>
           <Text style={styles.duration}>Duration: {formatDuration(session.durationSeconds)}</Text>
-          
+
           <View style={styles.actionRow}>
             <Pressable style={styles.actionBtn} onPress={handleRepeatWorkout}>
               <Text style={styles.actionBtnText}>Repeat</Text>
             </Pressable>
-            <Pressable style={[styles.actionBtn, styles.saveBtn]} onPress={() => setSaveModalVisible(true)}>
+            <Pressable
+              style={[styles.actionBtn, styles.saveBtn]}
+              onPress={() => setSaveModalVisible(true)}
+            >
               <Text style={styles.saveBtnText}>Template</Text>
             </Pressable>
             <Pressable style={[styles.actionBtn, styles.shareBtn]} onPress={handleShareWorkout}>
@@ -167,20 +169,21 @@ export default function WorkoutDetailScreen() {
         <Text style={styles.sectionTitle}>Exercises</Text>
 
         {session.exercises.map((ex, index) => {
-          const exerciseDef = exercises.find(e => e.id === ex.exerciseId);
-          const completedSets = ex.sets.filter(s => s.completed);
-          const volumeKg = completedSets.reduce((sum, s) => sum + (s.weight || 0) * (s.reps || 0), 0);
+          const exerciseDef = exercises.find((e) => e.id === ex.exerciseId);
+          const volumeKg = summarizeSessionExercise(ex).totalVolume;
           const volume = isImperial ? Math.round(volumeKg * 2.20462) : volumeKg;
-          
+
           return (
             <View key={ex.id} style={styles.card}>
-              <Text style={styles.exName}>{index + 1}. {exerciseDef?.name || 'Unknown Exercise'}</Text>
+              <Text style={styles.exName}>
+                {index + 1}. {exerciseDef?.name || 'Unknown Exercise'}
+              </Text>
               {volume > 0 && (
                 <Text style={styles.volumeText}>
                   Volume: {volume.toLocaleString()} {isImperial ? 'lbs' : 'kg'}
                 </Text>
               )}
-              
+
               <View style={styles.tableHeader}>
                 <Text style={styles.colSet}>Set</Text>
                 <Text style={styles.colWeight}>{isImperial ? 'lbs' : 'kg'}</Text>
@@ -188,8 +191,11 @@ export default function WorkoutDetailScreen() {
                 <Text style={styles.colRpe}>RPE</Text>
               </View>
 
-              {ex.sets.map(set => (
-                <View key={set.id} style={[styles.tableRow, !set.completed && styles.incompleteRow]}>
+              {ex.sets.map((set) => (
+                <View
+                  key={set.id}
+                  style={[styles.tableRow, !set.completed && styles.incompleteRow]}
+                >
                   <Text style={styles.colSet}>{set.setNumber}</Text>
                   <Text style={styles.colWeight}>{displayWeight(set.weight)}</Text>
                   <Text style={styles.colReps}>{set.reps || '-'}</Text>
@@ -213,21 +219,27 @@ export default function WorkoutDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  outerContainer: { flex: 1, backgroundColor: '#f8fafc' },
+  outerContainer: { flex: 1, backgroundColor: '#0B0B0F' },
   container: { flex: 1 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0B0B0F' },
   content: { padding: 16, paddingBottom: 40 },
   header: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#1A1C23',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#2A2B31',
   },
-  title: { fontSize: 22, fontWeight: '800', color: '#0f172a', marginBottom: 4 },
-  date: { fontSize: 14, color: '#64748b', marginBottom: 8 },
-  duration: { fontSize: 16, fontWeight: '500', color: '#334155' },
+  title: {
+    fontSize: 22,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#F4F5F7',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  date: { fontSize: 14, fontFamily: 'Manrope_500Medium', color: '#8A8D9F', marginBottom: 8 },
+  duration: { fontSize: 16, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#F4F5F7' },
   actionRow: {
     flexDirection: 'row',
     gap: 12,
@@ -235,50 +247,66 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     flex: 1,
-    backgroundColor: '#3b82f6',
-    paddingVertical: 10,
-    borderRadius: 8,
+    backgroundColor: '#90D5FF',
+    paddingVertical: 12,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   actionBtnText: {
-    color: '#ffffff',
-    fontWeight: '600',
+    color: '#0B0B0F',
+    fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 14,
   },
   saveBtn: {
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#2A2B31',
   },
   saveBtnText: {
-    color: '#0f172a',
-    fontWeight: '600',
+    color: '#F4F5F7',
+    fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 14,
   },
   shareBtn: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: '#2A2B31',
   },
   shareBtnText: {
-    color: '#475569',
-    fontWeight: '600',
+    color: '#F4F5F7',
+    fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 14,
   },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 12 },
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#90D5FF',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+  },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: '#1A1C23',
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#2A2B31',
   },
-  exName: { fontSize: 16, fontWeight: '700', color: '#1e293b', marginBottom: 4 },
-  volumeText: { fontSize: 14, color: '#10b981', fontWeight: '600', marginBottom: 12 },
+  exName: {
+    fontSize: 16,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    color: '#F4F5F7',
+    marginBottom: 4,
+  },
+  volumeText: {
+    fontSize: 14,
+    color: '#90D5FF',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    marginBottom: 12,
+  },
   tableHeader: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: '#2A2B31',
     paddingBottom: 8,
     marginBottom: 8,
   },
@@ -287,8 +315,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   incompleteRow: { opacity: 0.4 },
-  colSet: { flex: 1, fontWeight: '600', color: '#475569' },
-  colWeight: { flex: 1, textAlign: 'center', color: '#334155' },
-  colReps: { flex: 1, textAlign: 'center', color: '#334155' },
-  colRpe: { flex: 1, textAlign: 'center', color: '#334155' },
+  colSet: { flex: 1, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#8A8D9F' },
+  colWeight: { flex: 1, textAlign: 'center', fontFamily: 'Manrope_500Medium', color: '#F4F5F7' },
+  colReps: { flex: 1, textAlign: 'center', fontFamily: 'Manrope_500Medium', color: '#F4F5F7' },
+  colRpe: { flex: 1, textAlign: 'center', fontFamily: 'Manrope_500Medium', color: '#F4F5F7' },
 });

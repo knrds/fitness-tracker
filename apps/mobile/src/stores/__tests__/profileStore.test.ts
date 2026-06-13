@@ -1,13 +1,20 @@
 import { useProfileStore } from '../profileStore';
 import { useHistoryStore } from '../historyStore';
 import { WorkoutSession } from '@fitness-tracker/domain';
+import { useAchievementStore } from '../achievementStore';
+import { useBodyMetricStore } from '../bodyMetricStore';
+import { useExerciseStore } from '../exerciseStore';
+import { getDefaultPrograms, getDefaultTemplates, useProgramStore } from '../programStore';
+import { useWorkoutStore } from '../workoutStore';
+import { useCaffeineStore } from '../caffeineStore';
+import { useHydrationStore } from '../hydrationStore';
 
 jest.mock('react-native-mmkv', () => ({
   MMKV: jest.fn().mockImplementation(() => ({
     set: jest.fn(),
     getString: jest.fn(),
     delete: jest.fn(),
-  }))
+  })),
 }));
 
 describe('profileStore', () => {
@@ -16,9 +23,30 @@ describe('profileStore', () => {
       profile: {
         displayName: 'User',
         preferredUnits: 'metric',
-      }
+        showExerciseDeleteConfirmation: true,
+      },
     });
     useHistoryStore.getState().clearHistory();
+    useAchievementStore.getState().resetAchievements();
+    useBodyMetricStore.getState().clearMetrics();
+    useExerciseStore.setState({
+      favoriteIds: [],
+      customExercises: [],
+      exerciseRestDurations: {},
+      persistentNotes: {},
+    });
+    useProgramStore.setState({ programs: [], templates: [] });
+    useWorkoutStore.getState().resetWorkout();
+    useCaffeineStore.setState({ isEnabled: true, currentWorkoutMg: 0, lastWorkoutMg: 0 });
+    useHydrationStore.setState({ dateKey: '2026-06-01', dailyGoalMl: 2500, todayIntakeMl: 0 });
+  });
+
+  it('should support showExerciseDeleteConfirmation setting', () => {
+    const store = useProfileStore.getState();
+    expect(store.profile.showExerciseDeleteConfirmation).toBe(true);
+
+    store.updateProfile({ showExerciseDeleteConfirmation: false });
+    expect(useProfileStore.getState().profile.showExerciseDeleteConfirmation).toBe(false);
   });
 
   it('should update profile fields', () => {
@@ -38,7 +66,7 @@ describe('profileStore', () => {
       weightKg: 85,
       benchPressMaxKg: 120,
       squatMaxKg: 140,
-      deadliftMaxKg: 180
+      deadliftMaxKg: 180,
     });
 
     const state = useProfileStore.getState();
@@ -71,10 +99,10 @@ describe('profileStore', () => {
           exerciseId: 'ex-1',
           order: 0,
           sets: [
-            { id: 'set-1', setNumber: 1, type: 'working', completed: true, weight: 100, reps: 10 }
-          ]
-        }
-      ]
+            { id: 'set-1', setNumber: 1, type: 'working', completed: true, weight: 100, reps: 10 },
+          ],
+        },
+      ],
     };
 
     const mockSession2: WorkoutSession = {
@@ -92,10 +120,10 @@ describe('profileStore', () => {
           exerciseId: 'ex-2',
           order: 0,
           sets: [
-            { id: 'set-2', setNumber: 1, type: 'working', completed: true, weight: 80, reps: 8 }
-          ]
-        }
-      ]
+            { id: 'set-2', setNumber: 1, type: 'working', completed: true, weight: 80, reps: 8 },
+          ],
+        },
+      ],
     };
 
     // Push sessions to history
@@ -104,7 +132,7 @@ describe('profileStore', () => {
 
     // Get statistics
     const stats = store.getStatistics();
-    
+
     // Workouts: 2
     expect(stats.totalWorkouts).toBe(2);
     // Volume: (100 * 10) + (80 * 8) = 1000 + 640 = 1640 kg
@@ -133,10 +161,10 @@ describe('profileStore', () => {
           exerciseId: 'ex-1',
           order: 0,
           sets: [
-            { id: 'set-1', setNumber: 1, type: 'working', completed: true, weight: 100, reps: 10 }
-          ]
-        }
-      ]
+            { id: 'set-1', setNumber: 1, type: 'working', completed: true, weight: 100, reps: 10 },
+          ],
+        },
+      ],
     };
 
     useHistoryStore.getState().addSession(mockSession);
@@ -144,5 +172,75 @@ describe('profileStore', () => {
     const stats = store.getStatistics();
     // 1000 kg * 2.20462 = 2205 lbs
     expect(stats.totalVolume).toBe(2205);
+  });
+
+  it('should clear all local data across stores', () => {
+    const date = new Date('2026-06-01T18:00:00.000Z');
+    const session: WorkoutSession = {
+      id: 'session-1',
+      userId: 'user-1',
+      name: 'Push Day',
+      startedAt: date,
+      completedAt: date,
+      durationSeconds: 1000,
+      createdAt: date,
+      updatedAt: date,
+      exercises: [],
+    };
+
+    useHistoryStore.getState().addSession(session);
+    useWorkoutStore.setState({
+      status: 'active',
+      name: 'Dirty Workout',
+      lastFinishedSession: session,
+    });
+    useAchievementStore.setState({
+      xp: 1000,
+      level: 3,
+      unlockedAchievements: { first_workout: date.toISOString() },
+      repeatCounts: { rep_workout_complete: 2 },
+      newlyUnlocked: ['first_workout'],
+      levelUpTo: 3,
+    });
+    useExerciseStore.setState({
+      favoriteIds: ['exercise-1'],
+      exerciseRestDurations: { 'exercise-1': 120 },
+      persistentNotes: { 'exercise-1': 'Seat 4' },
+    });
+    useBodyMetricStore.setState({
+      metrics: [
+        {
+          id: 'metric-1',
+          userId: 'user-1',
+          recordedAt: date,
+          weightKg: 80,
+          createdAt: date,
+        },
+      ],
+    });
+    useCaffeineStore.setState({ isEnabled: false, currentWorkoutMg: 420, lastWorkoutMg: 300 });
+    useHydrationStore.setState({
+      dateKey: '2026-06-01',
+      dailyGoalMl: 3500,
+      todayIntakeMl: 1250,
+    });
+
+    useProfileStore.getState().clearAllData();
+
+    expect(useHistoryStore.getState().sessions).toHaveLength(0);
+    expect(useWorkoutStore.getState().status).toBe('idle');
+    expect(useWorkoutStore.getState().lastFinishedSession).toBeUndefined();
+    expect(useAchievementStore.getState().xp).toBe(0);
+    expect(useAchievementStore.getState().newlyUnlocked).toEqual([]);
+    expect(useExerciseStore.getState().favoriteIds).toEqual([]);
+    expect(useExerciseStore.getState().persistentNotes).toEqual({});
+    expect(useBodyMetricStore.getState().metrics).toEqual([]);
+    expect(useProgramStore.getState().programs).toEqual(getDefaultPrograms());
+    expect(useProgramStore.getState().templates).toEqual(getDefaultTemplates());
+    expect(useCaffeineStore.getState().isEnabled).toBe(true);
+    expect(useCaffeineStore.getState().currentWorkoutMg).toBe(0);
+    expect(useCaffeineStore.getState().lastWorkoutMg).toBe(0);
+    expect(useHydrationStore.getState().dailyGoalMl).toBe(2500);
+    expect(useHydrationStore.getState().todayIntakeMl).toBe(0);
   });
 });

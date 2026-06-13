@@ -5,10 +5,10 @@ working on this codebase.
 
 ## Structure
 
-| File | Purpose |
-|------|---------|
-| `mobile-dev.md` | Briefing for agents working on `apps/mobile` |
-| `domain.md` | Briefing for agents working on `packages/domain` |
+| File            | Purpose                                          |
+| --------------- | ------------------------------------------------ |
+| `mobile-dev.md` | Briefing for agents working on `apps/mobile`     |
+| `domain.md`     | Briefing for agents working on `packages/domain` |
 
 ## Guidelines for Writing Briefings
 

@@ -1,5 +1,6 @@
 import { WorkoutSession } from '../types';
 import { calculateVolume } from './calculateVolume';
+import { summarizeSessionExercise } from './summarizeSessionExercise';
 
 export interface WorkoutSummary {
   durationSeconds: number;
@@ -8,14 +9,10 @@ export interface WorkoutSummary {
 }
 
 export function summarizeWorkout(session: WorkoutSession): WorkoutSummary {
-  let setCount = 0;
-  session.exercises.forEach((ex) => {
-    ex.sets.forEach((set) => {
-      if (set.completed) {
-        setCount++;
-      }
-    });
-  });
+  const setCount = session.exercises.reduce(
+    (sum, exercise) => sum + summarizeSessionExercise(exercise).completedSetCount,
+    0,
+  );
 
   return {
     durationSeconds: session.durationSeconds || 0,

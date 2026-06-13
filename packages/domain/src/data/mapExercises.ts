@@ -41,7 +41,7 @@ function deterministicUUID(str: string): string {
 function mapEquipment(eq: string | null | undefined): Equipment {
   if (!eq) return Equipment.Other;
   const lower = eq.toLowerCase();
-  
+
   if (lower.includes('dumbbell')) return Equipment.Dumbbell;
   if (lower.includes('barbell')) return Equipment.Barbell;
   if (lower.includes('cable')) return Equipment.Cable;
@@ -53,7 +53,7 @@ function mapEquipment(eq: string | null | undefined): Equipment {
   if (lower.includes('e-z curl bar')) return Equipment.EzBar;
   if (lower.includes('foam roll')) return Equipment.Other;
   if (lower.includes('exercise ball')) return Equipment.Other;
-  
+
   return Equipment.Other;
 }
 
@@ -62,7 +62,7 @@ function mapEquipment(eq: string | null | undefined): Equipment {
  */
 function mapMuscle(m: string): MuscleGroup | null {
   const lower = m.toLowerCase();
-  
+
   if (lower === 'chest') return MuscleGroup.Chest;
   if (lower === 'middle back') return MuscleGroup.UpperBack;
   if (lower === 'lower back') return MuscleGroup.LowerBack;
@@ -80,7 +80,7 @@ function mapMuscle(m: string): MuscleGroup | null {
   if (lower === 'neck') return MuscleGroup.Neck;
   if (lower === 'adductors') return MuscleGroup.Quads;
   if (lower === 'abductors') return MuscleGroup.Glutes;
-  
+
   return null;
 }
 
@@ -89,68 +89,69 @@ function mapMuscle(m: string): MuscleGroup | null {
  */
 function mapMovementPattern(name: string, category: string | null | undefined): MovementPattern {
   const lowerName = name.toLowerCase();
-  
+
   if (lowerName.includes('squat')) return MovementPattern.Squat;
-  if (lowerName.includes('lunge') || lowerName.includes('step-up') || lowerName.includes('step up')) return MovementPattern.Lunge;
+  if (lowerName.includes('lunge') || lowerName.includes('step-up') || lowerName.includes('step up'))
+    return MovementPattern.Lunge;
   if (
-    lowerName.includes('deadlift') || 
-    lowerName.includes('good morning') || 
-    lowerName.includes('hinge') || 
-    lowerName.includes('clean') || 
+    lowerName.includes('deadlift') ||
+    lowerName.includes('good morning') ||
+    lowerName.includes('hinge') ||
+    lowerName.includes('clean') ||
     lowerName.includes('snatch')
   ) {
     return MovementPattern.Hinge;
   }
   if (
-    lowerName.includes('bench press') || 
-    lowerName.includes('push-up') || 
-    lowerName.includes('pushup') || 
-    lowerName.includes('chest press') || 
+    lowerName.includes('bench press') ||
+    lowerName.includes('push-up') ||
+    lowerName.includes('pushup') ||
+    lowerName.includes('chest press') ||
     lowerName.includes('dip')
   ) {
     return MovementPattern.HorizontalPush;
   }
   if (
-    lowerName.includes('overhead press') || 
-    lowerName.includes('shoulder press') || 
-    lowerName.includes('military press') || 
-    lowerName.includes('push press') || 
+    lowerName.includes('overhead press') ||
+    lowerName.includes('shoulder press') ||
+    lowerName.includes('military press') ||
+    lowerName.includes('push press') ||
     lowerName.includes('arnold press')
   ) {
     return MovementPattern.VerticalPush;
   }
   if (
-    lowerName.includes('row') || 
-    lowerName.includes('pull-up') || 
-    lowerName.includes('pullup') || 
-    lowerName.includes('chin-up') || 
-    lowerName.includes('chinup') || 
-    lowerName.includes('pulldown') || 
+    lowerName.includes('row') ||
+    lowerName.includes('pull-up') ||
+    lowerName.includes('pullup') ||
+    lowerName.includes('chin-up') ||
+    lowerName.includes('chinup') ||
+    lowerName.includes('pulldown') ||
     lowerName.includes('face pull')
   ) {
     return MovementPattern.HorizontalPull;
   }
   if (
-    lowerName.includes('plank') || 
-    lowerName.includes('crunch') || 
-    lowerName.includes('sit-up') || 
-    lowerName.includes('sit up') || 
-    lowerName.includes('leg raise') || 
-    lowerName.includes('woodchopper') || 
-    lowerName.includes('ab ') || 
+    lowerName.includes('plank') ||
+    lowerName.includes('crunch') ||
+    lowerName.includes('sit-up') ||
+    lowerName.includes('sit up') ||
+    lowerName.includes('leg raise') ||
+    lowerName.includes('woodchopper') ||
+    lowerName.includes('ab ') ||
     lowerName.includes('core')
   ) {
     return MovementPattern.Core;
   }
   if (lowerName.includes('carry') || lowerName.includes('walk')) return MovementPattern.Carry;
   if (
-    lowerName.includes('curl') || 
-    lowerName.includes('extension') || 
-    lowerName.includes('raise') || 
-    lowerName.includes('fly') || 
-    lowerName.includes('kickback') || 
-    lowerName.includes('abduction') || 
-    lowerName.includes('adduction') || 
+    lowerName.includes('curl') ||
+    lowerName.includes('extension') ||
+    lowerName.includes('raise') ||
+    lowerName.includes('fly') ||
+    lowerName.includes('kickback') ||
+    lowerName.includes('abduction') ||
+    lowerName.includes('adduction') ||
     lowerName.includes('stretch')
   ) {
     return MovementPattern.Isolation;
@@ -159,7 +160,7 @@ function mapMovementPattern(name: string, category: string | null | undefined): 
   // Category fallback
   if (category === 'cardio') return MovementPattern.Cardio;
   if (category === 'stretching') return MovementPattern.Isolation;
-  
+
   return MovementPattern.Isolation;
 }
 
@@ -179,7 +180,7 @@ export function mapExercises(rawData: RawExercise[]): Exercise[] {
   return rawData.map((raw) => {
     // Generate valid UUID
     const id = deterministicUUID(raw.id || raw.name);
-    
+
     // Map primary muscles
     const primaryMuscles: MuscleGroup[] = [];
     if (raw.primaryMuscles) {
@@ -212,14 +213,14 @@ export function mapExercises(rawData: RawExercise[]): Exercise[] {
     else if (raw.level === 'expert' || raw.level === 'advanced') experienceLevel = 'advanced';
 
     // Instructions joined with newline
-    const instructionsStr = raw.instructions && raw.instructions.length > 0
-      ? raw.instructions.join('\n')
-      : undefined;
+    const instructionsStr =
+      raw.instructions && raw.instructions.length > 0 ? raw.instructions.join('\n') : undefined;
 
     // Image URL
-    const imageUrl = raw.images && raw.images.length > 0
-      ? `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${raw.images[0]}`
-      : undefined;
+    const imageUrl =
+      raw.images && raw.images.length > 0
+        ? `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${raw.images[0]}`
+        : undefined;
 
     const mappedEx: Exercise = {
       id,

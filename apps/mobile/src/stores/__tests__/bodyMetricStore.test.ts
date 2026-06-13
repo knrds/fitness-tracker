@@ -5,7 +5,7 @@ jest.mock('react-native-mmkv', () => ({
     set: jest.fn(),
     getString: jest.fn(),
     delete: jest.fn(),
-  }))
+  })),
 }));
 
 describe('bodyMetricStore', () => {
@@ -21,7 +21,7 @@ describe('bodyMetricStore', () => {
 
   it('should add body metrics and sort them newest first', () => {
     const store = useBodyMetricStore.getState();
-    
+
     const dateOld = new Date('2026-06-01T10:00:00.000Z');
     const dateNew = new Date('2026-06-02T10:00:00.000Z');
 
@@ -42,7 +42,7 @@ describe('bodyMetricStore', () => {
     // Newest should be first
     expect(updatedState.metrics[0]?.recordedAt).toEqual(dateNew);
     expect(updatedState.metrics[1]?.recordedAt).toEqual(dateOld);
-    
+
     // Test getLatestMetric
     const latest = updatedState.getLatestMetric();
     expect(latest).not.toBeNull();
@@ -51,7 +51,7 @@ describe('bodyMetricStore', () => {
 
   it('should return correct metric history sorted oldest first', () => {
     const store = useBodyMetricStore.getState();
-    
+
     const d1 = new Date('2026-06-01T10:00:00.000Z');
     const d2 = new Date('2026-06-02T10:00:00.000Z');
     const d3 = new Date('2026-06-03T10:00:00.000Z');

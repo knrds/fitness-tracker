@@ -2,7 +2,7 @@ import { WorkoutSession } from '../types';
 
 export function calculateVolume(
   session: WorkoutSession,
-  options: { includeWarmups?: boolean } = {}
+  options: { includeWarmups?: boolean } = {},
 ): number {
   const includeWarmups = options.includeWarmups ?? false;
   let volume = 0;

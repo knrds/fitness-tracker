@@ -3,8 +3,9 @@
 > **Zweck:** Diesen Prompt in [Google Stitch](https://stitch.withgoogle.com) (Designer)
 > einfügen, um eine premium, dark-mode-first UI für den Fitness-Tracker zu generieren.
 > Der Stitch-Output ist die **visuelle Referenz** für Block 3 (`docs/design-system.md`
-> + `packages/ui`). Stitch baut nicht den Code dieses Repos — es liefert das visuelle
-> Konzept, das der Designer-Agent dann in React Native / das Theme übersetzt.
+>
+> - `packages/ui`). Stitch baut nicht den Code dieses Repos — es liefert das visuelle
+>   Konzept, das der Designer-Agent dann in React Native / das Theme übersetzt.
 >
 > **Tipp:** Stitch arbeitet pro Screen am besten. Du kannst (a) den ganzen Block
 > „MASTER PROMPT" einmal einfügen, um Stil + App zu setzen, und dann (b) für jeden
@@ -84,6 +85,7 @@ NAVIGATION
 ## SCREEN PROMPTS (jeweils einzeln senden, im etablierten Stil)
 
 ### 1) Home / Dashboard
+
 ```
 Generate the Home dashboard in the established dark, premium strength-training
 style. Sections top to bottom:
@@ -104,6 +106,7 @@ Big numbers are the hero. Plenty of breathing room.
 ```
 
 ### 2) Active Workout Session (the most important screen)
+
 ```
 Generate the active workout logging screen in the established style.
 - Sticky header: workout name, a live elapsed timer (large, tabular numerals),
@@ -126,6 +129,7 @@ small "PR" trophy badge.
 ```
 
 ### 3) Exercise Library (list)
+
 ```
 Generate the exercise library list screen in the established style.
 - A search field at the top.
@@ -138,6 +142,7 @@ Generate the exercise library list screen in the established style.
 ```
 
 ### 4) Exercise Detail
+
 ```
 Generate the exercise detail screen in the established style.
 - A large header media area (exercise illustration/animation frame).
@@ -150,6 +155,7 @@ Generate the exercise detail screen in the established style.
 ```
 
 ### 5) Programs (with active-program calendar)
+
 ```
 Generate the Programs screen in the established style.
 - If a program is active: show a gorgeous week-by-week calendar of the split —
@@ -162,6 +168,7 @@ Generate the Programs screen in the established style.
 ```
 
 ### 6) History
+
 ```
 Generate the workout History screen in the established style.
 - A list of completed workouts grouped by month. Each row: workout name, date,
@@ -171,6 +178,7 @@ Generate the workout History screen in the established style.
 ```
 
 ### 7) Workout Detail (from History)
+
 ```
 Generate the completed-workout detail screen in the established style.
 - Summary header: date, duration, total volume, number of sets, PRs achieved.
@@ -181,6 +189,7 @@ Generate the completed-workout detail screen in the established style.
 ```
 
 ### 8) Body Tracking
+
 ```
 Generate the Body tracking screen in the established style.
 - A "log measurement" entry control (date, value, unit).
@@ -191,6 +200,7 @@ Generate the Body tracking screen in the established style.
 ```
 
 ### 9) Progress / Stats (charts)
+
 ```
 Generate the Progress/Stats screen in the established style.
 - A segmented time-range control: 7D / 1M / 3M / 1Y / All.
@@ -204,6 +214,7 @@ Generate the Progress/Stats screen in the established style.
 ```
 
 ### 10) Profile / Settings
+
 ```
 Generate the Profile & Settings screen in the established style.
 - Profile header: name, training goal, experience level, avatar.
@@ -216,6 +227,7 @@ Generate the Profile & Settings screen in the established style.
 ```
 
 ### 11) Achievements
+
 ```
 Generate the Achievements screen in the established style.
 - Top: current level, XP, and XP-to-next-level progress bar.
@@ -242,6 +254,7 @@ Level 7).
 ---
 
 ## Danach (für den Designer-Agenten / Block 3 Umsetzung)
+
 1. Stitch-Output (Tokens + Screens) sichten, ggf. eine Akzentfarbe final wählen.
 2. Daraus `docs/design-system.md` schreiben (Farben, Typo, Spacing, Komponenten-Stil)
    → **OK von Konrad abwarten** (Block-3-Gate im Workflow).
@@ -250,5 +263,7 @@ Level 7).
 4. Bestehende Screens schrittweise auf das Theme umstellen (Start: Home + Exercises).
 5. **Architektur-Leitplanke beachten:** der Designer rechnet keine Werte (Volumen,
    e1RM, Streak) selbst — ausschließlich Helfer aus `packages/domain/src/logic/`.
+
 ```
+
 ```

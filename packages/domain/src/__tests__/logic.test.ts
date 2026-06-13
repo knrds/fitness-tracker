@@ -5,8 +5,13 @@ import {
   calculateStreak,
   calculateLongestStreak,
   detectPRs,
+  getBestE1RMs,
+  getBestWeights,
+  getExerciseProgressHistory,
+  formatDateLocal,
   summarizeWorkout,
-  WorkoutSession
+  summarizeSessionExercise,
+  WorkoutSession,
 } from '../index';
 
 const EX_UUID_1 = '33333333-3333-4333-8333-333333333333';
@@ -55,21 +60,31 @@ describe('estimateOneRepMax', () => {
   });
 
   it('uses realistic divisors based on exercise name', () => {
-    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Squat')).toBe(100 * (1 + 10 / 45));
-    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Romanian Deadlift')).toBe(100 * (1 + 10 / 45));
-    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Curl')).toBe(100 * (1 + 10 / 60));
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Squat')).toBe(
+      100 * (1 + 10 / 45),
+    );
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Romanian Deadlift')).toBe(
+      100 * (1 + 10 / 45),
+    );
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Curl')).toBe(
+      100 * (1 + 10 / 60),
+    );
     expect(estimateOneRepMax(100, 10, undefined, undefined, 'Plank')).toBe(100 * (1 + 10 / 60));
-    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Bench Press - Medium Grip')).toBe(100 * (1 + 10 / 50));
-    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Dips - Chest Version')).toBe(100 * (1 + 10 / 50));
+    expect(
+      estimateOneRepMax(100, 10, undefined, undefined, 'Barbell Bench Press - Medium Grip'),
+    ).toBe(100 * (1 + 10 / 50));
+    expect(estimateOneRepMax(100, 10, undefined, undefined, 'Dips - Chest Version')).toBe(
+      100 * (1 + 10 / 50),
+    );
   });
 
   it('takes RPE and RIR into account', () => {
     // 10 reps at RPE 8 -> 10 + 2 = 12 effective reps
     expect(estimateOneRepMax(100, 10, 8)).toBe(100 * (1 + 12 / 30));
-    
+
     // 10 reps at RIR 3 -> 10 + 3 = 13 effective reps
     expect(estimateOneRepMax(100, 10, undefined, 3)).toBe(100 * (1 + 13 / 30));
-    
+
     // When both are provided, RIR is preferred
     expect(estimateOneRepMax(100, 10, 8, 3)).toBe(100 * (1 + 13 / 30));
   });
@@ -98,6 +113,12 @@ describe('calculateStreak & calculateLongestStreak', () => {
   it('handles empty session list', () => {
     expect(calculateStreak([])).toBe(0);
     expect(calculateLongestStreak([])).toBe(0);
+  });
+
+  it('formats date keys from local calendar parts', () => {
+    const date = new Date(2026, 5, 8, 23, 30, 0);
+
+    expect(formatDateLocal(date)).toBe('2026-06-08');
   });
 
   it('calculates streaks timezone safely', () => {
@@ -152,9 +173,7 @@ describe('detectPRs', () => {
     const pastSession = createMockSession('s1', new Date(Date.now() - 86400000), [
       {
         exerciseId: EX_UUID_1,
-        sets: [
-          { weight: 100, reps: 5, type: 'working' },
-        ],
+        sets: [{ weight: 100, reps: 5, type: 'working' }],
       },
     ]);
 
@@ -189,5 +208,82 @@ describe('summarizeWorkout', () => {
     expect(summary.durationSeconds).toBe(1200);
     expect(summary.setCount).toBe(1);
     expect(summary.totalVolume).toBe(500);
+  });
+});
+
+describe('analytics helpers', () => {
+  it('summarizes a session exercise without counting warmups as working volume', () => {
+    const session = createMockSession('s1', new Date(), [
+      {
+        exerciseId: EX_UUID_1,
+        sets: [
+          { weight: 60, reps: 10, type: 'warmup', completed: true },
+          { weight: 100, reps: 5, type: 'working', completed: true },
+          { weight: 110, reps: 3, type: 'working', completed: true },
+          { weight: 120, reps: 1, type: 'working', completed: false },
+        ],
+      },
+    ]);
+
+    const summary = summarizeSessionExercise(session.exercises[0]!);
+
+    expect(summary.completedSetCount).toBe(3);
+    expect(summary.workingSetCount).toBe(2);
+    expect(summary.totalVolume).toBe(830);
+    expect(summary.maxWeight).toBe(110);
+    expect(summary.averageWeight).toBe(105);
+  });
+
+  it('returns warmup-safe best weights and e1RMs', () => {
+    const sessions = [
+      createMockSession('s1', new Date('2026-06-01T10:00:00'), [
+        {
+          exerciseId: EX_UUID_1,
+          sets: [
+            { weight: 150, reps: 1, type: 'warmup' },
+            { weight: 100, reps: 5, type: 'working' },
+          ],
+        },
+      ]),
+      createMockSession('s2', new Date('2026-06-02T10:00:00'), [
+        {
+          exerciseId: EX_UUID_1,
+          sets: [{ weight: 105, reps: 5, type: 'working' }],
+        },
+      ]),
+    ];
+
+    expect(getBestWeights(sessions)[EX_UUID_1]).toBe(105);
+    expect(getBestE1RMs(sessions)[EX_UUID_1]?.weight).toBe(105);
+  });
+
+  it('builds chronological exercise progress and marks max weight PR points', () => {
+    const sessions = [
+      createMockSession('s1', new Date('2026-06-01T10:00:00'), [
+        {
+          exerciseId: EX_UUID_1,
+          sets: [{ weight: 100, reps: 5, type: 'working' }],
+        },
+      ]),
+      createMockSession('s2', new Date('2026-06-02T10:00:00'), [
+        {
+          exerciseId: EX_UUID_1,
+          sets: [
+            { weight: 80, reps: 10, type: 'warmup' },
+            { weight: 105, reps: 5, type: 'working' },
+          ],
+        },
+      ]),
+    ];
+
+    const points = getExerciseProgressHistory(EX_UUID_1, sessions);
+
+    expect(points).toHaveLength(2);
+    expect(points[0]?.volume).toBe(500);
+    expect(points[0]?.maxWeight).toBe(100);
+    expect(points[0]?.isPR).toBe(true);
+    expect(points[1]?.volume).toBe(525);
+    expect(points[1]?.maxWeight).toBe(105);
+    expect(points[1]?.isPR).toBe(true);
   });
 });

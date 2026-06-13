@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Volt Performance - Exercise Library</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500&amp;family=Space+Grotesk:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#c1f20d",
+                        "background-light": "#f8f8f5",
+                        "background-dark": "#1e2210",
+                        "volt-bg": "#0B0B0F",
+                        "volt-surface": "#1A1C23",
+                        "volt-text": "#F4F5F7",
+                        "volt-muted": "#2A2B31",
+                        "volt-accent": "#FF3366"
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+                    letterSpacing: {
+                        "body": "0.2px",
+                        "small": "1px"
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-volt-bg text-volt-text font-body antialiased min-h-screen flex flex-col selection:bg-primary selection:text-volt-bg">
+<!-- Header -->
+<header class="flex items-center justify-between p-4 bg-volt-bg sticky top-0 z-10 border-b border-volt-muted">
+<h1 class="text-volt-text text-xl font-display font-bold uppercase tracking-tight mx-auto">Exercise Library</h1>
+</header>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col">
+<!-- Search Bar -->
+<div class="px-4 py-4">
+<div class="relative w-full h-12 flex items-center bg-volt-surface rounded-lg border border-volt-muted focus-within:border-primary transition-colors duration-200">
+<span class="material-symbols-outlined text-volt-muted ml-4 mr-2">search</span>
+<input class="flex-1 bg-transparent border-none text-volt-text font-body text-base tracking-body placeholder:text-volt-muted focus:ring-0 focus:outline-none p-0 h-full rounded-r-lg" id="searchInput" placeholder="Search exercises..." type="text"/>
+</div>
+</div>
+<!-- Filter Pills -->
+<div class="w-full overflow-x-auto no-scrollbar px-4 pb-4 border-b border-volt-muted">
+<div class="flex space-x-3 w-max">
+<button class="h-8 px-4 rounded-full border border-primary text-primary font-display text-sm uppercase tracking-small bg-volt-surface/50 transition-colors">All</button>
+<button class="h-8 px-4 rounded-full border border-volt-muted text-volt-muted font-display text-sm uppercase tracking-small hover:border-volt-text hover:text-volt-text transition-colors">Chest</button>
+<button class="h-8 px-4 rounded-full border border-volt-muted text-volt-muted font-display text-sm uppercase tracking-small hover:border-volt-text hover:text-volt-text transition-colors">Back</button>
+<button class="h-8 px-4 rounded-full border border-volt-muted text-volt-muted font-display text-sm uppercase tracking-small hover:border-volt-text hover:text-volt-text transition-colors">Legs</button>
+<button class="h-8 px-4 rounded-full border border-volt-muted text-volt-muted font-display text-sm uppercase tracking-small hover:border-volt-text hover:text-volt-text transition-colors">Shoulders</button>
+<button class="h-8 px-4 rounded-full border border-volt-muted text-volt-muted font-display text-sm uppercase tracking-small hover:border-volt-text hover:text-volt-text transition-colors">Arms</button>
+<button class="h-8 px-4 rounded-full border border-volt-muted text-volt-muted font-display text-sm uppercase tracking-small hover:border-volt-text hover:text-volt-text transition-colors">Core</button>
+</div>
+</div>
+<!-- Exercise List -->
+<div class="flex-1 overflow-y-auto" id="exerciseList">
+<!-- Item 1 -->
+<div class="flex items-center p-4 border-b border-volt-muted hover:bg-volt-surface/30 cursor-pointer transition-colors h-[72px]">
+<div class="w-12 h-12 bg-volt-surface rounded-md flex flex-shrink-0 items-center justify-center border border-volt-muted">
+<span class="material-symbols-outlined text-volt-muted">fitness_center</span>
+</div>
+<div class="ml-4 flex-1">
+<h3 class="text-volt-text font-body text-base font-medium tracking-body">Barbell Bench Press</h3>
+</div>
+<div class="px-2 py-1 bg-volt-surface border border-volt-muted rounded text-volt-muted font-display text-[10px] uppercase tracking-small ml-2">
+                    Chest
+                </div>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center p-4 border-b border-volt-muted hover:bg-volt-surface/30 cursor-pointer transition-colors h-[72px]">
+<div class="w-12 h-12 bg-volt-surface rounded-md flex flex-shrink-0 items-center justify-center border border-volt-muted">
+<span class="material-symbols-outlined text-volt-muted">accessibility_new</span>
+</div>
+<div class="ml-4 flex-1">
+<h3 class="text-volt-text font-body text-base font-medium tracking-body">Pull-Ups</h3>
+</div>
+<div class="px-2 py-1 bg-volt-surface border border-volt-muted rounded text-volt-muted font-display text-[10px] uppercase tracking-small ml-2">
+                    Back
+                </div>
+</div>
+<!-- Item 3 -->
+<div class="flex items-center p-4 border-b border-volt-muted hover:bg-volt-surface/30 cursor-pointer transition-colors h-[72px]">
+<div class="w-12 h-12 bg-volt-surface rounded-md flex flex-shrink-0 items-center justify-center border border-volt-muted">
+<span class="material-symbols-outlined text-volt-muted">fitness_center</span>
+</div>
+<div class="ml-4 flex-1">
+<h3 class="text-volt-text font-body text-base font-medium tracking-body">Barbell Back Squat</h3>
+</div>
+<div class="px-2 py-1 bg-volt-surface border border-volt-muted rounded text-volt-muted font-display text-[10px] uppercase tracking-small ml-2">
+                    Legs
+                </div>
+</div>
+<!-- Item 4 -->
+<div class="flex items-center p-4 border-b border-volt-muted hover:bg-volt-surface/30 cursor-pointer transition-colors h-[72px]">
+<div class="w-12 h-12 bg-volt-surface rounded-md flex flex-shrink-0 items-center justify-center border border-volt-muted">
+<span class="material-symbols-outlined text-volt-muted">fitness_center</span>
+</div>
+<div class="ml-4 flex-1">
+<h3 class="text-volt-text font-body text-base font-medium tracking-body">Overhead Press</h3>
+</div>
+<div class="px-2 py-1 bg-volt-surface border border-volt-muted rounded text-volt-muted font-display text-[10px] uppercase tracking-small ml-2">
+                    Shoulders
+                </div>
+</div>
+<!-- Item 5 -->
+<div class="flex items-center p-4 border-b border-volt-muted hover:bg-volt-surface/30 cursor-pointer transition-colors h-[72px]">
+<div class="w-12 h-12 bg-volt-surface rounded-md flex flex-shrink-0 items-center justify-center border border-volt-muted">
+<span class="material-symbols-outlined text-volt-muted">sports_gymnastics</span>
+</div>
+<div class="ml-4 flex-1">
+<h3 class="text-volt-text font-body text-base font-medium tracking-body">Dumbbell Curls</h3>
+</div>
+<div class="px-2 py-1 bg-volt-surface border border-volt-muted rounded text-volt-muted font-display text-[10px] uppercase tracking-small ml-2">
+                    Arms
+                </div>
+</div>
+<!-- Item 6 -->
+<div class="flex items-center p-4 border-b border-volt-muted hover:bg-volt-surface/30 cursor-pointer transition-colors h-[72px]">
+<div class="w-12 h-12 bg-volt-surface rounded-md flex flex-shrink-0 items-center justify-center border border-volt-muted">
+<span class="material-symbols-outlined text-volt-muted">airline_seat_flat</span>
+</div>
+<div class="ml-4 flex-1">
+<h3 class="text-volt-text font-body text-base font-medium tracking-body">Plank</h3>
+</div>
+<div class="px-2 py-1 bg-volt-surface border border-volt-muted rounded text-volt-muted font-display text-[10px] uppercase tracking-small ml-2">
+                    Core
+                </div>
+</div>
+<!-- Empty State (Hidden by default) -->
+<div class="hidden flex-col items-center justify-center h-48 text-center px-6" id="emptyState">
+<span class="material-symbols-outlined text-volt-muted text-4xl mb-2">search_off</span>
+<p class="text-volt-text font-display text-sm uppercase tracking-small">0 Exercises Found</p>
+<p class="text-volt-muted font-body text-sm mt-1">Try a different search term or clear filters.</p>
+</div>
+<div class="h-24"></div> <!-- Spacer for bottom nav -->
+</div>
+</main>
+<!-- Bottom Navigation Bar (Shared Component) -->
+<div class="fixed bottom-0 w-full flex gap-2 border-t border-volt-muted bg-volt-surface px-4 pb-6 pt-2 z-20">
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 text-volt-muted hover:text-volt-text transition-colors" href="#">
+<div class="flex h-8 items-center justify-center" data-icon="house" data-size="24px" data-weight="regular">
+<span class="material-symbols-outlined">house</span>
+</div>
+</a>
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 text-volt-muted hover:text-volt-text transition-colors" href="#">
+<div class="flex h-8 items-center justify-center" data-icon="play_arrow" data-size="24px" data-weight="regular">
+<span class="material-symbols-outlined">play_arrow</span>
+</div>
+</a>
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 rounded-full text-primary" href="#">
+<div class="flex h-8 items-center justify-center" data-icon="menu_book" data-size="24px" data-weight="fill">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">menu_book</span>
+</div>
+</a>
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 text-volt-muted hover:text-volt-text transition-colors" href="#">
+<div class="flex h-8 items-center justify-center" data-icon="person" data-size="24px" data-weight="regular">
+<span class="material-symbols-outlined">person</span>
+</div>
+</a>
+</div>
+<script>
+        // Simple search functionality for demonstration
+        const searchInput = document.getElementById('searchInput');
+        const exerciseList = document.getElementById('exerciseList');
+        const items = exerciseList.querySelectorAll('.flex.items-center.p-4');
+        const emptyState = document.getElementById('emptyState');
+
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            let visibleCount = 0;
+
+            items.forEach(item => {
+                const title = item.querySelector('h3').textContent.toLowerCase();
+                if (title.includes(term)) {
+                    item.style.display = 'flex';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            if (visibleCount === 0) {
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+            } else {
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+            }
+        });
+    </script>
+</body></html>

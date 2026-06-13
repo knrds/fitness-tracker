@@ -10,7 +10,7 @@ fitness-tracker/
 │   └── mobile/          # Expo 52 + React Native + TypeScript + Expo Router v4
 ├── packages/
 │   ├── domain/          # Business logic, TypeScript types, Zod schemas (no React)
-│   └── ui/              # Shared UI components (planned)
+│   └── ui/              # Shared React Native theme and UI primitives
 └── docs/
     ├── README.md        # This file
     └── agents/          # Agent briefings and templates
@@ -33,12 +33,19 @@ pnpm --filter @fitness-tracker/mobile ios
 ## Packages
 
 ### `@fitness-tracker/domain`
+
 Pure TypeScript business logic — no React, no platform dependencies.
+
 - **Types**: `WorkoutSession`, `Exercise`, `WorkoutSet`, `UserProfile`, …
 - **Schemas**: Zod validators for all domain types
+- **Logic**: volume, streak, PR, e1RM, workout summary, and progress helpers
 
 ### `@fitness-tracker/ui`
-Shared React Native component library. Currently a placeholder.
+
+Shared React Native component library with the Volt dark theme, `ThemeProvider`,
+and common primitives such as Button, Card, Input, Badge, Modal, EmptyState, and
+LoadingSkeleton.
 
 ### `@fitness-tracker/mobile`
+
 The main Expo app with Expo Router for file-based navigation.

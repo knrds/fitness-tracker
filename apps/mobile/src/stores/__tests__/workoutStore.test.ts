@@ -2,32 +2,36 @@ import { useWorkoutStore } from '../workoutStore';
 import { useHistoryStore } from '../historyStore';
 import { WorkoutTemplate, WorkoutSession } from '@fitness-tracker/domain';
 import { LOCAL_USER_ID } from '../local-user';
+import { useCaffeineStore } from '../caffeineStore';
 
 jest.mock('react-native-mmkv', () => ({
   MMKV: jest.fn().mockImplementation(() => ({
     set: jest.fn(),
     getString: jest.fn(),
     delete: jest.fn(),
-  }))
+  })),
 }));
 
 jest.mock('expo-crypto', () => ({
-  randomUUID: () => 'mocked-uuid'
+  randomUUID: () => 'mocked-uuid',
 }));
 
 describe('workoutStore', () => {
   beforeEach(() => {
     useWorkoutStore.getState().resetWorkout();
     useHistoryStore.getState().clearHistory();
+    useCaffeineStore.setState({ isEnabled: true, currentWorkoutMg: 0, lastWorkoutMg: 0 });
   });
 
   it('should start a workout', () => {
+    useCaffeineStore.setState({ currentWorkoutMg: 160 });
     useWorkoutStore.getState().startWorkout('Leg Day');
     const state = useWorkoutStore.getState();
     expect(state.status).toBe('active');
     expect(state.name).toBe('Leg Day');
     expect(state.sessionId).toBe('mocked-uuid');
     expect(state.exercises.length).toBe(0);
+    expect(useCaffeineStore.getState().currentWorkoutMg).toBe(0);
   });
 
   it('should add an exercise', () => {
@@ -38,16 +42,77 @@ describe('workoutStore', () => {
     expect(state.exercises[0]!.exerciseId).toBe('exercise-123');
   });
 
+  it('should prefill added exercises with the last completed performance', () => {
+    const date = new Date('2026-06-09T12:00:00.000Z');
+    useHistoryStore.getState().addSession({
+      id: 'session-history',
+      userId: LOCAL_USER_ID,
+      name: 'Previous Push',
+      startedAt: date,
+      completedAt: date,
+      durationSeconds: 1800,
+      createdAt: date,
+      updatedAt: date,
+      exercises: [
+        {
+          id: 'history-exercise',
+          exerciseId: 'exercise-123',
+          order: 0,
+          sets: [
+            {
+              id: 'history-set-1',
+              setNumber: 1,
+              type: 'warmup',
+              weight: 60,
+              reps: 8,
+              completed: true,
+            },
+            {
+              id: 'history-set-2',
+              setNumber: 2,
+              type: 'working',
+              weight: 100,
+              reps: 5,
+              rpe: 8,
+              completed: true,
+            },
+          ],
+        },
+      ],
+    });
+
+    useWorkoutStore.getState().startWorkout();
+    useWorkoutStore.getState().addExercise('exercise-123');
+
+    const sets = useWorkoutStore.getState().exercises[0]!.sets;
+    expect(sets).toHaveLength(2);
+    expect(sets[0]).toMatchObject({
+      setNumber: 1,
+      type: 'warmup',
+      weight: 60,
+      reps: 8,
+      completed: false,
+    });
+    expect(sets[1]).toMatchObject({
+      setNumber: 2,
+      type: 'working',
+      weight: 100,
+      reps: 5,
+      rpe: 8,
+      completed: false,
+    });
+  });
+
   it('should add and complete a set', () => {
     useWorkoutStore.getState().startWorkout();
     useWorkoutStore.getState().addExercise('ex-1');
     const exId = useWorkoutStore.getState().exercises[0]!.id;
-    
+
     const setId = useWorkoutStore.getState().exercises[0]!.sets[0]!.id;
     useWorkoutStore.getState().updateSet(exId, setId, { weight: 100, reps: 10 });
     let state = useWorkoutStore.getState();
     expect(state.exercises[0]!.sets.length).toBe(1);
-    
+
     useWorkoutStore.getState().completeSet(exId, setId);
     state = useWorkoutStore.getState();
     expect(state.exercises[0]!.sets[0]!.completed).toBe(true);
@@ -58,20 +123,20 @@ describe('workoutStore', () => {
     useWorkoutStore.getState().startWorkout();
     useWorkoutStore.getState().addExercise('ex-1');
     const exId = useWorkoutStore.getState().exercises[0]!.id;
-    
+
     const setId = useWorkoutStore.getState().exercises[0]!.sets[0]!.id;
     useWorkoutStore.getState().updateSet(exId, setId, { weight: 100, reps: 10 });
     let state = useWorkoutStore.getState();
-    
+
     // Complete the set
     useWorkoutStore.getState().completeSet(exId, setId);
     state = useWorkoutStore.getState();
     expect(state.exercises[0]!.sets[0]!.completed).toBe(true);
     expect(state.exercises[0]!.sets[0]!.completedAt).toBeDefined();
-    
+
     // Turn off rest timer so we can check if it stays off
     useWorkoutStore.getState().stopRestTimer();
-    
+
     // Uncomplete the set
     useWorkoutStore.getState().completeSet(exId, setId);
     state = useWorkoutStore.getState();
@@ -83,17 +148,19 @@ describe('workoutStore', () => {
 
   it('should finish a workout and add it to the history store', () => {
     useWorkoutStore.getState().startWorkout('Leg Day');
+    useCaffeineStore.getState().setCurrentWorkoutMg(180);
     useWorkoutStore.getState().addExercise('exercise-123');
     const exId = useWorkoutStore.getState().exercises[0]!.id;
     useWorkoutStore.getState().addSet(exId, { weight: 100, reps: 10, completed: true });
-    
+
     useWorkoutStore.getState().finishWorkout();
-    
+
     expect(useWorkoutStore.getState().status).toBe('finished');
     const historySessions = useHistoryStore.getState().sessions;
     expect(historySessions.length).toBe(1);
     expect(historySessions[0]!.name).toBe('Leg Day');
     expect(historySessions[0]!.exercises[0]!.exerciseId).toBe('exercise-123');
+    expect(useCaffeineStore.getState().lastWorkoutMg).toBe(180);
   });
 
   it('should ignore duplicate finish calls after saving once', () => {
@@ -123,13 +190,15 @@ describe('workoutStore', () => {
           targetReps: 8,
           targetRpe: 9,
           notes: 'Test note',
-        }
+        },
       ],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
-    useWorkoutStore.getState().startWorkoutFromTemplate(mockTemplate as unknown as WorkoutTemplate, 'program-uuid');
+    useWorkoutStore
+      .getState()
+      .startWorkoutFromTemplate(mockTemplate as unknown as WorkoutTemplate, 'program-uuid');
     const state = useWorkoutStore.getState();
     expect(state.status).toBe('active');
     expect(state.name).toBe('Template Workout');
@@ -163,9 +232,9 @@ describe('workoutStore', () => {
               weight: 85,
               reps: 10,
               rpe: 8,
-            }
-          ]
-        }
+            },
+          ],
+        },
       ],
       startedAt: new Date(),
       durationSeconds: 1800,
@@ -218,14 +287,14 @@ describe('workoutStore', () => {
     useWorkoutStore.getState().startWorkout('Chest Day');
     useWorkoutStore.getState().addExercise('ex-bench');
     const exId = useWorkoutStore.getState().exercises[0]!.id;
- 
+
     // Update the default working set
     const setId = useWorkoutStore.getState().exercises[0]!.sets[0]!.id;
     useWorkoutStore.getState().updateSet(exId, setId, { weight: 100, reps: 5, type: 'working' });
-    
+
     // Calculate warmups based on 100kg target weight
     useWorkoutStore.getState().calculateWarmupSets(exId, 100);
- 
+
     const exercise = useWorkoutStore.getState().exercises[0]!;
     // Should have 3 warmup sets prepended, and 1 working set (total 4)
     expect(exercise.sets.length).toBe(4);
@@ -255,7 +324,7 @@ describe('workoutStore', () => {
 
     // Toggle superset on first exercise (links with next)
     useWorkoutStore.getState().toggleSuperset(ex1Id);
-    
+
     let state = useWorkoutStore.getState();
     const group = state.exercises[0]!.supersetGroup;
     expect(group).toBeDefined();
@@ -266,5 +335,52 @@ describe('workoutStore', () => {
     state = useWorkoutStore.getState();
     expect(state.exercises[0]!.supersetGroup).toBeUndefined();
     expect(state.exercises[1]!.supersetGroup).toBeUndefined();
+  });
+
+  it('should copy previous set values when adding a new set without arguments', () => {
+    useWorkoutStore.getState().startWorkout();
+    useWorkoutStore.getState().addExercise('ex-1');
+    const exId = useWorkoutStore.getState().exercises[0]!.id;
+    const setId = useWorkoutStore.getState().exercises[0]!.sets[0]!.id;
+
+    // Update first set
+    useWorkoutStore
+      .getState()
+      .updateSet(exId, setId, { weight: 85, reps: 8, rpe: 9, rir: 1, type: 'drop' });
+
+    // Add new set
+    useWorkoutStore.getState().addSet(exId);
+
+    const sets = useWorkoutStore.getState().exercises[0]!.sets;
+    expect(sets.length).toBe(2);
+    expect(sets[1]!.weight).toBe(85);
+    expect(sets[1]!.reps).toBe(8);
+    expect(sets[1]!.rpe).toBe(9);
+    expect(sets[1]!.rir).toBe(1);
+    expect(sets[1]!.type).toBe('drop');
+    expect(sets[1]!.completed).toBe(false);
+  });
+
+  it('should remove a set and renumber remaining sets', () => {
+    useWorkoutStore.setState({
+      exercises: [
+        {
+          id: 'session-exercise',
+          exerciseId: 'ex-1',
+          order: 0,
+          sets: [
+            { id: 'set-1', setNumber: 1, type: 'working', completed: false },
+            { id: 'set-2', setNumber: 2, type: 'working', completed: false },
+            { id: 'set-3', setNumber: 3, type: 'working', completed: false },
+          ],
+        },
+      ],
+    });
+
+    useWorkoutStore.getState().removeSet('session-exercise', 'set-2');
+
+    const sets = useWorkoutStore.getState().exercises[0]!.sets;
+    expect(sets.map((set) => set.id)).toEqual(['set-1', 'set-3']);
+    expect(sets.map((set) => set.setNumber)).toEqual([1, 2]);
   });
 });

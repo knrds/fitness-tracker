@@ -1,12 +1,15 @@
 # FITNESS TRACKER — KOMPLETTER WORKFLOW
+
 ## Von aktuellem Stand bis zur fertigen App
+
 ### Alle Prompts, Schritte und Anweisungen
 
 ---
 
 ## INHALT
+
 1. Aktueller Stand
-1b. Architektur-Leitplanken (für ALLE Agenten verbindlich)
+   1b. Architektur-Leitplanken (für ALLE Agenten verbindlich)
 2. Setup: Multi-Agent-System (Worktrees + Rollen)
 3. Standard-Workflow (gilt für jede Mission)
 4. Rollen-Prompts (dauerhaft speichern)
@@ -16,48 +19,73 @@
 8. BLOCK 3 — Design-Fundament
 9. BLOCK 4 — Premium UI
 10. BLOCK 5 — Backend & Sync (Supabase)
-11. BLOCK 6 — Social & Community
-12. BLOCK 7 — Marketplace & Coaching
-13. BLOCK 8 — Zweite Härtung
-14. BLOCK 9 — Qualität & Konsistenz
-15. BLOCK 10 — Release-Vorbereitung
-16. Notfall-Prompts
-17. Reihenfolge-Checkliste
-18. Branch-Hygiene
+11. BLOCK 6 — AI Fitness Coach
+12. BLOCK 7 — Social & Community
+13. BLOCK 8 — Marketplace & Creator Offers
+14. BLOCK 9 — Zweite Härtung
+15. BLOCK 10 — Qualität & Konsistenz
+16. BLOCK 11 — Release-Vorbereitung
+17. Notfall-Prompts
+18. Reihenfolge-Checkliste
+19. Branch-Hygiene
 
 ---
 
 ## 1. AKTUELLER STAND
 
-> ✅ **Stand 2026-06-03:** Alle Missionen aus Block 1 (M6, M7, M8, M9) sowie das
-> Exercise-DB-Upgrade und alle Block 2 Stabilisierungen (H0, Bug-Jagd, Edge-Cases, TS-Härtung)
-> are completed, verified, and compiling cleanly.
+> ✅ **Stand Juni 2026:** Block 1 (M6-M9), Block 2/H0, Premium UI polish, die Stabilisierung, History-Drilldowns, das vollendete Drag-and-Drop-System und das Expo SDK 54 Upgrade auf `feat/ui-volt-premium-completion` sind implementiert und verifiziert mit `pnpm typecheck`, `pnpm lint`, `pnpm test` (107 Tests: 29 Domain + 78 Mobile), mobiler `jest --coverage`, `pnpm build`, `expo install --check`, `expo-doctor` und einem browser/CDP `pnpm dev` Smoke-Test für Runtime, Fonts, Icons und Home-Renderings.
 >
-> 🔀 **Branch-Konsolidierung (2026-06-03):** Alle ausstehenden Bugfix-/Feature-Commits
-> aus `fix/bugfixes` wurden nach `main` zusammengeführt (PR #9 hatte nur den ersten
-> Commit erfasst). Stale Branches (`chore/update-agents-md`, `fix/domain-logic-hardening`,
-> `feat/workout-improvements`) wurden lokal und auf GitHub gelöscht. `main` ist grün:
-> `pnpm typecheck` ✅, `pnpm test` (67 Tests) ✅, `pnpm lint` ✅. Aktiver Arbeits-Branch:
-> `fix/bugfixes` (Gemini). **Nächster Schritt: BLOCK 3 — Design-Fundament.**
+> 🔀 **Current branch updates (Juni 2026):**
 >
-> Additionally, the following fixes and features are implemented and fully tested:
-> - **In-App Restoration Modal**: Replaced standard browser confirm and Alert.alert popups with a beautiful, styled custom in-app `<Modal>` overlay.
-> - **12-Hour Workout Timeout**: Silently cancels/discards active workouts started more than 12 hours ago on startup to avoid background timer drift.
-> - **Copy previous set values**: Tapping "+ Add Set" automatically inherits weight, reps, RPE, RIR, and set type from the previous set of that exercise (preventing zero overrides).
-> - **Realistic e1RM Divisors**: Updated divisors (45 leg compounds, 50 standard compounds, 60 isolations) to make predicted maxes realistic (e.g. 100kg x 10 reps -> 120kg e1RM).
-> - **Personal Record Decimals & Actual Weight**: PR best weights are rounded down to 2 decimals using Math.floor and track the actual maximum weight lifted rather than estimated 1RM.
-> - **Pre-built Splits (Programs) & Calendar**: Seeded 3 default structured splits (Ganzkörper, Push/Pull/Legs, OK/UK). When a program is active, displays a gorgeous week-by-week calendar of training and rest days with template quick-start and plan deactivation.
-> - **Workout Session Back Navigation**: Custom back arrow in active workout header triggers a confirmation dialog to abort (delete session) or continue training.
-> - **Achievements Validation & Expansion**: Added 11 new achievements (dedicated streaks, milestone workouts, variety explorers). Updated Zod record schemas to accept Date objects from the MMKV custom storage reviver to prevent data loss on page reloads.
-> - **Template Start Loop Fix**: Resolved recursive render loop in `SessionExerciseCard.tsx` caused by unstable selector object references.
-> - **Plate Calculator**: Removed 25kg plates, using 20kg as the maximum plate size.
-> - **Default Training Plans**: Pre-built GK, OK, UK, Push, Pull, and Legs templates seeded dynamically on hydration.
+> - **Robustes Drag-and-Drop System:** Vollständig überarbeitete, ruckelfreie Drag-and-Drop-Sortierung in der aktiven Session, im Template Builder, im Workout-Tab und im Program-Tab. ScrollView-Gestenerkennung wird durch unmittelbares Sperren des Scroll-Verhaltens (`setScrollEnabled(false)`) via `onTouchStart`/`onPointerDown` auf den Griffen blockiert. Die Positionsbestimmung erfolgt über eine deterministische Schritthöhe (`S` = 80/76) statt fehleranfälliger dynamischer `onLayout`-Messungen während der Animation. Die Verschiebung wird über performante CSS-Transforms (`translateY`) abgebildet, um rekursive Layoutschleifen zu vermeiden. Zudem wurde ein Bildschirmrand-Auto-Scroller in der aktiven Session integriert.
+> - **Expo SDK 54 Upgrade:** Mobile läuft nun auf Expo `~54.0.35`, React `19.1.0`, React Native `0.81.5`, Expo Router `~6.0.24`, Jest Expo `~54.0.17`, SDK-54 Expo modules, direkten `expo-constants` / `react-native-worklets` Peer-Dependencies und Node Engine `>=20.19.4`. Die Expo Go Kompatibilität ist voll wiederhergestellt.
+> - **SDK 54 boot/storage guardrails:** `RootLayout` blockiert nur den nativen SplashScreen, Web SPA rendert nicht mehr fälschlicherweise `null` während des Font-Ladens, Ionicons + Space Grotesk + Manrope Fonts are preloaded, and MMKV remains the primary persistence path with a one-way fallback migration for temporary raw web `localStorage` keys.
+> - **Expo Go storage fallback:** `@react-native-async-storage/async-storage@2.2.0` is installed as the Expo-Go-compatible fallback. Zustand persisted stores and Supabase auth use AsyncStorage directly inside Expo Go, avoiding noisy MMKV TurboModule warnings, while web/standalone builds still try MMKV first.
+> - **Stable Web Preview:** `pnpm dev` now builds a single-page Expo web export (`web.output: single`) and serves `apps/mobile/dist` on `http://localhost:8081`. Metro resolves `zustand/middleware` to its CommonJS entry so the browser bundle does not emit `import.meta` into Expo's classic script output. The raw SDK 54 `expo start --web` dev middleware still hangs on this app's first web request; use `pnpm --filter @fitness-tracker/mobile dev:metro` only for diagnosing that path.
+> - **Fast Expo Go Start:** Use `pnpm expo` from the repo root for iPhone/Expo Go. It starts the native LAN Metro server directly and skips the slow single-page web export. Use `pnpm expo:clear` only when caches must be rebuilt, and `pnpm expo:tunnel` if LAN discovery fails.
+> - **Mobile UI/UX Polish Pass:** Native alerts/confirms were replaced by a shared in-app DialogProvider, mobile forms now have consistent keyboard/input behavior, workout/session modals and summaries are safer on iPhone, Home `PROGRAMS` routes to the visible Plans tab, chart/heatmap sizing is container-aware, drag/touch targets were enlarged, and stale empty resume popups are cleared before prompting.
+> - **Expo Start Wrapper:** Mobile `start`, `ios`, and `android` scripts now call Expo through a tiny local Node wrapper that sets `EXPO_NO_DEPENDENCY_VALIDATION=1`, avoiding the Node 24/Expo CLI `Body is unusable` startup crash while preserving all passed CLI args.
+> - **Smooth Animated Modals:** Custom `<Modal>` component rewritten to use `Animated` for backdrop fade and container slide translations on open and close.
+> - **PR highlights on Progress Charts:** Volume history Progress charts now calculate historical PRs using e1RM and highlight PR workouts with gold dots (`#FFB020`). Tapping dots reveals volume details alongside a "★ NEW PR!" indicator.
+> - **Interactive XP Tooltip:** Level card on the Home Screen shows the exact numerical XP progress (`X / 500 XP`) when hovered (web) or pressed (mobile).
+> - **Unique Achievement Icons:** Replaced repeated Ionicon names in `achievements.ts` to ensure every achievement has a unique, distinct icon representing its milestone.
+> - **Program List Drag-and-Drop:** Converted `FlatList` to custom `ScrollView` in `(tabs)/programs.tsx`, enabling vertical drag-and-drop sorting via `PanResponder` and `Animated` using a `reorder-two` handle, persisting the new order via `updateProgramsOrder`.
+> - **Home Saved Workouts/Templates:** Home and Workouts now emphasize saved workout/template summaries instead of a separate "recent workouts" feature description.
+> - **Workout/Template Subtitles:** Added a 2-line truncated list of exercise names as a subtitle for template cards in `(tabs)/workouts.tsx` and history cards in `(tabs)/history.tsx`.
+> - **Custom Exercise Tracking Mode:** Added a tracking mode toggle ("Reps & Weight" vs "Duration & Level") to `CustomExerciseModal.tsx`. Selecting duration maps `movementPattern` to `MovementPattern.Cardio`, enabling cardio level and minutes:seconds tracking for custom movements.
+> - **Stabilization:** Warmup-safe analytics helpers (`summarizeSessionExercise`, `getExerciseProgressHistory`, `getBestWeights`, `getBestE1RMs`) are exported from the domain layer and used by History, workout completion, Session HUD, and exercise stats.
+> - **Workout Session UX:** Rest timer starts collapsed, remains reachable after minimizing, and the compact scrolled HUD now keeps `FINISH` available. Newly added exercises inherit the latest logged values/sets for that exercise.
+> - **Exercise Insights:** Exercise info now shows exercise-specific working volume vs last session with red/blue/green percent coloring; warmup volume is excluded.
+> - **Exercise Library Filters:** Favorite appears directly after All; Powerlifting, Calisthenics, Warmup, Warmup Cardio, Strength, and Obliques filtering are available without domain enum changes.
+> - **Tracking Extensions:** Local caffeine tracking can be toggled in settings, uses presets/custom mg, warns for high/extreme intake, and shows the explicit over-1500mg troll guard. Hydration tracking in Body supports goals plus 250 ml / 500 ml / 1 l add and subtract actions.
+> - **Body & History Rework:** Body has quicker same-day metric entry plus progression history. History consistency supports week/month views with stacked same-day workout blocks, and Volume History crosshair selection is aligned to tapped points.
+> - **History Drilldowns:** The History workout popup now shows concrete exercises and completed set rows with weight/reps, warmup markers, RPE/RIR, and per-exercise working volume. Filled consistency days are tappable and open all workouts logged on that date before drilling into the workout popup.
+> - **Heatmap & Obliques:** Body heatmap intensity now scales with trained working volume, and oblique-like exercises contribute to Obliques coverage.
+> - **Achievements Expansion:** Added long-range workout/volume/PR/exercise milestones, meta achievements, exercise-specific badges, equipment/movement-pattern niche badges, and higher repeatable session achievements.
+> - **Achievement Icon Hygiene:** Invalid Ionicons names are fixed and a mobile regression test now verifies that every achievement icon exists in the Ionicons glyph map.
+> - **Workout Facts:** Finish-modal facts are biased toward training volume, set density, top exercise contribution, cardio, warmups, and short science tips; caffeine facts only show when caffeine tracking is enabled.
+> - **Auth foundation:** `authStore`, Supabase environment detection, Login/Register routes, root auth guard, and Profile sign-out exist. Cloud sync and full local-to-cloud user migration remain open.
+> - **Release prep partial:** `icon.png`, `adaptive-icon.png`, and `splash-icon.png` exist; splash/adaptive backgrounds are dark (`#0B0B0F`); bundle IDs were corrected from the typoed `com.fitnessracker.app` shape to `com.fitnesstracker.app`.
+> - **Compiles & Passes:** `pnpm install --frozen-lockfile` ✅, `pnpm typecheck` ✅, `pnpm lint` ✅, `pnpm test` (107) ✅, mobile `jest --coverage --runInBand` ✅ (79.47% statements), `pnpm build`/Expo web export ✅, `pnpm --filter @fitness-tracker/mobile exec expo install --check` ✅, `pnpm dlx expo-doctor apps/mobile` ✅ (18/18), browser/CDP `pnpm dev` smoke ✅ (no runtime/console errors, Home visible, fonts/icons loaded).
 >
+> ⚠️ **Potential Issues / Notes for Codex:**
+>
+> 1. **Progress Chart Performance:** Progress history now uses a domain helper, but the UI should still memoize chart inputs for users with 500+ logged workouts.
+> 2. **ScrollView rendering overhead:** Changing the list of programs in `(tabs)/programs.tsx` from `FlatList` to `ScrollView` allows measuring Y positions for reordering. For long program lists (e.g. 50+ programs), rendering them all at once could introduce minor performance overhead. Codex should check if this needs windowing/optimization.
+> 3. **Cardio custom exercise validation:** The new tracking mode maps "duration" to `MovementPattern.Cardio`. Codex should verify that when exporting workouts or syncing, cardio sets (where `weight` stores the Level and duration is tracked in `durationSeconds`) do not trigger standard volume validation logic that assumes weight in kg/lbs.
+> 4. **Auth Migration:** Until Cloud Sync exists, new local records use the current Supabase user ID when available and fall back to `LOCAL_USER_ID`. Mission 11 must define the migration/claim strategy before uploading local data.
+> 5. **Remaining Test Gaps:** Regression coverage exists for the new helpers and key stores, but drag-and-drop reorder, template summary modal, and root redirect UI should still get focused component tests.
+> 6. **Gemini SDK 54 visual QA:** After this upgrade Gemini should visually check iPhone Expo Go, icons, tabbar, splash/fonts, Home/History/Workout navigation, persistence after app restart/hard reload, and mobile proportions.
+> 7. **Remaining Web Shadow Migration:** The central tab shadow warning was addressed with `boxShadow`, but other non-blocking `shadow*` usages remain in deeper UI surfaces and should be handled in a dedicated design cleanup if web warnings still appear.
+> 8. **Raw Metro Web Devserver:** `pnpm --filter @fitness-tracker/mobile dev:metro` currently reproduces an SDK 54 web devserver hang before the web route is served. Keep tracking Expo CLI/router updates; normal `pnpm dev` intentionally uses the single-page export + `expo serve` until that path is fixed.
+
+---
 
 Tatsächlicher Stand:
 
-**Auf `main` gemerged:**
-- ✅ Monorepo (Expo 52, pnpm workspaces, TypeScript strict)
+**Auf `main` gemerged bzw. im aktuellen Arbeitsstand enthalten:**
+
+- ✅ Monorepo (Expo 54, pnpm workspaces, TypeScript strict)
 - ✅ Datenmodell (11 Tabellen, alle Types, Zod-Schemas)
 - ✅ AGENTS.md + CLAUDE.md + GEMINI.md
 - ✅ Skills (.agent/skills/)
@@ -71,8 +99,9 @@ Tatsächlicher Stand:
 - ✅ Mission 7: Achievements + Gamification
 - ✅ Mission 8: Body Tracking + Profil
 - ✅ Mission 9: Workout-Verbesserungen
+- ✅ Current stabilization pass: warmup-safe analytics consumers, UUID-safe seed data, full local data clear, local body date keys, auth foundation, release asset placeholders, and updated tests.
 
-### ✅ Architektur-Schulden — BEHOBEN (Mission H0, gemerged)
+### ✅ Architektur-Schulden — BEHOBEN / AKTUELL GEHÄRTET (Mission H0 + 2026-06-08)
 
 Der Code-Review (2026-06-03) hatte die untenstehenden Punkte ergeben. Sie wurden in
 **Mission H0** (`fix/domain-logic-hardening`, via PR #8 gemerged) behoben und sind
@@ -91,6 +120,9 @@ verbindlich, damit sie nicht zurückkehren:
 7. ✅ **Workout-Timer driftfrei** — `elapsedSeconds` aus `startedAt` abgeleitet.
 8. ✅ **Leeres-Workout-Guard** in `finishWorkout` (kein History-Eintrag, kein XP).
 9. ✅ **MMKV-Migrationsstrategie** (`version` + `migrate`) pro persistentem Store.
+10. ✅ **Seed-Daten UUID-konform.** Default-Programme/Templates nutzen schemafähige IDs.
+11. ✅ **`clearAllData()` vollständig.** Profil-Reset bereinigt Achievements, Notes, aktives Workout, last-finished Modal-State, Programme/Templates und lokale Stores.
+12. ✅ **Auth-Grundlage vorhanden.** Supabase Auth ist begonnen, aber Cloud Sync und Migration von lokalen Daten auf echte User-IDs sind noch offen.
 
 ---
 
@@ -101,52 +133,60 @@ verbindlich, damit sie nicht zurückkehren:
 > Architektur-Schulden wiederholen. Verstoß = Branch ist NICHT merge-ready.
 
 **1. Geschäftslogik gehört in `packages/domain/src/logic/` — nicht in Stores/UI.**
-   Reine, pflanzbare Funktionen (kein React, kein RN, kein MMKV) leben dort und
-   werden mit Vitest getestet. Stores/Hooks/Screens rufen sie nur auf.
-   Kanonische Helfer (nach Mission H0 vorhanden — vorher NICHT neu erfinden,
-   sondern H0 abwarten oder dort ergänzen):
-   - `calculateVolume(session, { includeWarmups: false })`
-   - `estimateOneRepMax(weight, reps)` (Epley: `weight * (1 + reps / 30)`)
-   - `calculateStreak(sessions)` (lokales Datum, **kein** `toISOString()`)
-   - `detectPRs(session, history)` (e1RM-basiert, Warmups ausgeschlossen)
-   - `summarizeWorkout(session)` (Dauer, Volumen, Sätze, PRs)
-   **Niemals** dieselbe Berechnung in zwei Dateien duplizieren.
+Reine, pflanzbare Funktionen (kein React, kein RN, kein MMKV) leben dort und
+werden mit Vitest getestet. Stores/Hooks/Screens rufen sie nur auf.
+Kanonische Helfer (nach Mission H0 vorhanden — vorher NICHT neu erfinden,
+sondern H0 abwarten oder dort ergänzen):
+
+- `calculateVolume(session, { includeWarmups: false })`
+- `estimateOneRepMax(weight, reps, rpe?, rir?, exerciseName?)` (adaptive e1RM: RIR/RPE erweitern die effektiven Wiederholungen; Divisor abhängig vom Übungstyp, Legacy-Fallback `30`)
+- `calculateStreak(sessions)` (lokales Datum, **kein** `toISOString()`)
+- `detectPRs(session, history)` (e1RM-basiert, Warmups ausgeschlossen)
+- `summarizeSessionExercise(sessionExercise)` (completed Sets, Arbeitsvolumen, Max-/Durchschnittsgewicht ohne Warmups)
+- `getExerciseProgressHistory(exerciseId, sessions, exerciseName?)` (chronologische Chart-Punkte + e1RM-PR-Markierung)
+- `getBestWeights(sessions)` und `getBestE1RMs(sessions, exerciseNames?)`
+- `summarizeWorkout(session)` (Dauer, Volumen, Sätze, PRs)
+  **Niemals** dieselbe Berechnung in zwei Dateien duplizieren.
 
 **2. Warmups zählen nie als Arbeitsvolumen oder PR.** Jede Volumen-/PR-/
-   Statistik-Berechnung MUSS `set.type` berücksichtigen (`warmup` ausschließen).
+Statistik-Berechnung MUSS `set.type` berücksichtigen (`warmup` ausschließen).
 
-**3. PRs sind e1RM-basiert** (geschätztes 1RM via Epley), nicht „max Gewicht".
+**3. PRs sind e1RM-basiert** (geschätztes 1RM via adaptiver Formel), nicht „max Gewicht".
 
 **4. Datumsvergleiche immer in lokaler Zeit.** Tages-Keys als `YYYY-MM-DD`
-   (lokal), nie `Date.toISOString()` (UTC verschiebt den Tag).
+(lokal), nie `Date.toISOString()` (UTC verschiebt den Tag).
 
 **5. MMKV-Persistenz:**
-   - Genau **ein** gemeinsamer Storage-Helper
-     (`apps/mobile/src/stores/storage.ts`, z.B. `createMMKVStorage<T>(id)`).
-     `reviveDates`/`customStorage` NICHT mehr pro Store kopieren.
-   - Beim Hydrieren wird der State gegen das passende **Zod-Schema** aus
-     `@fitness-tracker/domain` validiert (DoD #3). Ungültige Daten → sauberer
-     Fallback, kein stiller Crash.
-   - Jeder persistente Store hat eine `version` und eine `migrate`-Funktion;
-     bei jeder Feldänderung wird `version` erhöht + Migration ergänzt.
+
+- Genau **ein** gemeinsamer Storage-Helper
+  (`apps/mobile/src/stores/storage.ts`, `createHydratedStorage<T>(id, schema, defaults)`).
+  `reviveDates`/`customStorage` NICHT mehr pro Store kopieren.
+- Beim Hydrieren wird der State gegen das passende **Zod-Schema** aus
+  `@fitness-tracker/domain` validiert (DoD #3). Ungültige Daten → sauberer
+  Fallback, kein stiller Crash.
+- Jeder persistente Store hat eine `version` und eine `migrate`-Funktion;
+  bei jeder Feldänderung wird `version` erhöht + Migration ergänzt.
 
 **6. Zeitmessung driftfrei.** Verstrichene Zeit (`elapsedSeconds`) wird aus
-   `startedAt` + akkumulierter Pausenzeit **abgeleitet**, nicht per
-   `setInterval` hochgezählt. Timer per Wanduhr (`endsAt`), damit Hintergrund/
-   Neustart korrekt bleiben.
+`startedAt` + akkumulierter Pausenzeit **abgeleitet**, nicht per
+`setInterval` hochgezählt. Timer per Wanduhr (`endsAt`), damit Hintergrund/
+Neustart korrekt bleiben.
 
 **7. Guards gegen Unsinn.** `finishWorkout` ignoriert Sessions ohne einen
-   einzigen abgeschlossenen Satz (kein History-Eintrag, kein XP). Zahlenfelder
-   akzeptieren keine negativen Werte.
+einzigen abgeschlossenen Satz (kein History-Eintrag, kein XP). Zahlenfelder
+akzeptieren keine negativen Werte.
 
 **8. Tests entstehen MIT dem Code, nicht erst in Block 9.** Jede neue Domain-
-   Funktion bekommt einen Vitest-Test im selben Branch. Kritische Store-Flows
-   bekommen mindestens einen Integrationstest.
+Funktion bekommt einen Vitest-Test im selben Branch. Kritische Store-Flows
+bekommen mindestens einen Integrationstest.
 
-**9. MVP-Scope respektieren.** Social (Block 6) und Marketplace/Coaching
-   (Block 7) stehen in AGENTS.md als **OUT OF SCOPE**. Diese Blöcke erst
-   starten, wenn der Scope ausdrücklich (vom Menschen) freigegeben wurde —
-   siehe Hinweis zu Beginn von Block 6.
+**9. MVP-Scope respektieren.** Social (Block 7) und Marketplace/Coaching
+(Block 8) stehen in AGENTS.md als **OUT OF SCOPE**. Diese Blöcke erst
+starten, wenn der Scope ausdrücklich (vom Menschen) freigegeben wurde —
+siehe Hinweis zu Beginn von Block 7.
+
+**10. Stabile Drag-and-Drop-Systeme.**
+Jedes Verschieben/Reordering in der App (z.B. Übungen in einer aktiven Session, im Template Builder, in Programmen/Wochen) MUSS Scroll-Interferenzen durch unmittelbares Sperren des ScrollViews (`setScrollEnabled(false)`) über `onTouchStart`/`onPointerDown` auf den Griffen (Handles) verhindern. Es MUSS visuelle Verschiebungen mittels CSS-Transforms (`transform: [{ translateY }]`) lösen statt die `top`/`bottom`-Koordinaten anzupassen, da letztere rekursive `onLayout`-Layoutschleifen auslösen. Zudem MUSS die Index-Positionsberechnung über eine feste Boxen-Schritthöhe (`S`) deterministisch kalkuliert werden, statt sich auf dynamische `onLayout`-Messungen der sich bewegenden Elemente während der Animation zu verlassen. Ein Auto-Scroller an den Bildschirmrändern während des Drags ist für flüssige Bedienung in der aktiven Session zu gewährleisten.
 
 ---
 
@@ -162,6 +202,7 @@ git worktree add ../ft-debugger fix/debugger-work
 ```
 
 Du hast danach drei Ordner:
+
 - `fitness-tracker` → Builder (Gemini #1, Antigravity Fenster 1)
 - `ft-designer` → Designer (Gemini #2, Antigravity Fenster 2)
 - `ft-debugger` → Debugger (Codex, Terminal Fenster 3)
@@ -169,6 +210,7 @@ Du hast danach drei Ordner:
 ### In Antigravity
 
 Drei separate Fenster öffnen:
+
 - Fenster 1: `File → Open Folder → fitness-tracker`
 - Fenster 2: `File → Open Folder → ft-designer`
 - Fenster 3: Terminal für Codex
@@ -211,34 +253,41 @@ Committe mit: chore: add mission board and agent coordination files
 ## 3. STANDARD-WORKFLOW (JEDE MISSION)
 
 ### Vor jeder Mission
+
 ```powershell
 git checkout main
 git pull
 ```
 
 ### Nach jeder Mission
+
 ```powershell
 git add .
 git commit -m "feat: [mission-name]"
 git push origin [branch-name]
 ```
+
 → GitHub: PR erstellen → kurz Diff prüfen → Merge
+
 ```powershell
 git checkout main
 git pull
 ```
 
 ### Testen vor jedem Merge
+
 ```powershell
-pnpm dev     # App starten, manuell testen
+pnpm expo    # Expo Go / iPhone starten (LAN, ohne Web-Export)
+pnpm dev     # Web preview starten (single-page Expo export + expo serve auf localhost:8081)
 pnpm test    # alle Tests grün?
 pnpm typecheck  # TypeScript sauber?
 ```
 
 ### AGENTS.md aktuell halten (alle 3-4 Missionen)
+
 ```
 Aktualisiere AGENTS.md mit dem aktuellen Projektstand.
-Was ist neu hinzugekommen? Welche Stores, Screens, 
+Was ist neu hinzugekommen? Welche Stores, Screens,
 Dependencies gibt es jetzt?
 ```
 
@@ -249,6 +298,7 @@ Dependencies gibt es jetzt?
 Diese Prompts am Anfang jeder neuen Session für den jeweiligen Agenten.
 
 ### BUILDER-ROLLEN-PROMPT (Gemini #1)
+
 ```
 Du bist der Builder-Agent für das Fitness-Tracker-Projekt.
 
@@ -280,6 +330,7 @@ weitermachen mit der nächsten Mission.
 ```
 
 ### DESIGNER-ROLLEN-PROMPT (Gemini #2)
+
 ```
 Du bist der Designer-Agent für das Fitness-Tracker-Projekt.
 
@@ -311,6 +362,7 @@ Grundsätze:
 ```
 
 ### DEBUGGER-ROLLEN-PROMPT (Codex)
+
 ```
 Du bist der Debugger-Agent für das Fitness-Tracker-Projekt.
 
@@ -343,6 +395,7 @@ Dein Workflow:
 ```
 
 ### OVERSEER-ROLLEN-PROMPT (Claude)
+
 ```
 Du bist der Overseer für das Fitness-Tracker-Projekt.
 Du schreibst KEINEN Code. Du planst, koordinierst und reviewst.
@@ -402,6 +455,7 @@ Committe mit: chore: add mission briefings
 ## 6. BLOCK 1 — KERN VERVOLLSTÄNDIGEN
 
 ### Mission 6: Stabilisierung + Templates (läuft, falls nicht fertig)
+
 ```
 Lies AGENTS.md. Branch: feat/stabilization
 
@@ -425,6 +479,7 @@ pnpm test + pnpm typecheck. Merge nicht nach main.
 ```
 
 ### Mission 7: Achievements + Gamification
+
 ```
 Lies AGENTS.md. Branch: feat/achievements
 
@@ -459,6 +514,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Mission 8: Body Tracking + Profil
+
 ```
 Lies AGENTS.md. Branch: feat/body-tracking
 
@@ -488,6 +544,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Mission 9: Workout-Verbesserungen
+
 ```
 Lies AGENTS.md UND Section 1b (Architektur-Leitplanken). Branch: feat/workout-improvements
 
@@ -529,18 +586,20 @@ LEITPLANKEN für diese Mission:
    Rest Timer startet automatisch nach Set-Abschluss.
 
 7. Aufwärmsatz-Rechner (Warmup Calculator):
-   Option im Übungsmenü: Berechne basierend auf dem Arbeitsgewicht automatisch 
+   Option im Übungsmenü: Berechne basierend auf dem Arbeitsgewicht automatisch
    die Aufwärmsätze (z.B. 50% x 10, 70% x 5, 90% x 2) und füge sie als W-Sätze hinzu.
 
 8. Echtzeit e1RM-Schätzer:
-   Berechne für jeden Satz beim Eintragen das geschätzte 1-Rep Max 
-   (Epley-Formel: weight * (1 + reps / 30)) und zeige es als kleine Muted-Info an.
+   Berechne für jeden Satz beim Eintragen das geschätzte 1-Rep Max
+   über `estimateOneRepMax(weight, reps, rpe?, rir?, exerciseName?)` und zeige es
+   als kleine Muted-Info an. Die aktuelle Formel ist adaptiv: RIR/RPE erhöhen
+   die effektiven Wiederholungen, der Divisor hängt vom Übungstyp ab.
 
 9. RIR (Reps in Reserve) Erfassung:
    Neben RPE auch RIR (0 bis 5+) als alternatives/ergänzendes Tracking-Feld ermöglichen.
 
 10. Share Workout Summary (Teilen):
-    Nach Abschluss des Workouts eine formatisierte Textzusammenfassung generieren, 
+    Nach Abschluss des Workouts eine formatisierte Textzusammenfassung generieren,
     die über den systemweiten Share-Dialog geteilt werden kann (Dauer, Volumen, Sätze, PRs).
 
 Tests. pnpm test. Merge nicht nach main.
@@ -551,12 +610,14 @@ Tests. pnpm test. Merge nicht nach main.
 ## 7. BLOCK 2 — ERSTE STABILISIERUNG (Codex)
 
 **Starte Codex im Terminal:**
+
 ```powershell
 cd C:\Users\Konrad\ft-debugger
 codex
 ```
 
 ### Mission H0: Domain-Logik-Extraktion & Kern-Bugfixes (ZUERST, vor allem anderen in Block 2)
+
 ```
 Lies AGENTS.md UND Section 1b (Architektur-Leitplanken). Branch: fix/domain-logic-hardening
 
@@ -568,7 +629,8 @@ gelisteten Architektur-Schulden.
    Funktionen (kein React/RN/MMKV), jede mit Vitest-Test:
    - calculateVolume(session, { includeWarmups }): summiert weight*reps NUR über
      completed Sets; schließt type === 'warmup' aus wenn includeWarmups false.
-   - estimateOneRepMax(weight, reps): Epley = weight * (1 + reps / 30).
+   - estimateOneRepMax(weight, reps, rpe?, rir?, exerciseName?): adaptive e1RM-
+     Formel mit RIR/RPE und Übungstyp-Divisor; Legacy-Fallback bleibt `30`.
    - calculateStreak(sessions): lokaler Tages-Key 'YYYY-MM-DD', NICHT toISOString.
    - detectPRs(session, history): e1RM-basiert, Warmups ausgeschlossen; gibt neue
      PRs mit Delta zurück.
@@ -580,7 +642,8 @@ gelisteten Architektur-Schulden.
    - useAchievementCheck: eigene Volumen-Schleife entfernen, Helfer nutzen.
 
 3. Gemeinsamer MMKV-Helper apps/mobile/src/stores/storage.ts:
-   createMMKVStorage<T>(id) kapselt reviveDates + customStorage. Alle Stores
+   createHydratedStorage<T>(id, schema, defaults) kapselt reviveDates + customStorage.
+   Alle Stores
    (workout, history, achievement, body, profile, exercise, program) nutzen ihn.
    Pro Store: Hydration validiert gegen das passende Zod-Schema; bei Fehler
    sauberer Default statt Crash. version + migrate-Funktion ergänzen.
@@ -603,6 +666,7 @@ pnpm test + pnpm typecheck MÜSSEN strikt grün sein. Merge nicht nach main.
 ```
 
 ### Codex: Bug-Jagd
+
 ```
 Lies AGENTS.md. Branch: fix/codex-bugfixes
 
@@ -626,6 +690,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Codex: Edge-Case-Härtung
+
 ```
 Lies AGENTS.md und docs/bug-report.md. Branch: fix/edge-cases
 
@@ -645,6 +710,7 @@ Tests müssen bestehen. pnpm test. Merge nicht nach main.
 ```
 
 ### Codex: TypeScript-Härtung
+
 ```
 Lies AGENTS.md. Branch: fix/typescript-hardening
 
@@ -667,6 +733,7 @@ Merge nicht nach main.
 ## 8. BLOCK 3 — DESIGN-FUNDAMENT (Gemini #2)
 
 ### Designer: Design-Konzept
+
 ```
 Lies AGENTS.md. Branch: feat/design-concept
 
@@ -704,6 +771,7 @@ Zeige mir das Konzept als Markdown. Warte auf mein "Go".
 ```
 
 ### Mission 18: Design-System implementieren (nach Go)
+
 ```
 Lies AGENTS.md und docs/design-system.md. Branch: feat/design-system
 
@@ -737,6 +805,7 @@ pnpm test + pnpm typecheck. Merge nicht nach main.
 ## 9. BLOCK 4 — PREMIUM UI (Gemini #2)
 
 ### Premium Workout-Screen
+
 ```
 Lies AGENTS.md und docs/design-system.md.
 Branch: feat/ui-premium-workout
@@ -772,6 +841,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Home-Dashboard
+
 ```
 Lies AGENTS.md und docs/design-system.md.
 Branch: feat/ui-home-dashboard
@@ -811,6 +881,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Progress-Charts aufwerten
+
 ```
 Lies AGENTS.md und docs/design-system.md.
 Branch: feat/ui-premium-charts
@@ -822,7 +893,7 @@ Zeitraum-Filter:
 
 Charts:
 - Volumen über Zeit (Linien-Chart) pro Übung oder gesamt
-- 1RM-Entwicklung (geschätzter 1RM via Epley-Formel)
+- 1RM-Entwicklung (geschätzter 1RM via adaptiver e1RM-Formel)
 - Trainings-Heatmap-Kalender (wie GitHub Contributions:
   Raster der letzten 12 Wochen, Farbe = Trainingsvolumen)
 - Muskelgruppen-Verteilung (Donut-Chart der letzten 4 Wochen)
@@ -839,6 +910,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Micro-Interactions
+
 ```
 Lies AGENTS.md und docs/design-system.md.
 Branch: feat/ui-micro-interactions
@@ -885,7 +957,16 @@ pnpm test. Merge nicht nach main.
 
 ## 10. BLOCK 5 — BACKEND & SYNC
 
+> **Status 2026-06-08:** Supabase/Auth ist begonnen, aber Block 5 ist noch nicht
+> abgeschlossen. Vorhanden sind `apps/mobile/src/utils/supabase.ts`,
+> `apps/mobile/src/stores/authStore.ts`, Login/Register-Routen, Root-Auth-Guard
+> und Sign-out im Profile Screen. Offen bleiben Supabase-Projekt/.env auf echten
+> Geräten, Passwort-Reset/Email-Verifikation als vollständiger UX-Flow,
+> Cloud Sync, Konfliktlösung und die Migration lokaler `LOCAL_USER_ID`-Daten auf
+> echte Supabase-User-IDs.
+
 ### MANUELL VOR MISSION 10:
+
 1. Auf supabase.com: Neues Projekt anlegen
 2. SQL Editor: Inhalt von `docs/schema.sql` ausführen
 3. Settings → API: URL und anon key kopieren
@@ -897,6 +978,7 @@ pnpm test. Merge nicht nach main.
    ```
 
 ### Mission 10: Supabase Auth
+
 ```
 Lies AGENTS.md und docs/schema.sql. Branch: feat/supabase-auth
 
@@ -906,21 +988,22 @@ Committe die .env NIEMALS (ist in .gitignore).
 
 Implementiere:
 
-1. packages/db/src/client.ts:
+1. apps/mobile/src/utils/supabase.ts:
    Supabase Client mit den Env-Variablen
-   Export: supabase
+   Export: supabase + isSupabaseConfigured
 
 2. authStore.ts (Zustand):
-   session: Session | null
-   user: User | null
-   isLoading: boolean
-   signUp(email, password)
-   signIn(email, password)
-   signOut()
-   onAuthStateChange listener
+    session: Session | null
+    user: User | null
+    isLoading: boolean
+    isConfigured/isInitialized
+    signUp(email, password)
+    signIn(email, password)
+    signOut()
+    onAuthStateChange listener
 
-3. AuthScreen (/app/auth.tsx):
-   Tab-Switch: Login / Registrierung
+3. Auth Screens:
+   /app/auth/login.tsx und /app/auth/register.tsx
    Email + Passwort Felder
    Fehler-Anzeige (falsches Passwort, bereits registriert)
    Passwort-Zurücksetzen Link (Supabase Magic Link)
@@ -931,13 +1014,18 @@ Implementiere:
    Wenn session → normale App
 
 5. Session-Persistenz:
-   AsyncStorage oder MMKV für Session-Token
-   Automatisch einloggen bei App-Start
+   Supabase native session handling prüfen und auf echten Geräten testen.
+   Automatisch einloggen bei App-Start über authStore.initialize().
+
+6. Migration:
+   Vor Cloud Sync definieren, wie lokale Daten mit `LOCAL_USER_ID` auf die echte
+   `auth.uid()`-User-ID übertragen oder beansprucht werden.
 
 pnpm test. .env nicht committen. Merge nicht nach main.
 ```
 
 ### Mission 11: Cloud Sync
+
 ```
 Lies AGENTS.md. Branch: feat/cloud-sync
 
@@ -979,7 +1067,92 @@ pnpm test. Merge nicht nach main.
 
 ---
 
-## 11. BLOCK 6 — SOCIAL & COMMUNITY
+## 11. BLOCK 6 — AI FITNESS COACH
+
+> 🧠 **AI FITNESS COACH FEATURES & ARCHITECTURE**
+> Dieser Block führt den personalisierten AI-Coach ein. Die KI nutzt ein Premium-Chat-Interface und hat über strukturierte Kontext-Injektion Zugriff auf alle lokalen Trainingsdaten, Kraftwerte, Pläne und Körpermaße. Sie schlägt an stressigen Tagen alternative Trainingspläne vor, die der User direkt übernehmen und in seinen Templates speichern kann.
+
+### 🔍 LLM-Modell-Kandidaten-Analyse
+
+1. **Claude 3.5 Sonnet (Anthropic)**
+   - *Vorteile:* Branchenführend in logischem Denken, Code-Generierung und hochpräzisem **Structured JSON Output / Tool Calling**. Perfekt geeignet, um fehlerfreie Trainingsplan-Strukturen zu erzeugen, die exakt unseren `@fitness-tracker/domain` Zod-Typen entsprechen.
+   - *Nachteile:* Höhere Latenz und Kosten pro Token bei sehr großen Kontexten.
+
+2. **Gemini 1.5 Pro / Flash (Google)**
+   - *Vorteile:* Unschlagbar großes Kontextfenster (bis zu 2 Mio. Tokens bei Pro, 1 Mio. bei Flash). Perfekt geeignet, um die gesamte mehrjährige Workout-Historie, sämtliche Körpermaße und eine große Übungsdatenbank (800+ Übungen) ohne Informationsverlust oder Token-Trimming als Kontext zu analysieren. Sehr schnelles und kostengünstiges API-Hosting über das Google AI Studio (bzw. die Free-Tier-Optionen).
+   - *Nachteile:* Etwas weniger strikt bei der Einhaltung komplexer JSON-Schemata im Vergleich zu Claude 3.5 Sonnet, wenn kein striktes Schema erzwungen wird.
+
+3. **GPT-4o (OpenAI)**
+   - *Vorteile:* Extrem niedrige Latenz (Low-Latency), gute Allround-Fähigkeiten und exzellente Multimodalität (nicht zwingend notwendig für den MVP).
+
+### 🛠️ Empfohlene API-Routing-Architektur
+
+Um die Stärken beider Modelle zu kombinieren und gleichzeitig flexibel zu bleiben, wird eine **entkoppelte Proxy-Architektur über Supabase Edge Functions** implementiert:
+- **API-Schutz:** API-Keys (Google/Anthropic) werden niemals im Client-Code kompiliert, sondern sicher in Supabase Vault/Environment-Variablen verwaltet.
+- **Modell-Routing:** Die Edge Function fungiert als intelligenter Router.
+  - Für normale Chat-Gespräche und die Analyse des gesamten Verlaufs wird das kostengünstige und extrem schnelle **Gemini 1.5 Flash** verwendet.
+  - Für die finale Generierung eines neuen Trainingsplans (Tool-Call) wird **Claude 3.5 Sonnet** (oder Gemini 1.5 Pro im JSON-Modus) aufgerufen, um das exakte JSON-Format zu garantieren.
+- **Streaming:** Die Verbindung unterstützt Server-Sent Events (SSE) für eine flüssige Wort-für-Wort-Ausgabe im Chat.
+
+---
+
+### Mission 12: AI Coach Chat UI & Store
+
+```
+Lies AGENTS.md. Branch: feat/coach-chat
+
+Erstelle ein persistentes, benutzerfreundliches Chat-Interface für den KI-Coach.
+
+1. coachStore.ts (Zustand + MMKV):
+   - Speichere den Chatverlauf (Messages: id, role, content, timestamp).
+   - Zustand wird gegen ein Zod-Schema validiert und persists in MMKV.
+   - clearChatHistory() zum Zurücksetzen des Verlaufs.
+   - Offline-Guard: Prüft Internetverbindung über NetInfo. Offline-Modus blockiert das Senden und zeigt eine saubere Warnung an, erhält jedoch den lokalen Chat-Verlauf lesbar.
+
+2. CoachScreen (/app/(tabs)/coach.tsx):
+   - Premium-Chat-Interface im einheitlichen Dark Mode (Himmelblau Akzent).
+   - Nachrichtenelemente mit unterschiedlichem Styling für User und Coach.
+   - Lade-/Tipp-Indikator, wenn der Coach antwortet.
+   - Automatisches Scrollen nach unten bei neuen Nachrichten.
+   - Schnellwahl-Vorschläge (z. B. "Trainingsplan anpassen", "Tipps für Regeneration", "Heutigen PR analysieren").
+
+3. Supabase Edge Function Proxy Integration:
+   - Erstelle einen API-Client in `apps/mobile/src/utils/coachApi.ts`.
+   - Sendet Anfragen an die Supabase Edge Function `coach-chat`.
+   - Implementiere Streaming-Support (SSE) im React Native Frontend für ein flüssiges Benutzererlebnis.
+
+pnpm test + pnpm typecheck. Merge nicht nach main.
+```
+
+### Mission 13: Context Injection & Plan Suggestions
+
+```
+Lies AGENTS.md. Branch: feat/coach-context
+
+Implementiere die Kontext-Erfassung und die Möglichkeit, vom Coach vorgeschlagene Pläne direkt in die App zu übernehmen.
+
+1. Strukturierte Context Injection:
+   - Vor jedem Prompt-Sendevorgang wird die Benutzerkonfiguration und der aktuelle Zustand als strukturierter Systemkontext mitgegeben. Die Daten werden im Edge-Function-Proxy oder direkt im Client in folgendes JSON-Schema überführt:
+     - ProfileStore: Name, Trainingsziel, Erfahrung, Einheiten, biologisches Geschlecht.
+     - BodyMetricStore: Aktuelle Körpermaße und Gewichtsentwicklung der letzten 30 Tage.
+     - ExerciseStore: Custom Exercises und Standard-Pausenzeiten.
+     - HistoryStore: Die letzten 15-20 beendeten Workouts (Datum, Übungen, Arbeitsvolumen, e1RM-PRs; Warmups gefiltert).
+     - ProgramStore: Aktives Programm und Trainings-Templates.
+
+2. Workout-Template Suggestions (Tool Calling):
+   - Wenn der Coach einen angepassten Trainingsplan vorschlägt, gibt er strukturierte JSON-Daten zurück, die exakt dem `WorkoutTemplate`-Typ aus `@fitness-tracker/domain` entsprechen.
+   - Die UI parst diesen Vorschlag im Chatverlauf, versteckt das rohe JSON und rendert eine ansprechende "Vorschau & Übernehmen"-Kartenkomponente (SuggestedTemplateCard).
+   - Klick auf "In Pläne speichern" importiert das Template direkt in das lokale `programStore` des Users.
+
+3. Stress- / Energie-Toggles:
+   - Biete dem User vor dem Chat-Einstieg Schnell-Toggles an (z. B. Stresslevel: 1-5, Energielevel: 1-5, Zeitbudget: 20/45/60 min), die automatisch als Kontext mitgesendet werden, um maßgeschneiderte Alternativpläne zu erhalten.
+
+pnpm test + pnpm typecheck. Merge nicht nach main.
+```
+
+---
+
+## 12. BLOCK 7 — SOCIAL & COMMUNITY
 
 > 🚧 **SCOPE-GATE — vor diesem Block stoppen.** AGENTS.md listet Social-Features
 > ausdrücklich als **OUT OF SCOPE** für das MVP. Bevor irgendeine Mission aus
@@ -988,7 +1161,8 @@ pnpm test. Merge nicht nach main.
 > Kein Agent startet Block 6/7 eigenständig, auch nicht „weil das Board leer
 > ist". Bis zur Freigabe gilt: Block 5 (Backend) ist das Ende des MVP.
 
-### Mission 12: Profile + Follows
+### Mission 14: Profile + Follows
+
 ```
 Lies AGENTS.md. Branch: feat/social-profiles
 
@@ -1019,7 +1193,8 @@ Screens:
 pnpm test. Merge nicht nach main.
 ```
 
-### Mission 13: Activity Feed
+### Mission 15: Activity Feed
+
 ```
 Lies AGENTS.md. Branch: feat/activity-feed
 
@@ -1052,7 +1227,8 @@ feedStore.ts (Zustand):
 pnpm test. Merge nicht nach main.
 ```
 
-### Mission 14: Challenges + Leaderboards
+### Mission 16: Challenges + Leaderboards
+
 ```
 Lies AGENTS.md. Branch: feat/challenges
 
@@ -1086,13 +1262,15 @@ pnpm test. Merge nicht nach main.
 
 ---
 
-## 12. BLOCK 7 — MARKETPLACE & COACHING
+## 13. BLOCK 8 — MARKETPLACE & CREATOR OFFERS
 
 > 🚧 **SCOPE-GATE** — wie Block 6: Marketplace, bezahlte Programme und Coaching
 > sind in AGENTS.md **OUT OF SCOPE**. Nur nach expliziter menschlicher Freigabe
-> + AGENTS.md-Update starten.
+>
+> - AGENTS.md-Update starten.
 
-### Mission 15: Programm-Marketplace
+### Mission 17: Programm-Marketplace
+
 ```
 Lies AGENTS.md. Branch: feat/marketplace-browse
 
@@ -1128,7 +1306,8 @@ Eigenes Programm veröffentlichen:
 pnpm test. Merge nicht nach main.
 ```
 
-### Mission 16: Creator-Profile
+### Mission 18: Creator-Profile
+
 ```
 Lies AGENTS.md. Branch: feat/creator-profiles
 
@@ -1160,6 +1339,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Mission 17: Bezahlung (Stripe Test-Modus)
+
 ```
 Lies AGENTS.md. Branch: feat/payments
 
@@ -1190,9 +1370,10 @@ pnpm test. Merge nicht nach main.
 
 ---
 
-## 13. BLOCK 8 — ZWEITE HÄRTUNG (Codex)
+## 14. BLOCK 9 — ZWEITE HÄRTUNG (Codex)
 
 ### Performance-Profiling
+
 ```
 Lies AGENTS.md. Branch: fix/performance
 
@@ -1219,11 +1400,12 @@ Analysiere und optimiere Performance:
 
 5. Ergebnis:
    docs/performance-report.md mit Vorher/Nachher
-   
+
 pnpm test. Merge nicht nach main.
 ```
 
 ### Security-Audit (nach Social/Marketplace)
+
 ```
 Lies AGENTS.md. Branch: fix/security-audit
 
@@ -1257,9 +1439,10 @@ pnpm test. Merge nicht nach main.
 
 ---
 
-## 14. BLOCK 9 — QUALITÄT & KONSISTENZ
+## 15. BLOCK 10 — QUALITÄT & KONSISTENZ
 
 ### End-to-End-Durchlauf
+
 ```
 Lies AGENTS.md. Branch: test/e2e-flows
 
@@ -1291,6 +1474,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Konsistenz-Audit
+
 ```
 Lies AGENTS.md. Branch: fix/consistency
 
@@ -1322,6 +1506,7 @@ Fixe alles. pnpm test. Merge nicht nach main.
 ```
 
 ### Test-Coverage erhöhen
+
 ```
 Lies AGENTS.md. Branch: feat/test-coverage
 
@@ -1334,20 +1519,20 @@ Prüfe welche Stores noch keine oder wenige Tests haben.
 Schreibe Tests für:
 
 packages/domain:
-- Epley-1RM-Formel
+- Adaptive e1RM-Formel (`estimateOneRepMax`)
 - Volumen-Berechnung
 - Streak-Berechnung
 - Achievement-Bedingungen
 
 apps/mobile Stores:
-- workoutStore: kompletter Workout-Flow (start → addExercise → 
+- workoutStore: kompletter Workout-Flow (start → addExercise →
   logSet → completeSet → finishWorkout → historyStore aktualisiert)
 - historyStore: PRs korrekt gespeichert?
 - achievementStore: alle Achievement-Bedingungen
 - syncStore: Queue-Logik, Conflict Resolution
 
 Integration Tests:
-- workoutStore + historyStore + achievementStore 
+- workoutStore + historyStore + achievementStore
   zusammen nach finishWorkout()
 
 Coverage-Report:
@@ -1359,9 +1544,10 @@ pnpm test. Merge nicht nach main.
 
 ---
 
-## 15. BLOCK 10 — RELEASE-VORBEREITUNG
+## 16. BLOCK 11 — RELEASE-VORBEREITUNG
 
 ### Mission 19: Onboarding
+
 ```
 Lies AGENTS.md. Branch: feat/onboarding
 
@@ -1393,20 +1579,30 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### Mission 22: Release-Vorbereitung
+
+> **Status 2026-06-10:** Teilweise erledigt. `app.json` enthält Version `1.0.0`,
+> Portrait-Orientation, Dark Splash (`#0B0B0F`), `icon.png`,
+> `adaptive-icon.png`, `splash-icon.png` und die aktuell verwendeten IDs
+> `com.fitnesstracker.app`. Expo SDK 54 ist aktiv und mit Expo Go SDK 54 kompatibel.
+> Vor Store-Upload final entscheiden, ob die
+> Bundle-/Package-ID owner-prefixed sein soll (z.B. `com.konradskwarski.fitnesstracker`);
+> nach dem ersten Store-Upload nicht mehr leicht ändern.
+
 ```
 Lies AGENTS.md. Branch: feat/release-prep
 
 1. app.json vollständig konfigurieren:
    name, slug, version: "1.0.0"
-   iOS: bundleIdentifier: "com.konradskwarski.fitnesstracker"
-   Android: package: "com.konradskwarski.fitnesstracker"
+   iOS: bundleIdentifier prüfen/finalisieren (aktuell: "com.fitnesstracker.app")
+   Android: package prüfen/finalisieren (aktuell: "com.fitnesstracker.app")
    Permissions: nur was wirklich gebraucht wird
    Orientation: portrait only
 
 2. App-Icon:
-   Erstelle einen Platzhalter-Icon (kraftvoll, simpel)
+   Platzhalter-Icons existieren; vor Release durch finale Assets ersetzen
    in /apps/mobile/assets/
-   icon.png (1024x1024), adaptive-icon.png, favicon.png, splash.png
+   icon.png (1024x1024), adaptive-icon.png, favicon.png, splash-icon.png
+   Splash/adaptive background bleibt dark (`#0B0B0F`), nicht weiß.
 
 3. EAS Build Konfiguration (eas.json):
    development: Expo Go kompatibel
@@ -1434,6 +1630,7 @@ pnpm test. Merge nicht nach main.
 ```
 
 ### MANUELL VOR MISSION 23:
+
 ```powershell
 npm install -g eas-cli
 eas login
@@ -1444,13 +1641,14 @@ eas login
 ```
 
 ### Mission 23: Erster Build
+
 ```
 Lies AGENTS.md und eas.json. Branch: feat/first-build
 
 Erstelle den ersten TestFlight/Preview Build:
 
 1. Expo-Konfiguration prüfen:
-   pnpm --filter @fitness-tracker/mobile exec expo doctor
+   pnpm dlx expo-doctor apps/mobile
    Alle Warnings beheben.
 
 2. EAS Build für Android (Preview, kein Store-Account nötig):
@@ -1477,9 +1675,10 @@ Merge nicht nach main.
 
 ---
 
-## 16. NOTFALL-PROMPTS
+## 17. NOTFALL-PROMPTS
 
 ### Bug: Agent findet ihn nicht
+
 ```
 Zeige mir den vollständigen aktuellen Inhalt von [Dateiname].
 Erkläre Zeile für Zeile was beim Drücken von [Button/Aktion] passiert.
@@ -1487,6 +1686,7 @@ Finde wo genau der Fehler liegt.
 ```
 
 ### CI/Build bricht
+
 ```
 Hier ist der vollständige Fehler-Log:
 [LOG EINFÜGEN]
@@ -1494,12 +1694,14 @@ Was ist die Ursache? Fixe es konkret.
 ```
 
 ### Mission zu groß / Agent blockiert
+
 ```
 Lass uns das aufteilen. Mache NUR diesen einen Schritt:
 [EINEN SCHRITT]. Fange mit nichts anderem an.
 ```
 
 ### Agent baut in falsche Richtung
+
 ```
 Stopp. Lies AGENTS.md Section [X] nochmal.
 Das was du gebaut hast entspricht nicht den Anforderungen weil:
@@ -1507,6 +1709,7 @@ Das was du gebaut hast entspricht nicht den Anforderungen weil:
 ```
 
 ### Nach Verlust von Claude — Overseer-Ersatz mit Gemini
+
 ```
 Du übernimmst die Rolle des Overseers zusätzlich zur Builder-Rolle.
 Lies docs/mission-board.md und plane die nächsten Missionen selbst.
@@ -1515,6 +1718,7 @@ Priorisiere: Kern → Stabilisierung → Design → Backend → Social.
 ```
 
 ### AGENTS.md veraltet
+
 ```
 Lies alle aktuellen Stores in apps/mobile/src/stores/
 und alle Screens in apps/mobile/app/.
@@ -1524,7 +1728,7 @@ neue Stores, neue Screens, neue Dependencies, aktueller Status.
 
 ---
 
-## 17. REIHENFOLGE-CHECKLISTE
+## 18. REIHENFOLGE-CHECKLISTE
 
 ```
 BLOCK 0 — BRANCH-CATCH-UP (Mensch, siehe Section 18) — ZUERST
@@ -1545,49 +1749,52 @@ BLOCK 2 — ERSTE HÄRTUNG (Codex)
 [x] TypeScript-Härtung (strict checks with zero errors)
 [x] → pnpm typecheck strikt grün
 
-BLOCK 3 — DESIGN-FUNDAMENT (Gemini Designer)  ← NÄCHSTER SCHRITT
-[ ] Stitch-Prompt (siehe docs/stitch-block3-prompt.md) im Google Stitch Designer
-    nutzen → exportierte Screens/Tokens als visuelle Referenz
-[ ] Design-Konzept → docs/design-system.md (aus Stitch-Output ableiten) → MEIN OK
-[ ] Design-System implementieren (packages/ui: theme + Button/Card/Input/Badge/
-    Modal/EmptyState/LoadingSkeleton); bestehende Screens schrittweise umstellen
+BLOCK 3 — DESIGN-FUNDAMENT (Gemini Designer)
+[x] Stitch-Prompt (Stitch Designer export used as reference)
+[x] Design-Konzept → docs/design-system.md created and aligned
+[x] Design-System implementieren (packages/ui: theme + Button/Card/Input/Badge/Modal/EmptyState/LoadingSkeleton); all screens migrated to dark mode sky blue theme
 
 BLOCK 4 — PREMIUM UI (Gemini Designer)
-[ ] Premium Workout-Screen
-[ ] Home-Dashboard
-[ ] Progress-Charts
-[ ] Micro-Interactions
+[x] Premium Workout-Screen (RestTimer visual overhaul, automated play, plate loader modal)
+[x] Home-Dashboard (saved workouts/templates cards, XP bar tooltip, level progression)
+[x] Progress-Charts (Interactive chart with gold PR marker highlights, details tooltips)
+[x] Micro-Interactions (Smooth Animated modal slide/fade, robust list reordering via PanResponder drag & drop with Scroll-Lock and edge auto-scrolling)
 
-BLOCK 5 — BACKEND (Gemini Builder)
-[ ] MANUELL: Supabase Projekt + Schema
-[ ] Mission 10: Auth
-[ ] Mission 11: Cloud Sync
+BLOCK 5 — BACKEND (Gemini Builder)  ← IN ARBEIT
+[ ] MANUELL: Supabase Projekt + Schema/.env auf echten Geräten prüfen
+[x] Mission 10: Auth-Fundament (authStore, Login/Register, Root-Guard, Sign-out)
+[x] Mission 10 Rest: Passwort-Reset, Email-Verifikation UX, echte Device-Session prüfen
+[ ] Mission 11: Cloud Sync + LOCAL_USER_ID-Migration
 
-BLOCK 6 — SOCIAL (Gemini Builder)
+BLOCK 6 — AI FITNESS COACH (Gemini Builder)
+[ ] Mission 12: AI Coach Chat UI & Store
+[ ] Mission 13: Context Injection & Plan Suggestions
+
+BLOCK 7 — SOCIAL (Gemini Builder)
 [ ] MANUELL: Additive Migrations ausführen
-[ ] Mission 12: Profile + Follows
-[ ] Mission 13: Activity Feed
-[ ] Mission 14: Challenges + Leaderboards
+[ ] Mission 14: Profile + Follows
+[ ] Mission 15: Activity Feed
+[ ] Mission 16: Challenges + Leaderboards
 
-BLOCK 7 — MARKETPLACE (Gemini Builder)
+BLOCK 8 — MARKETPLACE (Gemini Builder)
 [ ] MANUELL: Additive Migrations ausführen
-[ ] Mission 15: Marketplace Browse
-[ ] Mission 16: Creator-Profile
-[ ] Mission 17: Stripe Test-Modus
+[ ] Mission 17: Marketplace Browse
+[ ] Mission 18: Creator-Profile
+[ ] Mission 19: Stripe Test-Modus
 
-BLOCK 8 — ZWEITE HÄRTUNG (Codex)
+BLOCK 9 — ZWEITE HÄRTUNG (Codex)
 [ ] Performance-Profiling
 [ ] Security-Audit
 [ ] → docs/performance-report.md + docs/security-audit.md
 
-BLOCK 9 — QUALITÄT (Builder + Codex)
+BLOCK 10 — QUALITÄT (Builder + Codex)
 [ ] E2E-Durchlauf → docs/e2e-report.md
 [ ] Konsistenz-Audit
 [ ] Test-Coverage >60%
 
-BLOCK 10 — RELEASE (Builder)
+BLOCK 11 — RELEASE (Builder)
 [ ] Onboarding
-[ ] Release-Prep (Icons, app.json, Store-Listing)
+[ ] Release-Prep (app.json + Placeholder-Icons teilweise erledigt; EAS, Legal, Store-Listing offen)
 [ ] MANUELL: eas-cli installieren + Developer-Accounts
 [ ] Erster Build (Android Preview zuerst)
 
@@ -1597,6 +1804,7 @@ FERTIG: Testbare App auf echten Geräten ✅
 ---
 
 **GOLDENE REGELN:**
+
 1. Jede Mission beginnt mit: `Lies AGENTS.md` **und Section 1b (Leitplanken)**
 2. Jede Mission auf eigenem Branch — nie direkt auf main
 3. Immer testen: `pnpm dev` + `pnpm test` + `pnpm typecheck`
@@ -1608,37 +1816,46 @@ FERTIG: Testbare App auf echten Geräten ✅
    duplizieren. Tests entstehen MIT dem Code.**
 9. **Warmups nie als Volumen/PR; PRs e1RM-basiert; Datums-Keys lokal.**
 10. **Ein MMKV-Helper, Zod-Validierung beim Hydrieren, `version` + `migrate`.**
-11. **Scope: Block 6/7 (Social/Marketplace) nur nach menschlicher Freigabe.**
+11. **Scope: Block 7/8 (Social/Marketplace) nur nach menschlicher Freigabe.**
 12. **`main` immer aktuell halten — fertige Missionen zeitnah mergen, nicht
     stapeln (siehe Section 18 — Branch-Hygiene).**
 
 ---
 
-## 18. BRANCH-HYGIENE (Stand 2026-06-03)
+## 19. BRANCH-HYGIENE (Stand Juni 2026)
 
-### Lage (aktualisiert 2026-06-03, Konsolidierung)
-`main` ist vollständig konsolidiert und grün. Die komplette Bugfix-/Feature-Arbeit
-aus `fix/bugfixes` wurde nach `main` gemerged. Hintergrund: PR #9 hatte durch eine
-veraltete Branch-Referenz nur den ersten der fünf Commits erfasst — der Rest
-(Multi-Select Exercise Picker, Plate-Visualizer, RIR/RPE-e1RM, Restoration-Modal,
-Programm-Kalender, Achievement-Expansion u.a.) wurde per `git merge fix/bugfixes`
-nachgezogen. Verifiziert: `pnpm typecheck` ✅ · `pnpm test` (67) ✅ · `pnpm lint` ✅.
+### Lage (aktualisiert Juni 2026, Stabilisierung + History-Fixes + Expo SDK 54 + Mobile UI/UX Polish + Drag-and-Drop)
+
+`origin/main` ist im aktuellen Arbeitsbranch enthalten; die aktuelle Stabilisierung
+läuft weiterhin auf `feat/ui-volt-premium-completion` und ist noch nicht als
+`main`-Status zu lesen. Verifiziert auf diesem Branch: `pnpm install --frozen-lockfile` ✅ ·
+`pnpm typecheck` ✅ · `pnpm lint` ✅ · `pnpm test` (107: 29 Domain + 78 Mobile) ✅ · mobile
+`jest --coverage --runInBand` ✅ (79.47% Statements) · `pnpm build`/Expo web export ✅ ·
+`pnpm --filter @fitness-tracker/mobile exec expo install --check` ✅ ·
+`pnpm dlx expo-doctor apps/mobile` ✅ (18/18) · browser/CDP `pnpm dev` smoke ✅
+(runtime/font/icon/Home render).
 
 ### Bereinigte Branches
+
 Gelöscht (lokal + GitHub), da vollständig in `main` enthalten:
 `feat/stabilization`, `feat/achievements`, `feat/body-tracking`,
 `feat/workout-improvements`, `fix/domain-logic-hardening`, `chore/update-agents-md`.
 
 ### Aktive Branches
+
 - `main` — konsolidiert, grün, Single Source of Truth.
-- `fix/bugfixes` — Gemini arbeitet hier weiter; wird nach Abschluss erneut nach
-  `main` gemerged (dann als FF / sauberer Merge, da `main` jetzt synchron ist).
+- `feat/ui-volt-premium-completion` — aktueller Arbeitsbranch mit UI-Polish und
+  Stabilisierung plus History-Drilldown/Crosshair-Fixes und stabilem Drag-and-Drop. Nach Review als
+  kurzlebigen PR gegen `main` behandeln.
 
 ### Regel ab jetzt
+
 Fertige Missionen **zeitnah** nach `main` mergen statt Branches aufeinander zu
 stapeln. Stacking war die Ursache des veralteten `main` und potenzieller
 Merge-Konflikte. Pro Mission ein kurzlebiger Branch → PR → Merge → Branch weg.
 
 ---
-*Erstellt: Juni 2026 · zuletzt aktualisiert: 2026-06-03 (Branch-Konsolidierung,
-H0-Schulden als behoben markiert, Block-3-Stitch-Prompt) | Fitness-Tracker Projekt*
+
+_Erstellt: Juni 2026 · zuletzt aktualisiert: Juni 2026 (Expo SDK 54,
+Stabilisierung, History-Drilldowns, Progress-Crosshair, Fast Expo Go Start,
+Mobile UI/UX Polish, robustes Drag-and-Drop, Teststand 107) | Fitness-Tracker Projekt_

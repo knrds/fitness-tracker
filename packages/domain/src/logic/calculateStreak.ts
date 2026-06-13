@@ -49,9 +49,7 @@ export function calculateLongestStreak(sessions: WorkoutSession[]): number {
   if (sessions.length === 0) return 0;
 
   // Map to local date strings YYYY-MM-DD, get unique set and sort ascending
-  const uniqueDates = Array.from(
-    new Set(sessions.map((s) => formatDateLocal(s.startedAt)))
-  ).sort();
+  const uniqueDates = Array.from(new Set(sessions.map((s) => formatDateLocal(s.startedAt)))).sort();
 
   let longestStreak = 0;
   let currentStreak = 0;
@@ -79,4 +77,3 @@ export function calculateLongestStreak(sessions: WorkoutSession[]): number {
 
   return longestStreak;
 }
-

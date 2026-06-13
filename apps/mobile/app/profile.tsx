@@ -1,40 +1,52 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  Pressable, 
-  TextInput, 
-  Alert, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  TextInput,
+  Alert,
   Share,
   Modal,
-  SafeAreaView
+  Image,
+  Keyboard,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useProfileStore } from '../src/stores/profileStore';
 import { useBodyMetricStore } from '../src/stores/bodyMetricStore';
 import { FitnessGoal, ExperienceLevel, UnitSystem, BiologicalSex } from '@fitness-tracker/domain';
 import { useExerciseStore } from '../src/stores/exerciseStore';
+import { useAuthStore } from '../src/stores/authStore';
+import { useCaffeineStore } from '../src/stores/caffeineStore';
 import { ExercisePickerModal } from '../src/components/workout/ExercisePickerModal';
+import {
+  KeyboardDoneAccessory,
+  KEYBOARD_DONE_ID,
+} from '../src/components/workout/KeyboardDoneAccessory';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { profile, updateProfile, getStatistics, clearAllData, exportData } = useProfileStore();
+  const { isConfigured: isAuthConfigured, signOut } = useAuthStore();
+  const { isEnabled: caffeineEnabled, setEnabled: setCaffeineEnabled } = useCaffeineStore();
 
   const [name, setName] = useState(profile.displayName);
   const [goal, setGoal] = useState<FitnessGoal | ''>(profile.fitnessGoal || '');
   const [level, setLevel] = useState<ExperienceLevel | ''>(profile.experienceLevel || '');
   const [sex, setSex] = useState<BiologicalSex | ''>(profile.biologicalSex || '');
-  
+
   const [height, setHeight] = useState(() => {
     if (profile.heightCm === undefined) return '';
     return profile.preferredUnits === 'imperial'
       ? (profile.heightCm / 2.54).toFixed(1)
       : profile.heightCm.toFixed(1);
   });
-  
+
   const [weight, setWeight] = useState(() => {
     if (profile.weightKg === undefined) return '';
     return profile.preferredUnits === 'imperial'
@@ -90,16 +102,18 @@ export default function ProfileScreen() {
 
     if (height.trim()) {
       const hVal = parseFloat(height);
-      if (isNaN(hVal) || hVal <= 0) return Alert.alert('Error', 'Height must be a positive number.');
+      if (isNaN(hVal) || hVal <= 0)
+        return Alert.alert('Error', 'Height must be a positive number.');
       updates.heightCm = profile.preferredUnits === 'imperial' ? hVal * 2.54 : hVal;
     }
 
     if (weight.trim()) {
       const wVal = parseFloat(weight);
-      if (isNaN(wVal) || wVal <= 0) return Alert.alert('Error', 'Weight must be a positive number.');
+      if (isNaN(wVal) || wVal <= 0)
+        return Alert.alert('Error', 'Weight must be a positive number.');
       const canonicalWeight = profile.preferredUnits === 'imperial' ? wVal / 2.20462 : wVal;
       updates.weightKg = canonicalWeight;
-      
+
       // Sync to body metric tracker!
       useBodyMetricStore.getState().addMetric({
         recordedAt: new Date(),
@@ -109,19 +123,22 @@ export default function ProfileScreen() {
 
     if (benchPressMax.trim()) {
       const val = parseFloat(benchPressMax);
-      if (isNaN(val) || val <= 0) return Alert.alert('Error', 'Bench Press Max must be a positive number.');
+      if (isNaN(val) || val <= 0)
+        return Alert.alert('Error', 'Bench Press Max must be a positive number.');
       updates.benchPressMaxKg = profile.preferredUnits === 'imperial' ? val / 2.20462 : val;
     }
 
     if (squatMax.trim()) {
       const val = parseFloat(squatMax);
-      if (isNaN(val) || val <= 0) return Alert.alert('Error', 'Squat Max must be a positive number.');
+      if (isNaN(val) || val <= 0)
+        return Alert.alert('Error', 'Squat Max must be a positive number.');
       updates.squatMaxKg = profile.preferredUnits === 'imperial' ? val / 2.20462 : val;
     }
 
     if (deadliftMax.trim()) {
       const val = parseFloat(deadliftMax);
-      if (isNaN(val) || val <= 0) return Alert.alert('Error', 'Deadlift Max must be a positive number.');
+      if (isNaN(val) || val <= 0)
+        return Alert.alert('Error', 'Deadlift Max must be a positive number.');
       updates.deadliftMaxKg = profile.preferredUnits === 'imperial' ? val / 2.20462 : val;
     }
 
@@ -175,27 +192,23 @@ export default function ProfileScreen() {
     try {
       const dataStr = exportData();
       setExportedJson(dataStr);
-      
-      Alert.alert(
-        'Export Data',
-        'Would you like to share the backup JSON or view it on screen?',
-        [
-          {
-            text: 'Share / Save File',
-            onPress: async () => {
-              await Share.share({
-                message: dataStr,
-                title: 'Fitness Tracker Backup',
-              });
-            }
+
+      Alert.alert('Export Data', 'Would you like to share the backup JSON or view it on screen?', [
+        {
+          text: 'Share / Save File',
+          onPress: async () => {
+            await Share.share({
+              message: dataStr,
+              title: 'Fitness Tracker Backup',
+            });
           },
-          {
-            text: 'View on Screen',
-            onPress: () => setJsonModalVisible(true)
-          },
-          { text: 'Cancel', style: 'cancel' }
-        ]
-      );
+        },
+        {
+          text: 'View on Screen',
+          onPress: () => setJsonModalVisible(true),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
     } catch {
       Alert.alert('Error', 'Failed to export data.');
     }
@@ -207,8 +220,8 @@ export default function ProfileScreen() {
       'WARNING: This will permanently delete all your workouts, metrics, custom exercises, and settings. This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Reset Everything', 
+        {
+          text: 'Reset Everything',
           style: 'destructive',
           onPress: () => {
             clearAllData();
@@ -216,27 +229,92 @@ export default function ProfileScreen() {
             setGoal('');
             setLevel('');
             Alert.alert('Data Cleared', 'All local data has been reset.');
-          }
-        }
-      ]
+          },
+        },
+      ],
     );
   };
 
-  const formatGoal = (g: FitnessGoal) => {
-    return g.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  const handleSignOut = async () => {
+    const result = await signOut();
+    if (result.error) {
+      Alert.alert('Sign Out Failed', result.error);
+    }
   };
 
+  const formatGoal = (g: FitnessGoal) => {
+    return g
+      .split('_')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+  };
+
+  const handlePickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+        base64: true,
+      });
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        if (asset.base64) {
+          const uri = `data:image/jpeg;base64,${asset.base64}`;
+          updateProfile({ profileImageUri: uri });
+        } else if (asset.uri) {
+          updateProfile({ profileImageUri: asset.uri });
+        }
+      }
+    } catch {
+      Alert.alert('Error', 'Could not pick image.');
+    }
+  };
+
+  const profileInitials = (profile.displayName || 'U')
+    .split(' ')
+    .map((w) => w.charAt(0))
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
+    <View style={styles.safeArea}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
         <Pressable onPress={() => router.back()} hitSlop={15} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#0f172a" />
+          <Ionicons name="arrow-back" size={24} color="#90D5FF" />
         </Pressable>
         <Text style={styles.headerTitle}>Profile & Settings</Text>
         <View style={styles.headerRight} />
       </View>
 
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(insets.bottom + 16, 40) },
+        ]}
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets={true}
+      >
+        {/* Profile Picture */}
+        <View style={styles.avatarSection}>
+          <Pressable onPress={handlePickImage} style={styles.avatarContainer}>
+            {profile.profileImageUri ? (
+              <Image source={{ uri: profile.profileImageUri }} style={styles.avatarImage} />
+            ) : (
+              <View style={[styles.avatarImage, styles.avatarPlaceholder]}>
+                <Text style={styles.avatarInitials}>{profileInitials}</Text>
+              </View>
+            )}
+            <View style={styles.avatarEditBadge}>
+              <Ionicons name="camera" size={14} color="#0B0B0F" />
+            </View>
+          </Pressable>
+          <Text style={styles.avatarNameText}>{profile.displayName || 'User'}</Text>
+        </View>
+
         {/* Profile Card Info */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>User Info</Text>
@@ -246,25 +324,31 @@ export default function ProfileScreen() {
             value={name}
             onChangeText={setName}
             placeholder="Name"
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor="#8A8D9F"
+            inputAccessoryViewID={KEYBOARD_DONE_ID}
+            onSubmitEditing={() => Keyboard.dismiss()}
           />
 
           <Text style={styles.inputLabel}>Training Goal</Text>
           <View style={styles.chipRow}>
-            {(['build_muscle', 'gain_strength', 'lose_fat', 'general_fitness'] as FitnessGoal[]).map(g => (
+            {(
+              ['build_muscle', 'gain_strength', 'lose_fat', 'general_fitness'] as FitnessGoal[]
+            ).map((g) => (
               <Pressable
                 key={g}
                 style={[styles.chip, goal === g && styles.chipActive]}
                 onPress={() => setGoal(goal === g ? '' : g)}
               >
-                <Text style={[styles.chipText, goal === g && styles.chipTextActive]}>{formatGoal(g)}</Text>
+                <Text style={[styles.chipText, goal === g && styles.chipTextActive]}>
+                  {formatGoal(g)}
+                </Text>
               </Pressable>
             ))}
           </View>
 
           <Text style={styles.inputLabel}>Lifting Experience</Text>
           <View style={styles.chipRow}>
-            {(['beginner', 'intermediate', 'advanced'] as ExperienceLevel[]).map(l => (
+            {(['beginner', 'intermediate', 'advanced'] as ExperienceLevel[]).map((l) => (
               <Pressable
                 key={l}
                 style={[styles.chip, level === l && styles.chipActive]}
@@ -279,12 +363,14 @@ export default function ProfileScreen() {
 
           <Text style={styles.inputLabel}>Biological Sex</Text>
           <View style={styles.chipRow}>
-            {([
-              { value: 'male', label: 'Male' },
-              { value: 'female', label: 'Female' },
-              { value: 'other', label: 'Other' },
-              { value: 'prefer_not_to_say', label: 'Prefer not to say' }
-            ] as { value: BiologicalSex; label: string }[]).map(s => (
+            {(
+              [
+                { value: 'male', label: 'Male' },
+                { value: 'female', label: 'Female' },
+                { value: 'other', label: 'Other' },
+                { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+              ] as { value: BiologicalSex; label: string }[]
+            ).map((s) => (
               <Pressable
                 key={s.value}
                 style={[styles.chip, sex === s.value && styles.chipActive]}
@@ -299,31 +385,41 @@ export default function ProfileScreen() {
 
           <View style={styles.inputGrid}>
             <View style={styles.gridField}>
-              <Text style={styles.inputLabel}>Height ({profile.preferredUnits === 'imperial' ? 'in' : 'cm'})</Text>
+              <Text style={styles.inputLabel}>
+                Height ({profile.preferredUnits === 'imperial' ? 'in' : 'cm'})
+              </Text>
               <TextInput
                 style={styles.input}
                 value={height}
                 onChangeText={setHeight}
                 placeholder={profile.preferredUnits === 'imperial' ? 'e.g. 70' : 'e.g. 180'}
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A8D9F"
                 keyboardType="numeric"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
+                onSubmitEditing={() => Keyboard.dismiss()}
               />
             </View>
             <View style={styles.gridField}>
-              <Text style={styles.inputLabel}>Weight ({profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'})</Text>
+              <Text style={styles.inputLabel}>
+                Weight ({profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'})
+              </Text>
               <TextInput
                 style={styles.input}
                 value={weight}
                 onChangeText={setWeight}
                 placeholder={profile.preferredUnits === 'imperial' ? 'e.g. 175' : 'e.g. 80'}
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A8D9F"
                 keyboardType="numeric"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
+                onSubmitEditing={() => Keyboard.dismiss()}
               />
             </View>
           </View>
 
-          <Text style={styles.sectionDivider}>Key Lift Maxes ({profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'})</Text>
-          
+          <Text style={styles.sectionDivider}>
+            Key Lift Maxes ({profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'})
+          </Text>
+
           <View style={styles.inputGrid}>
             <View style={styles.gridField}>
               <Text style={styles.inputLabel}>Bench Press</Text>
@@ -332,8 +428,10 @@ export default function ProfileScreen() {
                 value={benchPressMax}
                 onChangeText={setBenchPressMax}
                 placeholder="Bench"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A8D9F"
                 keyboardType="numeric"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
+                onSubmitEditing={() => Keyboard.dismiss()}
               />
             </View>
             <View style={styles.gridField}>
@@ -343,8 +441,10 @@ export default function ProfileScreen() {
                 value={squatMax}
                 onChangeText={setSquatMax}
                 placeholder="Squat"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A8D9F"
                 keyboardType="numeric"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
+                onSubmitEditing={() => Keyboard.dismiss()}
               />
             </View>
             <View style={styles.gridField}>
@@ -354,8 +454,10 @@ export default function ProfileScreen() {
                 value={deadliftMax}
                 onChangeText={setDeadliftMax}
                 placeholder="Deadlift"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#8A8D9F"
                 keyboardType="numeric"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
+                onSubmitEditing={() => Keyboard.dismiss()}
               />
             </View>
           </View>
@@ -375,7 +477,8 @@ export default function ProfileScreen() {
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>Volume</Text>
             <Text style={styles.statValue}>
-              {stats.totalVolume.toLocaleString()} {profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'}
+              {stats.totalVolume.toLocaleString()}{' '}
+              {profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'}
             </Text>
           </View>
           <View style={styles.statCard}>
@@ -393,28 +496,92 @@ export default function ProfileScreen() {
         <View style={styles.sectionCard}>
           <Pressable style={styles.settingsRow} onPress={handleToggleUnits}>
             <View style={styles.settingsRowLeft}>
-              <Ionicons name="options-outline" size={22} color="#475569" />
+              <Ionicons name="options-outline" size={22} color="#8A8D9F" />
               <Text style={styles.settingsLabel}>Measurement Units</Text>
             </View>
             <View style={styles.settingsRowRight}>
               <Text style={styles.settingsValue}>
                 {profile.preferredUnits === 'metric' ? 'Metric (kg/cm)' : 'Imperial (lbs/in)'}
               </Text>
-              <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+              <Ionicons name="chevron-forward" size={18} color="#8A8D9F" />
+            </View>
+          </Pressable>
+
+          <Pressable
+            style={styles.settingsRow}
+            onPress={() => setCaffeineEnabled(!caffeineEnabled)}
+          >
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="flash-outline" size={22} color="#8A8D9F" />
+              <Text style={styles.settingsLabel}>Caffeine Tracker</Text>
+            </View>
+            <View style={styles.settingsRowRight}>
+              <Text style={styles.settingsValue}>{caffeineEnabled ? 'On' : 'Off'}</Text>
+              <View
+                style={[
+                  styles.togglePill,
+                  caffeineEnabled ? styles.togglePillActive : styles.togglePillInactive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.toggleKnob,
+                    caffeineEnabled ? styles.toggleKnobActive : styles.toggleKnobInactive,
+                  ]}
+                />
+              </View>
+            </View>
+          </Pressable>
+
+          <Pressable
+            style={styles.settingsRow}
+            onPress={() =>
+              updateProfile({
+                showExerciseDeleteConfirmation: !profile.showExerciseDeleteConfirmation,
+              })
+            }
+          >
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="alert-circle-outline" size={22} color="#8A8D9F" />
+              <Text style={styles.settingsLabel}>Confirm Exercise Deletion</Text>
+            </View>
+            <View style={styles.settingsRowRight}>
+              <Text style={styles.settingsValue}>
+                {profile.showExerciseDeleteConfirmation !== false ? 'On' : 'Off'}
+              </Text>
+              <View
+                style={[
+                  styles.togglePill,
+                  profile.showExerciseDeleteConfirmation !== false
+                    ? styles.togglePillActive
+                    : styles.togglePillInactive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.toggleKnob,
+                    profile.showExerciseDeleteConfirmation !== false
+                      ? styles.toggleKnobActive
+                      : styles.toggleKnobInactive,
+                  ]}
+                />
+              </View>
             </View>
           </Pressable>
 
           <View style={styles.settingsRowVertical}>
             <View style={styles.settingsRowLeft}>
-              <Ionicons name="eye-outline" size={22} color="#475569" />
+              <Ionicons name="eye-outline" size={22} color="#8A8D9F" />
               <Text style={styles.settingsLabel}>RPE Column Tracking</Text>
             </View>
             <View style={styles.chipRow}>
-              {([
-                { value: 'always_on', label: 'Always Show' },
-                { value: 'always_off', label: 'Always Hide' },
-                { value: 'selected_exercises', label: 'For Selected' }
-              ] as const).map(opt => {
+              {(
+                [
+                  { value: 'always_on', label: 'Always Show' },
+                  { value: 'always_off', label: 'Always Hide' },
+                  { value: 'selected_exercises', label: 'For Selected' },
+                ] as const
+              ).map((opt) => {
                 const isActive = (profile.rpeMode || 'always_on') === opt.value;
                 return (
                   <Pressable
@@ -422,7 +589,9 @@ export default function ProfileScreen() {
                     style={[styles.chip, isActive && styles.chipActive]}
                     onPress={() => updateProfile({ rpeMode: opt.value })}
                   >
-                    <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{opt.label}</Text>
+                    <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
+                      {opt.label}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -436,7 +605,11 @@ export default function ProfileScreen() {
                 </Pressable>
                 {profile.rpeEnabledExerciseIds && profile.rpeEnabledExerciseIds.length > 0 && (
                   <Text style={styles.selectedExercisesText}>
-                    Selected: {profile.rpeEnabledExerciseIds.map(id => exercises.find(e => e.id === id)?.name).filter(Boolean).join(', ')}
+                    Selected:{' '}
+                    {profile.rpeEnabledExerciseIds
+                      .map((id) => exercises.find((e) => e.id === id)?.name)
+                      .filter(Boolean)
+                      .join(', ')}
                   </Text>
                 )}
               </View>
@@ -445,15 +618,17 @@ export default function ProfileScreen() {
 
           <View style={styles.settingsRowVertical}>
             <View style={styles.settingsRowLeft}>
-              <Ionicons name="eye-outline" size={22} color="#475569" />
+              <Ionicons name="eye-outline" size={22} color="#8A8D9F" />
               <Text style={styles.settingsLabel}>RIR Column Tracking</Text>
             </View>
             <View style={styles.chipRow}>
-              {([
-                { value: 'always_on', label: 'Always Show' },
-                { value: 'always_off', label: 'Always Hide' },
-                { value: 'selected_exercises', label: 'For Selected' }
-              ] as const).map(opt => {
+              {(
+                [
+                  { value: 'always_on', label: 'Always Show' },
+                  { value: 'always_off', label: 'Always Hide' },
+                  { value: 'selected_exercises', label: 'For Selected' },
+                ] as const
+              ).map((opt) => {
                 const isActive = (profile.rirMode || 'always_on') === opt.value;
                 return (
                   <Pressable
@@ -461,7 +636,9 @@ export default function ProfileScreen() {
                     style={[styles.chip, isActive && styles.chipActive]}
                     onPress={() => updateProfile({ rirMode: opt.value })}
                   >
-                    <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{opt.label}</Text>
+                    <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
+                      {opt.label}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -475,7 +652,11 @@ export default function ProfileScreen() {
                 </Pressable>
                 {profile.rirEnabledExerciseIds && profile.rirEnabledExerciseIds.length > 0 && (
                   <Text style={styles.selectedExercisesText}>
-                    Selected: {profile.rirEnabledExerciseIds.map(id => exercises.find(e => e.id === id)?.name).filter(Boolean).join(', ')}
+                    Selected:{' '}
+                    {profile.rirEnabledExerciseIds
+                      .map((id) => exercises.find((e) => e.id === id)?.name)
+                      .filter(Boolean)
+                      .join(', ')}
                   </Text>
                 )}
               </View>
@@ -484,18 +665,28 @@ export default function ProfileScreen() {
 
           <Pressable style={styles.settingsRow} onPress={handleExport}>
             <View style={styles.settingsRowLeft}>
-              <Ionicons name="download-outline" size={22} color="#475569" />
+              <Ionicons name="download-outline" size={22} color="#8A8D9F" />
               <Text style={styles.settingsLabel}>Export Data (JSON)</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+            <Ionicons name="chevron-forward" size={18} color="#8A8D9F" />
           </Pressable>
+
+          {isAuthConfigured && (
+            <Pressable style={styles.settingsRow} onPress={handleSignOut}>
+              <View style={styles.settingsRowLeft}>
+                <Ionicons name="log-out-outline" size={22} color="#8A8D9F" />
+                <Text style={styles.settingsLabel}>Sign Out</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#8A8D9F" />
+            </Pressable>
+          )}
 
           <Pressable style={[styles.settingsRow, styles.lastRow]} onPress={handleResetData}>
             <View style={styles.settingsRowLeft}>
               <Ionicons name="trash-outline" size={22} color="#ef4444" />
               <Text style={[styles.settingsLabel, styles.dangerText]}>Reset All Data</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+            <Ionicons name="chevron-forward" size={18} color="#8A8D9F" />
           </Pressable>
         </View>
       </ScrollView>
@@ -524,44 +715,52 @@ export default function ProfileScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Backup JSON</Text>
               <Pressable onPress={() => setJsonModalVisible(false)} hitSlop={10}>
-                <Ionicons name="close" size={24} color="#64748b" />
+                <Ionicons name="close" size={24} color="#8A8D9F" />
               </Pressable>
             </View>
             <ScrollView style={styles.jsonScrollView}>
-              <Text selectable style={styles.jsonText}>{exportedJson}</Text>
+              <Text selectable style={styles.jsonText}>
+                {exportedJson}
+              </Text>
             </ScrollView>
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+      <KeyboardDoneAccessory />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#0B0B0F',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#cbd5e1',
-    backgroundColor: '#ffffff',
+    borderBottomColor: '#2A2B31',
+    backgroundColor: '#1A1C23',
   },
   backBtn: {
-    padding: 4,
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#0f172a',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#F4F5F7',
+    textTransform: 'uppercase',
   },
   headerRight: {
-    width: 28,
+    width: 44,
+    height: 44,
   },
   container: {
     flex: 1,
@@ -571,42 +770,39 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   sectionCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#1A1C23',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#2A2B31',
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 1,
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '800',
-    color: '#3b82f6',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#90D5FF',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 16,
   },
   inputLabel: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#475569',
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    color: '#8A8D9F',
     marginBottom: 6,
     marginTop: 12,
+    textTransform: 'uppercase',
   },
   input: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#0B0B0F',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
+    borderColor: '#2A2B31',
+    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: '#0f172a',
+    fontFamily: 'Manrope_500Medium',
+    color: '#F4F5F7',
   },
   chipRow: {
     flexDirection: 'row',
@@ -615,38 +811,38 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   chip: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#2A2B31',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
   },
   chipActive: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#90D5FF',
   },
   chipText: {
-    color: '#475569',
+    color: '#8A8D9F',
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'SpaceGrotesk_600SemiBold',
   },
   chipTextActive: {
-    color: '#ffffff',
+    color: '#0B0B0F',
   },
   saveBtn: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#90D5FF',
     padding: 14,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
     marginTop: 24,
   },
   saveBtnText: {
-    color: '#ffffff',
+    color: '#0B0B0F',
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'SpaceGrotesk_700Bold',
   },
   listSectionTitle: {
     fontSize: 13,
-    fontWeight: '800',
-    color: '#64748b',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#8A8D9F',
     marginBottom: 12,
     marginTop: 8,
     textTransform: 'uppercase',
@@ -659,31 +855,26 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   statCard: {
-    width: '48%', // roughly half width with gap
+    width: '48%',
     flexGrow: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#1A1C23',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 1,
+    borderColor: '#2A2B31',
   },
   statLabel: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#94a3b8',
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    color: '#8A8D9F',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 4,
   },
   statValue: {
     fontSize: 20,
-    fontWeight: '800',
-    color: '#334155',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#F4F5F7',
   },
   settingsRow: {
     flexDirection: 'row',
@@ -691,12 +882,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: '#2A2B31',
   },
   settingsRowVertical: {
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: '#2A2B31',
     gap: 8,
   },
   lastRow: {
@@ -714,27 +905,54 @@ const styles = StyleSheet.create({
   },
   settingsLabel: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#334155',
+    fontFamily: 'Manrope_500Medium',
+    color: '#F4F5F7',
   },
   settingsValue: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#64748b',
+    fontFamily: 'Manrope_500Medium',
+    color: '#8A8D9F',
+  },
+  togglePill: {
+    width: 42,
+    height: 24,
+    borderRadius: 12,
+    padding: 3,
+    justifyContent: 'center',
+  },
+  togglePillActive: {
+    backgroundColor: '#90D5FF',
+  },
+  togglePillInactive: {
+    backgroundColor: '#2A2B31',
+  },
+  toggleKnob: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#0B0B0F',
+  },
+  toggleKnobActive: {
+    alignSelf: 'flex-end',
+  },
+  toggleKnobInactive: {
+    alignSelf: 'flex-start',
   },
   dangerText: {
     color: '#ef4444',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    backgroundColor: 'rgba(11, 11, 15, 0.8)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#1A1C23',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     height: '75%',
+    borderWidth: 1,
+    borderColor: '#2A2B31',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -742,12 +960,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: '#2A2B31',
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#F4F5F7',
   },
   jsonScrollView: {
     padding: 16,
@@ -755,12 +973,12 @@ const styles = StyleSheet.create({
   jsonText: {
     fontFamily: 'monospace',
     fontSize: 12,
-    color: '#334155',
-    backgroundColor: '#f8fafc',
+    color: '#F4F5F7',
+    backgroundColor: '#0B0B0F',
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#2A2B31',
   },
   inputGrid: {
     flexDirection: 'row',
@@ -771,8 +989,8 @@ const styles = StyleSheet.create({
   },
   sectionDivider: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#3b82f6',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#90D5FF',
     marginTop: 20,
     marginBottom: 6,
     textTransform: 'uppercase',
@@ -783,24 +1001,69 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   selectBtn: {
-    backgroundColor: '#e0f2fe',
+    backgroundColor: '#2A2B31',
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 8,
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: '#bae6fd',
+    borderColor: '#2A2B31',
   },
   selectBtnText: {
-    color: '#0369a1',
-    fontWeight: '700',
+    color: '#90D5FF',
+    fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 14,
   },
   selectedExercisesText: {
     fontSize: 13,
-    color: '#64748b',
+    color: '#8A8D9F',
     marginTop: 6,
     lineHeight: 18,
     fontStyle: 'italic',
+  },
+  avatarSection: {
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingTop: 8,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 12,
+  },
+  avatarImage: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 3,
+    borderColor: '#90D5FF',
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#1A1C23',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitials: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 32,
+    color: '#90D5FF',
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#90D5FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#0B0B0F',
+  },
+  avatarNameText: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 20,
+    color: '#F4F5F7',
+    textTransform: 'uppercase',
   },
 });

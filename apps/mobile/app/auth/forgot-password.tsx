@@ -1,50 +1,38 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter, Href } from 'expo-router';
 import { useTheme, Input, Button, useDialog } from '@fitness-tracker/ui';
 import { useAuthStore } from '../../src/stores/authStore';
 
-export default function RegisterScreen() {
+export default function ForgotPasswordScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { showAlert } = useDialog();
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const { signUp, isLoading } = useAuthStore();
+  const { sendPasswordResetEmail, isLoading } = useAuthStore();
 
-  const handleRegister = async () => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      await showAlert({ title: 'Error', message: 'Please fill in all fields.', tone: 'danger' });
+  const handleRequestLink = async () => {
+    if (!email.trim()) {
+      await showAlert({
+        title: 'Error',
+        message: 'Please enter your email address.',
+        tone: 'danger',
+      });
       return;
     }
 
     try {
-      const result = await signUp({
-        email: email.trim(),
-        password,
-        displayName: name.trim(),
-      });
-
+      const result = await sendPasswordResetEmail(email.trim());
       if (result.error) {
-        await showAlert({ title: 'Sign Up Failed', message: result.error, tone: 'danger' });
-      } else if (result.needsEmailVerification) {
+        await showAlert({ title: 'Request Failed', message: result.error, tone: 'danger' });
+      } else {
         await showAlert({
-          title: 'Success',
-          message: 'Registration successful! Please verify your email.',
+          title: 'Link Sent',
+          message: 'A password reset link has been sent to ' + email.trim() + '. Please check your inbox.',
           tone: 'success',
         });
-        router.push(`/auth/verify?email=${encodeURIComponent(email.trim())}` as Href);
-      } else {
-        router.replace('/' as Href);
+        setEmail('');
+        router.push('/auth/login' as Href);
       }
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'An unexpected error occurred.';
@@ -68,12 +56,9 @@ export default function RegisterScreen() {
         </View>
 
         <View style={styles.form}>
-          <Input
-            label="Name / Username"
-            placeholder="John Doe"
-            value={name}
-            onChangeText={setName}
-          />
+          <Text style={[styles.instructionText, { color: theme.colors.muted }]}>
+            Enter the email address associated with your account, and we'll send you a link to reset your password.
+          </Text>
 
           <Input
             label="Email Address"
@@ -84,31 +69,22 @@ export default function RegisterScreen() {
             keyboardType="email-address"
           />
 
-          <Input
-            label="Password"
-            placeholder="••••••••"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-          />
-
           <Button
-            title="SIGN UP"
+            title="SEND RESET LINK"
             variant="primary"
             isLoading={isLoading}
-            onPress={handleRegister}
+            onPress={handleRequestLink}
             style={styles.button}
           />
         </View>
 
         <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: theme.colors.muted }]}>
-            Already have an account?{' '}
-          </Text>
-          <Pressable onPress={() => router.push('/auth/login' as Href)}>
-            <Text style={[styles.link, { color: theme.colors.primary }]}>Log In</Text>
-          </Pressable>
+          <Button
+            title="Back to Log In"
+            variant="ghost"
+            onPress={() => router.push('/auth/login' as Href)}
+            style={styles.backButton}
+          />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -126,7 +102,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 40,
   },
   title: {
     fontSize: 42,
@@ -142,21 +118,22 @@ const styles = StyleSheet.create({
   },
   form: {
     width: '100%',
+    marginBottom: 24,
+  },
+  instructionText: {
+    fontSize: 15,
+    fontFamily: 'Manrope_500Medium',
+    lineHeight: 22,
+    marginBottom: 24,
+    textAlign: 'center',
   },
   button: {
     marginTop: 8,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 32,
+    alignItems: 'center',
   },
-  footerText: {
-    fontSize: 14,
-    fontFamily: 'Manrope_500Medium',
-  },
-  link: {
-    fontSize: 14,
-    fontFamily: 'SpaceGrotesk_600SemiBold',
+  backButton: {
+    width: '100%',
   },
 });

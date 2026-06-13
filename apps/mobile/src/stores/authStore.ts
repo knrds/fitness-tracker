@@ -20,6 +20,9 @@ export interface AuthState {
     credentials: AuthCredentials & { displayName: string },
   ) => Promise<{ error?: string; needsEmailVerification: boolean }>;
   signOut: () => Promise<{ error?: string }>;
+  resendVerificationEmail: (email: string) => Promise<{ error?: string }>;
+  sendPasswordResetEmail: (email: string) => Promise<{ error?: string }>;
+  updatePassword: (password: string) => Promise<{ error?: string }>;
 }
 
 let authSubscription: { unsubscribe: () => void } | null = null;
@@ -115,6 +118,50 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       session: error ? get().session : null,
       user: error ? get().user : null,
     });
+
+    return error ? { error: error.message } : {};
+  },
+
+  resendVerificationEmail: async (email) => {
+    if (!isSupabaseConfigured) {
+      return { error: 'Supabase is not configured for this environment.' };
+    }
+
+    set({ isLoading: true });
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: {
+        emailRedirectTo: 'fitness-tracker://'
+      }
+    });
+    set({ isLoading: false });
+
+    return error ? { error: error.message } : {};
+  },
+
+  sendPasswordResetEmail: async (email) => {
+    if (!isSupabaseConfigured) {
+      return { error: 'Supabase is not configured for this environment.' };
+    }
+
+    set({ isLoading: true });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'fitness-tracker://auth/reset-password',
+    });
+    set({ isLoading: false });
+
+    return error ? { error: error.message } : {};
+  },
+
+  updatePassword: async (password) => {
+    if (!isSupabaseConfigured) {
+      return { error: 'Supabase is not configured for this environment.' };
+    }
+
+    set({ isLoading: true });
+    const { error } = await supabase.auth.updateUser({ password });
+    set({ isLoading: false });
 
     return error ? { error: error.message } : {};
   },

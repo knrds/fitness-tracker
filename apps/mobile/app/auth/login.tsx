@@ -77,6 +77,15 @@ export default function LoginScreen() {
             autoCapitalize="none"
           />
 
+          <Pressable
+            style={styles.forgotPasswordContainer}
+            onPress={() => router.push('/auth/forgot-password' as Href)}
+          >
+            <Text style={[styles.forgotPasswordText, { color: theme.colors.primary }]}>
+              Forgot Password?
+            </Text>
+          </Pressable>
+
           <Button
             title="LOG IN"
             variant="primary"
@@ -140,6 +149,15 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope_500Medium',
   },
   link: {
+    fontSize: 14,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+  },
+  forgotPasswordContainer: {
+    alignSelf: 'flex-end',
+    marginBottom: 20,
+    marginTop: -8,
+  },
+  forgotPasswordText: {
     fontSize: 14,
     fontFamily: 'SpaceGrotesk_600SemiBold',
   },

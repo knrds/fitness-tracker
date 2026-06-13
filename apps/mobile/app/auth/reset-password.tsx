@@ -1,49 +1,55 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter, Href } from 'expo-router';
 import { useTheme, Input, Button, useDialog } from '@fitness-tracker/ui';
 import { useAuthStore } from '../../src/stores/authStore';
 
-export default function RegisterScreen() {
+export default function ResetPasswordScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { showAlert } = useDialog();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { signUp, isLoading } = useAuthStore();
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const { updatePassword, isLoading } = useAuthStore();
 
-  const handleRegister = async () => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      await showAlert({ title: 'Error', message: 'Please fill in all fields.', tone: 'danger' });
+  const handleResetPassword = async () => {
+    if (!password.trim() || !confirmPassword.trim()) {
+      await showAlert({
+        title: 'Error',
+        message: 'Please fill in both password fields.',
+        tone: 'danger',
+      });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      await showAlert({
+        title: 'Error',
+        message: 'Passwords do not match.',
+        tone: 'danger',
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      await showAlert({
+        title: 'Weak Password',
+        message: 'Password must be at least 6 characters long.',
+        tone: 'danger',
+      });
       return;
     }
 
     try {
-      const result = await signUp({
-        email: email.trim(),
-        password,
-        displayName: name.trim(),
-      });
-
+      const result = await updatePassword(password);
       if (result.error) {
-        await showAlert({ title: 'Sign Up Failed', message: result.error, tone: 'danger' });
-      } else if (result.needsEmailVerification) {
+        await showAlert({ title: 'Update Failed', message: result.error, tone: 'danger' });
+      } else {
         await showAlert({
           title: 'Success',
-          message: 'Registration successful! Please verify your email.',
+          message: 'Your password has been successfully updated.',
           tone: 'success',
         });
-        router.push(`/auth/verify?email=${encodeURIComponent(email.trim())}` as Href);
-      } else {
         router.replace('/' as Href);
       }
     } catch (err: unknown) {
@@ -68,24 +74,12 @@ export default function RegisterScreen() {
         </View>
 
         <View style={styles.form}>
-          <Input
-            label="Name / Username"
-            placeholder="John Doe"
-            value={name}
-            onChangeText={setName}
-          />
+          <Text style={[styles.instructionText, { color: theme.colors.muted }]}>
+            Please enter your new password below.
+          </Text>
 
           <Input
-            label="Email Address"
-            placeholder="email@example.com"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-
-          <Input
-            label="Password"
+            label="New Password"
             placeholder="••••••••"
             value={password}
             onChangeText={setPassword}
@@ -93,22 +87,22 @@ export default function RegisterScreen() {
             autoCapitalize="none"
           />
 
+          <Input
+            label="Confirm New Password"
+            placeholder="••••••••"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            autoCapitalize="none"
+          />
+
           <Button
-            title="SIGN UP"
+            title="UPDATE PASSWORD"
             variant="primary"
             isLoading={isLoading}
-            onPress={handleRegister}
+            onPress={handleResetPassword}
             style={styles.button}
           />
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: theme.colors.muted }]}>
-            Already have an account?{' '}
-          </Text>
-          <Pressable onPress={() => router.push('/auth/login' as Href)}>
-            <Text style={[styles.link, { color: theme.colors.primary }]}>Log In</Text>
-          </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -126,7 +120,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 40,
   },
   title: {
     fontSize: 42,
@@ -142,21 +136,16 @@ const styles = StyleSheet.create({
   },
   form: {
     width: '100%',
+    marginBottom: 24,
+  },
+  instructionText: {
+    fontSize: 15,
+    fontFamily: 'Manrope_500Medium',
+    lineHeight: 22,
+    marginBottom: 24,
+    textAlign: 'center',
   },
   button: {
     marginTop: 8,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 32,
-  },
-  footerText: {
-    fontSize: 14,
-    fontFamily: 'Manrope_500Medium',
-  },
-  link: {
-    fontSize: 14,
-    fontFamily: 'SpaceGrotesk_600SemiBold',
   },
 });

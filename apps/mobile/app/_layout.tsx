@@ -196,6 +196,9 @@ function RootNavigator() {
         <Stack.Screen name="profile" options={{ headerShown: false }} />
         <Stack.Screen name="auth/login" options={{ headerShown: false }} />
         <Stack.Screen name="auth/register" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/verify" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/forgot-password" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/reset-password" options={{ headerShown: false }} />
         <Stack.Screen name="programs/template-builder" options={{ headerShown: false }} />
         <Stack.Screen name="workout/quick-start" options={{ headerShown: false }} />
       </Stack>

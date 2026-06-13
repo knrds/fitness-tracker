@@ -1763,7 +1763,7 @@ BLOCK 4 — PREMIUM UI (Gemini Designer)
 BLOCK 5 — BACKEND (Gemini Builder)  ← IN ARBEIT
 [ ] MANUELL: Supabase Projekt + Schema/.env auf echten Geräten prüfen
 [x] Mission 10: Auth-Fundament (authStore, Login/Register, Root-Guard, Sign-out)
-[ ] Mission 10 Rest: Passwort-Reset, Email-Verifikation UX, echte Device-Session prüfen
+[x] Mission 10 Rest: Passwort-Reset, Email-Verifikation UX, echte Device-Session prüfen
 [ ] Mission 11: Cloud Sync + LOCAL_USER_ID-Migration
 
 BLOCK 6 — AI FITNESS COACH (Gemini Builder)

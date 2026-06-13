@@ -12,8 +12,13 @@ import {
   PanResponder,
   Animated,
   ViewStyle,
+  LayoutAnimation,
+  Dimensions,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@fitness-tracker/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,62 +39,180 @@ export default function WorkoutsScreen() {
   const [summaryTemplateId, setSummaryTemplateId] = useState<string | null>(null);
 
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const activeDragIdRef = useRef<string | null>(null);
+  const isDraggingActiveRef = useRef(false);
   const dragY = useRef(new Animated.Value(0)).current;
   const draggingTemplateRef = useRef<WorkoutTemplate | null>(null);
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const itemLayouts = useRef<Record<string, { y: number; height: number }>>({});
+  const dragScale = useRef(new Animated.Value(1)).current;
+  const dragTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const hoverIndexRef = useRef<number | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollYRef = useRef(0);
+  const autoScrollInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startAutoScroll = (direction: 'up' | 'down') => {
+    if (autoScrollInterval.current) return;
+    autoScrollInterval.current = setInterval(() => {
+      const currentScrollY = scrollYRef.current;
+      const step = 10;
+      const newScrollY =
+        direction === 'up' ? Math.max(0, currentScrollY - step) : currentScrollY + step;
+      scrollViewRef.current?.scrollTo({ y: newScrollY, animated: false });
+    }, 16);
+  };
+
+  const stopAutoScroll = () => {
+    if (autoScrollInterval.current) {
+      clearInterval(autoScrollInterval.current);
+      autoScrollInterval.current = null;
+    }
+  };
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollYRef.current = event.nativeEvent.contentOffset.y;
+  };
 
   const panResponder = useMemo(() => {
     return PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (e, gestureState) => {
-        return Math.abs(gestureState.dy) > 5;
+        return Math.abs(gestureState.dy) > 2;
       },
       onPanResponderGrant: () => {
         const t = draggingTemplateRef.current;
         if (t) {
+          activeDragIdRef.current = t.id;
+          isDraggingActiveRef.current = true;
           setActiveDragId(t.id);
           setScrollEnabled(false);
           dragY.setValue(0);
+          dragScale.setValue(1);
+          Animated.spring(dragScale, {
+            toValue: 1.03,
+            useNativeDriver: true,
+            tension: 100,
+            friction: 6,
+          }).start();
+          if (Platform.OS !== 'web') {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+          }
         }
       },
       onPanResponderMove: (e, gestureState) => {
+        if (!activeDragIdRef.current) return;
         dragY.setValue(gestureState.dy);
-      },
-      onPanResponderRelease: (e, gestureState) => {
         const t = draggingTemplateRef.current;
         if (t) {
-          const layout = itemLayouts.current[t.id];
-          if (layout) {
-            const dropY = layout.y + gestureState.dy;
-            const otherTemplates = templates.filter((item) => item.id !== t.id);
-            let insertIndex = 0;
-            for (let i = 0; i < otherTemplates.length; i++) {
-              const otherTmpl = otherTemplates[i];
-              if (otherTmpl) {
-                const otherLayout = itemLayouts.current[otherTmpl.id];
-                if (otherLayout) {
-                  const centerY = otherLayout.y + otherLayout.height / 2;
-                  if (dropY > centerY) {
-                    insertIndex = i + 1;
-                  }
-                }
-              }
-            }
+          const dragIndex = templates.findIndex((item) => item.id === t.id);
+          if (dragIndex !== -1) {
+            const S = 92; // Item height (80) + gap (12)
+            const step = Math.round(gestureState.dy / S);
+            const targetIndex = Math.max(0, Math.min(templates.length - 1, dragIndex + step));
+            const insertIndex = targetIndex;
 
+            if (insertIndex !== hoverIndexRef.current) {
+              hoverIndexRef.current = insertIndex;
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              setHoverIndex(insertIndex);
+            }
+          }
+        }
+
+        // Auto scroll when dragging near screen edges
+        const { height: screenHeight } = Dimensions.get('window');
+        const touchY = gestureState.moveY;
+        if (touchY > 0 && touchY < 180) {
+          startAutoScroll('up');
+        } else if (touchY > screenHeight - 140) {
+          startAutoScroll('down');
+        } else {
+          stopAutoScroll();
+        }
+      },
+      onPanResponderRelease: (e, gestureState) => {
+        stopAutoScroll();
+        if (dragTimeoutRef.current) {
+          clearTimeout(dragTimeoutRef.current);
+        }
+        isDraggingActiveRef.current = false;
+        const t = draggingTemplateRef.current;
+        draggingTemplateRef.current = null;
+        if (!activeDragIdRef.current) {
+          activeDragIdRef.current = null;
+          setActiveDragId(null);
+          hoverIndexRef.current = null;
+          setHoverIndex(null);
+          setScrollEnabled(true);
+          dragY.setValue(0);
+          return;
+        }
+        activeDragIdRef.current = null;
+        if (t) {
+          const dragIndex = templates.findIndex((item) => item.id === t.id);
+          if (dragIndex !== -1) {
+            const S = 92;
+            const step = Math.round(gestureState.dy / S);
+            const targetIndex = Math.max(0, Math.min(templates.length - 1, dragIndex + step));
+            const insertIndex = targetIndex;
+
+            const otherTemplates = templates.filter((item) => item.id !== t.id);
             const reordered = [...otherTemplates];
             reordered.splice(insertIndex, 0, t);
             updateTemplatesOrder(reordered);
           }
         }
-        setActiveDragId(null);
-        setScrollEnabled(true);
-        dragY.setValue(0);
+        Animated.parallel([
+          Animated.spring(dragY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 8,
+          }),
+          Animated.spring(dragScale, {
+            toValue: 1,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 8,
+          }),
+        ]).start(() => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setActiveDragId(null);
+          hoverIndexRef.current = null;
+          setHoverIndex(null);
+          setScrollEnabled(true);
+        });
       },
       onPanResponderTerminate: () => {
-        setActiveDragId(null);
-        setScrollEnabled(true);
-        dragY.setValue(0);
+        stopAutoScroll();
+        if (dragTimeoutRef.current) {
+          clearTimeout(dragTimeoutRef.current);
+        }
+        draggingTemplateRef.current = null;
+        activeDragIdRef.current = null;
+        isDraggingActiveRef.current = false;
+        Animated.parallel([
+          Animated.spring(dragY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 8,
+          }),
+          Animated.spring(dragScale, {
+            toValue: 1,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 8,
+          }),
+        ]).start(() => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setActiveDragId(null);
+          hoverIndexRef.current = null;
+          setHoverIndex(null);
+          setScrollEnabled(true);
+        });
       },
     });
   }, [templates, updateTemplatesOrder]);
@@ -212,8 +335,11 @@ export default function WorkoutsScreen() {
 
       {activeTab === 'workouts' ? (
         <ScrollView
+          ref={scrollViewRef}
           contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 20, 100) }}
           scrollEnabled={scrollEnabled}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
         >
           <View style={styles.quickStart}>
             <Text style={styles.sectionTitle}>Quick Start</Text>
@@ -230,6 +356,29 @@ export default function WorkoutsScreen() {
           <View style={styles.list}>
             {templates.map((item) => {
               const isDraggingThis = item.id === activeDragId;
+              const otherTemplates = templates.filter((t) => t.id !== activeDragId);
+              const isHovered =
+                activeDragId !== null &&
+                hoverIndex !== null &&
+                otherTemplates[hoverIndex]?.id === item.id;
+
+              let shiftY = 0;
+              if (activeDragId !== null && hoverIndex !== null && !isDraggingThis) {
+                const dragIndex = templates.findIndex((t) => t.id === activeDragId);
+                const myIndex = templates.findIndex((t) => t.id === item.id);
+                const totalShift = 92; // Item height (80) + gap (12)
+
+                if (myIndex < dragIndex) {
+                  if (myIndex >= hoverIndex) {
+                    shiftY = totalShift;
+                  }
+                } else if (myIndex > dragIndex) {
+                  if (myIndex < hoverIndex) {
+                    shiftY = -totalShift;
+                  }
+                }
+              }
+
               const exerciseNames = item.exercises
                 .map((te) => exercises.find((e) => e.id === te.exerciseId)?.name)
                 .filter(Boolean)
@@ -239,7 +388,7 @@ export default function WorkoutsScreen() {
                 <Animated.View
                   key={item.id}
                   onLayout={(e) => {
-                    if (activeDragId !== item.id) {
+                    if (!isDraggingActiveRef.current && activeDragId !== item.id) {
                       itemLayouts.current[item.id] = {
                         y: e.nativeEvent.layout.y,
                         height: e.nativeEvent.layout.height,
@@ -248,8 +397,14 @@ export default function WorkoutsScreen() {
                   }}
                   style={[
                     styles.card,
+                    isHovered && {
+                      borderColor: '#90D5FF',
+                      borderWidth: 1.5,
+                      borderStyle: 'dashed',
+                      backgroundColor: 'rgba(144, 213, 255, 0.05)',
+                    },
                     isDraggingThis && {
-                      transform: [{ translateY: dragY }],
+                      transform: [{ translateY: dragY }, { scale: dragScale }],
                       zIndex: 9999,
                       opacity: 0.85,
                       shadowColor: '#000',
@@ -258,15 +413,46 @@ export default function WorkoutsScreen() {
                       shadowRadius: 6,
                       elevation: 5,
                     },
+                    !isDraggingThis &&
+                      activeDragId !== null && {
+                        transform: [{ translateY: shiftY }],
+                      },
+                    Platform.OS === 'web' &&
+                      activeDragId !== null &&
+                      ({
+                        transition: 'transform 0.2s ease',
+                      } as unknown as ViewStyle),
                   ]}
                 >
                   <View
                     style={[styles.dragHandle, { cursor: 'grab' } as unknown as ViewStyle]}
                     onPointerDown={() => {
                       draggingTemplateRef.current = item;
+                      activeDragIdRef.current = item.id;
+                      setActiveDragId(item.id);
+                      setScrollEnabled(false);
                     }}
                     onTouchStart={() => {
                       draggingTemplateRef.current = item;
+                      activeDragIdRef.current = item.id;
+                      setActiveDragId(item.id);
+                      setScrollEnabled(false);
+                    }}
+                    onPointerUp={() => {
+                      if (!isDraggingActiveRef.current) {
+                        draggingTemplateRef.current = null;
+                        activeDragIdRef.current = null;
+                        setActiveDragId(null);
+                        setScrollEnabled(true);
+                      }
+                    }}
+                    onTouchEnd={() => {
+                      if (!isDraggingActiveRef.current) {
+                        draggingTemplateRef.current = null;
+                        activeDragIdRef.current = null;
+                        setActiveDragId(null);
+                        setScrollEnabled(true);
+                      }
                     }}
                     {...panResponder.panHandlers}
                   >

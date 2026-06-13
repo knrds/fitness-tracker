@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, TextInput, Pressable, Alert, Platform } from 'react-native';
+import {
+  Modal,
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Pressable,
+  Alert,
+  Platform,
+  Keyboard,
+} from 'react-native';
 import { useTheme } from '@fitness-tracker/ui';
 
 interface Props {
@@ -119,6 +129,7 @@ export const SaveTemplateModal = ({
             placeholder="z.B. Push Workout"
             placeholderTextColor={theme.colors.muted}
             autoFocus={!templateId}
+            onSubmitEditing={() => Keyboard.dismiss()}
           />
 
           <View style={styles.actions}>

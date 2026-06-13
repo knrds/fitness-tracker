@@ -10,6 +10,7 @@ import {
   Modal,
   Animated,
   Platform,
+  TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -36,6 +37,8 @@ import { useAchievementCheck } from '../../src/hooks/useAchievementCheck';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { useTheme, Card, EmptyState } from '@fitness-tracker/ui';
 import { getLevelBadge } from '../../src/utils/level';
+import { HorizontalFadeScroll } from '../../src/components/HorizontalFadeScroll';
+import { VerticalFadeScroll } from '../../src/components/VerticalFadeScroll';
 
 export default function HistoryScreen() {
   const [activeTab, setActiveTab] = useState<'history' | 'progress' | 'achievements'>('history');
@@ -241,11 +244,10 @@ function HistoryView() {
   };
 
   const renderSessionExerciseBreakdown = (session: WorkoutSession) => (
-    <ScrollView
+    <VerticalFadeScroll
       style={styles.summaryExerciseList}
       contentContainerStyle={styles.summaryExerciseListContent}
       nestedScrollEnabled
-      showsVerticalScrollIndicator={false}
     >
       {session.exercises.map((sessionExercise) => {
         const exerciseDef = allExercises.find(
@@ -304,7 +306,7 @@ function HistoryView() {
           </View>
         );
       })}
-    </ScrollView>
+    </VerticalFadeScroll>
   );
 
   const renderItem = ({ item }: { item: WorkoutSession }) => {
@@ -411,25 +413,96 @@ function HistoryView() {
     const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
     const today = new Date();
 
-    const days = React.useMemo(() => {
-      if (viewMode === 'week') {
-        return Array.from({ length: 7 }).map((_, index) => {
-          const date = new Date(today);
-          date.setDate(today.getDate() - 6 + index);
-          date.setHours(0, 0, 0, 0);
-          return date;
-        });
-      }
+    const daysOfWeekHeaders = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
-      const first = new Date(today.getFullYear(), today.getMonth(), 1);
-      const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      return Array.from({ length: last.getDate() }).map((_, index) => {
-        const date = new Date(first);
-        date.setDate(index + 1);
+    const weekDays = React.useMemo(() => {
+      return Array.from({ length: 7 }).map((_, index) => {
+        const date = new Date(today);
+        date.setDate(today.getDate() - 6 + index);
         date.setHours(0, 0, 0, 0);
         return date;
       });
-    }, [viewMode]);
+    }, [today]);
+
+    const monthRows = React.useMemo(() => {
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      const firstDayOfWeek = (firstDay.getDay() + 6) % 7; // Monday = 0, Sunday = 6
+      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      const daysInMonth = lastDay.getDate();
+
+      const monthCells: (Date | null)[] = [];
+      for (let i = 0; i < firstDayOfWeek; i++) {
+        monthCells.push(null);
+      }
+      for (let i = 1; i <= daysInMonth; i++) {
+        const d = new Date(today.getFullYear(), today.getMonth(), i);
+        d.setHours(0, 0, 0, 0);
+        monthCells.push(d);
+      }
+
+      const rows: (Date | null)[][] = [];
+      for (let i = 0; i < monthCells.length; i += 7) {
+        const row = monthCells.slice(i, i + 7);
+        while (row.length < 7) {
+          row.push(null);
+        }
+        rows.push(row);
+      }
+      return rows;
+    }, [today]);
+
+    const renderDayCell = (day: Date | null, isPlaceholder: boolean) => {
+      if (isPlaceholder || !day) {
+        return (
+          <View key={`placeholder-${Math.random()}`} style={styles.consistencyDayPlaceholder} />
+        );
+      }
+
+      const key = formatDateLocal(day);
+      const count = sessionsByDate[key]?.length ?? 0;
+      const isToday = key === formatDateLocal(today);
+
+      return (
+        <Pressable
+          key={key}
+          style={[
+            styles.consistencyDay,
+            { borderColor: isToday ? theme.colors.primary : theme.colors.border },
+            count > 0 && { backgroundColor: 'rgba(144, 213, 255, 0.06)' },
+          ]}
+          disabled={count === 0}
+          onPress={() => setSelectedDateKey(key)}
+        >
+          <Text
+            style={[
+              styles.consistencyDayLabel,
+              { color: isToday ? theme.colors.primary : theme.colors.muted },
+            ]}
+          >
+            {viewMode === 'week'
+              ? new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(day)
+              : day.getDate()}
+          </Text>
+          <View style={styles.consistencyBlocks}>
+            {Array.from({ length: Math.min(count, 5) }).map((_, blockIndex) => (
+              <View
+                key={blockIndex}
+                style={[
+                  styles.consistencyBlock,
+                  {
+                    backgroundColor:
+                      blockIndex < 3 ? theme.colors.primary : 'rgba(144, 213, 255, 0.55)',
+                  },
+                ]}
+              />
+            ))}
+          </View>
+          <Text style={[styles.consistencyCount, { color: theme.colors.text }]}>
+            {count > 0 ? count : ''}
+          </Text>
+        </Pressable>
+      );
+    };
 
     return (
       <Card padding="md" style={styles.consistencyCard}>
@@ -460,59 +533,28 @@ function HistoryView() {
             })}
           </View>
         </View>
-        <View
-          style={[
-            styles.consistencyDays,
-            viewMode === 'month' ? styles.consistencyDaysMonth : styles.consistencyDaysWeek,
-          ]}
-        >
-          {days.map((day) => {
-            const key = formatDateLocal(day);
-            const count = sessionsByDate[key]?.length ?? 0;
-            const isToday = key === formatDateLocal(today);
-            return (
-              <Pressable
-                key={key}
-                style={[
-                  styles.consistencyDay,
-                  { borderColor: isToday ? theme.colors.primary : theme.colors.border },
-                  viewMode === 'month' && styles.consistencyDayMonth,
-                  count > 0 && { backgroundColor: 'rgba(144, 213, 255, 0.06)' },
-                ]}
-                disabled={count === 0}
-                onPress={() => setSelectedDateKey(key)}
-              >
-                <Text
-                  style={[
-                    styles.consistencyDayLabel,
-                    { color: isToday ? theme.colors.primary : theme.colors.muted },
-                  ]}
-                >
-                  {viewMode === 'week'
-                    ? new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(day)
-                    : day.getDate()}
+
+        {viewMode === 'week' ? (
+          <View style={styles.calendarRow}>{weekDays.map((day) => renderDayCell(day, false))}</View>
+        ) : (
+          <View>
+            {/* Weekday Headers */}
+            <View style={[styles.calendarRow, { marginBottom: 12 }]}>
+              {daysOfWeekHeaders.map((header, idx) => (
+                <Text key={idx} style={[styles.weekdayHeader, { color: theme.colors.muted }]}>
+                  {header}
                 </Text>
-                <View style={styles.consistencyBlocks}>
-                  {Array.from({ length: Math.min(count, 5) }).map((_, blockIndex) => (
-                    <View
-                      key={blockIndex}
-                      style={[
-                        styles.consistencyBlock,
-                        {
-                          backgroundColor:
-                            blockIndex < 3 ? theme.colors.primary : 'rgba(144, 213, 255, 0.55)',
-                        },
-                      ]}
-                    />
-                  ))}
-                </View>
-                <Text style={[styles.consistencyCount, { color: theme.colors.text }]}>
-                  {count > 0 ? count : ''}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+              ))}
+            </View>
+            {/* Calendar Weeks */}
+            {monthRows.map((row, idx) => (
+              <View key={idx} style={styles.calendarRow}>
+                {row.map((day) => renderDayCell(day, day === null))}
+              </View>
+            ))}
+          </View>
+        )}
+
         <Text style={[styles.consistencyHint, { color: theme.colors.muted }]}>
           Tap a filled day to open its workout history.
         </Text>
@@ -543,8 +585,9 @@ function HistoryView() {
         animationType="slide"
         onRequestClose={() => setSelectedSession(null)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setSelectedSession(null)}>
-          <Pressable
+        <View style={styles.modalOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelectedSession(null)} />
+          <View
             style={[
               styles.modalCard,
               {
@@ -555,7 +598,6 @@ function HistoryView() {
                 alignItems: 'center',
               },
             ]}
-            onPress={(e) => e.stopPropagation()}
           >
             {selectedSession && (
               <>
@@ -668,8 +710,8 @@ function HistoryView() {
                 </Pressable>
               </>
             )}
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       <Modal
@@ -678,8 +720,9 @@ function HistoryView() {
         animationType="fade"
         onRequestClose={() => setSelectedDateKey(null)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setSelectedDateKey(null)}>
-          <Pressable
+        <View style={styles.modalOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelectedDateKey(null)} />
+          <View
             style={[
               styles.modalCard,
               {
@@ -689,7 +732,6 @@ function HistoryView() {
                 maxWidth: 420,
               },
             ]}
-            onPress={(e) => e.stopPropagation()}
           >
             <View style={styles.modalHeaderRow}>
               <View style={styles.modalTitleBlock}>
@@ -716,10 +758,9 @@ function HistoryView() {
               </Pressable>
             </View>
 
-            <ScrollView
+            <VerticalFadeScroll
               style={styles.daySessionList}
               contentContainerStyle={styles.daySessionListContent}
-              showsVerticalScrollIndicator={false}
             >
               {selectedDateSessions.map((session) => {
                 const summary = summarizeWorkout(session);
@@ -775,9 +816,9 @@ function HistoryView() {
                   </Pressable>
                 );
               })}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
+            </VerticalFadeScroll>
+          </View>
+        </View>
       </Modal>
     </>
   );
@@ -793,19 +834,114 @@ function ProgressView() {
   const prs = historyStore.getPRs();
   const activeExerciseIds = Object.keys(prs);
 
-  const [selectedExId, setSelectedExId] = useState<string | null>(
-    activeExerciseIds.length > 0 ? activeExerciseIds[0] || null : null,
-  );
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+  const favoriteIds = useExerciseStore((state) => state.favoriteIds);
+
+  const filteredExerciseIds = React.useMemo(() => {
+    return activeExerciseIds.filter((id) => {
+      const ex = exercises.find((e) => e.id === id);
+      if (!ex) return false;
+      const matchesSearch = ex.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesFavorite = showOnlyFavorites ? favoriteIds.includes(id) : true;
+      return matchesSearch && matchesFavorite;
+    });
+  }, [activeExerciseIds, exercises, searchQuery, showOnlyFavorites, favoriteIds]);
+
+  const [selectedExId, setSelectedExId] = useState<string | null>(null);
+
+  // Auto-adjust selected exercise if filtered list changes
+  React.useEffect(() => {
+    if (filteredExerciseIds.length > 0) {
+      if (!selectedExId || !filteredExerciseIds.includes(selectedExId)) {
+        setSelectedExId(filteredExerciseIds[0] || null);
+      }
+    } else {
+      setSelectedExId(null);
+    }
+  }, [filteredExerciseIds]);
 
   const [selectedPoint, setSelectedPoint] = useState<{
     date: string;
     volume: number;
     isPR: boolean;
+    maxWeight: number;
     e1rm?: number;
   } | null>(null);
 
   const [crosshairIdx, setCrosshairIdx] = useState<number | null>(null);
   const [crosshairX, setCrosshairX] = useState<number | null>(null);
+
+  const progressDetails = React.useMemo(() => {
+    if (!selectedExId) return null;
+
+    let totalSets = 0;
+    let totalReps = 0;
+    let totalRpe = 0;
+    let rpeCount = 0;
+    let maxWeight = 0;
+    let initialWeight = 0;
+    let latestWeight = 0;
+    let weightLoggedCount = 0;
+
+    // Sort sessions chronologically to find starting vs latest performance
+    const sortedSessions = [...historyStore.sessions].sort(
+      (a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime(),
+    );
+
+    sortedSessions.forEach((session) => {
+      const sEx = session.exercises.find((ex) => ex.exerciseId === selectedExId);
+      if (!sEx) return;
+      sEx.sets.forEach((set) => {
+        if (set.completed && set.type !== 'warmup') {
+          totalSets++;
+          if (set.reps !== undefined && set.reps > 0) {
+            totalReps += set.reps;
+          }
+          if (set.rpe !== undefined && set.rpe > 0) {
+            totalRpe += set.rpe;
+            rpeCount++;
+          }
+          if (set.weight !== undefined && set.weight > 0) {
+            weightLoggedCount++;
+            if (weightLoggedCount === 1) {
+              initialWeight = set.weight;
+            }
+            latestWeight = set.weight;
+            if (set.weight > maxWeight) {
+              maxWeight = set.weight;
+            }
+          }
+        }
+      });
+    });
+
+    const avgReps = totalSets > 0 ? (totalReps / totalSets).toFixed(1) : '0';
+    const avgRpe = rpeCount > 0 ? (totalRpe / rpeCount).toFixed(1) : '--';
+
+    const history = getExerciseProgressHistory(
+      selectedExId,
+      historyStore.sessions,
+      exercises.find((e) => e.id === selectedExId)?.name,
+    );
+
+    const initialE1RM = history[0]?.maxE1RM || 0;
+    const latestE1RM = history[history.length - 1]?.maxE1RM || 0;
+    const peakE1RM = Math.max(...history.map((h) => h.maxE1RM), 0);
+
+    return {
+      totalSets,
+      totalWorkouts: history.length,
+      avgReps,
+      avgRpe,
+      maxWeight,
+      initialWeight,
+      latestWeight,
+      initialE1RM,
+      latestE1RM,
+      peakE1RM,
+    };
+  }, [selectedExId, historyStore.sessions, exercises]);
 
   const chartFadeAnim = React.useRef(new Animated.Value(0)).current;
   const chartSlideAnim = React.useRef(new Animated.Value(20)).current;
@@ -842,7 +978,7 @@ function ProgressView() {
     const history = getProgressHistory(selectedExId);
     if (history.length < 2) {
       return (
-        <Card padding="lg" style={{ alignItems: 'center' }}>
+        <Card padding="lg" style={{ alignItems: 'center', marginBottom: 24 }}>
           <Text
             style={[
               { color: theme.colors.text, fontSize: 16, marginBottom: 4 },
@@ -858,7 +994,7 @@ function ProgressView() {
       );
     }
 
-    const chartWidth = Math.max(260, Math.min(screenWidth - 80, 640));
+    const chartWidth = Math.max(260, Math.min(screenWidth - 112, 600));
     const chartPaddingRight = 64;
     const chartStep = (chartWidth - chartPaddingRight) / history.length;
 
@@ -878,6 +1014,7 @@ function ProgressView() {
         date: new Date(item.date).toLocaleDateString(),
         volume: vol,
         isPR: item.isPR,
+        maxWeight: isImperial ? Math.round(item.maxWeight * 2.20462) : Math.round(item.maxWeight),
         e1rm: isImperial ? Math.round(item.maxE1RM * 2.20462) : Math.round(item.maxE1RM),
       });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -901,7 +1038,7 @@ function ProgressView() {
       ),
       datasets: [
         {
-          data: history.map((h) => (isImperial ? Math.round(h.volume * 2.20462) : h.volume)),
+          data: history.map((h) => (isImperial ? Math.round(h.maxWeight * 2.20462) : h.maxWeight)),
           color: () => theme.colors.primary,
           strokeWidth: 2,
         },
@@ -923,7 +1060,7 @@ function ProgressView() {
         <Text
           style={[styles.chartTitle, { color: theme.colors.text, ...theme.typography.heading }]}
         >
-          Volume History
+          Max Weight History
         </Text>
 
         {/* Selected Data Point Details */}
@@ -943,13 +1080,17 @@ function ProgressView() {
               color={selectedPoint.isPR ? '#FFB020' : theme.colors.primary}
             />
             <Text style={[styles.tooltipText, { color: theme.colors.text, fontSize: 11 }]}>
-              <Text style={{ fontFamily: 'SpaceGrotesk_700Bold' }}>{selectedPoint.date}</Text>: Vol:{' '}
+              <Text style={{ fontFamily: 'SpaceGrotesk_700Bold' }}>{selectedPoint.date}</Text>: Max:{' '}
               <Text
                 style={{
                   color: selectedPoint.isPR ? '#FFB020' : theme.colors.primary,
                   fontFamily: 'SpaceGrotesk_700Bold',
                 }}
               >
+                {selectedPoint.maxWeight} {isImperial ? 'lbs' : 'kg'}
+              </Text>{' '}
+              | Vol:{' '}
+              <Text style={{ color: theme.colors.primary, fontFamily: 'SpaceGrotesk_700Bold' }}>
                 {selectedPoint.volume} {isImperial ? 'lbs' : 'kg'}
               </Text>
               {selectedPoint.e1rm !== undefined && (
@@ -981,7 +1122,7 @@ function ProgressView() {
           </View>
         ) : (
           <Text style={[styles.chartTipText, { color: theme.colors.muted }]}>
-            💡 Slide your finger across the chart to view e1RM & Volume
+            💡 Slide your finger across the chart to view Max Weight, Vol & e1RM
           </Text>
         )}
 
@@ -1014,9 +1155,8 @@ function ProgressView() {
               propsForDots: { r: '6', strokeWidth: '2.5', stroke: theme.colors.surface },
             }}
             bezier
-            style={{ marginVertical: 8, borderRadius: 16, paddingRight: chartPaddingRight }}
+            style={{ marginVertical: 8, borderRadius: 16 }}
           />
-
           {crosshairX !== null && (
             <View
               style={{
@@ -1058,61 +1198,201 @@ function ProgressView() {
         </Text>
       ) : (
         <>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-            {activeExerciseIds.map((id) => {
-              const ex = exercises.find((e) => e.id === id);
-              const isSelected = id === selectedExId;
-              return (
-                <Pressable
-                  key={id}
-                  style={[
-                    styles.chip,
-                    { backgroundColor: isSelected ? theme.colors.primary : theme.colors.surface },
-                  ]}
-                  onPress={() => setSelectedExId(id)}
-                >
+          {/* Search and Favorites Bar */}
+          <View style={styles.searchBarContainer}>
+            <TextInput
+              style={[
+                styles.searchBar,
+                {
+                  color: theme.colors.text,
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                },
+              ]}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search exercises..."
+              placeholderTextColor={theme.colors.muted}
+            />
+            <Pressable
+              style={[
+                styles.favoriteToggleBtn,
+                {
+                  backgroundColor: showOnlyFavorites ? '#FFB020' : theme.colors.surface,
+                  borderColor: theme.colors.border,
+                },
+              ]}
+              onPress={() => setShowOnlyFavorites(!showOnlyFavorites)}
+            >
+              <Ionicons
+                name={showOnlyFavorites ? 'star' : 'star-outline'}
+                size={20}
+                color={showOnlyFavorites ? theme.colors.background : theme.colors.muted}
+              />
+            </Pressable>
+          </View>
+
+          {filteredExerciseIds.length === 0 ? (
+            <Text
+              style={[
+                {
+                  color: theme.colors.muted,
+                  ...theme.typography.body,
+                  marginTop: 12,
+                  marginBottom: 20,
+                },
+              ]}
+            >
+              No matching exercises found.
+            </Text>
+          ) : (
+            <>
+              <HorizontalFadeScroll style={styles.chipScroll}>
+                {filteredExerciseIds.map((id) => {
+                  const ex = exercises.find((e) => e.id === id);
+                  const isSelected = id === selectedExId;
+                  return (
+                    <Pressable
+                      key={id}
+                      style={[
+                        styles.chip,
+                        {
+                          backgroundColor: isSelected ? theme.colors.primary : theme.colors.surface,
+                        },
+                      ]}
+                      onPress={() => setSelectedExId(id)}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          {
+                            color: isSelected ? theme.colors.background : theme.colors.muted,
+                            ...theme.typography.caption,
+                          },
+                        ]}
+                      >
+                        {ex?.name || 'Unknown'}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </HorizontalFadeScroll>
+              {selectedExId && prs[selectedExId] !== undefined && (
+                <Card style={styles.prHighlight} padding="md">
                   <Text
                     style={[
-                      styles.chipText,
-                      {
-                        color: isSelected ? theme.colors.background : theme.colors.muted,
-                        ...theme.typography.caption,
-                      },
+                      styles.prHighlightLabel,
+                      { color: theme.colors.muted, ...theme.typography.caption },
                     ]}
                   >
-                    {ex?.name || 'Unknown'}
+                    BEST WEIGHT
                   </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-          {selectedExId && prs[selectedExId] !== undefined && (
-            <Card style={styles.prHighlight} padding="md">
-              <Text
-                style={[
-                  styles.prHighlightLabel,
-                  { color: theme.colors.muted, ...theme.typography.caption },
-                ]}
-              >
-                BEST WEIGHT
-              </Text>
-              <Text
-                style={[
-                  styles.prHighlightValue,
-                  { color: theme.colors.primary, ...theme.typography.display, fontSize: 32 },
-                ]}
-              >
-                {(() => {
-                  const rawVal = prs[selectedExId]!;
-                  const converted = isImperial ? rawVal * 2.20462 : rawVal;
-                  const roundedDown = Math.floor(converted * 100) / 100;
-                  return roundedDown.toFixed(2);
-                })()}{' '}
-                {isImperial ? 'lbs' : 'kg'}
-              </Text>
-            </Card>
+                  <Text
+                    style={[
+                      styles.prHighlightValue,
+                      { color: theme.colors.primary, ...theme.typography.display, fontSize: 32 },
+                    ]}
+                  >
+                    {(() => {
+                      const rawVal = prs[selectedExId]!;
+                      const converted = isImperial ? rawVal * 2.20462 : rawVal;
+                      const roundedDown = Math.floor(converted * 100) / 100;
+                      return roundedDown.toFixed(2);
+                    })()}{' '}
+                    {isImperial ? 'lbs' : 'kg'}
+                  </Text>
+                </Card>
+              )}
+              {renderChart()}
+
+              {selectedExId && progressDetails && (
+                <Card style={styles.progressionDetailsCard} padding="md">
+                  <Text style={[styles.detailsSectionTitle, { color: theme.colors.text }]}>
+                    PROGRESSION DETAILS
+                  </Text>
+
+                  <View style={styles.detailsGrid}>
+                    {/* Weight Row */}
+                    <View style={[styles.detailsRow, { borderBottomColor: theme.colors.border }]}>
+                      <Text style={[styles.detailLabel, { color: theme.colors.muted }]}>
+                        Weight Progression
+                      </Text>
+                      <Text style={[styles.detailVal, { color: theme.colors.text }]}>
+                        {(() => {
+                          const init = progressDetails.initialWeight;
+                          const lat = progressDetails.latestWeight;
+                          const initDisp = isImperial ? init * 2.20462 : init;
+                          const latDisp = isImperial ? lat * 2.20462 : lat;
+                          const diff = lat - init;
+                          const diffDisp = isImperial ? diff * 2.20462 : diff;
+                          const percent = init > 0 ? (diff / init) * 100 : 0;
+
+                          return `${initDisp.toFixed(1)} → ${latDisp.toFixed(1)} ${isImperial ? 'lbs' : 'kg'} (${diff >= 0 ? '+' : ''}${diffDisp.toFixed(1)} / ${diff >= 0 ? '+' : ''}${percent.toFixed(0)}%)`;
+                        })()}
+                      </Text>
+                    </View>
+
+                    {/* e1RM Row */}
+                    <View style={[styles.detailsRow, { borderBottomColor: theme.colors.border }]}>
+                      <Text style={[styles.detailLabel, { color: theme.colors.muted }]}>
+                        Estimated 1RM
+                      </Text>
+                      <Text style={[styles.detailVal, { color: theme.colors.text }]}>
+                        {(() => {
+                          const init = progressDetails.initialE1RM;
+                          const lat = progressDetails.latestE1RM;
+                          const peak = progressDetails.peakE1RM;
+
+                          const unit = isImperial ? 'lbs' : 'kg';
+                          const initVal = isImperial ? init * 2.20462 : init;
+                          const latVal = isImperial ? lat * 2.20462 : lat;
+                          const peakVal = isImperial ? peak * 2.20462 : peak;
+
+                          return `Init: ${initVal.toFixed(1)} | Peak: ${peakVal.toFixed(1)} | Latest: ${latVal.toFixed(1)} ${unit}`;
+                        })()}
+                      </Text>
+                    </View>
+
+                    {/* Avg Reps / RPE */}
+                    <View
+                      style={[
+                        styles.detailsRowSideBySide,
+                        { borderBottomColor: theme.colors.border },
+                      ]}
+                    >
+                      <View style={styles.detailHalf}>
+                        <Text style={[styles.detailLabel, { color: theme.colors.muted }]}>
+                          Avg Reps/Set
+                        </Text>
+                        <Text style={[styles.detailVal, { color: theme.colors.text }]}>
+                          {progressDetails.avgReps} reps
+                        </Text>
+                      </View>
+                      <View style={styles.detailHalf}>
+                        <Text style={[styles.detailLabel, { color: theme.colors.muted }]}>
+                          Avg Intensity (RPE)
+                        </Text>
+                        <Text style={[styles.detailVal, { color: theme.colors.text }]}>
+                          {progressDetails.avgRpe}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Total Sets & Workouts */}
+                    <View style={[styles.detailsRow, { borderBottomWidth: 0 }]}>
+                      <Text style={[styles.detailLabel, { color: theme.colors.muted }]}>
+                        Training Volume
+                      </Text>
+                      <Text style={[styles.detailVal, { color: theme.colors.text }]}>
+                        {progressDetails.totalSets} sets across {progressDetails.totalWorkouts}{' '}
+                        sessions
+                      </Text>
+                    </View>
+                  </View>
+                </Card>
+              )}
+            </>
           )}
-          {renderChart()}
         </>
       )}
     </ScrollView>
@@ -1422,7 +1702,13 @@ const styles = StyleSheet.create({
   },
   prHighlightLabel: { marginBottom: 8 },
   prHighlightValue: {},
-  chartContainer: { borderRadius: 16, padding: 16, borderWidth: 1, alignItems: 'center' },
+  chartContainer: {
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
   chartTitle: { alignSelf: 'flex-start', marginBottom: 16 },
   levelCard: {
     marginBottom: 32,
@@ -1430,11 +1716,16 @@ const styles = StyleSheet.create({
   levelHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
+    alignItems: 'center',
     marginBottom: 16,
+    gap: 8,
   },
-  levelTitle: {},
-  xpText: {},
+  levelTitle: {
+    flexShrink: 1,
+  },
+  xpText: {
+    flexShrink: 0,
+  },
   progressBarBg: {
     height: 8,
     borderRadius: 4,
@@ -1686,30 +1977,31 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 0.5,
   },
-  consistencyDays: {
+  calendarRow: {
     flexDirection: 'row',
     gap: 8,
+    marginBottom: 8,
   },
-  consistencyDaysWeek: {
-    justifyContent: 'space-between',
+  weekdayHeader: {
+    flex: 1,
+    textAlign: 'center',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 10,
   },
-  consistencyDaysMonth: {
-    flexWrap: 'wrap',
+  consistencyDayPlaceholder: {
+    flex: 1,
+    minHeight: 68,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
   },
   consistencyDay: {
     flex: 1,
-    minWidth: 40,
-    minHeight: 82,
+    minHeight: 68,
     borderWidth: 1,
     borderRadius: 10,
     padding: 6,
     alignItems: 'center',
-  },
-  consistencyDayMonth: {
-    flexBasis: '12.8%',
-    flexGrow: 0,
-    minWidth: 0,
-    minHeight: 68,
   },
   consistencyDayLabel: {
     fontFamily: 'SpaceGrotesk_700Bold',
@@ -1836,5 +2128,70 @@ const styles = StyleSheet.create({
   daySessionMeta: {
     fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 12,
+  },
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+    width: '100%',
+  },
+  searchBar: {
+    flex: 1,
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 14,
+  },
+  favoriteToggleBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressionDetailsCard: {
+    marginTop: 24,
+    marginBottom: 16,
+    width: '100%',
+  },
+  detailsSectionTitle: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 14,
+    letterSpacing: 0.5,
+    marginBottom: 16,
+    textTransform: 'uppercase',
+  },
+  detailsGrid: {
+    flexDirection: 'column',
+    width: '100%',
+  },
+  detailsRow: {
+    flexDirection: 'column',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    width: '100%',
+  },
+  detailsRowSideBySide: {
+    flexDirection: 'row',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    width: '100%',
+  },
+  detailHalf: {
+    flex: 1,
+  },
+  detailLabel: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  detailVal: {
+    fontFamily: 'Manrope_600SemiBold',
+    fontSize: 14,
   },
 });

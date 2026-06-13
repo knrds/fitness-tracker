@@ -43,6 +43,7 @@ export interface Profile {
   rpeEnabledExerciseIds?: string[];
   rirEnabledExerciseIds?: string[];
   profileImageUri?: string;
+  showExerciseDeleteConfirmation?: boolean;
 }
 
 export interface ProfileState {
@@ -67,6 +68,7 @@ const defaultProfile: Profile = {
   rirMode: 'always_on',
   rpeEnabledExerciseIds: [],
   rirEnabledExerciseIds: [],
+  showExerciseDeleteConfirmation: true,
 };
 
 const profileStateSchema = z.object({
@@ -87,6 +89,7 @@ const profileStateSchema = z.object({
   rpeEnabledExerciseIds: z.array(z.string()).optional(),
   rirEnabledExerciseIds: z.array(z.string()).optional(),
   profileImageUri: z.string().optional(),
+  showExerciseDeleteConfirmation: z.boolean().optional(),
 });
 
 const profilePersistedSchema = z.object({

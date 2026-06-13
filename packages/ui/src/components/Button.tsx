@@ -6,6 +6,8 @@ import {
   Text,
   ActivityIndicator,
   Platform,
+  StyleProp,
+  TextStyle,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -20,6 +22,7 @@ export interface ButtonProps extends PressableProps {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   title: string;
   isLoading?: boolean;
+  textStyle?: StyleProp<TextStyle>;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -31,6 +34,7 @@ export const Button: React.FC<ButtonProps> = ({
   disabled,
   onPress,
   style,
+  textStyle,
   ...props
 }) => {
   const theme = useTheme();
@@ -111,7 +115,9 @@ export const Button: React.FC<ButtonProps> = ({
       {isLoading ? (
         <ActivityIndicator color={textColor} />
       ) : (
-        <Text style={[styles.text, { color: textColor, ...theme.typography.button }]}>{title}</Text>
+        <Text style={[styles.text, { color: textColor, ...theme.typography.button }, textStyle]}>
+          {title}
+        </Text>
       )}
     </AnimatedPressable>
   );
@@ -127,5 +133,7 @@ const styles = StyleSheet.create({
   },
   text: {
     textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
   },
 });

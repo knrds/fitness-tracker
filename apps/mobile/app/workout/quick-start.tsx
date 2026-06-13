@@ -147,7 +147,12 @@ export default function QuickStartScreen() {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <Pressable onPress={() => router.back()} hitSlop={15} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+          <Ionicons
+            name="arrow-back"
+            size={24}
+            color={theme.colors.primary}
+            style={{ alignSelf: 'center' }}
+          />
         </Pressable>
         <View style={styles.headerTextContainer}>
           <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Quick Start</Text>

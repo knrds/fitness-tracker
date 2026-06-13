@@ -5,23 +5,25 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   Pressable,
+  ScrollView,
 } from 'react-native';
 import { useRouter, Href } from 'expo-router';
-import { useTheme, Input, Button } from '@fitness-tracker/ui';
+import { useTheme, Input, Button, useDialog } from '@fitness-tracker/ui';
 import { useAuthStore } from '../../src/stores/authStore';
 
 export default function LoginScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { showAlert } = useDialog();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { signIn, isLoading } = useAuthStore();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      return Alert.alert('Error', 'Please fill in all fields.');
+      await showAlert({ title: 'Error', message: 'Please fill in all fields.', tone: 'danger' });
+      return;
     }
 
     try {
@@ -31,13 +33,13 @@ export default function LoginScreen() {
       });
 
       if (result.error) {
-        Alert.alert('Login Failed', result.error);
+        await showAlert({ title: 'Login Failed', message: result.error, tone: 'danger' });
       } else {
         // Auth state listener in _layout.tsx will navigate to (tabs) automatically
       }
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'An unexpected error occurred.';
-      Alert.alert('Error', errMsg);
+      await showAlert({ title: 'Error', message: errMsg, tone: 'danger' });
     }
   };
 
@@ -46,7 +48,11 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+      >
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.colors.text }]}>VOLT</Text>
           <Text style={[styles.subtitle, { color: theme.colors.primary }]}>PERFORMANCE</Text>
@@ -88,7 +94,7 @@ export default function LoginScreen() {
             <Text style={[styles.link, { color: theme.colors.primary }]}>Sign Up</Text>
           </Pressable>
         </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -98,7 +104,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
   },

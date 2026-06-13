@@ -19,6 +19,7 @@ import { Image } from 'expo-image';
 import { useExerciseStore } from '../../stores/exerciseStore';
 import { useHistoryStore } from '../../stores/historyStore';
 import { CustomExerciseModal } from '../exercises/CustomExerciseModal';
+import { KeyboardDoneAccessory, KEYBOARD_DONE_ID } from './KeyboardDoneAccessory';
 
 interface Props {
   visible: boolean;
@@ -266,6 +267,7 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
               onChangeText={setSearch}
               placeholderTextColor={theme.colors.muted}
               autoFocus
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
             />
           </View>
         </View>
@@ -341,6 +343,7 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
       </SafeAreaView>
 
       <CustomExerciseModal visible={customExVisible} onClose={() => setCustomExVisible(false)} />
+      <KeyboardDoneAccessory />
     </Modal>
   );
 };

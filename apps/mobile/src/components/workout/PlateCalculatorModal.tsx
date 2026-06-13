@@ -82,6 +82,7 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
     }
   });
   visualPlates.sort((a, b) => b - a);
+  const visualizerScale = Math.max(0.72, Math.min(1, 8 / Math.max(8, visualPlates.length)));
 
   const AVAILABLE_PLATES = [25, 20, 15, 10, 5, 2.5, 1.25];
 
@@ -180,143 +181,159 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
             </Pressable>
           </View>
 
-          <View
-            style={[
-              styles.barbellAlert,
-              {
-                backgroundColor: theme.colors.background,
-                borderColor: theme.colors.primary + '33',
-              },
-            ]}
+          <ScrollView
+            style={styles.bodyScroll}
+            contentContainerStyle={styles.bodyScrollContent}
+            keyboardShouldPersistTaps="handled"
+            automaticallyAdjustKeyboardInsets
+            showsVerticalScrollIndicator={false}
           >
-            <Ionicons name="information-circle-outline" size={18} color={theme.colors.primary} />
-            <Text style={[styles.barbellAlertText, { color: theme.colors.text }]}>
-              Calculations are based on a standard{' '}
-              <Text style={{ color: theme.colors.primary, fontFamily: 'SpaceGrotesk_700Bold' }}>
-                20 kg (44 lbs)
-              </Text>{' '}
-              barbell.
-            </Text>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: theme.colors.muted }]}>Target Weight</Text>
             <View
               style={[
-                styles.inputRow,
-                { backgroundColor: theme.colors.background, borderColor: theme.colors.border },
+                styles.barbellAlert,
+                {
+                  backgroundColor: theme.colors.background,
+                  borderColor: theme.colors.primary + '33',
+                },
               ]}
             >
-              <TextInput
-                style={[styles.input, { color: theme.colors.text }]}
-                value={inputWeight}
-                onChangeText={setInputWeight}
-                placeholder="0.0"
-                keyboardType="numeric"
-                placeholderTextColor={theme.colors.muted}
-                autoFocus
-              />
-              <Text style={[styles.unitText, { color: theme.colors.muted }]}>
-                {isImperial ? 'lbs' : 'kg'}
+              <Ionicons name="information-circle-outline" size={18} color={theme.colors.primary} />
+              <Text style={[styles.barbellAlertText, { color: theme.colors.text }]}>
+                Calculations are based on a standard{' '}
+                <Text style={{ color: theme.colors.primary, fontFamily: 'SpaceGrotesk_700Bold' }}>
+                  20 kg (44 lbs)
+                </Text>{' '}
+                barbell.
               </Text>
             </View>
-          </View>
 
-          {/* Load Plates Row */}
-          <View style={styles.addPlatesContainer}>
-            <Text style={[styles.inputLabel, { color: theme.colors.muted }]}>
-              Load Plates (per side)
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.platesScroll}
-            >
-              {AVAILABLE_PLATES.map((weight) => {
-                const meta = PLATE_METADATA[weight] || { color: '#94a3b8', labelColor: '#ffffff' };
-                const displayWeight = isImperial ? weight * 2.20462 : weight;
-                const formattedWeight = displayWeight.toFixed(1).replace(/\.0$/, '');
-                return (
-                  <Pressable
-                    key={weight}
-                    style={[styles.addPlateChip, { backgroundColor: meta.color }]}
-                    onPress={() => handleAddPlate(weight)}
-                  >
-                    <Text style={[styles.addPlateChipText, { color: meta.labelColor }]}>
-                      +{formattedWeight} {isImperial ? 'lb' : 'kg'}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-              <Pressable
-                style={[styles.resetBarBtn, { borderColor: theme.colors.border }]}
-                onPress={() => setInputWeight(isImperial ? '44' : '20')}
+            <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, { color: theme.colors.muted }]}>Target Weight</Text>
+              <View
+                style={[
+                  styles.inputRow,
+                  { backgroundColor: theme.colors.background, borderColor: theme.colors.border },
+                ]}
               >
-                <Ionicons name="refresh-outline" size={16} color={theme.colors.accent} />
-                <Text style={[styles.resetBarBtnText, { color: theme.colors.accent }]}>Clear</Text>
-              </Pressable>
-            </ScrollView>
-          </View>
-
-          {targetWeightKg > 20 && (
-            <View
-              style={[
-                styles.visualizerContainer,
-                { backgroundColor: theme.colors.background, borderColor: theme.colors.border },
-              ]}
-            >
-              <View style={styles.barbellSleeve} />
-              <View style={[styles.platesWrapper, { flexDirection: 'row-reverse' }]}>
-                {visualPlates.map((weight, idx) => renderPlate(weight, `left-${idx}`))}
+                <TextInput
+                  style={[styles.input, { color: theme.colors.text }]}
+                  value={inputWeight}
+                  onChangeText={setInputWeight}
+                  placeholder="0.0"
+                  keyboardType="numeric"
+                  placeholderTextColor={theme.colors.muted}
+                  autoFocus
+                  returnKeyType="done"
+                />
+                <Text style={[styles.unitText, { color: theme.colors.muted }]}>
+                  {isImperial ? 'lbs' : 'kg'}
+                </Text>
               </View>
-              <View style={styles.barbellCollar} />
-              <View style={styles.barbellCenter} />
-              <View style={styles.barbellCollar} />
-              <View style={[styles.platesWrapper, { flexDirection: 'row' }]}>
-                {visualPlates.map((weight, idx) => renderPlate(weight, `right-${idx}`))}
-              </View>
-              <View style={styles.barbellSleeve} />
             </View>
-          )}
 
-          <ScrollView style={styles.summaryList}>
-            {targetWeightKg <= 20 ? (
-              <View style={styles.emptyState}>
-                <Text style={[styles.emptyText, { color: theme.colors.muted }]}>
-                  {targetWeightKg > 0
-                    ? 'Barbell only (20 kg / 44 lbs).'
-                    : 'Enter a weight greater than 20 kg.'}
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.summaryContainer}>
-                <Text style={[styles.summaryHeader, { color: theme.colors.muted }]}>
-                  Plates per side (Tap to remove)
-                </Text>
-                {platesPerSide.map((item, idx) => {
-                  const displayWeight = isImperial ? item.weight * 2.20462 : item.weight;
+            {/* Load Plates Row */}
+            <View style={styles.addPlatesContainer}>
+              <Text style={[styles.inputLabel, { color: theme.colors.muted }]}>
+                Load Plates (per side)
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.platesScroll}
+              >
+                {AVAILABLE_PLATES.map((weight) => {
+                  const meta = PLATE_METADATA[weight] || {
+                    color: '#94a3b8',
+                    labelColor: '#ffffff',
+                  };
+                  const displayWeight = isImperial ? weight * 2.20462 : weight;
                   const formattedWeight = displayWeight.toFixed(1).replace(/\.0$/, '');
                   return (
                     <Pressable
-                      key={idx}
-                      style={styles.summaryRow}
-                      onPress={() => handleRemovePlate(item.weight)}
+                      key={weight}
+                      style={[styles.addPlateChip, { backgroundColor: meta.color }]}
+                      onPress={() => handleAddPlate(weight)}
                     >
-                      <View
-                        style={[
-                          styles.colorIndicator,
-                          { backgroundColor: PLATE_METADATA[item.weight]?.color || '#94a3b8' },
-                        ]}
-                      />
-                      <Text style={[styles.summaryText, { color: theme.colors.text }]}>
-                        <Text style={styles.boldText}>{item.count}×</Text> {item.weight} kg{' '}
-                        {isImperial ? `(${formattedWeight} lbs)` : ''}
+                      <Text style={[styles.addPlateChipText, { color: meta.labelColor }]}>
+                        +{formattedWeight} {isImperial ? 'lb' : 'kg'}
                       </Text>
                     </Pressable>
                   );
                 })}
+                <Pressable
+                  style={[styles.resetBarBtn, { borderColor: theme.colors.border }]}
+                  onPress={() => setInputWeight(isImperial ? '44' : '20')}
+                >
+                  <Ionicons name="refresh-outline" size={16} color={theme.colors.accent} />
+                  <Text style={[styles.resetBarBtnText, { color: theme.colors.accent }]}>
+                    Clear
+                  </Text>
+                </Pressable>
+              </ScrollView>
+            </View>
+
+            {targetWeightKg > 20 && (
+              <View
+                style={[
+                  styles.visualizerContainer,
+                  { backgroundColor: theme.colors.background, borderColor: theme.colors.border },
+                ]}
+              >
+                <View style={[styles.visualizerInner, { transform: [{ scale: visualizerScale }] }]}>
+                  <View style={styles.barbellSleeve} />
+                  <View style={[styles.platesWrapper, { flexDirection: 'row-reverse' }]}>
+                    {visualPlates.map((weight, idx) => renderPlate(weight, `left-${idx}`))}
+                  </View>
+                  <View style={styles.barbellCollar} />
+                  <View style={styles.barbellCenter} />
+                  <View style={styles.barbellCollar} />
+                  <View style={[styles.platesWrapper, { flexDirection: 'row' }]}>
+                    {visualPlates.map((weight, idx) => renderPlate(weight, `right-${idx}`))}
+                  </View>
+                  <View style={styles.barbellSleeve} />
+                </View>
               </View>
             )}
+
+            <ScrollView style={styles.summaryList} indicatorStyle="white">
+              {targetWeightKg <= 20 ? (
+                <View style={styles.emptyState}>
+                  <Text style={[styles.emptyText, { color: theme.colors.muted }]}>
+                    {targetWeightKg > 0
+                      ? 'Barbell only (20 kg / 44 lbs).'
+                      : 'Enter a weight greater than 20 kg.'}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.summaryContainer}>
+                  <Text style={[styles.summaryHeader, { color: theme.colors.muted }]}>
+                    Plates per side (Tap to remove)
+                  </Text>
+                  {platesPerSide.map((item, idx) => {
+                    const displayWeight = isImperial ? item.weight * 2.20462 : item.weight;
+                    const formattedWeight = displayWeight.toFixed(1).replace(/\.0$/, '');
+                    return (
+                      <Pressable
+                        key={idx}
+                        style={styles.summaryRow}
+                        onPress={() => handleRemovePlate(item.weight)}
+                      >
+                        <View
+                          style={[
+                            styles.colorIndicator,
+                            { backgroundColor: PLATE_METADATA[item.weight]?.color || '#94a3b8' },
+                          ]}
+                        />
+                        <Text style={[styles.summaryText, { color: theme.colors.text }]}>
+                          <Text style={styles.boldText}>{item.count}×</Text> {item.weight} kg{' '}
+                          {isImperial ? `(${formattedWeight} lbs)` : ''}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
+            </ScrollView>
           </ScrollView>
 
           <Pressable
@@ -351,7 +368,13 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
     padding: 24,
-    maxHeight: '80%',
+    maxHeight: '88%',
+  },
+  bodyScroll: {
+    width: '100%',
+  },
+  bodyScrollContent: {
+    paddingBottom: 8,
   },
   header: {
     flexDirection: 'row',
@@ -407,6 +430,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingHorizontal: 8,
     overflow: 'hidden',
+  },
+  visualizerInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
   },
   barbellSleeve: {
     width: 18,
@@ -484,6 +513,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     height: 52,
+    minHeight: 52,
     alignItems: 'center',
     justifyContent: 'center',
   },

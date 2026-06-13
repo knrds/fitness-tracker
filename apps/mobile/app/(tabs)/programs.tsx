@@ -13,9 +13,14 @@ import {
   PanResponder,
   Animated,
   ViewStyle,
+  LayoutAnimation,
+  Dimensions,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Crypto from 'expo-crypto';
+import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@fitness-tracker/ui';
 
@@ -43,66 +48,183 @@ export default function ProgramListScreen() {
   const [durationWeeks, setDurationWeeks] = useState('4');
 
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const activeDragIdRef = useRef<string | null>(null);
+  const isDraggingActiveRef = useRef(false);
   const dragY = useRef(new Animated.Value(0)).current;
   const draggingProgramRef = useRef<Program | null>(null);
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const itemLayouts = useRef<Record<string, { y: number; height: number }>>({});
+  const dragScale = useRef(new Animated.Value(1)).current;
+  const dragTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const hoverIndexRef = useRef<number | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollYRef = useRef(0);
+  const autoScrollInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startAutoScroll = (direction: 'up' | 'down') => {
+    if (autoScrollInterval.current) return;
+    autoScrollInterval.current = setInterval(() => {
+      const currentScrollY = scrollYRef.current;
+      const step = 10;
+      const newScrollY =
+        direction === 'up' ? Math.max(0, currentScrollY - step) : currentScrollY + step;
+      scrollViewRef.current?.scrollTo({ y: newScrollY, animated: false });
+    }, 16);
+  };
+
+  const stopAutoScroll = () => {
+    if (autoScrollInterval.current) {
+      clearInterval(autoScrollInterval.current);
+      autoScrollInterval.current = null;
+    }
+  };
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollYRef.current = event.nativeEvent.contentOffset.y;
+  };
 
   const panResponder = useMemo(() => {
     return PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (e, gestureState) => {
-        return Math.abs(gestureState.dy) > 5;
+        return Math.abs(gestureState.dy) > 2;
       },
       onPanResponderGrant: () => {
         const p = draggingProgramRef.current;
         if (p) {
+          activeDragIdRef.current = p.id;
+          isDraggingActiveRef.current = true;
           setActiveDragId(p.id);
           setScrollEnabled(false);
           dragY.setValue(0);
+          dragScale.setValue(1);
+          Animated.spring(dragScale, {
+            toValue: 1.03,
+            useNativeDriver: true,
+            tension: 100,
+            friction: 6,
+          }).start();
+          if (Platform.OS !== 'web') {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+          }
         }
       },
       onPanResponderMove: (e, gestureState) => {
+        if (!activeDragIdRef.current) return;
         dragY.setValue(gestureState.dy);
-      },
-      onPanResponderRelease: (e, gestureState) => {
         const p = draggingProgramRef.current;
         if (p) {
-          const layout = itemLayouts.current[p.id];
-          if (layout) {
-            const dropY = layout.y + gestureState.dy;
-            const otherPrograms = programs.filter((item) => item.id !== p.id);
-            let insertIndex = 0;
-            for (let i = 0; i < otherPrograms.length; i++) {
-              const otherProg = otherPrograms[i];
-              if (otherProg) {
-                const otherId = otherProg.id;
-                const otherLayout = itemLayouts.current[otherId];
-                if (otherLayout) {
-                  const centerY = otherLayout.y + otherLayout.height / 2;
-                  if (dropY > centerY) {
-                    insertIndex = i + 1;
-                  }
-                }
-              }
-            }
+          const dragIndex = programs.findIndex((item) => item.id === p.id);
+          if (dragIndex !== -1) {
+            const S = 100; // Item height (88) + gap (12)
+            const step = Math.round(gestureState.dy / S);
+            const targetIndex = Math.max(0, Math.min(programs.length - 1, dragIndex + step));
+            const insertIndex = targetIndex;
 
+            if (insertIndex !== hoverIndexRef.current) {
+              hoverIndexRef.current = insertIndex;
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              setHoverIndex(insertIndex);
+            }
+          }
+        }
+
+        // Auto scroll when dragging near screen edges
+        const { height: screenHeight } = Dimensions.get('window');
+        const touchY = gestureState.moveY;
+        if (touchY > 0 && touchY < 180) {
+          startAutoScroll('up');
+        } else if (touchY > screenHeight - 140) {
+          startAutoScroll('down');
+        } else {
+          stopAutoScroll();
+        }
+      },
+      onPanResponderRelease: (e, gestureState) => {
+        stopAutoScroll();
+        if (dragTimeoutRef.current) {
+          clearTimeout(dragTimeoutRef.current);
+        }
+        isDraggingActiveRef.current = false;
+        const p = draggingProgramRef.current;
+        draggingProgramRef.current = null;
+        if (!activeDragIdRef.current) {
+          activeDragIdRef.current = null;
+          setActiveDragId(null);
+          hoverIndexRef.current = null;
+          setHoverIndex(null);
+          setScrollEnabled(true);
+          dragY.setValue(0);
+          return;
+        }
+        activeDragIdRef.current = null;
+        if (p) {
+          const dragIndex = programs.findIndex((item) => item.id === p.id);
+          if (dragIndex !== -1) {
+            const S = 100;
+            const step = Math.round(gestureState.dy / S);
+            const targetIndex = Math.max(0, Math.min(programs.length - 1, dragIndex + step));
+            const insertIndex = targetIndex;
+
+            const otherPrograms = programs.filter((item) => item.id !== p.id);
             const reordered = [...otherPrograms];
             reordered.splice(insertIndex, 0, p);
             updateProgramsOrder(reordered);
           }
         }
-        setActiveDragId(null);
-        setScrollEnabled(true);
-        dragY.setValue(0);
+        Animated.parallel([
+          Animated.spring(dragY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 8,
+          }),
+          Animated.spring(dragScale, {
+            toValue: 1,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 8,
+          }),
+        ]).start(() => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setActiveDragId(null);
+          hoverIndexRef.current = null;
+          setHoverIndex(null);
+          setScrollEnabled(true);
+        });
       },
       onPanResponderTerminate: () => {
-        setActiveDragId(null);
-        setScrollEnabled(true);
-        dragY.setValue(0);
+        stopAutoScroll();
+        if (dragTimeoutRef.current) {
+          clearTimeout(dragTimeoutRef.current);
+        }
+        draggingProgramRef.current = null;
+        activeDragIdRef.current = null;
+        isDraggingActiveRef.current = false;
+        Animated.parallel([
+          Animated.spring(dragY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 8,
+          }),
+          Animated.spring(dragScale, {
+            toValue: 1,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 8,
+          }),
+        ]).start(() => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setActiveDragId(null);
+          hoverIndexRef.current = null;
+          setHoverIndex(null);
+          setScrollEnabled(true);
+        });
       },
     });
-  }, [programs, updateProgramsOrder]);
+  }, [programs]);
 
   const handleCreateProgram = () => {
     if (!name.trim()) {
@@ -348,15 +470,44 @@ export default function ProgramListScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.list} scrollEnabled={scrollEnabled}>
+      <ScrollView
+        ref={scrollViewRef}
+        contentContainerStyle={styles.list}
+        scrollEnabled={scrollEnabled}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
         {renderHeader()}
         {programs.map((item) => {
           const isDraggingThis = item.id === activeDragId;
+          const otherPrograms = programs.filter((p) => p.id !== activeDragId);
+          const isHovered =
+            activeDragId !== null &&
+            hoverIndex !== null &&
+            otherPrograms[hoverIndex]?.id === item.id;
+
+          let shiftY = 0;
+          if (activeDragId !== null && hoverIndex !== null && !isDraggingThis) {
+            const dragIndex = programs.findIndex((p) => p.id === activeDragId);
+            const myIndex = programs.findIndex((p) => p.id === item.id);
+            const totalShift = 100; // Item height (88) + gap (12)
+
+            if (myIndex < dragIndex) {
+              if (myIndex >= hoverIndex) {
+                shiftY = totalShift;
+              }
+            } else if (myIndex > dragIndex) {
+              if (myIndex < hoverIndex) {
+                shiftY = -totalShift;
+              }
+            }
+          }
+
           return (
             <Animated.View
               key={item.id}
               onLayout={(e) => {
-                if (activeDragId !== item.id) {
+                if (!isDraggingActiveRef.current && activeDragId !== item.id) {
                   itemLayouts.current[item.id] = {
                     y: e.nativeEvent.layout.y,
                     height: e.nativeEvent.layout.height,
@@ -365,8 +516,14 @@ export default function ProgramListScreen() {
               }}
               style={[
                 styles.card,
+                isHovered && {
+                  borderColor: '#90D5FF',
+                  borderWidth: 1.5,
+                  borderStyle: 'dashed',
+                  backgroundColor: 'rgba(144, 213, 255, 0.05)',
+                },
                 isDraggingThis && {
-                  transform: [{ translateY: dragY }],
+                  transform: [{ translateY: dragY }, { scale: dragScale }],
                   zIndex: 9999,
                   opacity: 0.85,
                   shadowColor: '#000',
@@ -375,6 +532,15 @@ export default function ProgramListScreen() {
                   shadowRadius: 6,
                   elevation: 5,
                 },
+                !isDraggingThis &&
+                  activeDragId !== null && {
+                    transform: [{ translateY: shiftY }],
+                  },
+                Platform.OS === 'web' &&
+                  activeDragId !== null &&
+                  ({
+                    transition: 'transform 0.2s ease',
+                  } as unknown as ViewStyle),
               ]}
             >
               <View style={styles.cardTopRow}>
@@ -382,9 +548,31 @@ export default function ProgramListScreen() {
                   style={[styles.dragHandle, { cursor: 'grab' } as unknown as ViewStyle]}
                   onPointerDown={() => {
                     draggingProgramRef.current = item;
+                    activeDragIdRef.current = item.id;
+                    setActiveDragId(item.id);
+                    setScrollEnabled(false);
                   }}
                   onTouchStart={() => {
                     draggingProgramRef.current = item;
+                    activeDragIdRef.current = item.id;
+                    setActiveDragId(item.id);
+                    setScrollEnabled(false);
+                  }}
+                  onPointerUp={() => {
+                    if (!isDraggingActiveRef.current) {
+                      draggingProgramRef.current = null;
+                      activeDragIdRef.current = null;
+                      setActiveDragId(null);
+                      setScrollEnabled(true);
+                    }
+                  }}
+                  onTouchEnd={() => {
+                    if (!isDraggingActiveRef.current) {
+                      draggingProgramRef.current = null;
+                      activeDragIdRef.current = null;
+                      setActiveDragId(null);
+                      setScrollEnabled(true);
+                    }
                   }}
                   {...panResponder.panHandlers}
                 >

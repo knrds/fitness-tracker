@@ -1,5 +1,14 @@
 import React from 'react';
-import { Animated, Dimensions, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Animated,
+  Dimensions,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { summarizeSessionExercise, summarizeWorkout } from '@fitness-tracker/domain';
@@ -222,9 +231,7 @@ export const WorkoutCompleteModal = () => {
 
     if (summary.durationSeconds > 0 && summary.totalVolume > 0) {
       const volumePerHour = Math.round((summary.totalVolume / summary.durationSeconds) * 3600);
-      const displayVolumePerHour = isImperial
-        ? Math.round(volumePerHour * 2.20462)
-        : volumePerHour;
+      const displayVolumePerHour = isImperial ? Math.round(volumePerHour * 2.20462) : volumePerHour;
       facts.push(
         `Density check: this session moved about ${displayVolumePerHour} ${unit} per hour. Useful when comparing similar workouts later.`,
       );
@@ -260,7 +267,9 @@ export const WorkoutCompleteModal = () => {
       'Science tip: muscle growth is less about one magical rep range and more about hard, trackable sets with enough recovery.',
     );
 
-    return facts[getDeterministicIndex([lastFinishedSession.id, String(summary.setCount)], facts.length)]!;
+    return facts[
+      getDeterministicIndex([lastFinishedSession.id, String(summary.setCount)], facts.length)
+    ]!;
   };
 
   const getCaffeineFunFact = (caffeineMg: number): string | null => {
@@ -301,71 +310,77 @@ export const WorkoutCompleteModal = () => {
           ]}
           onPress={(e) => e.stopPropagation()}
         >
-          <View style={styles.iconContainer}>
-            <Ionicons name="barbell" size={48} color={theme.colors.primary} />
-          </View>
-
-          <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
-            WORKOUT COMPLETED!
-          </Text>
-          <Text style={[styles.subtitle, { color: theme.colors.muted }]}>
-            Great session! Here is what you achieved today:
-          </Text>
-
-          <View style={styles.statsRow}>
-            <View style={styles.statBox}>
-              <Text
-                style={[
-                  styles.statVal,
-                  { color: theme.colors.primary, ...theme.typography.display },
-                ]}
-              >
-                {formatDuration(summary.durationSeconds)}
-              </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.muted }]}>TIME</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text
-                style={[
-                  styles.statVal,
-                  { color: theme.colors.primary, ...theme.typography.display },
-                ]}
-              >
-                {summary.setCount}
-              </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.muted }]}>SETS</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text
-                style={[
-                  styles.statVal,
-                  { color: theme.colors.primary, ...theme.typography.display },
-                ]}
-              >
-                {displayVolVal}
-              </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.muted }]}>
-                {isImperial ? 'LBS' : 'KG'}
-              </Text>
-            </View>
-          </View>
-
-          <View
-            style={[
-              styles.factContainer,
-              { backgroundColor: theme.colors.background, borderColor: theme.colors.border },
-            ]}
+          <ScrollView
+            style={styles.contentScroll}
+            contentContainerStyle={styles.contentScrollInner}
+            showsVerticalScrollIndicator={false}
           >
-            <Text style={[styles.factTitle, { color: theme.colors.primary }]}>💡 FUN FACT</Text>
-            <Text style={[styles.factText, { color: theme.colors.text }]}>
-              {workoutFact}
+            <View style={styles.iconContainer}>
+              <Ionicons name="barbell" size={48} color={theme.colors.primary} />
+            </View>
+
+            <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
+              WORKOUT COMPLETED!
             </Text>
-            {caffeineFact && (
-              <Text style={[styles.factText, styles.factTextSecondary, { color: theme.colors.text }]}>
-                {caffeineFact}
-              </Text>
-            )}
-          </View>
+            <Text style={[styles.subtitle, { color: theme.colors.muted }]}>
+              Great session! Here is what you achieved today:
+            </Text>
+
+            <View style={styles.statsRow}>
+              <View style={styles.statBox}>
+                <Text
+                  style={[
+                    styles.statVal,
+                    { color: theme.colors.primary, ...theme.typography.display },
+                  ]}
+                >
+                  {formatDuration(summary.durationSeconds)}
+                </Text>
+                <Text style={[styles.statLabel, { color: theme.colors.muted }]}>TIME</Text>
+              </View>
+              <View style={styles.statBox}>
+                <Text
+                  style={[
+                    styles.statVal,
+                    { color: theme.colors.primary, ...theme.typography.display },
+                  ]}
+                >
+                  {summary.setCount}
+                </Text>
+                <Text style={[styles.statLabel, { color: theme.colors.muted }]}>SETS</Text>
+              </View>
+              <View style={styles.statBox}>
+                <Text
+                  style={[
+                    styles.statVal,
+                    { color: theme.colors.primary, ...theme.typography.display },
+                  ]}
+                >
+                  {displayVolVal}
+                </Text>
+                <Text style={[styles.statLabel, { color: theme.colors.muted }]}>
+                  {isImperial ? 'LBS' : 'KG'}
+                </Text>
+              </View>
+            </View>
+
+            <View
+              style={[
+                styles.factContainer,
+                { backgroundColor: theme.colors.background, borderColor: theme.colors.border },
+              ]}
+            >
+              <Text style={[styles.factTitle, { color: theme.colors.primary }]}>💡 FUN FACT</Text>
+              <Text style={[styles.factText, { color: theme.colors.text }]}>{workoutFact}</Text>
+              {caffeineFact && (
+                <Text
+                  style={[styles.factText, styles.factTextSecondary, { color: theme.colors.text }]}
+                >
+                  {caffeineFact}
+                </Text>
+              )}
+            </View>
+          </ScrollView>
 
           <Pressable
             style={[
@@ -406,6 +421,14 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     padding: 24,
     alignItems: 'center',
+    maxHeight: '88%',
+  },
+  contentScroll: {
+    width: '100%',
+  },
+  contentScrollInner: {
+    alignItems: 'center',
+    paddingBottom: 8,
   },
   iconContainer: {
     width: 80,

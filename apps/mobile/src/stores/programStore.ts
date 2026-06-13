@@ -23,12 +23,19 @@ const DEFAULT_TEMPLATE_IDS = {
   push: '10000000-0000-4000-8000-000000000004',
   pull: '10000000-0000-4000-8000-000000000005',
   legs: '10000000-0000-4000-8000-000000000006',
+  sl_a: '10000000-0000-4000-8000-000000000007',
+  sl_b: '10000000-0000-4000-8000-000000000008',
+  arnold_cb: '10000000-0000-4000-8000-000000000009',
+  arnold_sa: '10000000-0000-4000-8000-000000000010',
+  arnold_l: '10000000-0000-4000-8000-000000000011',
 } as const;
 
 const DEFAULT_PROGRAM_IDS = {
   gk: '20000000-0000-4000-8000-000000000001',
   ppl: '20000000-0000-4000-8000-000000000002',
   okuk: '20000000-0000-4000-8000-000000000003',
+  sl: '20000000-0000-4000-8000-000000000004',
+  arnold: '20000000-0000-4000-8000-000000000005',
 } as const;
 
 function makeDefaultProgramWorkoutId(family: number, week: number, day: number, order = 0): string {
@@ -160,6 +167,75 @@ export function getDefaultTemplates(): WorkoutTemplate[] {
         buildTemplateExercise('Standing Calf Raises', 5, 3, 8, 10),
       ].filter((e) => e.exerciseId !== ''),
     },
+    {
+      id: DEFAULT_TEMPLATE_IDS.sl_a,
+      userId: LOCAL_USER_ID,
+      name: 'StrongLifts 5x5 - Workout A',
+      isArchived: false,
+      createdAt: now,
+      updatedAt: now,
+      exercises: [
+        buildTemplateExercise('Barbell Squat', 0, 5, 5, 5),
+        buildTemplateExercise('Barbell Bench Press - Medium Grip', 1, 5, 5, 5),
+        buildTemplateExercise('Bent Over Barbell Row', 2, 5, 5, 5),
+      ].filter((e) => e.exerciseId !== ''),
+    },
+    {
+      id: DEFAULT_TEMPLATE_IDS.sl_b,
+      userId: LOCAL_USER_ID,
+      name: 'StrongLifts 5x5 - Workout B',
+      isArchived: false,
+      createdAt: now,
+      updatedAt: now,
+      exercises: [
+        buildTemplateExercise('Barbell Squat', 0, 5, 5, 5),
+        buildTemplateExercise('Barbell Shoulder Press', 1, 5, 5, 5),
+        buildTemplateExercise('Barbell Deadlift', 2, 1, 5, 5),
+      ].filter((e) => e.exerciseId !== ''),
+    },
+    {
+      id: DEFAULT_TEMPLATE_IDS.arnold_cb,
+      userId: LOCAL_USER_ID,
+      name: 'Arnold Split - Brust & Rücken',
+      isArchived: false,
+      createdAt: now,
+      updatedAt: now,
+      exercises: [
+        buildTemplateExercise('Barbell Bench Press - Medium Grip', 0, 4, 8, 10),
+        buildTemplateExercise('Pullups', 1, 4, 8, 10),
+        buildTemplateExercise('Incline Dumbbell Press', 2, 3, 10, 12),
+        buildTemplateExercise('Bent Over Barbell Row', 3, 3, 10, 12),
+      ].filter((e) => e.exerciseId !== ''),
+    },
+    {
+      id: DEFAULT_TEMPLATE_IDS.arnold_sa,
+      userId: LOCAL_USER_ID,
+      name: 'Arnold Split - Schultern & Arme',
+      isArchived: false,
+      createdAt: now,
+      updatedAt: now,
+      exercises: [
+        buildTemplateExercise('Barbell Shoulder Press', 0, 4, 8, 10),
+        buildTemplateExercise('Side Lateral Raise', 1, 4, 10, 12),
+        buildTemplateExercise('Cable Rear Delt Fly', 2, 3, 10, 12),
+        buildTemplateExercise('Barbell Curl', 3, 3, 10, 12),
+        buildTemplateExercise('Triceps Pushdown', 4, 3, 10, 12),
+      ].filter((e) => e.exerciseId !== ''),
+    },
+    {
+      id: DEFAULT_TEMPLATE_IDS.arnold_l,
+      userId: LOCAL_USER_ID,
+      name: 'Arnold Split - Beine',
+      isArchived: false,
+      createdAt: now,
+      updatedAt: now,
+      exercises: [
+        buildTemplateExercise('Barbell Squat', 0, 4, 8, 10),
+        buildTemplateExercise('Romanian Deadlift', 1, 4, 8, 10),
+        buildTemplateExercise('Leg Press', 2, 3, 10, 12),
+        buildTemplateExercise('Standing Calf Raises', 3, 4, 12, 15),
+      ].filter((e) => e.exerciseId !== ''),
+    },
   ];
 }
 
@@ -169,6 +245,8 @@ export function getDefaultPrograms(): Program[] {
   const gkWorkouts: ProgramWorkout[] = [];
   const pplWorkouts: ProgramWorkout[] = [];
   const okukWorkouts: ProgramWorkout[] = [];
+  const slWorkouts: ProgramWorkout[] = [];
+  const arnoldWorkouts: ProgramWorkout[] = [];
 
   for (let w = 1; w <= 4; w++) {
     // GK (Mon, Wed, Fri)
@@ -252,6 +330,78 @@ export function getDefaultPrograms(): Program[] {
         order: 0,
       },
     );
+
+    // StrongLifts 5x5 (Mon, Wed, Fri - alternating sl_a and sl_b)
+    const isOddWeek = w % 2 !== 0;
+    slWorkouts.push(
+      {
+        id: makeDefaultProgramWorkoutId(4, w, 1),
+        templateId: isOddWeek ? DEFAULT_TEMPLATE_IDS.sl_a : DEFAULT_TEMPLATE_IDS.sl_b,
+        week: w,
+        dayOfWeek: 1,
+        order: 0,
+      },
+      {
+        id: makeDefaultProgramWorkoutId(4, w, 3),
+        templateId: isOddWeek ? DEFAULT_TEMPLATE_IDS.sl_b : DEFAULT_TEMPLATE_IDS.sl_a,
+        week: w,
+        dayOfWeek: 3,
+        order: 0,
+      },
+      {
+        id: makeDefaultProgramWorkoutId(4, w, 5),
+        templateId: isOddWeek ? DEFAULT_TEMPLATE_IDS.sl_a : DEFAULT_TEMPLATE_IDS.sl_b,
+        week: w,
+        dayOfWeek: 5,
+        order: 0,
+      },
+    );
+
+    // Arnold Split (Mon, Tue, Wed, Thu, Fri, Sat)
+    arnoldWorkouts.push(
+      {
+        id: makeDefaultProgramWorkoutId(5, w, 1),
+        templateId: DEFAULT_TEMPLATE_IDS.arnold_cb,
+        week: w,
+        dayOfWeek: 1,
+        order: 0,
+      },
+      {
+        id: makeDefaultProgramWorkoutId(5, w, 2),
+        templateId: DEFAULT_TEMPLATE_IDS.arnold_sa,
+        week: w,
+        dayOfWeek: 2,
+        order: 0,
+      },
+      {
+        id: makeDefaultProgramWorkoutId(5, w, 3),
+        templateId: DEFAULT_TEMPLATE_IDS.arnold_l,
+        week: w,
+        dayOfWeek: 3,
+        order: 0,
+      },
+      {
+        id: makeDefaultProgramWorkoutId(5, w, 4),
+        templateId: DEFAULT_TEMPLATE_IDS.arnold_cb,
+        week: w,
+        dayOfWeek: 4,
+        order: 0,
+      },
+      {
+        id: makeDefaultProgramWorkoutId(5, w, 5),
+        templateId: DEFAULT_TEMPLATE_IDS.arnold_sa,
+        week: w,
+        dayOfWeek: 5,
+        order: 0,
+      },
+      {
+        id: makeDefaultProgramWorkoutId(5, w, 6),
+        templateId: DEFAULT_TEMPLATE_IDS.arnold_l,
+        week: w,
+        dayOfWeek: 6,
+        order: 0,
+      },
+    );
   }
 
   return [
@@ -287,6 +437,30 @@ export function getDefaultPrograms(): Program[] {
         'Ein hochgradig bewährter Vier-Tage-Split für Fortgeschrittene zur Maximierung von Hypertrophie und Erholung.',
       durationWeeks: 4,
       workouts: okukWorkouts,
+      isActive: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: DEFAULT_PROGRAM_IDS.sl,
+      userId: LOCAL_USER_ID,
+      name: 'StrongLifts 5x5',
+      description:
+        'Das originale 5x5-Krafttrainingsprogramm. Drei Übungen pro Training, dreimal pro Woche, mit Fokus auf progressive Überlastung.',
+      durationWeeks: 4,
+      workouts: slWorkouts,
+      isActive: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: DEFAULT_PROGRAM_IDS.arnold,
+      userId: LOCAL_USER_ID,
+      name: 'Arnold Split (6x/Woche)',
+      description:
+        'Der legendäre Arnold-Schwarzenegger-Split. Trainiert Brust/Rücken, Schultern/Arme und Beine jeweils zweimal pro Woche für maximale Hypertrophie.',
+      durationWeeks: 4,
+      workouts: arnoldWorkouts,
       isActive: false,
       createdAt: now,
       updatedAt: now,

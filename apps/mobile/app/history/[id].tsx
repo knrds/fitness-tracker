@@ -1,14 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  Alert,
-  Platform,
-  Share,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Share } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
@@ -23,6 +14,7 @@ import {
   summarizeSessionExercise,
 } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
+import { useDialog } from '@fitness-tracker/ui';
 
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -32,6 +24,7 @@ export default function WorkoutDetailScreen() {
   const { status: activeWorkoutStatus, startWorkoutFromSession } = useWorkoutStore();
   const { createTemplate } = useProgramStore();
   const { profile } = useProfileStore();
+  const { showAlert, showConfirm } = useDialog();
   const isImperial = profile.preferredUnits === 'imperial';
 
   const [saveModalVisible, setSaveModalVisible] = useState(false);
@@ -80,33 +73,23 @@ export default function WorkoutDetailScreen() {
     });
   };
 
-  const handleRepeatWorkout = () => {
+  const handleRepeatWorkout = async () => {
     const start = () => {
       startWorkoutFromSession(session);
       router.push('/workout/session' as unknown as Parameters<typeof router.push>[0]);
     };
 
     if (activeWorkoutStatus === 'active' || activeWorkoutStatus === 'paused') {
-      if (Platform.OS === 'web') {
-        if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
-          const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-          if (
-            confirmFn?.(
-              'An active workout is already in progress. Do you want to discard it and repeat this workout instead?',
-            )
-          ) {
-            start();
-          }
-        }
-      } else {
-        Alert.alert(
-          'Workout In Progress',
+      const shouldStart = await showConfirm({
+        title: 'Workout In Progress',
+        message:
           'An active workout is already in progress. Do you want to discard it and repeat this workout instead?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Discard & Start', style: 'destructive', onPress: start },
-          ],
-        );
+        confirmLabel: 'Discard & Start',
+        cancelLabel: 'Keep Current',
+        destructive: true,
+      });
+      if (shouldStart) {
+        start();
       }
     } else {
       start();
@@ -137,20 +120,17 @@ export default function WorkoutDetailScreen() {
     }
   };
 
-  const handleSaveTemplate = (templateName: string) => {
+  const handleSaveTemplate = async (templateName: string) => {
     createTemplate({
       name: templateName,
       exercises: mapToTemplateExercises(session.exercises),
     });
     setSaveModalVisible(false);
-    if (Platform.OS === 'web') {
-      if (typeof globalThis !== 'undefined' && 'alert' in globalThis) {
-        const alertFn = (globalThis as { alert?: (msg: string) => void }).alert;
-        alertFn?.('Template saved successfully!');
-      }
-    } else {
-      Alert.alert('Success', 'Template saved successfully!');
-    }
+    await showAlert({
+      title: 'Success',
+      message: 'Template saved successfully!',
+      tone: 'success',
+    });
   };
 
   const displayWeight = (w?: number) => {

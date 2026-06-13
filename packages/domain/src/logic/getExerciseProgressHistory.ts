@@ -6,6 +6,7 @@ import { summarizeSessionExercise } from './summarizeSessionExercise';
 export interface ExerciseProgressPoint {
   date: Date;
   volume: number;
+  maxWeight: number;
   maxE1RM: number;
   isPR: boolean;
 }
@@ -16,8 +17,10 @@ export function getExerciseProgressHistory(
   exerciseName = EXERCISES.find((exercise) => exercise.id === exerciseId)?.name,
 ): ExerciseProgressPoint[] {
   const points: ExerciseProgressPoint[] = [];
-  const sortedSessions = [...sessions].sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime());
-  let historicalMax = 0;
+  const sortedSessions = [...sessions].sort(
+    (a, b) => a.startedAt.getTime() - b.startedAt.getTime(),
+  );
+  let historicalMaxWeight = 0;
 
   sortedSessions.forEach((session) => {
     const exercise = session.exercises.find((entry) => entry.exerciseId === exerciseId);
@@ -25,30 +28,31 @@ export function getExerciseProgressHistory(
 
     const volume = summarizeSessionExercise(exercise).totalVolume;
     let sessionMaxE1RM = 0;
+    let sessionMaxWeight = 0;
 
     exercise.sets.forEach((set) => {
-      if (
-        !set.completed ||
-        set.type === 'warmup' ||
-        set.weight === undefined ||
-        set.reps === undefined
-      ) {
+      if (!set.completed || set.type === 'warmup' || set.weight === undefined) {
         return;
       }
 
-      const e1RM = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir, exerciseName);
-      sessionMaxE1RM = Math.max(sessionMaxE1RM, e1RM);
+      sessionMaxWeight = Math.max(sessionMaxWeight, set.weight);
+
+      if (set.reps !== undefined) {
+        const e1RM = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir, exerciseName);
+        sessionMaxE1RM = Math.max(sessionMaxE1RM, e1RM);
+      }
     });
 
     if (volume > 0) {
-      const isPR = sessionMaxE1RM > historicalMax;
+      const isPR = sessionMaxWeight > historicalMaxWeight;
       if (isPR) {
-        historicalMax = sessionMaxE1RM;
+        historicalMaxWeight = sessionMaxWeight;
       }
 
       points.push({
         date: session.startedAt,
         volume,
+        maxWeight: sessionMaxWeight,
         maxE1RM: sessionMaxE1RM,
         isPR,
       });

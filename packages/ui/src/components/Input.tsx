@@ -8,10 +8,20 @@ export interface InputProps extends TextInputProps {
   helperText?: string;
 }
 
-export const Input: React.FC<InputProps> = ({ label, error, helperText, style, ...props }) => {
+export const Input: React.FC<InputProps> = ({
+  label,
+  error,
+  helperText,
+  style,
+  multiline,
+  returnKeyType,
+  blurOnSubmit,
+  ...props
+}) => {
   const theme = useTheme();
 
   const borderColor = error ? theme.colors.accent : theme.colors.border;
+  const isMultiline = multiline === true;
 
   return (
     <View style={styles.container}>
@@ -34,6 +44,9 @@ export const Input: React.FC<InputProps> = ({ label, error, helperText, style, .
         ]}
         placeholderTextColor={theme.colors.muted}
         {...props}
+        multiline={multiline}
+        returnKeyType={returnKeyType ?? (isMultiline ? 'default' : 'done')}
+        blurOnSubmit={blurOnSubmit ?? !isMultiline}
       />
       {error && (
         <Text

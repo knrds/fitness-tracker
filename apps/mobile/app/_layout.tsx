@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Platform, Modal, View, Text, StyleSheet, Pressable } from 'react-native';
+import { Platform, Modal, View, Text, StyleSheet, Pressable, Keyboard } from 'react-native';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -12,12 +12,14 @@ import { Manrope_500Medium, Manrope_600SemiBold } from '@expo-google-fonts/manro
 import * as SplashScreen from 'expo-splash-screen';
 import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { ThemeProvider, useTheme } from '@fitness-tracker/ui';
+import { ThemeProvider, useTheme, DialogProvider } from '@fitness-tracker/ui';
 
 import { AchievementCelebration } from '../src/components/workout/AchievementCelebration';
 import { WorkoutCompleteModal } from '../src/components/workout/WorkoutCompleteModal';
+import { KeyboardDoneAccessory } from '../src/components/workout/KeyboardDoneAccessory';
 import { useAuthStore } from '../src/stores/authStore';
 import { useWorkoutStore } from '../src/stores/workoutStore';
+import { getResumeWorkoutDecision } from '../src/utils/resumeWorkoutGuard';
 
 if (Platform.OS !== 'web') {
   SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -34,17 +36,22 @@ function StartupWorkoutChecker() {
     if ((status === 'active' || status === 'paused') && !hasChecked) {
       setHasChecked(true);
 
-      const startedTime = startedAt ? new Date(startedAt) : null;
-      if (startedTime) {
-        const hoursElapsed = (Date.now() - startedTime.getTime()) / (1000 * 60 * 60);
-        if (hoursElapsed > 12) {
-          // Timeout: discard the stale workout silently
-          resetWorkout();
-          return;
-        }
-      }
+      const { exercises, name, notes } = useWorkoutStore.getState();
+      const decision = getResumeWorkoutDecision({
+        status,
+        startedAt,
+        exercises,
+        name,
+        notes,
+        now: Date.now(),
+        staleAfterHours: 12,
+      });
 
-      setModalVisible(true);
+      if (decision === 'clear') {
+        resetWorkout();
+      } else if (decision === 'prompt') {
+        setModalVisible(true);
+      }
     }
   }, [status, hasChecked, startedAt, resetWorkout]);
 
@@ -159,6 +166,10 @@ function RootNavigator() {
   }, [initialize]);
 
   useEffect(() => {
+    Keyboard.dismiss();
+  }, [pathname]);
+
+  useEffect(() => {
     if (!isConfigured || !isInitialized || isLoading) return;
 
     const isAuthRoute = pathname.startsWith('/auth');
@@ -192,6 +203,7 @@ function RootNavigator() {
       <AchievementCelebration />
       <WorkoutCompleteModal />
       <StartupWorkoutChecker />
+      <KeyboardDoneAccessory />
     </>
   );
 }
@@ -238,7 +250,35 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <RootNavigator />
+        <DialogProvider>
+          {Platform.OS === 'web' && (
+            <style
+              dangerouslySetInnerHTML={{
+                __html: `
+              * {
+                scrollbar-width: thin;
+                scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+              }
+              ::-webkit-scrollbar {
+                width: 6px;
+                height: 6px;
+              }
+              ::-webkit-scrollbar-track {
+                background: transparent;
+              }
+              ::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.25);
+                border-radius: 999px;
+              }
+              ::-webkit-scrollbar-thumb:hover {
+                background: rgba(255, 255, 255, 0.45);
+              }
+            `,
+              }}
+            />
+          )}
+          <RootNavigator />
+        </DialogProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

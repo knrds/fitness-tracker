@@ -11,8 +11,13 @@ export interface BestE1RM {
   achievedAt: Date;
 }
 
-function resolveExerciseName(exerciseId: UUID, exerciseNames?: Record<UUID, string>): string | undefined {
-  return exerciseNames?.[exerciseId] ?? EXERCISES.find((exercise) => exercise.id === exerciseId)?.name;
+function resolveExerciseName(
+  exerciseId: UUID,
+  exerciseNames?: Record<UUID, string>,
+): string | undefined {
+  return (
+    exerciseNames?.[exerciseId] ?? EXERCISES.find((exercise) => exercise.id === exerciseId)?.name
+  );
 }
 
 export function getBestE1RMs(

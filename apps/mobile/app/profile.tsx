@@ -10,6 +10,7 @@ import {
   Share,
   Modal,
   Image,
+  Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -22,6 +23,10 @@ import { useExerciseStore } from '../src/stores/exerciseStore';
 import { useAuthStore } from '../src/stores/authStore';
 import { useCaffeineStore } from '../src/stores/caffeineStore';
 import { ExercisePickerModal } from '../src/components/workout/ExercisePickerModal';
+import {
+  KeyboardDoneAccessory,
+  KEYBOARD_DONE_ID,
+} from '../src/components/workout/KeyboardDoneAccessory';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -290,6 +295,8 @@ export default function ProfileScreen() {
           styles.scrollContent,
           { paddingBottom: Math.max(insets.bottom + 16, 40) },
         ]}
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets={true}
       >
         {/* Profile Picture */}
         <View style={styles.avatarSection}>
@@ -318,6 +325,8 @@ export default function ProfileScreen() {
             onChangeText={setName}
             placeholder="Name"
             placeholderTextColor="#8A8D9F"
+            inputAccessoryViewID={KEYBOARD_DONE_ID}
+            onSubmitEditing={() => Keyboard.dismiss()}
           />
 
           <Text style={styles.inputLabel}>Training Goal</Text>
@@ -386,6 +395,8 @@ export default function ProfileScreen() {
                 placeholder={profile.preferredUnits === 'imperial' ? 'e.g. 70' : 'e.g. 180'}
                 placeholderTextColor="#8A8D9F"
                 keyboardType="numeric"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
+                onSubmitEditing={() => Keyboard.dismiss()}
               />
             </View>
             <View style={styles.gridField}>
@@ -399,6 +410,8 @@ export default function ProfileScreen() {
                 placeholder={profile.preferredUnits === 'imperial' ? 'e.g. 175' : 'e.g. 80'}
                 placeholderTextColor="#8A8D9F"
                 keyboardType="numeric"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
+                onSubmitEditing={() => Keyboard.dismiss()}
               />
             </View>
           </View>
@@ -417,6 +430,8 @@ export default function ProfileScreen() {
                 placeholder="Bench"
                 placeholderTextColor="#8A8D9F"
                 keyboardType="numeric"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
+                onSubmitEditing={() => Keyboard.dismiss()}
               />
             </View>
             <View style={styles.gridField}>
@@ -428,6 +443,8 @@ export default function ProfileScreen() {
                 placeholder="Squat"
                 placeholderTextColor="#8A8D9F"
                 keyboardType="numeric"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
+                onSubmitEditing={() => Keyboard.dismiss()}
               />
             </View>
             <View style={styles.gridField}>
@@ -439,6 +456,8 @@ export default function ProfileScreen() {
                 placeholder="Deadlift"
                 placeholderTextColor="#8A8D9F"
                 keyboardType="numeric"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
+                onSubmitEditing={() => Keyboard.dismiss()}
               />
             </View>
           </View>
@@ -508,6 +527,42 @@ export default function ProfileScreen() {
                   style={[
                     styles.toggleKnob,
                     caffeineEnabled ? styles.toggleKnobActive : styles.toggleKnobInactive,
+                  ]}
+                />
+              </View>
+            </View>
+          </Pressable>
+
+          <Pressable
+            style={styles.settingsRow}
+            onPress={() =>
+              updateProfile({
+                showExerciseDeleteConfirmation: !profile.showExerciseDeleteConfirmation,
+              })
+            }
+          >
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="alert-circle-outline" size={22} color="#8A8D9F" />
+              <Text style={styles.settingsLabel}>Confirm Exercise Deletion</Text>
+            </View>
+            <View style={styles.settingsRowRight}>
+              <Text style={styles.settingsValue}>
+                {profile.showExerciseDeleteConfirmation !== false ? 'On' : 'Off'}
+              </Text>
+              <View
+                style={[
+                  styles.togglePill,
+                  profile.showExerciseDeleteConfirmation !== false
+                    ? styles.togglePillActive
+                    : styles.togglePillInactive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.toggleKnob,
+                    profile.showExerciseDeleteConfirmation !== false
+                      ? styles.toggleKnobActive
+                      : styles.toggleKnobInactive,
                   ]}
                 />
               </View>
@@ -671,6 +726,7 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+      <KeyboardDoneAccessory />
     </View>
   );
 }
@@ -691,7 +747,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A1C23',
   },
   backBtn: {
-    padding: 4,
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,
@@ -700,7 +759,8 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   headerRight: {
-    width: 28,
+    width: 44,
+    height: 44,
   },
   container: {
     flex: 1,

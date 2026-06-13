@@ -14,15 +14,45 @@ export interface CaffeinePreset {
 
 export const CAFFEINE_PRESETS: CaffeinePreset[] = [
   { id: 'espresso', name: 'Espresso', servingLabel: '1 shot', caffeineMg: 63, category: 'coffee' },
-  { id: 'filter-coffee', name: 'Filter Coffee', servingLabel: '250 ml', caffeineMg: 95, category: 'coffee' },
-  { id: 'cold-brew', name: 'Cold Brew', servingLabel: '330 ml', caffeineMg: 180, category: 'coffee' },
+  {
+    id: 'filter-coffee',
+    name: 'Filter Coffee',
+    servingLabel: '250 ml',
+    caffeineMg: 95,
+    category: 'coffee',
+  },
+  {
+    id: 'cold-brew',
+    name: 'Cold Brew',
+    servingLabel: '330 ml',
+    caffeineMg: 180,
+    category: 'coffee',
+  },
   { id: 'black-tea', name: 'Black Tea', servingLabel: '250 ml', caffeineMg: 47, category: 'tea' },
   { id: 'green-tea', name: 'Green Tea', servingLabel: '250 ml', caffeineMg: 28, category: 'tea' },
   { id: 'cola', name: 'Cola', servingLabel: '330 ml', caffeineMg: 32, category: 'soft_drink' },
   { id: 'red-bull', name: 'Red Bull', servingLabel: '250 ml', caffeineMg: 80, category: 'energy' },
-  { id: 'monster', name: 'Monster Energy', servingLabel: '500 ml', caffeineMg: 160, category: 'energy' },
-  { id: 'rockstar', name: 'Rockstar Energy', servingLabel: '500 ml', caffeineMg: 160, category: 'energy' },
-  { id: 'preworkout', name: 'Pre-Workout Scoop', servingLabel: '1 scoop', caffeineMg: 250, category: 'preworkout' },
+  {
+    id: 'monster',
+    name: 'Monster Energy',
+    servingLabel: '500 ml',
+    caffeineMg: 160,
+    category: 'energy',
+  },
+  {
+    id: 'rockstar',
+    name: 'Rockstar Energy',
+    servingLabel: '500 ml',
+    caffeineMg: 160,
+    category: 'energy',
+  },
+  {
+    id: 'preworkout',
+    name: 'Pre-Workout Scoop',
+    servingLabel: '1 scoop',
+    caffeineMg: 250,
+    category: 'preworkout',
+  },
 ];
 
 export type CaffeineWarningLevel = 'normal' | 'high' | 'extreme';

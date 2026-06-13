@@ -1,5 +1,6 @@
 export * from './theme';
 export * from './ThemeProvider';
+export * from './DialogProvider';
 export * from './components/Button';
 export * from './components/Card';
 export * from './components/Input';

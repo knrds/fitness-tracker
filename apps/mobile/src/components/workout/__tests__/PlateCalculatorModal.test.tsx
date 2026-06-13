@@ -43,11 +43,7 @@ describe('PlateCalculatorModal', () => {
   it('updates target weight when adding plates and can reset to the bar', () => {
     const { getByDisplayValue, getByText } = render(
       <ThemeProvider>
-        <PlateCalculatorModal
-          visible
-          initialWeightKg={100}
-          onClose={jest.fn()}
-        />
+        <PlateCalculatorModal visible initialWeightKg={100} onClose={jest.fn()} />
       </ThemeProvider>,
     );
 

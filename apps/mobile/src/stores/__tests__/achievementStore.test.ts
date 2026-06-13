@@ -80,8 +80,9 @@ describe('achievementStore', () => {
   });
 
   it('uses valid Ionicons names for every achievement icon', () => {
-    const invalidIcons = ACHIEVEMENTS.filter((achievement) => !ioniconNames.has(achievement.icon))
-      .map((achievement) => `${achievement.id}:${achievement.icon}`);
+    const invalidIcons = ACHIEVEMENTS.filter(
+      (achievement) => !ioniconNames.has(achievement.icon),
+    ).map((achievement) => `${achievement.id}:${achievement.icon}`);
 
     expect(invalidIcons).toEqual([]);
   });
@@ -214,7 +215,9 @@ describe('achievementStore', () => {
 
   it('unlocks meta achievements based on other non-meta achievements', () => {
     const unlockedAchievements = Object.fromEntries(
-      ACHIEVEMENTS.filter((achievement) => achievement.category !== 'meta' && !achievement.repeatable)
+      ACHIEVEMENTS.filter(
+        (achievement) => achievement.category !== 'meta' && !achievement.repeatable,
+      )
         .slice(0, 5)
         .map((achievement) => [achievement.id, new Date('2026-06-01').toISOString()]),
     );

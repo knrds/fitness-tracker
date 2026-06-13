@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { MuscleGroup, Equipment } from '@fitness-tracker/domain';
 import { useExerciseStore } from '../../stores/exerciseStore';
+import { HorizontalFadeScroll } from '../HorizontalFadeScroll';
 
 export const ExerciseFilter = () => {
   const { selectedMuscleGroup, selectedEquipment, setFilter, resetFilters } = useExerciseStore();
@@ -28,7 +29,7 @@ export const ExerciseFilter = () => {
       </View>
 
       <Text style={styles.subtitle}>Muscle Group</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scroll}>
+      <HorizontalFadeScroll style={styles.scroll}>
         {Object.values(MuscleGroup).map((m) => {
           const isSelected = selectedMuscleGroup === m;
           return (
@@ -43,10 +44,10 @@ export const ExerciseFilter = () => {
             </Pressable>
           );
         })}
-      </ScrollView>
+      </HorizontalFadeScroll>
 
       <Text style={styles.subtitle}>Equipment</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scroll}>
+      <HorizontalFadeScroll style={styles.scroll}>
         {Object.values(Equipment).map((eq) => {
           const isSelected = selectedEquipment === eq;
           return (
@@ -61,7 +62,7 @@ export const ExerciseFilter = () => {
             </Pressable>
           );
         })}
-      </ScrollView>
+      </HorizontalFadeScroll>
     </View>
   );
 };

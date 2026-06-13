@@ -137,8 +137,7 @@ export function createHydratedStorage<T extends object>(
   return {
     getItem: async (name: string) => {
       const asyncStorageValue = await AsyncStorage.getItem(name);
-      const temporaryWebValue =
-        asyncStorageValue == null ? getTemporaryWebStorageItem(name) : null;
+      const temporaryWebValue = asyncStorageValue == null ? getTemporaryWebStorageItem(name) : null;
       const str = asyncStorageValue ?? temporaryWebValue;
       if (!str) return null;
 

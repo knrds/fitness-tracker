@@ -1,8 +1,4 @@
-import {
-  CAFFEINE_PRESETS,
-  getCaffeineWarningLevel,
-  useCaffeineStore,
-} from '../caffeineStore';
+import { CAFFEINE_PRESETS, getCaffeineWarningLevel, useCaffeineStore } from '../caffeineStore';
 
 jest.mock('react-native-mmkv', () => ({
   MMKV: jest.fn().mockImplementation(() => ({

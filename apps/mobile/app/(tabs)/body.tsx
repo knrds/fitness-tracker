@@ -19,6 +19,10 @@ import { useBodyMetricStore } from '../../src/stores/bodyMetricStore';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { useHydrationStore } from '../../src/stores/hydrationStore';
 import { useTheme, Card, Modal, Input } from '@fitness-tracker/ui';
+import {
+  KeyboardDoneAccessory,
+  KEYBOARD_DONE_ID,
+} from '../../src/components/workout/KeyboardDoneAccessory';
 
 export default function BodyTrackingScreen() {
   const theme = useTheme();
@@ -201,7 +205,7 @@ export default function BodyTrackingScreen() {
 
     if (history.length < 2) {
       return (
-        <Card padding="lg" style={{ alignItems: 'center' }}>
+        <Card padding="lg" style={{ alignItems: 'center', marginBottom: 24 }}>
           <Text
             style={[
               {
@@ -241,6 +245,8 @@ export default function BodyTrackingScreen() {
         },
       ],
     };
+
+    const chartWidth = Math.max(260, Math.min(screenWidth - 112, 600));
 
     return (
       <Animated.View
@@ -294,7 +300,7 @@ export default function BodyTrackingScreen() {
 
         <LineChart
           data={data}
-          width={screenWidth - 32}
+          width={chartWidth}
           height={200}
           withInnerLines={false}
           withOuterLines={false}
@@ -438,6 +444,7 @@ export default function BodyTrackingScreen() {
               onChangeText={setDateStr}
               placeholder="YYYY-MM-DD"
               placeholderTextColor={theme.colors.muted}
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
             />
           </View>
           <View style={styles.quickEntryRow}>
@@ -455,6 +462,7 @@ export default function BodyTrackingScreen() {
               keyboardType="numeric"
               placeholder={`Weight ${isImperial ? 'lbs' : 'kg'}`}
               placeholderTextColor={theme.colors.muted}
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
             />
             <TextInput
               style={[
@@ -470,6 +478,7 @@ export default function BodyTrackingScreen() {
               keyboardType="numeric"
               placeholder="Body fat %"
               placeholderTextColor={theme.colors.muted}
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
             />
           </View>
           <View style={styles.quickActions}>
@@ -521,17 +530,14 @@ export default function BodyTrackingScreen() {
             />
           </View>
           <View style={styles.hydrationButtons}>
-            {[250, 500, 1000].map((amount) => (
-              <Pressable
-                key={amount}
-                style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
-                onPress={() => addWater(amount)}
-              >
-                <Text style={[styles.hydrationButtonText, { color: theme.colors.primary }]}>
-                  +{amount === 1000 ? '1 L' : `${amount} ml`}
-                </Text>
-              </Pressable>
-            ))}
+            <Pressable
+              style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
+              onPress={resetToday}
+            >
+              <Text style={[styles.hydrationButtonText, { color: theme.colors.accent }]}>
+                Reset
+              </Text>
+            </Pressable>
             {[
               { amount: 250, label: '-250 ml' },
               { amount: 500, label: '-500 ml' },
@@ -547,14 +553,17 @@ export default function BodyTrackingScreen() {
                 </Text>
               </Pressable>
             ))}
-            <Pressable
-              style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
-              onPress={resetToday}
-            >
-              <Text style={[styles.hydrationButtonText, { color: theme.colors.muted }]}>
-                Reset
-              </Text>
-            </Pressable>
+            {[250, 500, 1000].map((amount) => (
+              <Pressable
+                key={amount}
+                style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
+                onPress={() => addWater(amount)}
+              >
+                <Text style={[styles.hydrationButtonText, { color: theme.colors.primary }]}>
+                  +{amount === 1000 ? '1 L' : `${amount} ml`}
+                </Text>
+              </Pressable>
+            ))}
           </View>
           <View style={styles.goalRow}>
             <TextInput
@@ -572,6 +581,8 @@ export default function BodyTrackingScreen() {
               placeholder="Goal ml"
               placeholderTextColor={theme.colors.muted}
               onSubmitEditing={handleSaveHydrationGoal}
+              returnKeyType="done"
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
             />
             <Pressable
               style={[styles.goalButton, { borderColor: theme.colors.border }]}
@@ -645,7 +656,7 @@ export default function BodyTrackingScreen() {
         <Text
           style={[
             styles.sectionTitle,
-            { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
+            { color: theme.colors.text, ...theme.typography.heading, fontSize: 20, marginTop: 24 },
           ]}
         >
           PROGRESSION HISTORY
@@ -663,14 +674,14 @@ export default function BodyTrackingScreen() {
                   ? metric.weightKg - previous.weightKg
                   : null;
               const fatDelta =
-                metric.bodyFatPercentage !== undefined &&
-                previous?.bodyFatPercentage !== undefined
+                metric.bodyFatPercentage !== undefined && previous?.bodyFatPercentage !== undefined
                   ? metric.bodyFatPercentage - previous.bodyFatPercentage
                   : null;
               const displayWeightDelta =
                 weightDelta !== null
-                  ? `${weightDelta >= 0 ? '+' : ''}${(
-                      isImperial ? weightDelta * 2.20462 : weightDelta
+                  ? `${weightDelta >= 0 ? '+' : ''}${(isImperial
+                      ? weightDelta * 2.20462
+                      : weightDelta
                     ).toFixed(1)} ${isImperial ? 'lbs' : 'kg'}`
                   : '--';
               const displayFatDelta =
@@ -777,6 +788,7 @@ export default function BodyTrackingScreen() {
             value={dateStr}
             onChangeText={setDateStr}
             placeholder="e.g. 2026-06-02"
+            inputAccessoryViewID={KEYBOARD_DONE_ID}
           />
 
           <View style={styles.inputGrid}>
@@ -787,6 +799,7 @@ export default function BodyTrackingScreen() {
                 onChangeText={setWeight}
                 placeholder="e.g. 80"
                 keyboardType="numeric"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
               />
             </View>
             <View style={styles.gridField}>
@@ -796,6 +809,7 @@ export default function BodyTrackingScreen() {
                 onChangeText={setBodyFat}
                 placeholder="e.g. 15"
                 keyboardType="numeric"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
               />
             </View>
           </View>
@@ -817,6 +831,7 @@ export default function BodyTrackingScreen() {
                 onChangeText={setChest}
                 placeholder="Chest"
                 keyboardType="numeric"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
               />
             </View>
             <View style={styles.gridField}>
@@ -826,6 +841,7 @@ export default function BodyTrackingScreen() {
                 onChangeText={setWaist}
                 placeholder="Waist"
                 keyboardType="numeric"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
               />
             </View>
           </View>
@@ -838,6 +854,7 @@ export default function BodyTrackingScreen() {
                 onChangeText={setHips}
                 placeholder="Hips"
                 keyboardType="numeric"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
               />
             </View>
             <View style={styles.gridField}>
@@ -847,6 +864,7 @@ export default function BodyTrackingScreen() {
                 onChangeText={setArms}
                 placeholder="Arms"
                 keyboardType="numeric"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
               />
             </View>
           </View>
@@ -859,12 +877,14 @@ export default function BodyTrackingScreen() {
                 onChangeText={setLegs}
                 placeholder="Legs"
                 keyboardType="numeric"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
               />
             </View>
             <View style={styles.gridField} />
           </View>
         </ScrollView>
       </Modal>
+      <KeyboardDoneAccessory />
     </View>
   );
 }
@@ -1068,9 +1088,11 @@ const styles = StyleSheet.create({
   chartContainer: {
     borderRadius: 16,
     paddingVertical: 12,
+    paddingHorizontal: 16,
     borderWidth: 1,
     alignItems: 'center',
     marginBottom: 24,
+    overflow: 'hidden',
   },
   chart: {
     borderRadius: 16,

@@ -12,6 +12,7 @@ import {
   PanResponder,
   Animated,
   ViewStyle,
+  LayoutAnimation,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -59,28 +60,37 @@ export default function ProgramBuilderScreen() {
   const dayLayouts = React.useRef<Record<number, { y: number; height: number }>>({});
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const activeDragIdRef = React.useRef<string | null>(null);
+  const isDraggingActiveRef = React.useRef(false);
   const dragY = React.useRef(new Animated.Value(0)).current;
   const draggingWorkoutRef = React.useRef<ProgramWorkout | null>(null);
 
   const panResponder = React.useMemo(() => {
     return PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (e, gestureState) => {
-        return Math.abs(gestureState.dy) > 5;
+        return Math.abs(gestureState.dy) > 2;
       },
       onPanResponderGrant: () => {
         const wk = draggingWorkoutRef.current;
         if (wk) {
+          activeDragIdRef.current = wk.id;
+          isDraggingActiveRef.current = true;
           setActiveDragId(wk.id);
           setScrollEnabled(false);
           dragY.setValue(0);
         }
       },
       onPanResponderMove: (e, gestureState) => {
+        if (!activeDragIdRef.current) return;
         dragY.setValue(gestureState.dy);
       },
       onPanResponderRelease: (e, gestureState) => {
+        isDraggingActiveRef.current = false;
         const wk = draggingWorkoutRef.current;
+        draggingWorkoutRef.current = null;
+        activeDragIdRef.current = null;
+
         if (wk && activeProgram) {
           const initialDay = wk.dayOfWeek;
           const layout = dayLayouts.current[initialDay];
@@ -142,11 +152,16 @@ export default function ProgramBuilderScreen() {
           }
         }
 
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setActiveDragId(null);
         setScrollEnabled(true);
         dragY.setValue(0);
       },
       onPanResponderTerminate: () => {
+        draggingWorkoutRef.current = null;
+        activeDragIdRef.current = null;
+        isDraggingActiveRef.current = false;
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setActiveDragId(null);
         setScrollEnabled(true);
         dragY.setValue(0);
@@ -432,8 +447,10 @@ export default function ProgramBuilderScreen() {
                 isDraggingDay && { zIndex: 9999, elevation: 10 },
               ]}
               onLayout={(e) => {
-                const { y, height } = e.nativeEvent.layout;
-                dayLayouts.current[day] = { y, height };
+                if (!isDraggingActiveRef.current) {
+                  const { y, height } = e.nativeEvent.layout;
+                  dayLayouts.current[day] = { y, height };
+                }
               }}
             >
               <Text style={styles.dayName}>{getDayName(day)}</Text>
@@ -466,9 +483,27 @@ export default function ProgramBuilderScreen() {
                       style={[styles.dragHandle, { cursor: 'grab' } as unknown as ViewStyle]}
                       onPointerDown={() => {
                         draggingWorkoutRef.current = w;
+                        activeDragIdRef.current = w.id;
+                        setActiveDragId(w.id);
                       }}
                       onTouchStart={() => {
                         draggingWorkoutRef.current = w;
+                        activeDragIdRef.current = w.id;
+                        setActiveDragId(w.id);
+                      }}
+                      onPointerUp={() => {
+                        if (!isDraggingActiveRef.current) {
+                          draggingWorkoutRef.current = null;
+                          activeDragIdRef.current = null;
+                          setActiveDragId(null);
+                        }
+                      }}
+                      onTouchEnd={() => {
+                        if (!isDraggingActiveRef.current) {
+                          draggingWorkoutRef.current = null;
+                          activeDragIdRef.current = null;
+                          setActiveDragId(null);
+                        }
                       }}
                       {...panResponder.panHandlers}
                     >

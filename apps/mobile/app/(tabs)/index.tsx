@@ -10,6 +10,7 @@ import {
   Platform,
   Modal,
   Alert,
+  useWindowDimensions,
 } from 'react-native';
 import { useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,15 +28,25 @@ import { Button, Card, useTheme } from '@fitness-tracker/ui';
 
 const isObliqueLikeExerciseName = (name: string) => {
   const lowerName = name.toLowerCase();
-  return ['oblique', 'side bend', 'side plank', 'russian twist', 'woodchop', 'wood chop', 'twist'].some(
-    (keyword) => lowerName.includes(keyword),
-  );
+  return [
+    'oblique',
+    'side bend',
+    'side plank',
+    'russian twist',
+    'woodchop',
+    'wood chop',
+    'twist',
+  ].some((keyword) => lowerName.includes(keyword));
 };
 
 export default function HomeScreen() {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  const isStacked = windowWidth < 480;
+  const singleHeatmapWidth = isStacked ? 180 : 135;
+  const singleHeatmapHeight = Math.round(singleHeatmapWidth * (235 / 140));
 
   const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
   const { profile } = useProfileStore();
@@ -89,8 +100,7 @@ export default function HomeScreen() {
             isObliqueLikeExerciseName(exInfo.name) ||
             exInfo.secondaryMuscles.includes(MuscleGroup.Obliques)
           ) {
-            volumes[MuscleGroup.Obliques] =
-              (volumes[MuscleGroup.Obliques] || 0) + exerciseVolume;
+            volumes[MuscleGroup.Obliques] = (volumes[MuscleGroup.Obliques] || 0) + exerciseVolume;
           }
         }
       });
@@ -220,8 +230,9 @@ export default function HomeScreen() {
   const featuredProgramTemplate = todaysProgramTemplates[0] ?? null;
   const featuredExerciseNames =
     featuredProgramTemplate?.exercises
-      .map((templateExercise) =>
-        exercises.find((exercise) => exercise.id === templateExercise.exerciseId)?.name,
+      .map(
+        (templateExercise) =>
+          exercises.find((exercise) => exercise.id === templateExercise.exerciseId)?.name,
       )
       .filter((name): name is string => Boolean(name))
       .slice(0, 5) ?? [];
@@ -603,9 +614,15 @@ export default function HomeScreen() {
           <Text style={[styles.heatmapSubtitle, { color: theme.colors.muted }]}>
             Anatomical volume tracking (last 7 days). Tap any muscle to filter exercises.
           </Text>
-          <View style={styles.heatmapSvgContainer}>
-            <Svg width="290" height="235" viewBox="0 0 290 235">
-              {/* Labels */}
+          <View
+            style={[
+              styles.heatmapSvgContainer,
+              isStacked ? styles.heatmapStacked : styles.heatmapRow,
+            ]}
+          >
+            {/* FRONT silhouette SVG */}
+            <Svg width={singleHeatmapWidth} height={singleHeatmapHeight} viewBox="0 0 140 235">
+              {/* Label */}
               <SvgText
                 x="70"
                 y="222"
@@ -616,22 +633,9 @@ export default function HomeScreen() {
               >
                 FRONT
               </SvgText>
-              <SvgText
-                x="220"
-                y="222"
-                fill={theme.colors.muted}
-                fontSize="10"
-                textAnchor="middle"
-                fontFamily="SpaceGrotesk_700Bold"
-              >
-                BACK
-              </SvgText>
 
               {/* Front Silhouette outline / base body structure */}
-              {/* Front View */}
-              {/* Head */}
               <Circle cx="70" cy="20" r="9" fill="#252833" stroke="#2A2B31" strokeWidth="1" />
-              {/* Base Body Silhouette */}
               <Path
                 d="M 67,26 L 67,31 C 67,34 62,35 56,35 C 50,35 44,38 42,42 C 40,48 34,64 32,84 C 30,94 29,102 31,106 C 32,109 35,109 36,105 C 38,100 40,84 43,68 C 45,64 49,60 51,68 C 53,74 54,84 51,94 C 49,102 48,124 48,144 C 48,160 51,180 54,200 L 65,200 C 64,185 62,160 62,140 C 62,125 64,115 67,106 L 70,106 L 73,106 C 76,115 78,125 78,140 C 78,160 76,185 75,200 L 86,200 C 89,180 92,160 92,144 C 92,124 91,102 89,94 C 86,84 87,74 89,68 C 91,60 95,64 97,68 C 100,84 102,100 104,105 C 105,109 108,109 109,106 C 111,102 110,94 108,84 C 106,64 100,48 98,42 C 96,38 90,35 84,35 C 78,35 73,34 73,31 L 73,26 Z"
                 fill="#252833"
@@ -759,8 +763,22 @@ export default function HomeScreen() {
                 strokeWidth="0.8"
                 onPress={() => handleMusclePress(MuscleGroup.Calves)}
               />
+            </Svg>
 
-              {/* Back View */}
+            {/* BACK silhouette SVG */}
+            <Svg width={singleHeatmapWidth} height={singleHeatmapHeight} viewBox="150 0 140 235">
+              {/* Label */}
+              <SvgText
+                x="220"
+                y="222"
+                fill={theme.colors.muted}
+                fontSize="10"
+                textAnchor="middle"
+                fontFamily="SpaceGrotesk_700Bold"
+              >
+                BACK
+              </SvgText>
+
               {/* Head */}
               <Circle cx="220" cy="20" r="9" fill="#252833" stroke="#2A2B31" strokeWidth="1" />
               {/* Base Body Silhouette */}
@@ -1226,5 +1244,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
+  },
+  heatmapRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  heatmapStacked: {
+    flexDirection: 'column',
+    gap: 24,
   },
 });

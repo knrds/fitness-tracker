@@ -257,7 +257,7 @@ describe('analytics helpers', () => {
     expect(getBestE1RMs(sessions)[EX_UUID_1]?.weight).toBe(105);
   });
 
-  it('builds chronological exercise progress and marks e1RM PR points', () => {
+  it('builds chronological exercise progress and marks max weight PR points', () => {
     const sessions = [
       createMockSession('s1', new Date('2026-06-01T10:00:00'), [
         {
@@ -280,8 +280,10 @@ describe('analytics helpers', () => {
 
     expect(points).toHaveLength(2);
     expect(points[0]?.volume).toBe(500);
+    expect(points[0]?.maxWeight).toBe(100);
     expect(points[0]?.isPR).toBe(true);
     expect(points[1]?.volume).toBe(525);
+    expect(points[1]?.maxWeight).toBe(105);
     expect(points[1]?.isPR).toBe(true);
   });
 });

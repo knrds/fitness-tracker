@@ -13,7 +13,7 @@ export default function TabLayout() {
   const glowAnim = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
-    Animated.loop(
+    const glowLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(glowAnim, {
           toValue: 1,
@@ -26,7 +26,12 @@ export default function TabLayout() {
           useNativeDriver: false,
         }),
       ]),
-    ).start();
+    );
+    glowLoop.start();
+
+    return () => {
+      glowLoop.stop();
+    };
   }, [glowAnim]);
 
   const animatedShadowRadius = glowAnim.interpolate({

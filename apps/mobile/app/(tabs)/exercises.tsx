@@ -9,6 +9,7 @@ import { CustomExerciseModal } from '../../src/components/exercises/CustomExerci
 import { useTheme, EmptyState } from '@fitness-tracker/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { Equipment, MovementPattern, MuscleGroup } from '@fitness-tracker/domain';
+import { HorizontalFadeScroll } from '../../src/components/HorizontalFadeScroll';
 
 const MUSCLE_FILTERS = [
   { id: 'all', label: 'All Muscles' },
@@ -58,7 +59,9 @@ const isWarmupExercise = (exercise: {
   movementPattern: MovementPattern;
 }) => {
   const lowerName = exercise.name.toLowerCase();
-  return isCardioExercise(exercise) || WARMUP_KEYWORDS.some((keyword) => lowerName.includes(keyword));
+  return (
+    isCardioExercise(exercise) || WARMUP_KEYWORDS.some((keyword) => lowerName.includes(keyword))
+  );
 };
 
 const isPowerliftingExercise = (exercise: { name: string; equipment: Equipment }) => {
@@ -326,17 +329,13 @@ export default function ExercisesScreen() {
       </View>
 
       <View style={styles.filterContainer}>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={visibleFilters}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.filterList}
-          renderItem={({ item }) => {
+        <HorizontalFadeScroll contentContainerStyle={styles.filterList}>
+          {visibleFilters.map((item) => {
             const isSelected =
               (selectedMuscle === null && item.id === 'all') || selectedMuscle === item.id;
             return (
               <Pressable
+                key={item.id}
                 style={[
                   styles.filterPill,
                   {
@@ -359,8 +358,8 @@ export default function ExercisesScreen() {
                 </Text>
               </Pressable>
             );
-          }}
-        />
+          })}
+        </HorizontalFadeScroll>
       </View>
 
       <FlatList

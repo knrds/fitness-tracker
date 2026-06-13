@@ -8,10 +8,12 @@ import {
   Pressable,
   ScrollView,
   Alert,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MuscleGroup, Equipment, MovementPattern } from '@fitness-tracker/domain';
 import { useTheme } from '@fitness-tracker/ui';
+import { KEYBOARD_DONE_ID } from '../workout/KeyboardDoneAccessory';
 
 import { useExerciseStore } from '../../stores/exerciseStore';
 
@@ -91,7 +93,7 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
           <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
             New Exercise
           </Text>
-          <Pressable onPress={onClose} hitSlop={8}>
+          <Pressable onPress={onClose} hitSlop={15} style={styles.cancelBtn}>
             <Text style={[styles.cancelText, { color: theme.colors.muted }]}>Cancel</Text>
           </Pressable>
         </View>
@@ -100,6 +102,9 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
           style={styles.form}
           contentContainerStyle={styles.formContent}
           showsVerticalScrollIndicator={false}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={true}
         >
           <Text style={[styles.label, { color: theme.colors.muted }]}>Name</Text>
           <TextInput
@@ -115,6 +120,8 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
             onChangeText={setName}
             placeholder="e.g. My Custom Lift"
             placeholderTextColor={theme.colors.muted}
+            inputAccessoryViewID={KEYBOARD_DONE_ID}
+            onSubmitEditing={() => Keyboard.dismiss()}
           />
 
           <Text style={[styles.label, { color: theme.colors.muted }]}>Tracking Mode</Text>
@@ -161,6 +168,7 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
             placeholder="Add notes..."
             placeholderTextColor={theme.colors.muted}
             multiline
+            inputAccessoryViewID={KEYBOARD_DONE_ID}
           />
 
           <Pressable
@@ -203,6 +211,16 @@ const styles = StyleSheet.create({
   cancelText: {
     fontFamily: 'SpaceGrotesk_600SemiBold',
     fontSize: 16,
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+  },
+  cancelBtn: {
+    minWidth: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    paddingHorizontal: 12,
   },
   form: {
     flex: 1,
@@ -255,5 +273,7 @@ const styles = StyleSheet.create({
   },
   saveBtnText: {
     fontSize: 16,
+    textAlignVertical: 'center',
+    includeFontPadding: false,
   },
 });

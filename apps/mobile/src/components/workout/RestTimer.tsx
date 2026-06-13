@@ -88,7 +88,7 @@ export const RestTimer = () => {
       } else if (e.translationY < -24) {
         runOnJS(setCollapsedJS)(false);
       }
-      translateY.value = withSpring(0, { damping: 18, stiffness: 200 });
+      translateY.value = withSpring(0, { damping: 26, stiffness: 170 });
     });
 
   const bubblePan = Gesture.Pan()
@@ -108,8 +108,8 @@ export const RestTimer = () => {
       const endY = bubbleY.value + e.velocityY * 0.1;
       const targetY = Math.max(80, Math.min(screenHeight - 180, endY));
 
-      bubbleX.value = withSpring(targetX, { damping: 15, stiffness: 120 });
-      bubbleY.value = withSpring(targetY, { damping: 15, stiffness: 120 });
+      bubbleX.value = withSpring(targetX, { damping: 22, stiffness: 120 });
+      bubbleY.value = withSpring(targetY, { damping: 22, stiffness: 120 });
     });
 
   const bubbleTap = Gesture.Tap().onEnd(() => {

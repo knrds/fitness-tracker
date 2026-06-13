@@ -12,7 +12,7 @@
     "android": "node ./scripts/expo-start.cjs --android",
     "ios": "node ./scripts/expo-start.cjs --ios",
     "web": "node ./scripts/web-dev-preview.cjs",
-    "build": "expo export",
+    "build": "expo export --platform web",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "test": "jest"

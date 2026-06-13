@@ -8,7 +8,10 @@ export function getBestWeights(sessions: WorkoutSession[]): Record<UUID, number>
       exercise.sets.forEach((set) => {
         if (!set.completed || set.type === 'warmup' || set.weight === undefined) return;
 
-        if (bestWeights[exercise.exerciseId] === undefined || set.weight > bestWeights[exercise.exerciseId]!) {
+        if (
+          bestWeights[exercise.exerciseId] === undefined ||
+          set.weight > bestWeights[exercise.exerciseId]!
+        ) {
           bestWeights[exercise.exerciseId] = set.weight;
         }
       });

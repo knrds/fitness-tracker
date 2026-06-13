@@ -23,6 +23,7 @@ describe('profileStore', () => {
       profile: {
         displayName: 'User',
         preferredUnits: 'metric',
+        showExerciseDeleteConfirmation: true,
       },
     });
     useHistoryStore.getState().clearHistory();
@@ -38,6 +39,14 @@ describe('profileStore', () => {
     useWorkoutStore.getState().resetWorkout();
     useCaffeineStore.setState({ isEnabled: true, currentWorkoutMg: 0, lastWorkoutMg: 0 });
     useHydrationStore.setState({ dateKey: '2026-06-01', dailyGoalMl: 2500, todayIntakeMl: 0 });
+  });
+
+  it('should support showExerciseDeleteConfirmation setting', () => {
+    const store = useProfileStore.getState();
+    expect(store.profile.showExerciseDeleteConfirmation).toBe(true);
+
+    store.updateProfile({ showExerciseDeleteConfirmation: false });
+    expect(useProfileStore.getState().profile.showExerciseDeleteConfirmation).toBe(false);
   });
 
   it('should update profile fields', () => {

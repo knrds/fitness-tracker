@@ -13,6 +13,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 
 import { useAchievementStore } from '../../stores/achievementStore';
+import { useWorkoutStore } from '../../stores/workoutStore';
 
 const GOLD = '#FFB020';
 
@@ -77,9 +78,10 @@ const ConfettiRain = () => {
 
 export const AchievementCelebration = () => {
   const { newlyUnlocked, levelUpTo, clearCelebrations } = useAchievementStore();
+  const { lastFinishedSession } = useWorkoutStore();
   const theme = useTheme();
 
-  const isVisible = newlyUnlocked.length > 0 || levelUpTo !== null;
+  const isVisible = (newlyUnlocked.length > 0 || levelUpTo !== null) && !lastFinishedSession;
 
   useEffect(() => {
     if (isVisible) {

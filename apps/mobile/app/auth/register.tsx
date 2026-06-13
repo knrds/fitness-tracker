@@ -5,16 +5,17 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   Pressable,
+  ScrollView,
 } from 'react-native';
 import { useRouter, Href } from 'expo-router';
-import { useTheme, Input, Button } from '@fitness-tracker/ui';
+import { useTheme, Input, Button, useDialog } from '@fitness-tracker/ui';
 import { useAuthStore } from '../../src/stores/authStore';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { showAlert } = useDialog();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,7 +23,8 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
-      return Alert.alert('Error', 'Please fill in all fields.');
+      await showAlert({ title: 'Error', message: 'Please fill in all fields.', tone: 'danger' });
+      return;
     }
 
     try {
@@ -33,19 +35,20 @@ export default function RegisterScreen() {
       });
 
       if (result.error) {
-        Alert.alert('Sign Up Failed', result.error);
+        await showAlert({ title: 'Sign Up Failed', message: result.error, tone: 'danger' });
       } else if (result.needsEmailVerification) {
-        Alert.alert(
-          'Success',
-          'Registration successful! Please check your email for a verification link.',
-          [{ text: 'OK', onPress: () => router.push('/auth/login' as Href) }],
-        );
+        await showAlert({
+          title: 'Success',
+          message: 'Registration successful! Please check your email for a verification link.',
+          tone: 'success',
+        });
+        router.push('/auth/login' as Href);
       } else {
         router.replace('/' as Href);
       }
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'An unexpected error occurred.';
-      Alert.alert('Error', errMsg);
+      await showAlert({ title: 'Error', message: errMsg, tone: 'danger' });
     }
   };
 
@@ -54,7 +57,11 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+      >
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.colors.text }]}>VOLT</Text>
           <Text style={[styles.subtitle, { color: theme.colors.primary }]}>PERFORMANCE</Text>
@@ -103,7 +110,7 @@ export default function RegisterScreen() {
             <Text style={[styles.link, { color: theme.colors.primary }]}>Log In</Text>
           </Pressable>
         </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -113,7 +120,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
   },

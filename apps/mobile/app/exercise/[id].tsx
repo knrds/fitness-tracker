@@ -104,7 +104,12 @@ export default function ExerciseDetailScreen() {
                 }
               }}
               hitSlop={15}
-              style={{ paddingRight: 12 }}
+              style={{
+                width: 44,
+                height: 44,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
             >
               <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
             </Pressable>

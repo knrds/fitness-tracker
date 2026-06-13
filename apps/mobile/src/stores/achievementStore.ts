@@ -148,9 +148,7 @@ export const useAchievementStore = create<AchievementState>()(
             s.exercises.some((ex) => {
               const def = exerciseStore.exercises.find((e) => e.id === ex.exerciseId);
               return Boolean(
-                def &&
-                  predicate(def.name.toLowerCase()) &&
-                  ex.sets.some((set) => set.completed),
+                def && predicate(def.name.toLowerCase()) && ex.sets.some((set) => set.completed),
               );
             }),
           ).length;
@@ -180,8 +178,8 @@ export const useAchievementStore = create<AchievementState>()(
               const def = exerciseStore.exercises.find((e) => e.id === ex.exerciseId);
               return Boolean(
                 def &&
-                  patterns.includes(def.movementPattern) &&
-                  ex.sets.some((set) => set.completed),
+                patterns.includes(def.movementPattern) &&
+                ex.sets.some((set) => set.completed),
               );
             }),
           ).length;

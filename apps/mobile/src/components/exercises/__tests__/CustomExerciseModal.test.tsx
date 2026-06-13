@@ -1,13 +1,8 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 
-import {
-  Equipment,
-  EXERCISES,
-  MovementPattern,
-  MuscleGroup,
-} from '@fitness-tracker/domain';
-import { ThemeProvider } from '@fitness-tracker/ui';
+import { Equipment, EXERCISES, MovementPattern, MuscleGroup } from '@fitness-tracker/domain';
+import { DialogProvider, ThemeProvider } from '@fitness-tracker/ui';
 
 import { useExerciseStore } from '../../../stores/exerciseStore';
 import { CustomExerciseModal } from '../CustomExerciseModal';
@@ -43,7 +38,9 @@ describe('CustomExerciseModal', () => {
     const onClose = jest.fn();
     const { getByPlaceholderText, getByText } = render(
       <ThemeProvider>
-        <CustomExerciseModal visible onClose={onClose} />
+        <DialogProvider>
+          <CustomExerciseModal visible onClose={onClose} />
+        </DialogProvider>
       </ThemeProvider>,
     );
 

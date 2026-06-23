@@ -480,7 +480,15 @@ export default function ProgramBuilderScreen() {
                     ]}
                   >
                     <View
-                      style={[styles.dragHandle, { cursor: 'grab' } as unknown as ViewStyle]}
+                      style={[
+                        styles.dragHandle,
+                        {
+                          cursor: 'grab',
+                          touchAction: 'none',
+                          userSelect: 'none',
+                          WebkitUserSelect: 'none',
+                        } as unknown as ViewStyle,
+                      ]}
                       onPointerDown={() => {
                         draggingWorkoutRef.current = w;
                         activeDragIdRef.current = w.id;

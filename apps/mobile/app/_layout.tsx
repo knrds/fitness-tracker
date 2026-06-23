@@ -12,6 +12,7 @@ import { Manrope_500Medium, Manrope_600SemiBold } from '@expo-google-fonts/manro
 import * as SplashScreen from 'expo-splash-screen';
 import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme, DialogProvider } from '@fitness-tracker/ui';
 
 import { AchievementCelebration } from '../src/components/workout/AchievementCelebration';
@@ -252,37 +253,39 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider>
-        <DialogProvider>
-          {Platform.OS === 'web' && (
-            <style
-              dangerouslySetInnerHTML={{
-                __html: `
-              * {
-                scrollbar-width: thin;
-                scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
-              }
-              ::-webkit-scrollbar {
-                width: 6px;
-                height: 6px;
-              }
-              ::-webkit-scrollbar-track {
-                background: transparent;
-              }
-              ::-webkit-scrollbar-thumb {
-                background: rgba(255, 255, 255, 0.25);
-                border-radius: 999px;
-              }
-              ::-webkit-scrollbar-thumb:hover {
-                background: rgba(255, 255, 255, 0.45);
-              }
-            `,
-              }}
-            />
-          )}
-          <RootNavigator />
-        </DialogProvider>
-      </ThemeProvider>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <DialogProvider>
+            {Platform.OS === 'web' && (
+              <style
+                dangerouslySetInnerHTML={{
+                  __html: `
+                * {
+                  scrollbar-width: thin;
+                  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+                }
+                ::-webkit-scrollbar {
+                  width: 6px;
+                  height: 6px;
+                }
+                ::-webkit-scrollbar-track {
+                  background: transparent;
+                }
+                ::-webkit-scrollbar-thumb {
+                  background: rgba(255, 255, 255, 0.25);
+                  border-radius: 999px;
+                }
+                ::-webkit-scrollbar-thumb:hover {
+                  background: rgba(255, 255, 255, 0.45);
+                }
+              `,
+                }}
+              />
+            )}
+            <RootNavigator />
+          </DialogProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

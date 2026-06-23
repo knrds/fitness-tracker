@@ -21,6 +21,7 @@ import { useProfileStore } from '../../src/stores/profileStore';
 import * as Crypto from 'expo-crypto';
 import { useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { isIOS } from '../../src/utils/platform';
 
 import {
   TemplateExercise,
@@ -496,13 +497,13 @@ export default function WorkoutSessionScreen() {
   };
 
   const headerHeight =
-    Platform.OS === 'ios' ? (restTimer.isRunning ? 120 : 84) : restTimer.isRunning ? 90 : 64;
+    isIOS ? (restTimer.isRunning ? 120 : 84) : restTimer.isRunning ? 90 : 64;
 
   const headerPaddingTop =
-    Platform.OS === 'ios' ? (restTimer.isRunning ? 80 : 48) : restTimer.isRunning ? 48 : 16;
+    isIOS ? (restTimer.isRunning ? 80 : 48) : restTimer.isRunning ? 48 : 16;
 
   const hudPaddingTop =
-    Platform.OS === 'ios' ? (restTimer.isRunning ? 76 : 48) : restTimer.isRunning ? 50 : 16;
+    isIOS ? (restTimer.isRunning ? 76 : 48) : restTimer.isRunning ? 50 : 16;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -523,7 +524,7 @@ export default function WorkoutSessionScreen() {
               borderWidth: 1,
               width: islandExpanded ? 250 : 120,
               borderRadius: 20,
-              top: Platform.OS === 'ios' ? 44 : 8,
+              top: isIOS ? 44 : 8,
               zIndex: 1000000,
             },
           ]}
@@ -695,7 +696,7 @@ export default function WorkoutSessionScreen() {
       <ScrollView
         ref={scrollViewRef}
         style={styles.content}
-        contentContainerStyle={[styles.contentContainer, { paddingTop: headerHeight }]}
+        contentContainerStyle={[styles.contentContainer, { paddingTop: headerHeight + 16 }]}
         scrollEnabled={scrollEnabled}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -1109,7 +1110,7 @@ const styles = StyleSheet.create({
   },
   islandContainer: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 48 : 12,
+    top: isIOS ? 48 : 12,
     alignSelf: 'center',
     height: 38,
     zIndex: 999999,

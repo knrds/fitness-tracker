@@ -552,3 +552,30 @@ export interface Achievement {
    */
   repeatable?: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Sync Types
+// ---------------------------------------------------------------------------
+
+export type SyncOperationType = 'INSERT' | 'UPDATE' | 'DELETE';
+
+export interface SyncOperation {
+  id: UUID;
+  table:
+    | 'users'
+    | 'exercises'
+    | 'workout_templates'
+    | 'template_exercises'
+    | 'programs'
+    | 'program_workouts'
+    | 'workout_sessions'
+    | 'session_exercises'
+    | 'exercise_sets'
+    | 'personal_records'
+    | 'body_metrics';
+  operation: SyncOperationType;
+  payload: unknown;
+  createdAt: Timestamp;
+  retryCount: number;
+}
+

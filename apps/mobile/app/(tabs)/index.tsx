@@ -25,6 +25,7 @@ import { useProgramStore } from '../../src/stores/programStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { getLevelBadge } from '../../src/utils/level';
 import { Button, Card, useTheme } from '@fitness-tracker/ui';
+import { SyncIndicator } from '../../src/components/SyncIndicator';
 
 const isObliqueLikeExerciseName = (name: string) => {
   const lowerName = name.toLowerCase();
@@ -299,10 +300,14 @@ export default function HomeScreen() {
       ]}
     >
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }], gap: 16 }}>
-        {/* Top Header — entire row tappable to navigate to profile */}
-        <Pressable style={styles.headerRow} onPress={() => router.push('/profile' as Href)}>
-          {/* Profile Avatar */}
-          <View style={styles.headerLeft}>
+        {/* Top Header */}
+        <View style={styles.headerRow}>
+          {/* Profile Avatar & Name */}
+          <Pressable
+            style={styles.headerLeft}
+            onPress={() => router.push('/profile' as Href)}
+            accessibilityLabel="View profile"
+          >
             {profile.profileImageUri ? (
               <Image
                 source={{ uri: profile.profileImageUri }}
@@ -331,19 +336,22 @@ export default function HomeScreen() {
                 {profile.displayName || 'ATHLETE'}
               </Text>
             </View>
+          </Pressable>
+          <View style={styles.headerRight}>
+            <SyncIndicator />
+            <View style={styles.readinessContainer}>
+              <Text
+                style={[
+                  { color: theme.colors.primary, fontSize: 32, lineHeight: 36 },
+                  theme.typography.display,
+                ]}
+              >
+                {streak}
+              </Text>
+              <Text style={[{ color: theme.colors.muted }, theme.typography.caption]}>STREAK 🔥</Text>
+            </View>
           </View>
-          <View style={styles.readinessContainer}>
-            <Text
-              style={[
-                { color: theme.colors.primary, fontSize: 32, lineHeight: 36 },
-                theme.typography.display,
-              ]}
-            >
-              {streak}
-            </Text>
-            <Text style={[{ color: theme.colors.muted }, theme.typography.caption]}>STREAK 🔥</Text>
-          </View>
-        </Pressable>
+        </View>
 
         <View style={styles.levelWrapper}>
           <View style={styles.levelHeaderRow}>
@@ -1040,6 +1048,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
     flex: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   avatar: {
     width: 48,

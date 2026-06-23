@@ -15,6 +15,7 @@ import { z } from 'zod';
 
 import { getCurrentUserId, LOCAL_USER_ID } from './local-user';
 import { createHydratedStorage } from './storage';
+import { useSyncStore } from './syncStore';
 
 const DEFAULT_TEMPLATE_IDS = {
   gk: '10000000-0000-4000-8000-000000000001',
@@ -516,33 +517,48 @@ export const useProgramStore = create<ProgramState>()(
             createdAt: programPartial.createdAt || now,
             updatedAt: now,
           } as Program;
+          useSyncStore.getState().addToQueue('programs', 'INSERT', newProgram);
           return { programs: [...state.programs, newProgram] };
         }),
 
       updateProgram: (id, updates) =>
-        set((state) => ({
-          programs: state.programs.map((p) =>
-            p.id === id ? { ...p, ...updates, updatedAt: new Date() } : p,
-          ),
-        })),
-
-      deleteProgram: (id) =>
-        set((state) => ({
-          programs: state.programs.filter((p) => p.id !== id),
-        })),
-
-      setActiveProgram: (id) =>
-        set((state) => ({
-          programs: state.programs.map((p) => {
+        set((state) => {
+          const updatedPrograms = state.programs.map((p) => {
             if (p.id === id) {
-              return { ...p, isActive: true, startedAt: new Date(), updatedAt: new Date() };
-            }
-            if (p.isActive) {
-              return { ...p, isActive: false, updatedAt: new Date() };
+              const updated = { ...p, ...updates, updatedAt: new Date() };
+              useSyncStore.getState().addToQueue('programs', 'INSERT', updated);
+              return updated;
             }
             return p;
-          }),
-        })),
+          });
+          return { programs: updatedPrograms };
+        }),
+
+      deleteProgram: (id) =>
+        set((state) => {
+          useSyncStore.getState().addToQueue('programs', 'DELETE', { id });
+          return {
+            programs: state.programs.filter((p) => p.id !== id),
+          };
+        }),
+
+      setActiveProgram: (id) =>
+        set((state) => {
+          const updatedPrograms = state.programs.map((p) => {
+            if (p.id === id) {
+              const updated = { ...p, isActive: true, startedAt: new Date(), updatedAt: new Date() };
+              useSyncStore.getState().addToQueue('programs', 'INSERT', updated);
+              return updated;
+            }
+            if (p.isActive) {
+              const updated = { ...p, isActive: false, updatedAt: new Date() };
+              useSyncStore.getState().addToQueue('programs', 'INSERT', updated);
+              return updated;
+            }
+            return p;
+          });
+          return { programs: updatedPrograms };
+        }),
 
       updateProgramsOrder: (programs) =>
         set({
@@ -562,20 +578,30 @@ export const useProgramStore = create<ProgramState>()(
             createdAt: templatePartial.createdAt || now,
             updatedAt: now,
           } as WorkoutTemplate;
+          useSyncStore.getState().addToQueue('workout_templates', 'INSERT', newTemplate);
           return { templates: [...state.templates, newTemplate] };
         }),
 
       updateTemplate: (id, updates) =>
-        set((state) => ({
-          templates: state.templates.map((t) =>
-            t.id === id ? { ...t, ...updates, updatedAt: new Date() } : t,
-          ),
-        })),
+        set((state) => {
+          const updatedTemplates = state.templates.map((t) => {
+            if (t.id === id) {
+              const updated = { ...t, ...updates, updatedAt: new Date() };
+              useSyncStore.getState().addToQueue('workout_templates', 'INSERT', updated);
+              return updated;
+            }
+            return t;
+          });
+          return { templates: updatedTemplates };
+        }),
 
       deleteTemplate: (id) =>
-        set((state) => ({
-          templates: state.templates.filter((t) => t.id !== id),
-        })),
+        set((state) => {
+          useSyncStore.getState().addToQueue('workout_templates', 'DELETE', { id });
+          return {
+            templates: state.templates.filter((t) => t.id !== id),
+          };
+        }),
 
       updateTemplatesOrder: (templates) =>
         set({

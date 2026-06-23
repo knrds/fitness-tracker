@@ -53,13 +53,29 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     }
 
     authSubscription?.unsubscribe();
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const prevUser = get().user;
+
       set({
         session,
         user: session?.user ?? null,
         isLoading: false,
         isInitialized: true,
       });
+
+      if (session?.user) {
+        try {
+          const { useSyncStore } = await import('./syncStore');
+          if (!prevUser) {
+            const { migrateLocalUserData } = await import('./authMigration');
+            migrateLocalUserData(session.user.id);
+          }
+          await useSyncStore.getState().pullFromCloud();
+          await useSyncStore.getState().processQueue();
+        } catch (err) {
+          console.error('[Auth Store] Post-login migration/sync failed:', err);
+        }
+      }
     });
     authSubscription = listener.subscription;
 

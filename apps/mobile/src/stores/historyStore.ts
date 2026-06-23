@@ -11,6 +11,7 @@ import {
 } from '@fitness-tracker/domain';
 import { z } from 'zod';
 import { createHydratedStorage } from './storage';
+import { useSyncStore } from './syncStore';
 
 export interface HistoryStore {
   sessions: WorkoutSession[];
@@ -40,14 +41,20 @@ export const useHistoryStore = create<HistoryStore>()(
       sessions: [],
 
       addSession: (session) =>
-        set((state) => ({
-          sessions: [...state.sessions, session],
-        })),
+        set((state) => {
+          useSyncStore.getState().addToQueue('workout_sessions', 'INSERT', session);
+          return {
+            sessions: [...state.sessions, session],
+          };
+        }),
 
       deleteSession: (id) =>
-        set((state) => ({
-          sessions: state.sessions.filter((s) => s.id !== id),
-        })),
+        set((state) => {
+          useSyncStore.getState().addToQueue('workout_sessions', 'DELETE', { id });
+          return {
+            sessions: state.sessions.filter((s) => s.id !== id),
+          };
+        }),
 
       clearHistory: () => set({ sessions: [] }),
 

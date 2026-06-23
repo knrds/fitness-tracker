@@ -27,6 +27,21 @@ Für Benutzer-Registrierung, Login-Speicherung, Cloud-Synchronisation und Datenp
 
 ---
 
+## 1b. Vercel Web-App (PWA) — **Jetzt einrichten (Mission 11)**
+Da du die App auf Vercel hostest und als installierte Web-App (PWA) auf deinem iPhone nutzt, müssen die Umgebungsvariablen auch im Vercel-Dashboard hinterlegt sein.
+
+- [ ] **Umgebungsvariablen in Vercel hinterlegen:**
+  - Melde dich auf [vercel.com](https://vercel.com) an und öffne dein Projekt.
+  - Gehe zu **Settings** -> **Environment Variables**.
+  - Füge folgende zwei Umgebungsvariablen hinzu:
+    - Name: `EXPO_PUBLIC_SUPABASE_URL` | Value: *Deine Supabase Project URL*
+    - Name: `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Value: *Dein Supabase Anon/Public Key*
+  - Klicke auf **Save** und starte ein neues Deployment auf Vercel (**Deployments** -> Klicke beim letzten Deployment auf die drei Punkte -> **Redeploy**), damit die Variablen in den Build einfließen.
+- [ ] **Build- und Pfadeinstellungen auf Vercel prüfen:**
+  - Stelle sicher, dass Vercel das Stammverzeichnis (`Root Directory`) auf den Hauptordner des Monorepos setzt, und die Build-Befehle (z. B. `pnpm build` im Apps-Unterordner) korrekt konfiguriert sind.
+
+---
+
 ## 2. AI Fitness Coach (Gemini & Edge Functions) — **Zukunft (Mission 12 & 13)**
 Wird benötigt, wenn wir den personalisierten Chat-Coach und die automatisierten Plan-Vorschläge implementieren.
 

@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { getCurrentUserId } from './local-user';
 import { createHydratedStorage } from './storage';
+import { useSyncStore } from './syncStore';
 
 export interface BodyMetricStore {
   metrics: BodyMetric[];
@@ -39,6 +40,7 @@ export const useBodyMetricStore = create<BodyMetricStore>()(
             userId: getCurrentUserId(),
             createdAt: new Date(),
           };
+          useSyncStore.getState().addToQueue('body_metrics', 'INSERT', newMetric);
           // Sort descending: newest first
           const updated = [...state.metrics, newMetric].sort(
             (a, b) => b.recordedAt.getTime() - a.recordedAt.getTime(),
@@ -47,9 +49,12 @@ export const useBodyMetricStore = create<BodyMetricStore>()(
         }),
 
       deleteMetric: (id) =>
-        set((state) => ({
-          metrics: state.metrics.filter((m) => m.id !== id),
-        })),
+        set((state) => {
+          useSyncStore.getState().addToQueue('body_metrics', 'DELETE', { id });
+          return {
+            metrics: state.metrics.filter((m) => m.id !== id),
+          };
+        }),
 
       getMetricHistory: (type) => {
         const metrics = get().metrics;

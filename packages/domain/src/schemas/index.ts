@@ -328,3 +328,33 @@ export const AchievementSchema = z.object({
 });
 
 export type AchievementInput = z.input<typeof AchievementSchema>;
+
+// ---------------------------------------------------------------------------
+// Sync Types
+// ---------------------------------------------------------------------------
+
+export const SyncOperationTypeSchema = z.enum(['INSERT', 'UPDATE', 'DELETE']);
+
+export const SyncOperationSchema = z.object({
+  id: UUIDSchema,
+  table: z.enum([
+    'users',
+    'exercises',
+    'workout_templates',
+    'template_exercises',
+    'programs',
+    'program_workouts',
+    'workout_sessions',
+    'session_exercises',
+    'exercise_sets',
+    'personal_records',
+    'body_metrics',
+  ]),
+  operation: SyncOperationTypeSchema,
+  payload: z.unknown(),
+  createdAt: TimestampSchema,
+  retryCount: z.number().int().nonnegative(),
+});
+
+export type SyncOperationInput = z.input<typeof SyncOperationSchema>;
+

@@ -12,6 +12,7 @@ import { z } from 'zod';
 
 import { getCurrentUserId } from './local-user';
 import { createHydratedStorage } from './storage';
+import { useSyncStore } from './syncStore';
 
 function filterExercises(
   exercises: Exercise[],
@@ -137,6 +138,7 @@ export const useExerciseStore = create<ExerciseState>()(
             createdAt: new Date(),
             updatedAt: new Date(),
           };
+          useSyncStore.getState().addToQueue('exercises', 'INSERT', newEx);
           const newCustom = [...state.customExercises, newEx];
           const allExercises = [...EXERCISES, ...newCustom];
           const filtered = filterExercises(

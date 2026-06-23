@@ -15,12 +15,14 @@ import {
   LayoutAnimation,
   ViewStyle,
   Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useProfileStore } from '../../src/stores/profileStore';
 import * as Crypto from 'expo-crypto';
 import { useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isIOS } from '../../src/utils/platform';
 
 import {
@@ -45,6 +47,8 @@ import { useTheme, Button, Card } from '@fitness-tracker/ui';
 export default function WorkoutSessionScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const { width: viewportWidth } = useWindowDimensions();
   const {
     status,
     name,
@@ -496,14 +500,12 @@ export default function WorkoutSessionScreen() {
     setCustomCaffeineMg('');
   };
 
-  const headerHeight =
-    isIOS ? (restTimer.isRunning ? 120 : 84) : restTimer.isRunning ? 90 : 64;
-
-  const headerPaddingTop =
-    isIOS ? (restTimer.isRunning ? 80 : 48) : restTimer.isRunning ? 48 : 16;
-
-  const hudPaddingTop =
-    isIOS ? (restTimer.isRunning ? 76 : 48) : restTimer.isRunning ? 50 : 16;
+  const isMobileWeb = Platform.OS === 'web' && viewportWidth <= 480;
+  const needsGenerousTopInset = isIOS || isMobileWeb;
+  const topSafeArea = needsGenerousTopInset ? Math.max(insets.top, 48) : Math.max(insets.top, 12);
+  const headerBodyHeight = 68;
+  const headerHeight = topSafeArea + headerBodyHeight;
+  const islandTop = needsGenerousTopInset ? Math.max(insets.top + 4, 48) : 8;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -524,7 +526,7 @@ export default function WorkoutSessionScreen() {
               borderWidth: 1,
               width: islandExpanded ? 250 : 120,
               borderRadius: 20,
-              top: isIOS ? 44 : 8,
+              top: islandTop,
               zIndex: 1000000,
             },
           ]}
@@ -600,7 +602,8 @@ export default function WorkoutSessionScreen() {
             backgroundColor: theme.colors.surface,
             borderBottomColor: showHUD ? theme.colors.border : theme.colors.muted,
             height: headerHeight,
-            paddingTop: showHUD ? hudPaddingTop : headerPaddingTop,
+            minHeight: headerHeight,
+            paddingTop: topSafeArea,
             position: 'absolute',
             top: 0,
             left: 0,
@@ -648,14 +651,24 @@ export default function WorkoutSessionScreen() {
               <Pressable onPress={handleBackAction} style={{ paddingRight: 16 }}>
                 <Ionicons name="close" size={24} color={theme.colors.muted} />
               </Pressable>
-              <View>
+              <View style={styles.headerTitleGroup}>
                 <Text
-                  style={[{ color: theme.colors.text, fontSize: 18 }, theme.typography.heading]}
+                  numberOfLines={1}
+                  style={[
+                    styles.standardTitle,
+                    theme.typography.heading,
+                    { color: theme.colors.text },
+                  ]}
                 >
                   {name}
                 </Text>
                 <Text
-                  style={[{ color: theme.colors.primary, fontSize: 20 }, theme.typography.display]}
+                  numberOfLines={1}
+                  style={[
+                    styles.standardElapsed,
+                    theme.typography.display,
+                    { color: theme.colors.primary },
+                  ]}
                 >
                   {formatElapsed(elapsed)}
                 </Text>
@@ -697,6 +710,8 @@ export default function WorkoutSessionScreen() {
         ref={scrollViewRef}
         style={styles.content}
         contentContainerStyle={[styles.contentContainer, { paddingTop: headerHeight + 16 }]}
+        keyboardDismissMode="none"
+        keyboardShouldPersistTaps="always"
         scrollEnabled={scrollEnabled}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -948,7 +963,9 @@ const styles = StyleSheet.create({
   headerContainer: {
     borderBottomWidth: 1,
     paddingHorizontal: 24,
-    overflow: 'hidden',
+    paddingBottom: 8,
+    justifyContent: 'center',
+    overflow: 'visible',
   },
   hudRow: {
     flexDirection: 'row',
@@ -957,7 +974,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     flex: 1,
     gap: 10,
-    paddingBottom: 8,
+    minHeight: 52,
   },
   hudStatsGroup: {
     flexDirection: 'row',
@@ -977,11 +994,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'stretch',
     flex: 1,
-    paddingBottom: 8,
+    minHeight: 52,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    minWidth: 0,
+    paddingRight: 12,
+  },
+  headerTitleGroup: {
+    flex: 1,
+    minWidth: 0,
+  },
+  standardTitle: {
+    fontSize: 18,
+    lineHeight: 22,
+  },
+  standardElapsed: {
+    fontSize: 20,
+    lineHeight: 24,
   },
   title: {
     marginBottom: 2,
@@ -1101,6 +1133,7 @@ const styles = StyleSheet.create({
   },
   hudText: {
     fontSize: 12,
+    lineHeight: 16,
     fontFamily: 'SpaceGrotesk_700Bold',
   },
   hudDot: {
@@ -1144,6 +1177,7 @@ const styles = StyleSheet.create({
   },
   islandText: {
     fontSize: 12,
+    lineHeight: 16,
     fontFamily: 'SpaceGrotesk_700Bold',
   },
   islandControls: {

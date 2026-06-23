@@ -115,7 +115,11 @@ const isObliqueLikeExercise = (exercise: {
   );
 };
 
-export default function ExercisesScreen() {
+interface ExercisesScreenProps {
+  embedded?: boolean;
+}
+
+export default function ExercisesScreen({ embedded = false }: ExercisesScreenProps) {
   const theme = useTheme();
   const params = useLocalSearchParams<{ muscle?: string }>();
   const insets = useSafeAreaInsets();
@@ -220,7 +224,10 @@ export default function ExercisesScreen() {
     <View
       style={[
         styles.container,
-        { backgroundColor: theme.colors.background, paddingTop: Math.max(insets.top, 16) },
+        {
+          backgroundColor: theme.colors.background,
+          paddingTop: embedded ? 0 : Math.max(insets.top, 16),
+        },
       ]}
     >
       <View style={styles.header}>

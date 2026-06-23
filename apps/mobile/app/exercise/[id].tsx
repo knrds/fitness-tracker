@@ -100,7 +100,10 @@ export default function ExerciseDetailScreen() {
                 if (router.canGoBack()) {
                   router.back();
                 } else {
-                  router.replace('/(tabs)/exercises');
+                  router.replace({
+                    pathname: '/(tabs)/body',
+                    params: { tab: 'exercises' },
+                  });
                 }
               }}
               hitSlop={15}

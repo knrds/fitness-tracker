@@ -358,3 +358,17 @@ export const SyncOperationSchema = z.object({
 
 export type SyncOperationInput = z.input<typeof SyncOperationSchema>;
 
+// ---------------------------------------------------------------------------
+// AI Coach Chat Schemas
+// ---------------------------------------------------------------------------
+
+export const ChatRoleSchema = z.enum(['user', 'assistant', 'system']);
+
+export const ChatMessageSchema = z.object({
+  id: UUIDSchema,
+  role: ChatRoleSchema,
+  content: z.string(),
+  createdAt: TimestampSchema,
+});
+
+export type ChatMessageInput = z.input<typeof ChatMessageSchema>;

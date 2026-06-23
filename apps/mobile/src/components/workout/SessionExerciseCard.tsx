@@ -933,11 +933,84 @@ const SetRow = ({
   const theme = useTheme();
   const isDone = set.completed;
   const [isWeightFocused, setIsWeightFocused] = useState(false);
+  const weightInputRef = React.useRef<TextInput | null>(null);
+  const weightBlurTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const focusGuardTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isAccessoryInteractionRef = React.useRef(false);
   const swipeX = React.useRef(new Animated.Value(0)).current;
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const rowHeight = React.useRef(new Animated.Value(0)).current;
   const rowOpacity = React.useRef(new Animated.Value(1)).current;
+
+  const clearWeightBlurTimeout = React.useCallback(() => {
+    if (weightBlurTimeoutRef.current) {
+      clearTimeout(weightBlurTimeoutRef.current);
+      weightBlurTimeoutRef.current = null;
+    }
+  }, []);
+
+  const focusWeightInput = React.useCallback(() => {
+    if (isCardio) return;
+
+    const focus = () => weightInputRef.current?.focus();
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(focus);
+    } else {
+      setTimeout(focus, 0);
+    }
+  }, [isCardio]);
+
+  const preserveWeightInputFocus = React.useCallback(() => {
+    if (isCardio) return;
+
+    isAccessoryInteractionRef.current = true;
+    clearWeightBlurTimeout();
+    if (focusGuardTimeoutRef.current) {
+      clearTimeout(focusGuardTimeoutRef.current);
+    }
+    setIsWeightFocused(true);
+    focusWeightInput();
+    focusGuardTimeoutRef.current = setTimeout(() => {
+      weightInputRef.current?.focus();
+      isAccessoryInteractionRef.current = false;
+      focusGuardTimeoutRef.current = null;
+    }, 350);
+  }, [clearWeightBlurTimeout, focusWeightInput, isCardio]);
+
+  useEffect(() => {
+    return () => {
+      clearWeightBlurTimeout();
+      if (focusGuardTimeoutRef.current) {
+        clearTimeout(focusGuardTimeoutRef.current);
+      }
+    };
+  }, [clearWeightBlurTimeout]);
+
+  const handleWeightFocus = () => {
+    clearWeightBlurTimeout();
+    setIsWeightFocused(true);
+  };
+
+  const handleWeightBlur = () => {
+    if (isAccessoryInteractionRef.current) {
+      preserveWeightInputFocus();
+      return;
+    }
+
+    clearWeightBlurTimeout();
+    weightBlurTimeoutRef.current = setTimeout(() => {
+      setIsWeightFocused(false);
+      weightBlurTimeoutRef.current = null;
+    }, 300);
+  };
+
+  const handleAccessoryPointerDown = (event: unknown) => {
+    if (Platform.OS === 'web') {
+      (event as { preventDefault?: () => void }).preventDefault?.();
+    }
+    preserveWeightInputFocus();
+  };
 
   const handleLayout = (e: LayoutChangeEvent) => {
     if (!isDeleting) {
@@ -1021,6 +1094,7 @@ const SetRow = ({
   );
 
   const handleWeightModifier = (amount: number) => {
+    preserveWeightInputFocus();
     const currentVal = set.weight || 0;
     const modifierKg = isImperial ? amount / 2.20462 : amount;
     let newVal = Math.max(0, currentVal + modifierKg);
@@ -1030,6 +1104,7 @@ const SetRow = ({
   };
 
   const handleCopyLastSet = () => {
+    preserveWeightInputFocus();
     if (prevSet) {
       onUpdate({
         ...(prevSet.weight !== undefined ? { weight: prevSet.weight } : {}),
@@ -1149,6 +1224,7 @@ const SetRow = ({
               {getSetTypeBadge()}
             </Pressable>
             <TextInput
+              ref={weightInputRef}
               style={[
                 styles.input,
                 styles.weightCol,
@@ -1162,10 +1238,8 @@ const SetRow = ({
               placeholder="-"
               placeholderTextColor={theme.colors.muted}
               selectTextOnFocus={true}
-              onFocus={() => setIsWeightFocused(true)}
-              onBlur={() => {
-                setTimeout(() => setIsWeightFocused(false), 300);
-              }}
+              onFocus={handleWeightFocus}
+              onBlur={handleWeightBlur}
               inputAccessoryViewID="keyboardDoneAccessory"
             />
             {isCardio ? (
@@ -1301,26 +1375,54 @@ const SetRow = ({
       </View>
       {isWeightFocused && !isCardio && (
         <View style={styles.accessoryRow}>
-          <Pressable style={styles.accessoryBtn} onPressIn={() => handleWeightModifier(-5)}>
+          <Pressable
+            style={styles.accessoryBtn}
+            onPointerDown={handleAccessoryPointerDown}
+            onPressIn={() => handleWeightModifier(-5)}
+          >
             <Text style={styles.accessoryBtnText}>-5</Text>
           </Pressable>
-          <Pressable style={styles.accessoryBtn} onPressIn={() => handleWeightModifier(-2.5)}>
+          <Pressable
+            style={styles.accessoryBtn}
+            onPointerDown={handleAccessoryPointerDown}
+            onPressIn={() => handleWeightModifier(-2.5)}
+          >
             <Text style={styles.accessoryBtnText}>-2.5</Text>
           </Pressable>
-          <Pressable style={styles.accessoryBtn} onPressIn={() => handleWeightModifier(-1.25)}>
+          <Pressable
+            style={styles.accessoryBtn}
+            onPointerDown={handleAccessoryPointerDown}
+            onPressIn={() => handleWeightModifier(-1.25)}
+          >
             <Text style={styles.accessoryBtnText}>-1.25</Text>
           </Pressable>
-          <Pressable style={styles.accessoryBtn} onPressIn={() => handleWeightModifier(1.25)}>
+          <Pressable
+            style={styles.accessoryBtn}
+            onPointerDown={handleAccessoryPointerDown}
+            onPressIn={() => handleWeightModifier(1.25)}
+          >
             <Text style={styles.accessoryBtnText}>+1.25</Text>
           </Pressable>
-          <Pressable style={styles.accessoryBtn} onPressIn={() => handleWeightModifier(2.5)}>
+          <Pressable
+            style={styles.accessoryBtn}
+            onPointerDown={handleAccessoryPointerDown}
+            onPressIn={() => handleWeightModifier(2.5)}
+          >
             <Text style={styles.accessoryBtnText}>+2.5</Text>
           </Pressable>
-          <Pressable style={styles.accessoryBtn} onPressIn={() => handleWeightModifier(5)}>
+          <Pressable
+            style={styles.accessoryBtn}
+            onPointerDown={handleAccessoryPointerDown}
+            onPressIn={() => handleWeightModifier(5)}
+          >
             <Text style={styles.accessoryBtnText}>+5</Text>
           </Pressable>
           {prevSet && (
-            <Pressable style={styles.accessoryBtnCopy} onPressIn={handleCopyLastSet}>
+            <Pressable
+              style={styles.accessoryBtnCopy}
+              onPointerDown={handleAccessoryPointerDown}
+              onPressIn={handleCopyLastSet}
+            >
               <Text style={styles.accessoryBtnTextCopy}>Copy Prev</Text>
             </Pressable>
           )}

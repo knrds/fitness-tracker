@@ -417,7 +417,15 @@ export default function WorkoutTemplateBuilderScreen() {
                 <View style={styles.exHeader}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <View
-                      style={[styles.dragHandle, { cursor: 'grab' } as unknown as ViewStyle]}
+                      style={[
+                        styles.dragHandle,
+                        {
+                          cursor: 'grab',
+                          touchAction: 'none',
+                          userSelect: 'none',
+                          WebkitUserSelect: 'none',
+                        } as unknown as ViewStyle,
+                      ]}
                       onPointerDown={() => {
                         draggingExerciseRef.current = te;
                         activeDragIdRef.current = te.id;

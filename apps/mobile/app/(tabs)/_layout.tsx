@@ -3,6 +3,7 @@ import { Tabs, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@fitness-tracker/ui';
 import { StyleSheet, Platform, Pressable, Animated } from 'react-native';
+import { isIOS } from '../../src/utils/platform';
 
 export default function TabLayout() {
   const theme = useTheme();
@@ -59,8 +60,8 @@ export default function TabLayout() {
           backgroundColor: theme.colors.background,
           borderTopColor: theme.colors.border,
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 88 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          height: isIOS ? 88 : 64,
+          paddingBottom: isIOS ? 24 : 8,
           paddingTop: 8,
         },
       }}
@@ -164,7 +165,7 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   centerTabContainer: {
-    top: Platform.OS === 'ios' ? -12 : -16,
+    top: isIOS ? -12 : -16,
     justifyContent: 'center',
     alignItems: 'center',
   },

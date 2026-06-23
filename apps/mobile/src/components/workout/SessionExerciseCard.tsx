@@ -365,6 +365,9 @@ export const SessionExerciseCard = ({
                 justifyContent: 'center',
                 alignItems: 'center',
                 cursor: 'grab',
+                touchAction: 'none',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
               } as unknown as ViewStyle
             }
           >
@@ -525,19 +528,19 @@ export const SessionExerciseCard = ({
             <Text style={[styles.columnHeader, styles.setCol, { color: theme.colors.muted }]}>
               Set
             </Text>
-            <Text style={[styles.columnHeader, styles.inputCol, { color: theme.colors.muted }]}>
+            <Text style={[styles.columnHeader, styles.weightCol, { color: theme.colors.muted }]}>
               {isCardio ? 'Level' : isImperial ? 'lbs' : 'kg'}
             </Text>
-            <Text style={[styles.columnHeader, styles.inputCol, { color: theme.colors.muted }]}>
+            <Text style={[styles.columnHeader, styles.repsCol, { color: theme.colors.muted }]}>
               {isCardio ? 'Min:Sec' : 'Reps'}
             </Text>
             {showRpe && (
-              <Text style={[styles.columnHeader, styles.inputCol, { color: theme.colors.muted }]}>
+              <Text style={[styles.columnHeader, styles.rpeCol, { color: theme.colors.muted }]}>
                 RPE
               </Text>
             )}
             {showRir && (
-              <Text style={[styles.columnHeader, styles.inputCol, { color: theme.colors.muted }]}>
+              <Text style={[styles.columnHeader, styles.rirCol, { color: theme.colors.muted }]}>
                 RIR
               </Text>
             )}
@@ -1148,11 +1151,12 @@ const SetRow = ({
             <TextInput
               style={[
                 styles.input,
-                styles.inputCol,
+                styles.weightCol,
                 { color: theme.colors.text, backgroundColor: theme.colors.background },
                 isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface },
               ]}
-              keyboardType="numeric"
+              keyboardType="decimal-pad"
+              inputMode="decimal"
               value={getDisplayWeight()}
               onChangeText={handleWeightChange}
               placeholder="-"
@@ -1168,11 +1172,12 @@ const SetRow = ({
               <TextInput
                 style={[
                   styles.input,
-                  styles.inputCol,
+                  styles.repsCol,
                   { color: theme.colors.text, backgroundColor: theme.colors.background },
                   isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface },
                 ]}
                 keyboardType="number-pad"
+                inputMode="numeric"
                 value={durationStr}
                 onChangeText={handleDurationChange}
                 placeholder="0s"
@@ -1190,11 +1195,12 @@ const SetRow = ({
               <TextInput
                 style={[
                   styles.input,
-                  styles.inputCol,
+                  styles.repsCol,
                   { color: theme.colors.text, backgroundColor: theme.colors.background },
                   isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface },
                 ]}
-                keyboardType="numeric"
+                keyboardType="number-pad"
+                inputMode="numeric"
                 value={set.reps ? set.reps.toString() : ''}
                 onChangeText={(text) => {
                   let reps = parseInt(text, 10) || 0;
@@ -1211,7 +1217,7 @@ const SetRow = ({
               <TextInput
                 style={[
                   styles.input,
-                  styles.inputCol,
+                  styles.rpeCol,
                   {
                     color: theme.colors.text,
                     backgroundColor: theme.colors.background,
@@ -1219,7 +1225,8 @@ const SetRow = ({
                   },
                   isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface },
                 ]}
-                keyboardType="numeric"
+                keyboardType="decimal-pad"
+                inputMode="decimal"
                 value={set.rpe ? set.rpe.toString() : ''}
                 onChangeText={(text) => {
                   let rpe = parseFloat(text) || 0;
@@ -1236,7 +1243,7 @@ const SetRow = ({
               <TextInput
                 style={[
                   styles.input,
-                  styles.inputCol,
+                  styles.rirCol,
                   {
                     color: theme.colors.text,
                     backgroundColor: theme.colors.background,
@@ -1244,7 +1251,8 @@ const SetRow = ({
                   },
                   isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface },
                 ]}
-                keyboardType="numeric"
+                keyboardType="number-pad"
+                inputMode="numeric"
                 value={set.rir !== undefined ? set.rir.toString() : ''}
                 onChangeText={(text) => {
                   let rir = parseInt(text, 10) || 0;
@@ -1396,10 +1404,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  setCol: { width: 30, textAlign: 'center' },
-  inputCol: { flex: 1, textAlign: 'center' },
-  doneCol: { width: isSmallScreen ? 36 : 44, textAlign: 'center' },
-  deleteCol: { width: 34, textAlign: 'center' },
+  setCol: { width: 28, textAlign: 'center' },
+  weightCol: { flex: 1.25, textAlign: 'center' },
+  repsCol: { flex: 1.0, textAlign: 'center' },
+  rpeCol: { flex: 0.9, textAlign: 'center' },
+  rirCol: { flex: 0.9, textAlign: 'center' },
+  doneCol: { width: 34, textAlign: 'center' },
+  deleteCol: { width: 28, textAlign: 'center' },
 
   rowContainer: {
     marginBottom: 6,
@@ -1447,15 +1458,16 @@ const styles = StyleSheet.create({
   },
   input: {
     borderRadius: 8,
-    marginHorizontal: isSmallScreen ? 2 : 4,
+    marginHorizontal: isSmallScreen ? 1.5 : isMediumScreen ? 2 : 4,
     paddingVertical: 6,
-    paddingHorizontal: isSmallScreen ? 4 : 8,
-    fontSize: isSmallScreen ? 13 : isMediumScreen ? 14 : 16,
+    paddingHorizontal: isSmallScreen ? 2 : isMediumScreen ? 4 : 8,
+    fontSize: isSmallScreen ? 12 : isMediumScreen ? 13 : 15,
     textAlign: 'center',
     fontWeight: '500',
     borderWidth: 1,
     borderColor: 'transparent',
     height: 36,
+    minWidth: 0,
   },
   doneBtn: {
     borderRadius: 8,

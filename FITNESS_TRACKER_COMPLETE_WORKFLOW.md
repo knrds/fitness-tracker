@@ -25,6 +25,8 @@
 14. BLOCK 9 — Zweite Härtung
 15. BLOCK 10 — Qualität & Konsistenz
 16. BLOCK 11 — Release-Vorbereitung
+16b. BLOCK 12 — Running Tracker
+16c. BLOCK 13 — Nutrition Tracker (Zukunft)
 17. Notfall-Prompts
 18. Reihenfolge-Checkliste
 19. Branch-Hygiene
@@ -1667,10 +1669,131 @@ Erstelle den ersten TestFlight/Preview Build:
 
 5. Update-Strategie:
    eas update --branch production --message "Fix: [was]"
-   Für Bug-Fixes ohne kompletten Build.
-
-Führe mich Schritt für Schritt. Frage wenn du Keys brauchst.
+   Führe mich Schritt für Schritt. Frage wenn du Keys brauchst.
 Merge nicht nach main.
+```
+
+---
+
+## 16b. BLOCK 12 — RUNNING TRACKER
+
+> 🏃 **GPS RUNNING TRACKER & TELEMETRY**
+> Dieser Block führt das Tracking von Outdoor-Läufen (Strava-Style) ein. Der Running Tracker zeichnet Koordinaten über GPS auf, berechnet Live-Daten (Pace, Distanz, Höhenmeter) und zeigt den Pfad interaktiv auf einer Karte an. Nach dem Lauf werden die Daten mit Supabase synchronisiert und in die Erfolge/XP eingerechnet.
+
+### Mission 24: Running Tracker UI, Maps & GPS Store
+
+```
+Lies AGENTS.md. Branch: feat/run-tracker
+
+1. runStore.ts (Zustand + MMKV-Hydration):
+   - activeRun: { id, startedAt, durationSeconds, distanceMeters, coordinates: Array<{ latitude, longitude, timestamp }>, isPaused }
+   - history: RunSummary[] (geloggte Läufe)
+   - startRun(), pauseRun(), resumeRun(), discardRun()
+   - addLocationCoordinate(coord)
+   - finalizeRun(name) -> speichert in History + Sync Queue
+
+2. Location Tracking Integration (expo-location):
+   - Fordere Standort-Berechtigungen (Foreground & Background) an.
+   - Starte GPS-Tracking bei activeRun.
+   - Aktualisiere coordinates und berechne Distanz (Haversine-Formel) in Echtzeit.
+   - Berechne Durchschnitts- und Live-Pace (Minuten pro Kilometer).
+
+3. Running Tracker Map screen (/app/run/session.tsx):
+   - Karte über react-native-maps.
+   - Zeige aktuelle Position des Nutzers und zeichne den gelaufenen Pfad als Polyline.
+   - Dashboard mit großer Schrift für: Zeit, Distanz (km), Pace (min/km), verbrannte Kalorien.
+   - Steuerelemente: Start, Pause, Stopp (mit gedrückt halten gegen versehentliches Abbrechen).
+
+pnpm test + pnpm typecheck. Merge nicht nach main.
+```
+
+### Mission 25: Runs History, Supabase DB & XP Sync
+
+```
+Lies AGENTS.md. Branch: feat/run-sync
+
+1. Additive DB-Migration (docs/schema_runs.sql):
+   CREATE TABLE IF NOT EXISTS runs (
+     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+     name TEXT,
+     started_at TIMESTAMP WITH TIME ZONE,
+     duration_seconds INTEGER,
+     distance_meters DOUBLE PRECISION,
+     route_coordinates JSONB, -- Array von {lat, lng, time}
+     average_pace DOUBLE PRECISION,
+     calories_burned INTEGER,
+     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+   );
+   RLS aktivieren (user_id = auth.uid() für Select/Insert/Update/Delete).
+
+2. Sync-Integration in syncStore.ts:
+   - runStore.finalizeRun() fügt eine 'INSERT'-Operation in die Sync-Queue hinzu.
+   - pullFromCloud lädt auch historische Läufe.
+
+3. XP & Achievements:
+   - Jeder erfolgreiche Lauf gibt: +50 XP Basis + 10 XP pro Kilometer.
+   - Neue Achievements: Erster Lauf, 5k unter 25 Min, 10k Lauf, 50k Gesamtdistanz.
+
+4. Runs History List (/app/run/history.tsx):
+   - Drilldown-Liste aller gelaufenen Strecken mit Miniatur-Karte (Static Map oder interaktiv).
+   - Detail-Popup: Kilometer-Splits (z.B. Pace für km 1, km 2...), Höhenprofil.
+
+pnpm test. Merge nicht nach main.
+```
+
+---
+
+## 16c. BLOCK 13 — NUTRITION TRACKER (ZUKUNFT)
+
+> 🍎 **NUTRITION LOGGING & CALORIE TRACKER**
+> Dieser Block (weit in der Zukunft geplant) ergänzt den Fitness-Tracker um ein vollwertiges Ernährungstagebuch (MyFitnessPal-Style) zur Erfassung von Kalorien und Makronährstoffen.
+
+### Mission 26: Daily Nutrition Log & Macronutrients
+
+```
+Lies AGENTS.md. Branch: feat/nutrition-core
+
+1. nutritionStore.ts (Zustand + MMKV):
+   - dailyLogs: Record<string, DailyLog> (Key: YYYY-MM-DD)
+   - DailyLog: { targetCalories, targetProtein, targetCarbs, targetFat, meals: Meal[] }
+   - Meal: { id, name (z.B. Frühstück), foods: FoodEntry[] }
+   - FoodEntry: { id, foodName, calories, protein, carbs, fat, servingSize, servingsCount }
+   - addFoodToMeal(date, mealName, food)
+   - removeFoodFromMeal(date, mealName, entryId)
+
+2. Nutrition Dashboard (/app/nutrition/dashboard.tsx):
+   - Kalorien-Kreis (Gegessen vs. Ziel).
+   - Makronährstoff-Verteilung (Balken für Protein, Kohlenhydrate, Fette).
+   - Mahlzeiten-Aufteilung (Frühstück, Mittagessen, Abendessen, Snacks) mit Add-Buttons.
+   - Wasser-Tracker (1 Klick addiert 250ml).
+
+3. Dynamic Targets & Calorie Burn:
+   - Berechne Grundumsatz (Mifflin-St. Jeor) basierend auf Alter, Gewicht und biologischem Geschlecht aus profileStore.
+   - Addiere verbrannte Aktivitätskalorien aus beendeten Workouts und Runs des aktuellen Tages dynamisch zum täglichen Kalorienbudget hinzu.
+
+pnpm test. Merge nicht nach main.
+```
+
+### Mission 27: Food Search & Barcode Camera Scanner
+
+```
+Lies AGENTS.md. Branch: feat/nutrition-scanner
+
+1. Barcode Scanner Integration (expo-camera):
+   - Kamera-Overlay zum Scannen von EAN/UPC Barcodes.
+   - Abfrage der Open Food Facts API (oder eines alternativen Service) mit dem gescannten Barcode.
+   - Automatisches Parsen von Produktname, Kalorien und Makronährstoffen pro 100g.
+
+2. Food Search Client:
+   - Textsuche nach Lebensmitteln über freie API.
+   - Custom Food Creation: Nutzer können eigene Lebensmittel mit Namen und Makronährstoffen anlegen und lokal/in der Cloud speichern.
+
+3. Additive DB-Migration (docs/schema_nutrition.sql):
+   - Tabellen für `daily_nutrition_logs` und `custom_foods`.
+   - RLS-Policies für private Datenhaltung.
+
+pnpm test. Merge nicht nach main.
 ```
 
 ---
@@ -1797,6 +1920,16 @@ BLOCK 11 — RELEASE (Builder)
 [ ] Release-Prep (app.json + Placeholder-Icons teilweise erledigt; EAS, Legal, Store-Listing offen)
 [ ] MANUELL: eas-cli installieren + Developer-Accounts
 [ ] Erster Build (Android Preview zuerst)
+
+BLOCK 12 — RUNNING TRACKER (Builder)
+[ ] Mission 24: Running Tracker UI, Maps & GPS Store
+[ ] Mission 25: Runs History, Supabase DB & XP Sync
+[ ] MANUELL: Additive Run-Migration ausführen
+
+BLOCK 13 — NUTRITION TRACKER (Zukunft) (Builder)
+[ ] Mission 26: Daily Log & Macronutrient core
+[ ] Mission 27: Food Search & Barcode Camera Scanner
+[ ] MANUELL: Additive Nutrition-Migration ausführen
 
 FERTIG: Testbare App auf echten Geräten ✅
 ```

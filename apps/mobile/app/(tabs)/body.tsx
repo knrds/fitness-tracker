@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import { BodyMetric, BodyMeasurements, formatDateLocal } from '@fitness-tracker/domain';
 import { useBodyMetricStore } from '../../src/stores/bodyMetricStore';
 import { useProfileStore } from '../../src/stores/profileStore';
@@ -24,9 +25,14 @@ import {
   KEYBOARD_DONE_ID,
 } from '../../src/components/workout/KeyboardDoneAccessory';
 
+import ExercisesScreen from './exercises';
+
+type BodyTab = 'metrics' | 'exercises';
+
 export default function BodyTrackingScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ tab?: BodyTab }>();
   const { metrics, addMetric, getMetricHistory, getLatestMetric } = useBodyMetricStore();
   const { profile } = useProfileStore();
   const { dailyGoalMl, todayIntakeMl, addWater, removeWater, setDailyGoal, resetToday } =
@@ -35,10 +41,21 @@ export default function BodyTrackingScreen() {
 
   const [activeChartTab, setActiveChartTab] = useState<'weight' | 'fat'>('weight');
   const [modalVisible, setModalVisible] = useState(false);
+  const [activeBodyTab, setActiveBodyTab] = useState<BodyTab>(
+    params.tab === 'exercises' ? 'exercises' : 'metrics',
+  );
   const [selectedPoint, setSelectedPoint] = useState<{
     date: string;
     value: string;
   } | null>(null);
+
+  React.useEffect(() => {
+    if (params.tab === 'exercises') {
+      setActiveBodyTab('exercises');
+    } else if (params.tab === 'metrics') {
+      setActiveBodyTab('metrics');
+    }
+  }, [params.tab]);
 
   const chartFadeAnim = React.useRef(new Animated.Value(0)).current;
   const chartSlideAnim = React.useRef(new Animated.Value(20)).current;
@@ -357,420 +374,482 @@ export default function BodyTrackingScreen() {
         <Text
           style={[styles.headerTitle, { color: theme.colors.text, ...theme.typography.heading }]}
         >
-          BODY METRICS
+          BODY
         </Text>
-        <Pressable
-          style={[styles.addBtn, { backgroundColor: theme.colors.primary }]}
-          onPress={() => setModalVisible(true)}
-          testID="add-metric-btn"
-        >
-          <Ionicons name="add" size={24} color={theme.colors.background} />
-        </Pressable>
+        {activeBodyTab === 'metrics' && (
+          <Pressable
+            style={[styles.addBtn, { backgroundColor: theme.colors.primary }]}
+            onPress={() => setModalVisible(true)}
+            testID="add-metric-btn"
+          >
+            <Ionicons name="add" size={24} color={theme.colors.background} />
+          </Pressable>
+        )}
       </View>
 
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: Math.max(insets.bottom + 20, 100) },
+      <View
+        style={[
+          styles.bodyTabs,
+          { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
         ]}
       >
-        {/* Latest Overview Cards */}
-        <View style={styles.overviewRow}>
-          <Card style={styles.overviewCard} padding="md">
-            <Ionicons
-              name="scale-outline"
-              size={24}
-              color={theme.colors.muted}
-              style={styles.cardIcon}
-            />
-            <Text
-              style={[styles.cardLabel, { color: theme.colors.muted, ...theme.typography.caption }]}
-            >
-              CURRENT WEIGHT
-            </Text>
-            <Text
-              style={[
-                styles.cardValue,
-                { color: theme.colors.text, ...theme.typography.heading, fontSize: 24 },
-              ]}
-            >
-              {displayWeight(latest?.weightKg)}
-            </Text>
-          </Card>
-          <Card style={styles.overviewCard} padding="md">
-            <Ionicons
-              name="water-outline"
-              size={24}
-              color={theme.colors.muted}
-              style={styles.cardIcon}
-            />
-            <Text
-              style={[styles.cardLabel, { color: theme.colors.muted, ...theme.typography.caption }]}
-            >
-              BODY FAT
-            </Text>
-            <Text
-              style={[
-                styles.cardValue,
-                { color: theme.colors.text, ...theme.typography.heading, fontSize: 24 },
-              ]}
-            >
-              {latest?.bodyFatPercentage ? latest.bodyFatPercentage.toFixed(1) + '%' : '--'}
-            </Text>
-          </Card>
-        </View>
-
-        <Text
-          style={[
-            styles.sectionTitle,
-            { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
-          ]}
-        >
-          QUICK ENTRY
-        </Text>
-        <Card padding="md" style={styles.quickEntryCard}>
-          <View style={styles.quickEntryRow}>
-            <TextInput
-              style={[
-                styles.quickInput,
-                {
-                  color: theme.colors.text,
-                  borderColor: theme.colors.border,
-                  backgroundColor: theme.colors.background,
-                },
-              ]}
-              value={dateStr}
-              onChangeText={setDateStr}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={theme.colors.muted}
-              inputAccessoryViewID={KEYBOARD_DONE_ID}
-            />
-          </View>
-          <View style={styles.quickEntryRow}>
-            <TextInput
-              style={[
-                styles.quickInput,
-                {
-                  color: theme.colors.text,
-                  borderColor: theme.colors.border,
-                  backgroundColor: theme.colors.background,
-                },
-              ]}
-              value={weight}
-              onChangeText={setWeight}
-              keyboardType="numeric"
-              placeholder={`Weight ${isImperial ? 'lbs' : 'kg'}`}
-              placeholderTextColor={theme.colors.muted}
-              inputAccessoryViewID={KEYBOARD_DONE_ID}
-            />
-            <TextInput
-              style={[
-                styles.quickInput,
-                {
-                  color: theme.colors.text,
-                  borderColor: theme.colors.border,
-                  backgroundColor: theme.colors.background,
-                },
-              ]}
-              value={bodyFat}
-              onChangeText={setBodyFat}
-              keyboardType="numeric"
-              placeholder="Body fat %"
-              placeholderTextColor={theme.colors.muted}
-              inputAccessoryViewID={KEYBOARD_DONE_ID}
-            />
-          </View>
-          <View style={styles.quickActions}>
+        {(
+          [
+            { id: 'metrics', label: 'Metrics', icon: 'pulse-outline' },
+            { id: 'exercises', label: 'Exercises', icon: 'library-outline' },
+          ] as const
+        ).map((tab) => {
+          const isActive = activeBodyTab === tab.id;
+          return (
             <Pressable
-              style={[styles.quickSaveBtn, { backgroundColor: theme.colors.primary }]}
-              onPress={handleSave}
-            >
-              <Text style={[styles.quickSaveText, { color: theme.colors.background }]}>
-                Save Today
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[styles.quickDetailsBtn, { borderColor: theme.colors.border }]}
-              onPress={() => setModalVisible(true)}
-            >
-              <Text style={[styles.quickDetailsText, { color: theme.colors.primary }]}>
-                More Metrics
-              </Text>
-            </Pressable>
-          </View>
-        </Card>
-
-        <Text
-          style={[
-            styles.sectionTitle,
-            { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
-          ]}
-        >
-          DRINKING
-        </Text>
-        <Card padding="md" style={styles.hydrationCard}>
-          <View style={styles.hydrationHeader}>
-            <View>
-              <Text style={[styles.hydrationLabel, { color: theme.colors.muted }]}>TODAY</Text>
-              <Text style={[styles.hydrationValue, { color: theme.colors.text }]}>
-                {todayIntakeMl.toLocaleString()} / {dailyGoalMl.toLocaleString()} ml
-              </Text>
-            </View>
-            <Text style={[styles.hydrationPercent, { color: theme.colors.primary }]}>
-              {hydrationPercent}%
-            </Text>
-          </View>
-          <View style={[styles.hydrationTrack, { backgroundColor: theme.colors.border }]}>
-            <View
+              key={tab.id}
               style={[
-                styles.hydrationFill,
-                { backgroundColor: theme.colors.primary, width: `${hydrationPercent}%` },
+                styles.bodyTabButton,
+                isActive && { backgroundColor: theme.colors.background },
               ]}
-            />
-          </View>
-          <View style={styles.hydrationButtons}>
-            <Pressable
-              style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
-              onPress={resetToday}
+              onPress={() => setActiveBodyTab(tab.id)}
             >
-              <Text style={[styles.hydrationButtonText, { color: theme.colors.accent }]}>
-                Reset
-              </Text>
-            </Pressable>
-            {[
-              { amount: 250, label: '-250 ml' },
-              { amount: 500, label: '-500 ml' },
-              { amount: 1000, label: '-1 L' },
-            ].map((item) => (
-              <Pressable
-                key={`minus-${item.amount}`}
-                style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
-                onPress={() => removeWater(item.amount)}
+              <Ionicons
+                name={tab.icon}
+                size={16}
+                color={isActive ? theme.colors.primary : theme.colors.muted}
+              />
+              <Text
+                style={[
+                  styles.bodyTabText,
+                  { color: isActive ? theme.colors.primary : theme.colors.muted },
+                ]}
               >
-                <Text style={[styles.hydrationButtonText, { color: theme.colors.muted }]}>
-                  {item.label}
-                </Text>
-              </Pressable>
-            ))}
-            {[250, 500, 1000].map((amount) => (
-              <Pressable
-                key={amount}
-                style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
-                onPress={() => addWater(amount)}
-              >
-                <Text style={[styles.hydrationButtonText, { color: theme.colors.primary }]}>
-                  +{amount === 1000 ? '1 L' : `${amount} ml`}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          <View style={styles.goalRow}>
-            <TextInput
-              style={[
-                styles.goalInput,
-                {
-                  color: theme.colors.text,
-                  borderColor: theme.colors.border,
-                  backgroundColor: theme.colors.background,
-                },
-              ]}
-              value={hydrationGoalInput}
-              onChangeText={setHydrationGoalInput}
-              keyboardType="numeric"
-              placeholder="Goal ml"
-              placeholderTextColor={theme.colors.muted}
-              onSubmitEditing={handleSaveHydrationGoal}
-              returnKeyType="done"
-              inputAccessoryViewID={KEYBOARD_DONE_ID}
-            />
-            <Pressable
-              style={[styles.goalButton, { borderColor: theme.colors.border }]}
-              onPress={handleSaveHydrationGoal}
-            >
-              <Text style={[styles.goalButtonText, { color: theme.colors.primary }]}>
-                Save Goal
+                {tab.label}
               </Text>
             </Pressable>
-          </View>
-          <View style={[styles.hydrationFactBox, { borderColor: theme.colors.border }]}>
-            <Text style={[styles.hydrationFactTitle, { color: theme.colors.primary }]}>
-              💡 FUN FACT
-            </Text>
-            <Text style={[styles.hydrationFactText, { color: theme.colors.text }]}>
-              {hydrationFact}
-            </Text>
-          </View>
-        </Card>
+          );
+        })}
+      </View>
 
-        {/* Charts Section */}
-        <View style={styles.chartToggleContainer}>
-          <Pressable
-            style={[
-              styles.toggleBtn,
-              activeChartTab === 'weight' && {
-                borderBottomColor: theme.colors.primary,
-                borderBottomWidth: 2,
-              },
-            ]}
-            onPress={() => setActiveChartTab('weight')}
-          >
-            <Text
-              style={[
-                styles.toggleText,
-                {
-                  color: activeChartTab === 'weight' ? theme.colors.primary : theme.colors.muted,
-                  ...theme.typography.caption,
-                },
-              ]}
-            >
-              WEIGHT
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[
-              styles.toggleBtn,
-              activeChartTab === 'fat' && {
-                borderBottomColor: theme.colors.primary,
-                borderBottomWidth: 2,
-              },
-            ]}
-            onPress={() => setActiveChartTab('fat')}
-          >
-            <Text
-              style={[
-                styles.toggleText,
-                {
-                  color: activeChartTab === 'fat' ? theme.colors.primary : theme.colors.muted,
-                  ...theme.typography.caption,
-                },
-              ]}
-            >
-              BODY FAT
-            </Text>
-          </Pressable>
-        </View>
-
-        {renderChart()}
-
-        <Text
-          style={[
-            styles.sectionTitle,
-            { color: theme.colors.text, ...theme.typography.heading, fontSize: 20, marginTop: 24 },
+      {activeBodyTab === 'metrics' ? (
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: Math.max(insets.bottom + 20, 100) },
           ]}
         >
-          PROGRESSION HISTORY
-        </Text>
-        <Card padding="md" style={styles.progressionCard}>
-          {recentMetrics.length === 0 ? (
-            <Text style={[styles.progressionEmpty, { color: theme.colors.muted }]}>
-              Log today&apos;s metrics to start your progression timeline.
-            </Text>
-          ) : (
-            recentMetrics.map((metric, index) => {
-              const previous = recentMetrics[index + 1];
-              const weightDelta =
-                metric.weightKg !== undefined && previous?.weightKg !== undefined
-                  ? metric.weightKg - previous.weightKg
-                  : null;
-              const fatDelta =
-                metric.bodyFatPercentage !== undefined && previous?.bodyFatPercentage !== undefined
-                  ? metric.bodyFatPercentage - previous.bodyFatPercentage
-                  : null;
-              const displayWeightDelta =
-                weightDelta !== null
-                  ? `${weightDelta >= 0 ? '+' : ''}${(isImperial
-                      ? weightDelta * 2.20462
-                      : weightDelta
-                    ).toFixed(1)} ${isImperial ? 'lbs' : 'kg'}`
-                  : '--';
-              const displayFatDelta =
-                fatDelta !== null ? `${fatDelta >= 0 ? '+' : ''}${fatDelta.toFixed(1)}%` : '--';
-
-              return (
-                <View
-                  key={metric.id}
-                  style={[
-                    styles.progressionRow,
-                    index < recentMetrics.length - 1 && { borderBottomColor: theme.colors.border },
-                  ]}
-                >
-                  <View style={styles.progressionDateCol}>
-                    <Text style={[styles.progressionDate, { color: theme.colors.text }]}>
-                      {new Intl.DateTimeFormat('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                      }).format(metric.recordedAt)}
-                    </Text>
-                    <Text style={[styles.progressionSub, { color: theme.colors.muted }]}>
-                      {metric.weightKg ? displayWeight(metric.weightKg) : 'No weight'}
-                    </Text>
-                  </View>
-                  <View style={styles.progressionDeltaCol}>
-                    <Text
-                      style={[
-                        styles.progressionDelta,
-                        {
-                          color:
-                            weightDelta === null
-                              ? theme.colors.muted
-                              : weightDelta <= 0
-                                ? '#22c55e'
-                                : '#FFB020',
-                        },
-                      ]}
-                    >
-                      {displayWeightDelta}
-                    </Text>
-                    <Text style={[styles.progressionSub, { color: theme.colors.muted }]}>
-                      Fat {displayFatDelta}
-                    </Text>
-                  </View>
-                </View>
-              );
-            })
-          )}
-        </Card>
-
-        {/* Measurements Section */}
-        <Text
-          style={[
-            styles.sectionTitle,
-            { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
-          ]}
-        >
-          LATEST MEASUREMENTS
-        </Text>
-        <Card padding="md" style={styles.measurementsList}>
-          {[
-            { label: 'Chest', val: latest?.measurements?.chest },
-            { label: 'Waist', val: latest?.measurements?.waist },
-            { label: 'Hips', val: latest?.measurements?.hips },
-            { label: 'Arms', val: latest?.measurements?.leftArm },
-            { label: 'Legs', val: latest?.measurements?.leftThigh },
-          ].map((item, idx, arr) => (
-            <View
-              key={item.label}
-              style={[
-                styles.measurementItem,
-                idx < arr.length - 1 && {
-                  borderBottomWidth: 1,
-                  borderBottomColor: theme.colors.muted,
-                },
-              ]}
-            >
-              <Text style={[{ color: theme.colors.muted, ...theme.typography.body }]}>
-                {item.label}
+          {/* Latest Overview Cards */}
+          <View style={styles.overviewRow}>
+            <Card style={styles.overviewCard} padding="md">
+              <Ionicons
+                name="scale-outline"
+                size={24}
+                color={theme.colors.muted}
+                style={styles.cardIcon}
+              />
+              <Text
+                style={[
+                  styles.cardLabel,
+                  { color: theme.colors.muted, ...theme.typography.caption },
+                ]}
+              >
+                CURRENT WEIGHT
               </Text>
               <Text
-                style={[{ color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' }]}
+                style={[
+                  styles.cardValue,
+                  { color: theme.colors.text, ...theme.typography.heading, fontSize: 24 },
+                ]}
               >
-                {displayMeasurement(item.val)}
+                {displayWeight(latest?.weightKg)}
+              </Text>
+            </Card>
+            <Card style={styles.overviewCard} padding="md">
+              <Ionicons
+                name="water-outline"
+                size={24}
+                color={theme.colors.muted}
+                style={styles.cardIcon}
+              />
+              <Text
+                style={[
+                  styles.cardLabel,
+                  { color: theme.colors.muted, ...theme.typography.caption },
+                ]}
+              >
+                BODY FAT
+              </Text>
+              <Text
+                style={[
+                  styles.cardValue,
+                  { color: theme.colors.text, ...theme.typography.heading, fontSize: 24 },
+                ]}
+              >
+                {latest?.bodyFatPercentage ? latest.bodyFatPercentage.toFixed(1) + '%' : '--'}
+              </Text>
+            </Card>
+          </View>
+
+          <Text
+            style={[
+              styles.sectionTitle,
+              { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
+            ]}
+          >
+            QUICK ENTRY
+          </Text>
+          <Card padding="md" style={styles.quickEntryCard}>
+            <View style={styles.quickEntryRow}>
+              <TextInput
+                style={[
+                  styles.quickInput,
+                  {
+                    color: theme.colors.text,
+                    borderColor: theme.colors.border,
+                    backgroundColor: theme.colors.background,
+                  },
+                ]}
+                value={dateStr}
+                onChangeText={setDateStr}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={theme.colors.muted}
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
+              />
+            </View>
+            <View style={styles.quickEntryRow}>
+              <TextInput
+                style={[
+                  styles.quickInput,
+                  {
+                    color: theme.colors.text,
+                    borderColor: theme.colors.border,
+                    backgroundColor: theme.colors.background,
+                  },
+                ]}
+                value={weight}
+                onChangeText={setWeight}
+                keyboardType="numeric"
+                placeholder={`Weight ${isImperial ? 'lbs' : 'kg'}`}
+                placeholderTextColor={theme.colors.muted}
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
+              />
+              <TextInput
+                style={[
+                  styles.quickInput,
+                  {
+                    color: theme.colors.text,
+                    borderColor: theme.colors.border,
+                    backgroundColor: theme.colors.background,
+                  },
+                ]}
+                value={bodyFat}
+                onChangeText={setBodyFat}
+                keyboardType="numeric"
+                placeholder="Body fat %"
+                placeholderTextColor={theme.colors.muted}
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
+              />
+            </View>
+            <View style={styles.quickActions}>
+              <Pressable
+                style={[styles.quickSaveBtn, { backgroundColor: theme.colors.primary }]}
+                onPress={handleSave}
+              >
+                <Text style={[styles.quickSaveText, { color: theme.colors.background }]}>
+                  Save Today
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.quickDetailsBtn, { borderColor: theme.colors.border }]}
+                onPress={() => setModalVisible(true)}
+              >
+                <Text style={[styles.quickDetailsText, { color: theme.colors.primary }]}>
+                  More Metrics
+                </Text>
+              </Pressable>
+            </View>
+          </Card>
+
+          <Text
+            style={[
+              styles.sectionTitle,
+              { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
+            ]}
+          >
+            DRINKING
+          </Text>
+          <Card padding="md" style={styles.hydrationCard}>
+            <View style={styles.hydrationHeader}>
+              <View>
+                <Text style={[styles.hydrationLabel, { color: theme.colors.muted }]}>TODAY</Text>
+                <Text style={[styles.hydrationValue, { color: theme.colors.text }]}>
+                  {todayIntakeMl.toLocaleString()} / {dailyGoalMl.toLocaleString()} ml
+                </Text>
+              </View>
+              <Text style={[styles.hydrationPercent, { color: theme.colors.primary }]}>
+                {hydrationPercent}%
               </Text>
             </View>
-          ))}
-        </Card>
-      </ScrollView>
+            <View style={[styles.hydrationTrack, { backgroundColor: theme.colors.border }]}>
+              <View
+                style={[
+                  styles.hydrationFill,
+                  { backgroundColor: theme.colors.primary, width: `${hydrationPercent}%` },
+                ]}
+              />
+            </View>
+            <View style={styles.hydrationButtons}>
+              <Pressable
+                style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
+                onPress={resetToday}
+              >
+                <Text style={[styles.hydrationButtonText, { color: theme.colors.accent }]}>
+                  Reset
+                </Text>
+              </Pressable>
+              {[
+                { amount: 250, label: '-250 ml' },
+                { amount: 500, label: '-500 ml' },
+                { amount: 1000, label: '-1 L' },
+              ].map((item) => (
+                <Pressable
+                  key={`minus-${item.amount}`}
+                  style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
+                  onPress={() => removeWater(item.amount)}
+                >
+                  <Text style={[styles.hydrationButtonText, { color: theme.colors.muted }]}>
+                    {item.label}
+                  </Text>
+                </Pressable>
+              ))}
+              {[250, 500, 1000].map((amount) => (
+                <Pressable
+                  key={amount}
+                  style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
+                  onPress={() => addWater(amount)}
+                >
+                  <Text style={[styles.hydrationButtonText, { color: theme.colors.primary }]}>
+                    +{amount === 1000 ? '1 L' : `${amount} ml`}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={styles.goalRow}>
+              <TextInput
+                style={[
+                  styles.goalInput,
+                  {
+                    color: theme.colors.text,
+                    borderColor: theme.colors.border,
+                    backgroundColor: theme.colors.background,
+                  },
+                ]}
+                value={hydrationGoalInput}
+                onChangeText={setHydrationGoalInput}
+                keyboardType="numeric"
+                placeholder="Goal ml"
+                placeholderTextColor={theme.colors.muted}
+                onSubmitEditing={handleSaveHydrationGoal}
+                returnKeyType="done"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
+              />
+              <Pressable
+                style={[styles.goalButton, { borderColor: theme.colors.border }]}
+                onPress={handleSaveHydrationGoal}
+              >
+                <Text style={[styles.goalButtonText, { color: theme.colors.primary }]}>
+                  Save Goal
+                </Text>
+              </Pressable>
+            </View>
+            <View style={[styles.hydrationFactBox, { borderColor: theme.colors.border }]}>
+              <Text style={[styles.hydrationFactTitle, { color: theme.colors.primary }]}>
+                💡 FUN FACT
+              </Text>
+              <Text style={[styles.hydrationFactText, { color: theme.colors.text }]}>
+                {hydrationFact}
+              </Text>
+            </View>
+          </Card>
+
+          {/* Charts Section */}
+          <View style={styles.chartToggleContainer}>
+            <Pressable
+              style={[
+                styles.toggleBtn,
+                activeChartTab === 'weight' && {
+                  borderBottomColor: theme.colors.primary,
+                  borderBottomWidth: 2,
+                },
+              ]}
+              onPress={() => setActiveChartTab('weight')}
+            >
+              <Text
+                style={[
+                  styles.toggleText,
+                  {
+                    color: activeChartTab === 'weight' ? theme.colors.primary : theme.colors.muted,
+                    ...theme.typography.caption,
+                  },
+                ]}
+              >
+                WEIGHT
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.toggleBtn,
+                activeChartTab === 'fat' && {
+                  borderBottomColor: theme.colors.primary,
+                  borderBottomWidth: 2,
+                },
+              ]}
+              onPress={() => setActiveChartTab('fat')}
+            >
+              <Text
+                style={[
+                  styles.toggleText,
+                  {
+                    color: activeChartTab === 'fat' ? theme.colors.primary : theme.colors.muted,
+                    ...theme.typography.caption,
+                  },
+                ]}
+              >
+                BODY FAT
+              </Text>
+            </Pressable>
+          </View>
+
+          {renderChart()}
+
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color: theme.colors.text,
+                ...theme.typography.heading,
+                fontSize: 20,
+                marginTop: 24,
+              },
+            ]}
+          >
+            PROGRESSION HISTORY
+          </Text>
+          <Card padding="md" style={styles.progressionCard}>
+            {recentMetrics.length === 0 ? (
+              <Text style={[styles.progressionEmpty, { color: theme.colors.muted }]}>
+                Log today&apos;s metrics to start your progression timeline.
+              </Text>
+            ) : (
+              recentMetrics.map((metric, index) => {
+                const previous = recentMetrics[index + 1];
+                const weightDelta =
+                  metric.weightKg !== undefined && previous?.weightKg !== undefined
+                    ? metric.weightKg - previous.weightKg
+                    : null;
+                const fatDelta =
+                  metric.bodyFatPercentage !== undefined &&
+                  previous?.bodyFatPercentage !== undefined
+                    ? metric.bodyFatPercentage - previous.bodyFatPercentage
+                    : null;
+                const displayWeightDelta =
+                  weightDelta !== null
+                    ? `${weightDelta >= 0 ? '+' : ''}${(isImperial
+                        ? weightDelta * 2.20462
+                        : weightDelta
+                      ).toFixed(1)} ${isImperial ? 'lbs' : 'kg'}`
+                    : '--';
+                const displayFatDelta =
+                  fatDelta !== null ? `${fatDelta >= 0 ? '+' : ''}${fatDelta.toFixed(1)}%` : '--';
+
+                return (
+                  <View
+                    key={metric.id}
+                    style={[
+                      styles.progressionRow,
+                      index < recentMetrics.length - 1 && {
+                        borderBottomColor: theme.colors.border,
+                      },
+                    ]}
+                  >
+                    <View style={styles.progressionDateCol}>
+                      <Text style={[styles.progressionDate, { color: theme.colors.text }]}>
+                        {new Intl.DateTimeFormat('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                        }).format(metric.recordedAt)}
+                      </Text>
+                      <Text style={[styles.progressionSub, { color: theme.colors.muted }]}>
+                        {metric.weightKg ? displayWeight(metric.weightKg) : 'No weight'}
+                      </Text>
+                    </View>
+                    <View style={styles.progressionDeltaCol}>
+                      <Text
+                        style={[
+                          styles.progressionDelta,
+                          {
+                            color:
+                              weightDelta === null
+                                ? theme.colors.muted
+                                : weightDelta <= 0
+                                  ? '#22c55e'
+                                  : '#FFB020',
+                          },
+                        ]}
+                      >
+                        {displayWeightDelta}
+                      </Text>
+                      <Text style={[styles.progressionSub, { color: theme.colors.muted }]}>
+                        Fat {displayFatDelta}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </Card>
+
+          {/* Measurements Section */}
+          <Text
+            style={[
+              styles.sectionTitle,
+              { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
+            ]}
+          >
+            LATEST MEASUREMENTS
+          </Text>
+          <Card padding="md" style={styles.measurementsList}>
+            {[
+              { label: 'Chest', val: latest?.measurements?.chest },
+              { label: 'Waist', val: latest?.measurements?.waist },
+              { label: 'Hips', val: latest?.measurements?.hips },
+              { label: 'Arms', val: latest?.measurements?.leftArm },
+              { label: 'Legs', val: latest?.measurements?.leftThigh },
+            ].map((item, idx, arr) => (
+              <View
+                key={item.label}
+                style={[
+                  styles.measurementItem,
+                  idx < arr.length - 1 && {
+                    borderBottomWidth: 1,
+                    borderBottomColor: theme.colors.muted,
+                  },
+                ]}
+              >
+                <Text style={[{ color: theme.colors.muted, ...theme.typography.body }]}>
+                  {item.label}
+                </Text>
+                <Text
+                  style={[
+                    { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' },
+                  ]}
+                >
+                  {displayMeasurement(item.val)}
+                </Text>
+              </View>
+            ))}
+          </Card>
+        </ScrollView>
+      ) : (
+        <ExercisesScreen embedded />
+      )}
 
       {/* Input Modal */}
       <Modal
@@ -907,6 +986,29 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  bodyTabs: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderRadius: 10,
+    marginHorizontal: 24,
+    marginBottom: 16,
+    padding: 3,
+    gap: 3,
+  },
+  bodyTabButton: {
+    flex: 1,
+    minHeight: 36,
+    borderRadius: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  bodyTabText: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 12,
+    textTransform: 'uppercase',
   },
   container: {
     flex: 1,

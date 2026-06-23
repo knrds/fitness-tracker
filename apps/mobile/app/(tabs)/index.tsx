@@ -143,8 +143,8 @@ export default function HomeScreen() {
 
   const handleMusclePress = (muscle: string) => {
     router.push({
-      pathname: '/exercises',
-      params: { muscle },
+      pathname: '/body',
+      params: { tab: 'exercises', muscle },
     });
   };
 
@@ -348,7 +348,9 @@ export default function HomeScreen() {
               >
                 {streak}
               </Text>
-              <Text style={[{ color: theme.colors.muted }, theme.typography.caption]}>STREAK 🔥</Text>
+              <Text style={[{ color: theme.colors.muted }, theme.typography.caption]}>
+                STREAK 🔥
+              </Text>
             </View>
           </View>
         </View>

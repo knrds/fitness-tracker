@@ -579,3 +579,15 @@ export interface SyncOperation {
   retryCount: number;
 }
 
+// ---------------------------------------------------------------------------
+// AI Coach Chat Types
+// ---------------------------------------------------------------------------
+
+export type ChatRole = 'user' | 'assistant' | 'system';
+
+export interface ChatMessage {
+  id: UUID;
+  role: ChatRole;
+  content: string;
+  createdAt: Timestamp;
+}

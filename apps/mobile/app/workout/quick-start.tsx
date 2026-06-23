@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import { isIOS } from '../../src/utils/platform';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@fitness-tracker/ui';
 import { useProgramStore } from '../../src/stores/programStore';
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0B0B0F',
     padding: 16,
-    paddingTop: Platform.OS === 'ios' ? 50 : 48,
+    paddingTop: isIOS ? 50 : 48,
   },
   header: {
     flexDirection: 'row',

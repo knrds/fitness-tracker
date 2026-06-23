@@ -23,6 +23,7 @@ import * as Crypto from 'expo-crypto';
 import { useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { isIOS } from '../../src/utils/platform';
 
 import {
   TemplateExercise,
@@ -500,7 +501,7 @@ export default function WorkoutSessionScreen() {
   };
 
   const isMobileWeb = Platform.OS === 'web' && viewportWidth <= 480;
-  const needsGenerousTopInset = Platform.OS === 'ios' || isMobileWeb;
+  const needsGenerousTopInset = isIOS || isMobileWeb;
   const topSafeArea = needsGenerousTopInset ? Math.max(insets.top, 48) : Math.max(insets.top, 12);
   const headerBodyHeight = 68;
   const headerHeight = topSafeArea + headerBodyHeight;
@@ -708,7 +709,7 @@ export default function WorkoutSessionScreen() {
       <ScrollView
         ref={scrollViewRef}
         style={styles.content}
-        contentContainerStyle={[styles.contentContainer, { paddingTop: headerHeight }]}
+        contentContainerStyle={[styles.contentContainer, { paddingTop: headerHeight + 16 }]}
         keyboardDismissMode="none"
         keyboardShouldPersistTaps="always"
         scrollEnabled={scrollEnabled}
@@ -1142,7 +1143,7 @@ const styles = StyleSheet.create({
   },
   islandContainer: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 48 : 12,
+    top: isIOS ? 48 : 12,
     alignSelf: 'center',
     height: 38,
     zIndex: 999999,

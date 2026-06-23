@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import * as Crypto from 'expo-crypto';
-import { ChatMessage, ChatMessageSchema } from '@fitness-tracker/domain';
+import { ChatMessage, ChatMessageSchema, summarizeSessionExercise } from '@fitness-tracker/domain';
 import { z } from 'zod';
 
 import { createHydratedStorage } from './storage';
 import { useProfileStore } from './profileStore';
 import { useBodyMetricStore } from './bodyMetricStore';
+import { useExerciseStore } from './exerciseStore';
+import { useHistoryStore } from './historyStore';
 import { streamCoachResponse, checkConnectivity } from '../utils/coachApi';
 
 // ---------------------------------------------------------------------------
@@ -29,6 +31,20 @@ interface CoachState extends CoachPersistState {
 
 const defaultPersistedState: CoachPersistState = {
   messages: [],
+};
+
+const formatTopSet = (weight?: number, reps?: number, rir?: number, rpe?: number) => {
+  if (!weight && !reps) return undefined;
+
+  const load = weight ? `${Number(weight.toFixed(1))} kg` : 'bodyweight';
+  const repText = reps ? ` x ${reps}` : '';
+  const effortText =
+    rir !== undefined
+      ? ` @ ${rir} RIR`
+      : rpe !== undefined
+        ? ` @ RPE ${Number(rpe.toFixed(1))}`
+        : '';
+  return `${load}${repText}${effortText}`;
 };
 
 export const useCoachStore = create<CoachState>()(
@@ -74,6 +90,48 @@ export const useCoachStore = create<CoachState>()(
           const profile = profileState.profile;
           const stats = profileState.getStatistics();
           const latestWeight = useBodyMetricStore.getState().getLatestMetric()?.weightKg;
+          const exercisesById = new Map(
+            useExerciseStore.getState().exercises.map((exercise) => [exercise.id, exercise.name]),
+          );
+          const recentWorkouts = useHistoryStore
+            .getState()
+            .getSessionsByDateDesc()
+            .slice(0, 5)
+            .map((session) => {
+              const exerciseSummaries = session.exercises.slice(0, 8).map((sessionExercise) => {
+                const summary = summarizeSessionExercise(sessionExercise);
+                const workingSets = sessionExercise.sets.filter(
+                  (set) => set.completed && set.type !== 'warmup',
+                );
+                const topSet = workingSets
+                  .filter((set) => set.weight || set.reps)
+                  .sort((a, b) => (b.weight || 0) * (b.reps || 1) - (a.weight || 0) * (a.reps || 1))
+                  .at(0);
+                const topSetText = topSet
+                  ? formatTopSet(topSet.weight, topSet.reps, topSet.rir, topSet.rpe)
+                  : undefined;
+
+                return {
+                  name: exercisesById.get(sessionExercise.exerciseId) || 'Unknown exercise',
+                  workingSets: workingSets.length,
+                  volume: Math.round(summary.totalVolume),
+                  ...(topSetText ? { topSet: topSetText } : {}),
+                };
+              });
+
+              return {
+                name: session.name,
+                startedAt: session.startedAt.toISOString(),
+                ...(session.durationSeconds !== undefined
+                  ? { durationMinutes: Math.round(session.durationSeconds / 60) }
+                  : {}),
+                totalVolume: exerciseSummaries.reduce(
+                  (sum, exercise) => sum + (exercise.volume || 0),
+                  0,
+                ),
+                exercises: exerciseSummaries,
+              };
+            });
 
           const context = {
             profile: {
@@ -89,6 +147,7 @@ export const useCoachStore = create<CoachState>()(
               currentStreak: stats.currentStreak || 0,
               ...(latestWeight !== undefined ? { latestWeight } : {}),
             },
+            recentWorkouts,
           };
 
           // 4. Stream response

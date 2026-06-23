@@ -1,9 +1,12 @@
+import { Platform } from 'react-native';
 import { ChatMessage, ExperienceLevel, FitnessGoal, UnitSystem } from '@fitness-tracker/domain';
 
 import { supabase, isSupabaseConfigured } from './supabase';
 
-const COACH_CHAT_ENDPOINT = process.env.EXPO_PUBLIC_COACH_CHAT_ENDPOINT;
-const COACH_MODEL = process.env.EXPO_PUBLIC_COACH_MODEL || 'gpt-4.1-mini';
+const DEFAULT_WEB_COACH_CHAT_ENDPOINT = Platform.OS === 'web' ? '/api/coach-chat' : undefined;
+const COACH_CHAT_ENDPOINT =
+  process.env.EXPO_PUBLIC_COACH_CHAT_ENDPOINT || DEFAULT_WEB_COACH_CHAT_ENDPOINT;
+const COACH_MODEL = process.env.EXPO_PUBLIC_COACH_MODEL || 'openai/gpt-oss-120b:free';
 
 /**
  * Check if the application can reach the configured Supabase project.
@@ -43,6 +46,18 @@ export interface CoachContext {
     currentStreak: number;
     latestWeight?: number;
   };
+  recentWorkouts?: Array<{
+    name: string;
+    startedAt: string;
+    durationMinutes?: number;
+    totalVolume?: number;
+    exercises: Array<{
+      name: string;
+      workingSets: number;
+      volume?: number;
+      topSet?: string;
+    }>;
+  }>;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

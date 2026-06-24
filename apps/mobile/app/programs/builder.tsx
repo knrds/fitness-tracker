@@ -56,6 +56,7 @@ export default function ProgramBuilderScreen() {
   const [activeDay, setActiveDay] = useState<number | null>(null);
   const [modalMode, setModalMode] = useState<'options' | 'templates' | null>(null);
   const [pickerTab, setPickerTab] = useState<'templates' | 'history'>('templates');
+  const [rescheduleWorkout, setRescheduleWorkout] = useState<ProgramWorkout | null>(null);
 
   const dayLayouts = React.useRef<Record<number, { y: number; height: number }>>({});
   const [scrollEnabled, setScrollEnabled] = useState(true);
@@ -297,6 +298,35 @@ export default function ProgramBuilderScreen() {
     setLocalProgram({
       ...localProgram,
       ...updates,
+    });
+  };
+
+  const handleMoveWorkoutToDay = (workout: ProgramWorkout, targetDay: number) => {
+    if (!activeProgram) return;
+
+    const otherWorkouts = activeProgram.workouts.filter(
+      (w: ProgramWorkout) => w.id !== workout.id,
+    );
+
+    const targetDayWorkouts = otherWorkouts
+      .filter((w: ProgramWorkout) => w.week === selectedWeek && w.dayOfWeek === targetDay)
+      .sort((a: ProgramWorkout, b: ProgramWorkout) => a.order - b.order);
+
+    const newWorkout = {
+      ...workout,
+      dayOfWeek: targetDay,
+      order: targetDayWorkouts.length,
+    };
+
+    targetDayWorkouts.push(newWorkout);
+
+    handleChange({
+      workouts: [
+        ...otherWorkouts.filter(
+          (w: ProgramWorkout) => !(w.week === selectedWeek && w.dayOfWeek === targetDay),
+        ),
+        ...targetDayWorkouts.map((w, idx) => ({ ...w, order: idx })),
+      ],
     });
   };
 
@@ -544,6 +574,12 @@ export default function ProgramBuilderScreen() {
                       >
                         <Text style={[styles.editText, { color: theme.colors.text }]}>Edit</Text>
                       </Pressable>
+                      <Pressable
+                        onPress={() => setRescheduleWorkout(w)}
+                        hitSlop={8}
+                      >
+                        <Text style={[styles.editText, { color: theme.colors.primary }]}>Move</Text>
+                      </Pressable>
                       <Pressable onPress={() => removeWorkout(w.id)} hitSlop={8}>
                         <Text style={[styles.removeText, { color: theme.colors.accent }]}>
                           Remove
@@ -789,6 +825,77 @@ export default function ProgramBuilderScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Reschedule Workout Day Modal */}
+      <Modal
+        visible={rescheduleWorkout !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRescheduleWorkout(null)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setRescheduleWorkout(null)}>
+          <Pressable
+            style={[
+              styles.modalCard,
+              { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+            ]}
+            onPress={(e: { stopPropagation: () => void }) => e.stopPropagation()}
+          >
+            <Text
+              style={[
+                styles.modalTitle,
+                { color: theme.colors.text, ...theme.typography.heading },
+              ]}
+            >
+              Move Workout
+            </Text>
+            <Text style={[styles.modalSub, { color: theme.colors.muted }]}>
+              Select target day for &quot;{templates.find((t) => t.id === rescheduleWorkout?.templateId)?.name || 'Workout'}&quot;:
+            </Text>
+            <ScrollView style={{ maxHeight: 240 }}>
+              {[1, 2, 3, 4, 5, 6, 7].map((dayNum) => (
+                <Pressable
+                  key={dayNum}
+                  style={[
+                    styles.menuItem,
+                    { borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+                    rescheduleWorkout?.dayOfWeek === dayNum && { backgroundColor: 'rgba(144, 213, 255, 0.1)' }
+                  ]}
+                  onPress={() => {
+                    if (rescheduleWorkout) {
+                      handleMoveWorkoutToDay(rescheduleWorkout, dayNum);
+                      setRescheduleWorkout(null);
+                    }
+                  }}
+                >
+                  <Ionicons name="calendar-outline" size={18} color={theme.colors.primary} />
+                  <Text style={[styles.menuItemText, { color: theme.colors.text }]}>
+                    {getDayName(dayNum)} {rescheduleWorkout?.dayOfWeek === dayNum ? '(Current)' : ''}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+            <Pressable
+              style={[
+                styles.modalCloseBtn,
+                {
+                  backgroundColor: theme.colors.border,
+                  borderRadius: theme.radius.md,
+                  marginTop: 12,
+                  height: 44,
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }
+              ]}
+              onPress={() => setRescheduleWorkout(null)}
+            >
+              <Text style={{ color: theme.colors.text, fontFamily: 'SpaceGrotesk_700Bold' }}>
+                Cancel
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -979,5 +1086,17 @@ const styles = StyleSheet.create({
   tabButtonText: {
     fontFamily: 'SpaceGrotesk_600SemiBold',
     fontSize: 14,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  menuItemText: {
+    color: '#F4F5F7',
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 15,
   },
 });

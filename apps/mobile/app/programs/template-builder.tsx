@@ -458,6 +458,38 @@ export default function WorkoutTemplateBuilderScreen() {
                     >
                       <Ionicons name="reorder-two" size={24} color={theme.colors.primary} />
                     </View>
+                    {index > 0 && (
+                      <Pressable
+                        style={{ padding: 4 }}
+                        onPress={() => {
+                          const reordered = [...templateExercises];
+                          const temp = reordered[index];
+                          reordered[index] = reordered[index - 1]!;
+                          reordered[index - 1] = temp!;
+                          const finalReordered = reordered.map((item, idx) => ({ ...item, order: idx }));
+                          setTemplateExercises(finalReordered);
+                        }}
+                        hitSlop={8}
+                      >
+                        <Ionicons name="chevron-up" size={20} color={theme.colors.primary} />
+                      </Pressable>
+                    )}
+                    {index < templateExercises.length - 1 && (
+                      <Pressable
+                        style={{ padding: 4 }}
+                        onPress={() => {
+                          const reordered = [...templateExercises];
+                          const temp = reordered[index];
+                          reordered[index] = reordered[index + 1]!;
+                          reordered[index + 1] = temp!;
+                          const finalReordered = reordered.map((item, idx) => ({ ...item, order: idx }));
+                          setTemplateExercises(finalReordered);
+                        }}
+                        hitSlop={8}
+                      >
+                        <Ionicons name="chevron-down" size={20} color={theme.colors.primary} />
+                      </Pressable>
+                    )}
                     <Text
                       style={[
                         styles.exName,
@@ -777,7 +809,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     paddingVertical: 10,
     paddingHorizontal: 8,
-    fontSize: 14,
+    fontSize: 16,
     textAlign: 'center',
     fontWeight: '500',
     borderWidth: 1,

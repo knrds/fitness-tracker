@@ -42,6 +42,8 @@ export interface Profile {
   rirMode?: 'always_on' | 'always_off' | 'selected_exercises';
   rpeEnabledExerciseIds?: string[];
   rirEnabledExerciseIds?: string[];
+  rpeDisabledExerciseIds?: string[];
+  rirDisabledExerciseIds?: string[];
   profileImageUri?: string;
   showExerciseDeleteConfirmation?: boolean;
 }
@@ -68,6 +70,8 @@ const defaultProfile: Profile = {
   rirMode: 'always_on',
   rpeEnabledExerciseIds: [],
   rirEnabledExerciseIds: [],
+  rpeDisabledExerciseIds: [],
+  rirDisabledExerciseIds: [],
   showExerciseDeleteConfirmation: true,
 };
 
@@ -88,6 +92,8 @@ const profileStateSchema = z.object({
   rirMode: z.enum(['always_on', 'always_off', 'selected_exercises']).optional(),
   rpeEnabledExerciseIds: z.array(z.string()).optional(),
   rirEnabledExerciseIds: z.array(z.string()).optional(),
+  rpeDisabledExerciseIds: z.array(z.string()).optional(),
+  rirDisabledExerciseIds: z.array(z.string()).optional(),
   profileImageUri: z.string().optional(),
   showExerciseDeleteConfirmation: z.boolean().optional(),
 });

@@ -36,6 +36,7 @@ const workoutPersistedSchema = z.object({
   startedAt: z.coerce.date().optional(),
   pausedAt: z.coerce.date().optional(),
   accumulatedPauseMs: z.number().int().nonnegative(),
+  isMinimized: z.boolean().optional(),
 });
 
 const defaultState = {
@@ -57,6 +58,7 @@ const defaultState = {
   pausedAt: undefined as Date | undefined,
   accumulatedPauseMs: 0,
   lastFinishedSession: undefined as WorkoutSession | undefined,
+  isMinimized: false,
 };
 
 const removeSupersetGroup = (exercise: SessionExercise): SessionExercise => {
@@ -113,6 +115,7 @@ export interface WorkoutActions {
   toggleSuperset: (sessionExerciseId: UUID) => void;
   clearLastFinishedSession: () => void;
   reorderExercises: (exercises: SessionExercise[]) => void;
+  setMinimized: (minimized: boolean) => void;
 }
 
 export type WorkoutStore = Omit<
@@ -127,6 +130,7 @@ export type WorkoutStore = Omit<
   pausedAt: Date | undefined;
   accumulatedPauseMs: number;
   lastFinishedSession: WorkoutSession | undefined;
+  isMinimized: boolean;
 } & WorkoutActions;
 
 export const useWorkoutStore = create<WorkoutStore>()(
@@ -613,6 +617,12 @@ export const useWorkoutStore = create<WorkoutStore>()(
       reorderExercises: (exercises) =>
         set({
           exercises: exercises.map((ex, idx) => ({ ...ex, order: idx })),
+          lastUpdatedAt: new Date(),
+        }),
+
+      setMinimized: (minimized) =>
+        set({
+          isMinimized: minimized,
           lastUpdatedAt: new Date(),
         }),
     }),

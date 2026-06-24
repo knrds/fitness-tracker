@@ -39,6 +39,7 @@ export const Input: React.FC<InputProps> = ({
             color: theme.colors.text,
             borderRadius: theme.radius.md,
             ...theme.typography.body,
+            fontSize: 16,
           },
           style,
         ]}

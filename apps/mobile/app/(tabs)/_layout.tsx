@@ -2,8 +2,9 @@ import React from 'react';
 import { Tabs, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@fitness-tracker/ui';
-import { StyleSheet, Platform, Pressable, Animated } from 'react-native';
+import { StyleSheet, Platform, Pressable, Animated, View } from 'react-native';
 import { isIOS } from '../../src/utils/platform';
+import { MinimizedWorkoutBar } from '../../src/components/workout/MinimizedWorkoutBar';
 
 export default function TabLayout() {
   const theme = useTheme();
@@ -51,125 +52,128 @@ export default function TabLayout() {
   });
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.muted,
-        tabBarStyle: {
-          backgroundColor: theme.colors.background,
-          borderTopColor: theme.colors.border,
-          borderTopWidth: 1,
-          height: isIOS ? 88 : 64,
-          paddingBottom: isIOS ? 24 : 8,
-          paddingTop: 8,
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="history"
-        options={{
-          title: 'History',
-          tabBarLabel: 'History',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'analytics' : 'analytics-outline'} size={22} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="workouts"
-        options={{
-          title: 'Plans',
-          tabBarLabel: 'Plans',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'barbell' : 'barbell-outline'} size={22} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarLabel: () => null,
-          tabBarButton: (props) => {
-            const focused = isHomeFocused;
-            return (
-              <Pressable
-                onPress={props.onPress}
-                onLongPress={props.onLongPress}
-                style={[props.style, styles.centerTabContainer]}
-              >
-                <Animated.View
-                  style={[
-                    styles.centerTabCircle,
-                    Platform.OS === 'web'
-                      ? styles.centerTabCircleWebShadow
-                      : styles.centerTabCircleNativeShadow,
-                    {
-                      backgroundColor: focused ? theme.colors.primary : '#1A1C23',
-                      borderColor: focused ? theme.colors.primary : theme.colors.muted,
-                      borderWidth: 2,
-                    },
-                    focused &&
-                      (Platform.OS === 'web'
-                        ? styles.centerTabFocusedWebShadow
-                        : {
-                            shadowColor: theme.colors.primary,
-                            shadowOffset: { width: 0, height: 0 },
-                            shadowOpacity: animatedShadowOpacity,
-                            shadowRadius: animatedShadowRadius,
-                            elevation: animatedElevation,
-                          }),
-                  ]}
-                >
-                  <Ionicons
-                    name={focused ? 'home' : 'home-outline'}
-                    size={26}
-                    color={focused ? theme.colors.background : theme.colors.muted}
-                  />
-                </Animated.View>
-              </Pressable>
-            );
+    <View style={{ flex: 1 }}>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: theme.colors.primary,
+          tabBarInactiveTintColor: theme.colors.muted,
+          tabBarStyle: {
+            backgroundColor: theme.colors.background,
+            borderTopColor: theme.colors.border,
+            borderTopWidth: 1,
+            height: isIOS ? 88 : 64,
+            paddingBottom: isIOS ? 24 : 8,
+            paddingTop: 8,
           },
         }}
-      />
-      <Tabs.Screen
-        name="exercises"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="coach"
-        options={{
-          title: 'Coach',
-          tabBarLabel: 'Coach',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="body"
-        options={{
-          title: 'Body',
-          tabBarLabel: 'Body',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'body' : 'body-outline'} size={22} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="programs"
-        options={{
-          href: null,
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="history"
+          options={{
+            title: 'History',
+            tabBarLabel: 'History',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'analytics' : 'analytics-outline'} size={22} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="workouts"
+          options={{
+            title: 'Plans',
+            tabBarLabel: 'Plans',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'barbell' : 'barbell-outline'} size={22} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Home',
+            tabBarLabel: () => null,
+            tabBarButton: (props) => {
+              const focused = isHomeFocused;
+              return (
+                <Pressable
+                  onPress={props.onPress}
+                  onLongPress={props.onLongPress}
+                  style={[props.style, styles.centerTabContainer]}
+                >
+                  <Animated.View
+                    style={[
+                      styles.centerTabCircle,
+                      Platform.OS === 'web'
+                        ? styles.centerTabCircleWebShadow
+                        : styles.centerTabCircleNativeShadow,
+                      {
+                        backgroundColor: focused ? theme.colors.primary : '#1A1C23',
+                        borderColor: focused ? theme.colors.primary : theme.colors.muted,
+                        borderWidth: 2,
+                      },
+                      focused &&
+                        (Platform.OS === 'web'
+                          ? styles.centerTabFocusedWebShadow
+                          : {
+                              shadowColor: theme.colors.primary,
+                              shadowOffset: { width: 0, height: 0 },
+                              shadowOpacity: animatedShadowOpacity,
+                              shadowRadius: animatedShadowRadius,
+                              elevation: animatedElevation,
+                            }),
+                    ]}
+                  >
+                    <Ionicons
+                      name={focused ? 'home' : 'home-outline'}
+                      size={26}
+                      color={focused ? theme.colors.background : theme.colors.muted}
+                    />
+                  </Animated.View>
+                </Pressable>
+              );
+            },
+          }}
+        />
+        <Tabs.Screen
+          name="exercises"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="coach"
+          options={{
+            title: 'Coach',
+            tabBarLabel: 'Coach',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'}
+                size={22}
+                color={color}
+              />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="body"
+          options={{
+            title: 'Body',
+            tabBarLabel: 'Body',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? 'body' : 'body-outline'} size={22} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="programs"
+          options={{
+            href: null,
+          }}
+        />
+      </Tabs>
+      <MinimizedWorkoutBar />
+    </View>
   );
 }
 

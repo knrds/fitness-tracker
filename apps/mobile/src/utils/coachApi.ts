@@ -6,7 +6,9 @@ import { supabase, isSupabaseConfigured } from './supabase';
 const DEFAULT_WEB_COACH_CHAT_ENDPOINT = Platform.OS === 'web' ? '/api/coach-chat' : undefined;
 const COACH_CHAT_ENDPOINT =
   process.env.EXPO_PUBLIC_COACH_CHAT_ENDPOINT || DEFAULT_WEB_COACH_CHAT_ENDPOINT;
-const COACH_MODEL = process.env.EXPO_PUBLIC_COACH_MODEL || 'openai/gpt-oss-120b:free';
+const OPENROUTER_API_KEY = process.env.EXPO_PUBLIC_OPENROUTER_API_KEY;
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const COACH_MODEL = process.env.EXPO_PUBLIC_COACH_MODEL || 'google/gemini-2.5-flash:free';
 
 /**
  * Check if the application can reach the configured Supabase project.
@@ -227,6 +229,73 @@ Try asking about one movement, one session, or one recovery decision.`,
   yield* yieldWordStream(responseText, 35);
 }
 
+const EVIDENCE_CONTEXT = [
+  'Evidence anchors for resistance training advice:',
+  '- ACSM resistance-training position stand, PubMed 41843416: progressive resistance training improves strength, hypertrophy, power, endurance, and function; advice should be individualized.',
+  '- Refalo et al., Sports Medicine 2023, PMID 36334240: proximity to failure can matter for hypertrophy, but fatigue rises; most hypertrophy work should usually sit near failure rather than all sets to failure.',
+  '- Schoenfeld et al. dose-response volume literature: more hard weekly sets can increase hypertrophy up to recoverable limits; adjust by performance and soreness.',
+  '- Schoenfeld/Grgic load literature: hypertrophy can occur across broad rep ranges when effort is high; heavier loading is more specific for maximal strength.',
+  '- Morton et al., British Journal of Sports Medicine 2018, PMID 28698222: protein supplementation helps resistance-training gains, with gains generally plateauing around 1.6 g/kg/day in healthy adults.',
+  '- ISSN creatine position stand 2017, PMID 28615996: creatine monohydrate is well-supported for high-intensity exercise and resistance-training adaptations in healthy users.',
+].join('\n');
+
+const SYSTEM_PROMPT = [
+  'You are the Volt fitness tracker coach.',
+  'Answer in the same language as the user, usually German.',
+  'Give short, concrete workout advice based on the supplied profile, stats, and recent workout log.',
+  'Default to 2-4 bullets or one short paragraph. Stay under 110 words unless the user asks for detail.',
+  'Focus on the next practical action: load, reps, sets, rest, recovery, or exercise choice.',
+  'Use the evidence anchors as background. Do not invent study names or fake citations.',
+  'If the log context is insufficient, say that briefly and ask one precise follow-up question.',
+  'Do not give medical diagnosis or injury treatment. For pain/injury red flags, recommend professional help.',
+  EVIDENCE_CONTEXT,
+].join('\n\n');
+
+const requestOpenRouterDirect = async (
+  messages: ChatMessage[],
+  context: CoachContext,
+): Promise<string> => {
+  if (!OPENROUTER_API_KEY) throw new Error('OpenRouter API key is not configured.');
+
+  const contextSummary = JSON.stringify(context, null, 2).slice(0, 6000);
+
+  const response = await fetch(OPENROUTER_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://fitness-tracker.vercel.app',
+      'X-OpenRouter-Title': 'Volt Fitness Tracker Client',
+    },
+    body: JSON.stringify({
+      model: COACH_MODEL,
+      temperature: 0.35,
+      max_tokens: 260,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        {
+          role: 'system',
+          content: `Current app context from the user log:\n${contextSummary}`,
+        },
+        ...messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenRouter direct request failed with HTTP ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  const reply = extractReplyText(data);
+  if (!reply) throw new Error('Invalid response structure from OpenRouter direct call.');
+  return reply;
+};
+
 /**
  * Returns an async generator yielding text updates from the AI Coach.
  * Automatically switches between Supabase Edge Functions and local fallback streaming.
@@ -236,6 +305,16 @@ export async function* streamCoachResponse(
   context: CoachContext,
 ): AsyncGenerator<string, void, unknown> {
   const online = await checkConnectivity();
+
+  if (OPENROUTER_API_KEY && online) {
+    try {
+      const reply = await requestOpenRouterDirect(messages, context);
+      yield* yieldWordStream(reply, 25);
+      return;
+    } catch (err) {
+      console.warn('[Coach API] Direct OpenRouter request failed, falling back:', err);
+    }
+  }
 
   if (COACH_CHAT_ENDPOINT && online) {
     try {

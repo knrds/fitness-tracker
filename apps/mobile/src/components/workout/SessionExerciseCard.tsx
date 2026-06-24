@@ -115,8 +115,10 @@ export const SessionExerciseCard = ({
     calculateWarmupSets,
     toggleSuperset,
     updateExerciseNotes,
+    reorderExercises,
   } = useWorkoutStore();
   const { profile } = useProfileStore();
+  const sessionExercises = useWorkoutStore((state) => state.exercises);
   const isImperial = profile.preferredUnits === 'imperial';
 
   const getPreviousPerformance = useHistoryStore((state) => state.getPreviousPerformance);
@@ -187,16 +189,21 @@ export const SessionExerciseCard = ({
   const rpeEnabledExerciseIds = profile.rpeEnabledExerciseIds || [];
   const rirEnabledExerciseIds = profile.rirEnabledExerciseIds || [];
 
+  const rpeDisabledExerciseIds = profile.rpeDisabledExerciseIds || [];
+  const rirDisabledExerciseIds = profile.rirDisabledExerciseIds || [];
+
   const showRpe =
     !isCardio &&
     (rpeMode === 'always_on' ||
       (rpeMode === 'selected_exercises' &&
-        rpeEnabledExerciseIds.includes(sessionExercise.exerciseId)));
+        rpeEnabledExerciseIds.includes(sessionExercise.exerciseId))) &&
+    !rpeDisabledExerciseIds.includes(sessionExercise.exerciseId);
   const showRir =
     !isCardio &&
     (rirMode === 'always_on' ||
       (rirMode === 'selected_exercises' &&
-        rirEnabledExerciseIds.includes(sessionExercise.exerciseId)));
+        rirEnabledExerciseIds.includes(sessionExercise.exerciseId))) &&
+    !rirDisabledExerciseIds.includes(sessionExercise.exerciseId);
 
   const confirmDeleteExercise = async () => {
     if (profile.showExerciseDeleteConfirmation === false) {
@@ -683,6 +690,88 @@ export const SessionExerciseCard = ({
                 {sessionExercise.supersetGroup ? 'Supersatz trennen' : 'Als Supersatz koppeln'}
               </Text>
             </Pressable>
+
+            <Pressable
+              style={styles.optionRow}
+              onPress={() => {
+                const rpeDisabled = rpeDisabledExerciseIds.includes(sessionExercise.exerciseId);
+                const nextDisabled = rpeDisabled
+                  ? rpeDisabledExerciseIds.filter((id) => id !== sessionExercise.exerciseId)
+                  : [...rpeDisabledExerciseIds, sessionExercise.exerciseId];
+                useProfileStore.getState().updateProfile({ rpeDisabledExerciseIds: nextDisabled });
+                setOptionsVisible(false);
+              }}
+            >
+              <Ionicons
+                name={showRpe ? 'eye-off-outline' : 'eye-outline'}
+                size={20}
+                color={theme.colors.primary}
+              />
+              <Text style={[styles.optionText, { color: theme.colors.text }]}>
+                {showRpe ? 'RPE verbergen' : 'RPE anzeigen'}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.optionRow}
+              onPress={() => {
+                const rirDisabled = rirDisabledExerciseIds.includes(sessionExercise.exerciseId);
+                const nextDisabled = rirDisabled
+                  ? rirDisabledExerciseIds.filter((id) => id !== sessionExercise.exerciseId)
+                  : [...rirDisabledExerciseIds, sessionExercise.exerciseId];
+                useProfileStore.getState().updateProfile({ rirDisabledExerciseIds: nextDisabled });
+                setOptionsVisible(false);
+              }}
+            >
+              <Ionicons
+                name={showRir ? 'eye-off-outline' : 'eye-outline'}
+                size={20}
+                color={theme.colors.primary}
+              />
+              <Text style={[styles.optionText, { color: theme.colors.text }]}>
+                {showRir ? 'RIR verbergen' : 'RIR anzeigen'}
+              </Text>
+            </Pressable>
+
+            {sessionExercises.indexOf(sessionExercise) > 0 && (
+              <Pressable
+                style={styles.optionRow}
+                onPress={() => {
+                  const idx = sessionExercises.indexOf(sessionExercise);
+                  const reordered = [...sessionExercises];
+                  const temp = reordered[idx];
+                  reordered[idx] = reordered[idx - 1]!;
+                  reordered[idx - 1] = temp!;
+                  reorderExercises(reordered);
+                  setOptionsVisible(false);
+                }}
+              >
+                <Ionicons name="arrow-up-outline" size={20} color={theme.colors.primary} />
+                <Text style={[styles.optionText, { color: theme.colors.text }]}>
+                  Nach oben verschieben
+                </Text>
+              </Pressable>
+            )}
+
+            {sessionExercises.indexOf(sessionExercise) < sessionExercises.length - 1 && (
+              <Pressable
+                style={styles.optionRow}
+                onPress={() => {
+                  const idx = sessionExercises.indexOf(sessionExercise);
+                  const reordered = [...sessionExercises];
+                  const temp = reordered[idx];
+                  reordered[idx] = reordered[idx + 1]!;
+                  reordered[idx + 1] = temp!;
+                  reorderExercises(reordered);
+                  setOptionsVisible(false);
+                }}
+              >
+                <Ionicons name="arrow-down-outline" size={20} color={theme.colors.primary} />
+                <Text style={[styles.optionText, { color: theme.colors.text }]}>
+                  Nach unten verschieben
+                </Text>
+              </Pressable>
+            )}
 
             <Pressable
               style={styles.optionRow}
@@ -1563,7 +1652,7 @@ const styles = StyleSheet.create({
     marginHorizontal: isSmallScreen ? 1.5 : isMediumScreen ? 2 : 4,
     paddingVertical: 6,
     paddingHorizontal: isSmallScreen ? 2 : isMediumScreen ? 4 : 8,
-    fontSize: isSmallScreen ? 12 : isMediumScreen ? 13 : 15,
+    fontSize: 16,
     textAlign: 'center',
     fontWeight: '500',
     borderWidth: 1,
@@ -1743,7 +1832,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    fontSize: 13,
+    fontSize: 16,
     fontFamily: 'Manrope_500Medium',
     backgroundColor: '#0B0B0F',
   },

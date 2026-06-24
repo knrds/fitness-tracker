@@ -62,9 +62,8 @@ export default function WorkoutSessionScreen() {
     accumulatedPauseMs,
     resetWorkout,
     reorderExercises,
-    startRestTimer,
-    stopRestTimer,
     templateId,
+    setMinimized,
   } = useWorkoutStore();
   const { createTemplate, updateTemplate } = useProgramStore();
 
@@ -116,7 +115,7 @@ export default function WorkoutSessionScreen() {
     setCurrentWorkoutMg,
   } = useCaffeineStore();
   const [restRemaining, setRestRemaining] = useState(0);
-  const [islandExpanded, setIslandExpanded] = useState(false);
+
 
   useEffect(() => {
     let timer: ReturnType<typeof setInterval> | undefined;
@@ -505,7 +504,7 @@ export default function WorkoutSessionScreen() {
   const topSafeArea = needsGenerousTopInset ? Math.max(insets.top, 48) : Math.max(insets.top, 12);
   const headerBodyHeight = 68;
   const headerHeight = topSafeArea + headerBodyHeight;
-  const islandTop = needsGenerousTopInset ? Math.max(insets.top + 4, 48) : 8;
+
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -515,84 +514,7 @@ export default function WorkoutSessionScreen() {
         }}
       />
 
-      {/* Mock Dynamic Island */}
-      {restTimer.isRunning && (
-        <Animated.View
-          style={[
-            styles.islandContainer,
-            {
-              backgroundColor: '#000',
-              borderColor: 'rgba(255, 255, 255, 0.15)',
-              borderWidth: 1,
-              width: islandExpanded ? 250 : 120,
-              borderRadius: 20,
-              top: islandTop,
-              zIndex: 1000000,
-            },
-          ]}
-        >
-          <Pressable
-            onPress={() => setIslandExpanded(!islandExpanded)}
-            style={styles.islandContent}
-          >
-            {islandExpanded ? (
-              <View style={styles.islandExpandedRow}>
-                <View style={styles.islandLeft}>
-                  <View style={[styles.hudDot, { backgroundColor: '#4ade80', marginRight: 6 }]} />
-                  <Text
-                    style={[
-                      styles.islandText,
-                      { color: '#ffffff', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 12 },
-                    ]}
-                  >
-                    Rest: {formatElapsed(Math.max(0, restRemaining))}
-                  </Text>
-                </View>
-                <View style={styles.islandControls}>
-                  <Pressable
-                    hitSlop={6}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      startRestTimer(Math.max(0, restRemaining) + 30);
-                    }}
-                    style={styles.islandBtn}
-                  >
-                    <Text style={styles.islandBtnText}>+30s</Text>
-                  </Pressable>
-                  <Pressable
-                    hitSlop={6}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      stopRestTimer();
-                    }}
-                    style={styles.islandBtn}
-                  >
-                    <Text style={[styles.islandBtnText, { color: '#ef4444' }]}>Pause</Text>
-                  </Pressable>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.islandCollapsedRow}>
-                <View style={[styles.hudDot, { backgroundColor: '#4ade80', marginRight: 6 }]} />
-                <Ionicons
-                  name="timer-outline"
-                  size={12}
-                  color="#ffffff"
-                  style={{ marginRight: 4 }}
-                />
-                <Text
-                  style={[
-                    styles.islandText,
-                    { color: '#ffffff', fontFamily: 'SpaceGrotesk_700Bold', fontSize: 12 },
-                  ]}
-                >
-                  {formatElapsed(Math.max(0, restRemaining))}
-                </Text>
-              </View>
-            )}
-          </Pressable>
-        </Animated.View>
-      )}
+      {/* Mock Dynamic Island Removed */}
 
       {/* Unified Header */}
       <View
@@ -628,13 +550,22 @@ export default function WorkoutSessionScreen() {
               </View>
               <View style={styles.hudCol}>
                 <Ionicons
-                  name="time-outline"
+                  name={restTimer.isRunning ? 'timer-outline' : 'time-outline'}
                   size={16}
-                  color={theme.colors.muted}
+                  color={restTimer.isRunning ? '#4ade80' : theme.colors.muted}
                   style={{ marginRight: 4 }}
                 />
-                <Text style={[styles.hudText, { color: theme.colors.text }]} numberOfLines={1}>
-                  {formatElapsed(elapsed)}
+                <Text
+                  style={[
+                    styles.hudText,
+                    {
+                      color: restTimer.isRunning ? '#4ade80' : theme.colors.text,
+                      fontFamily: 'SpaceGrotesk_700Bold',
+                    },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {restTimer.isRunning ? `Rest: ${formatElapsed(restRemaining)}` : formatElapsed(elapsed)}
                 </Text>
               </View>
             </View>
@@ -648,8 +579,18 @@ export default function WorkoutSessionScreen() {
         ) : (
           <View key="standard-header" style={styles.standardHeaderContent}>
             <View style={styles.headerLeft}>
-              <Pressable onPress={handleBackAction} style={{ paddingRight: 16 }}>
+              <Pressable onPress={handleBackAction} style={{ paddingRight: 12 }} accessibilityLabel="Training beenden">
                 <Ionicons name="close" size={24} color={theme.colors.muted} />
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setMinimized(true);
+                  router.navigate('/(tabs)/workouts');
+                }}
+                style={{ paddingRight: 12 }}
+                accessibilityLabel="Training minimieren"
+              >
+                <Ionicons name="chevron-down" size={24} color={theme.colors.primary} />
               </Pressable>
               <View style={styles.headerTitleGroup}>
                 <Text
@@ -662,16 +603,44 @@ export default function WorkoutSessionScreen() {
                 >
                   {name}
                 </Text>
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.standardElapsed,
-                    theme.typography.display,
-                    { color: theme.colors.primary },
-                  ]}
-                >
-                  {formatElapsed(elapsed)}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.standardElapsed,
+                      theme.typography.display,
+                      { color: theme.colors.primary },
+                    ]}
+                  >
+                    {formatElapsed(elapsed)}
+                  </Text>
+                  {restTimer.isRunning && (
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(74, 222, 128, 0.15)',
+                        borderColor: '#4ade80',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        paddingHorizontal: 6,
+                        paddingVertical: 2,
+                        marginLeft: 8,
+                      }}
+                    >
+                      <Ionicons name="timer-outline" size={14} color="#4ade80" style={{ marginRight: 3 }} />
+                      <Text
+                        style={{
+                          color: '#4ade80',
+                          fontFamily: 'SpaceGrotesk_700Bold',
+                          fontSize: 12,
+                        }}
+                      >
+                        Rest: {formatElapsed(restRemaining)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </View>
             </View>
             <Button
@@ -1103,7 +1072,7 @@ const styles = StyleSheet.create({
     minWidth: 72,
     paddingHorizontal: 12,
     fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 14,
+    fontSize: 16,
     fontVariant: ['tabular-nums'],
   },
   caffeineSmallButton: {
@@ -1125,6 +1094,7 @@ const styles = StyleSheet.create({
   notesInput: {
     minHeight: 60,
     textAlignVertical: 'top',
+    fontSize: 16,
   },
   hudCol: {
     flexDirection: 'row',

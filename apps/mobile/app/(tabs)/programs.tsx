@@ -466,6 +466,19 @@ export default function ProgramListScreen() {
     }
   };
 
+  const handleMoveProgram = (programId: string, direction: 'up' | 'down') => {
+    const idx = programs.findIndex((p) => p.id === programId);
+    if (idx === -1) return;
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= programs.length) return;
+
+    const reordered = [...programs];
+    const [moved] = reordered.splice(idx, 1);
+    if (!moved) return;
+    reordered.splice(targetIdx, 0, moved);
+    updateProgramsOrder(reordered);
+  };
+
   const menuProgram = programs.find((p) => p.id === menuProgramId) || null;
 
   return (
@@ -723,6 +736,38 @@ export default function ProgramListScreen() {
             >
               <Ionicons name="create-outline" size={20} color="#F4F5F7" />
               <Text style={styles.menuItemText}>Edit</Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.menuItem,
+                programs.findIndex((p) => p.id === menuProgram?.id) === 0 && { opacity: 0.4 }
+              ]}
+              disabled={programs.findIndex((p) => p.id === menuProgram?.id) === 0}
+              onPress={() => {
+                if (menuProgram) {
+                  handleMoveProgram(menuProgram.id, 'up');
+                  setMenuProgramId(null);
+                }
+              }}
+            >
+              <Ionicons name="arrow-up-outline" size={20} color="#F4F5F7" />
+              <Text style={styles.menuItemText}>Move Up</Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.menuItem,
+                programs.findIndex((p) => p.id === menuProgram?.id) === programs.length - 1 && { opacity: 0.4 }
+              ]}
+              disabled={programs.findIndex((p) => p.id === menuProgram?.id) === programs.length - 1}
+              onPress={() => {
+                if (menuProgram) {
+                  handleMoveProgram(menuProgram.id, 'down');
+                  setMenuProgramId(null);
+                }
+              }}
+            >
+              <Ionicons name="arrow-down-outline" size={20} color="#F4F5F7" />
+              <Text style={styles.menuItemText}>Move Down</Text>
             </Pressable>
             <Pressable
               style={styles.menuItem}

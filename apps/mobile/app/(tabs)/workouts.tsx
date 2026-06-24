@@ -291,6 +291,19 @@ export default function WorkoutsScreen() {
     }
   };
 
+  const handleMoveTemplate = (templateId: string, direction: 'up' | 'down') => {
+    const idx = templates.findIndex((t) => t.id === templateId);
+    if (idx === -1) return;
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= templates.length) return;
+
+    const reordered = [...templates];
+    const [moved] = reordered.splice(idx, 1);
+    if (!moved) return;
+    reordered.splice(targetIdx, 0, moved);
+    updateTemplatesOrder(reordered);
+  };
+
   const menuTemplate = templates.find((t) => t.id === menuTemplateId) || null;
   const summaryTemplate = templates.find((t) => t.id === summaryTemplateId) || null;
 
@@ -304,33 +317,44 @@ export default function WorkoutsScreen() {
       ]}
     >
       {/* Top Segmented Control Tab Toggle */}
-      <View style={styles.tabToggleHeader}>
-        <Pressable
-          style={[styles.tabToggleBtn, activeTab === 'workouts' && styles.tabToggleBtnActive]}
-          onPress={() => setActiveTab('workouts')}
-        >
-          <Text
-            style={[
-              styles.tabToggleBtnText,
-              { color: activeTab === 'workouts' ? theme.colors.primary : theme.colors.muted },
-            ]}
-          >
-            TEMPLATES
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.tabToggleBtn, activeTab === 'programs' && styles.tabToggleBtnActive]}
-          onPress={() => setActiveTab('programs')}
-        >
-          <Text
-            style={[
-              styles.tabToggleBtnText,
-              { color: activeTab === 'programs' ? theme.colors.primary : theme.colors.muted },
-            ]}
-          >
-            PROGRAMS
-          </Text>
-        </Pressable>
+      <View
+        style={[
+          styles.tabToggleHeader,
+          { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+        ]}
+      >
+        {(
+          [
+            { id: 'workouts', label: 'Templates', icon: 'document-text-outline' },
+            { id: 'programs', label: 'Programs', icon: 'calendar-outline' },
+          ] as const
+        ).map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <Pressable
+              key={tab.id}
+              style={[
+                styles.tabToggleBtn,
+                isActive && { backgroundColor: theme.colors.background },
+              ]}
+              onPress={() => setActiveTab(tab.id)}
+            >
+              <Ionicons
+                name={tab.icon}
+                size={16}
+                color={isActive ? theme.colors.primary : theme.colors.muted}
+              />
+              <Text
+                style={[
+                  styles.tabToggleBtnText,
+                  { color: isActive ? theme.colors.primary : theme.colors.muted },
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       {activeTab === 'workouts' ? (
@@ -537,6 +561,38 @@ export default function WorkoutsScreen() {
               <Text style={styles.menuItemText}>Edit</Text>
             </Pressable>
             <Pressable
+              style={[
+                styles.menuItem,
+                templates.findIndex((t) => t.id === menuTemplate?.id) === 0 && { opacity: 0.4 }
+              ]}
+              disabled={templates.findIndex((t) => t.id === menuTemplate?.id) === 0}
+              onPress={() => {
+                if (menuTemplate) {
+                  handleMoveTemplate(menuTemplate.id, 'up');
+                  setMenuTemplateId(null);
+                }
+              }}
+            >
+              <Ionicons name="arrow-up-outline" size={20} color="#F4F5F7" />
+              <Text style={styles.menuItemText}>Move Up</Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.menuItem,
+                templates.findIndex((t) => t.id === menuTemplate?.id) === templates.length - 1 && { opacity: 0.4 }
+              ]}
+              disabled={templates.findIndex((t) => t.id === menuTemplate?.id) === templates.length - 1}
+              onPress={() => {
+                if (menuTemplate) {
+                  handleMoveTemplate(menuTemplate.id, 'down');
+                  setMenuTemplateId(null);
+                }
+              }}
+            >
+              <Ionicons name="arrow-down-outline" size={20} color="#F4F5F7" />
+              <Text style={styles.menuItemText}>Move Down</Text>
+            </Pressable>
+            <Pressable
               style={styles.menuItem}
               onPress={() => {
                 if (menuTemplate) {
@@ -659,24 +715,26 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0B0B0F' },
   tabToggleHeader: {
     flexDirection: 'row',
-    backgroundColor: '#1A1C23',
-    borderBottomWidth: 1,
-    borderBottomColor: '#2A2B31',
+    borderWidth: 1,
+    borderRadius: 10,
+    marginHorizontal: 24,
+    marginVertical: 16,
+    padding: 3,
+    gap: 3,
   },
   tabToggleBtn: {
     flex: 1,
-    paddingVertical: 14,
+    minHeight: 36,
+    borderRadius: 7,
+    flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabToggleBtnActive: {
-    borderBottomColor: '#90D5FF',
+    justifyContent: 'center',
+    gap: 6,
   },
   tabToggleBtnText: {
     fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 12,
-    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   quickStart: {
     padding: 16,

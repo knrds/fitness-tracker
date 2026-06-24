@@ -234,8 +234,17 @@ export default function CoachScreen() {
               maxLength={500}
               editable={!isSending}
               returnKeyType="send"
+              enterKeyHint="send"
               submitBehavior="submit"
               onKeyPress={handleInputKeyPress}
+              {...(Platform.OS === 'web' ? {
+                onKeyDown: (e: { key: string; shiftKey: boolean; preventDefault: () => void }) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void handleSend(inputText);
+                  }
+                }
+              } : {})}
               onSubmitEditing={() => {
                 void handleSend(inputText);
               }}
@@ -406,7 +415,7 @@ const styles = StyleSheet.create({
     maxHeight: 100,
   },
   input: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'Manrope_500Medium',
     paddingTop: 0,
     paddingBottom: 0,

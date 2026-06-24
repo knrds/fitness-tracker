@@ -1,4 +1,4 @@
-const DEFAULT_MODEL = 'openai/gpt-oss-120b:free';
+const DEFAULT_MODEL = 'google/gemini-2.5-flash:free';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 const EVIDENCE_CONTEXT = [

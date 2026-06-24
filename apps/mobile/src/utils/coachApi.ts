@@ -98,6 +98,14 @@ const extractReplyText = (data: unknown): string | null => {
   return null;
 };
 
+const extractEndpointErrorText = (data: unknown): string | null => {
+  if (!isRecord(data)) return null;
+  const error = data.error;
+  if (typeof error === 'string') return error;
+  if (isRecord(error) && typeof error.message === 'string') return error.message;
+  return null;
+};
+
 const requestCoachEndpoint = async (
   messages: ChatMessage[],
   context: CoachContext,
@@ -116,10 +124,6 @@ const requestCoachEndpoint = async (
     }),
   });
 
-  if (!response.ok) {
-    throw new Error(`Coach endpoint failed with HTTP ${response.status}.`);
-  }
-
   const text = await response.text();
   let data: unknown = text;
   try {
@@ -128,8 +132,18 @@ const requestCoachEndpoint = async (
     data = text;
   }
 
+  if (!response.ok) {
+    const errorText = extractEndpointErrorText(data);
+    throw new Error(errorText || `Coach endpoint failed with HTTP ${response.status}.`);
+  }
+
   const reply = extractReplyText(data);
   if (!reply) throw new Error('Invalid response structure from Coach endpoint.');
+  if (isRecord(data)) {
+    const provider = typeof data.provider === 'string' ? data.provider : 'unknown';
+    const model = typeof data.model === 'string' ? data.model : 'unknown';
+    console.info('[Coach API] LLM response received:', { provider, model });
+  }
   return reply;
 };
 
@@ -171,35 +185,35 @@ async function* getMockCoachResponseStream(
     lowerPrompt.includes('record') ||
     lowerPrompt.includes('strength')
   ) {
-    responseText = `Hey ${name}. You have ${total} logged workouts, so the best next step is to compare recent working sets against your prior e1RM trend. Keep warmups out of the decision, look for one main lift that is moving well, and aim for small load or rep progress while leaving 1-2 reps in reserve.`;
+    responseText = `[Lokaler Fallback] Hey ${name}. You have ${total} logged workouts, so the best next step is to compare recent working sets against your prior e1RM trend. Keep warmups out of the decision, look for one main lift that is moving well, and aim for small load or rep progress while leaving 1-2 reps in reserve.`;
   } else if (
     lowerPrompt.includes('plan') ||
     lowerPrompt.includes('template') ||
     lowerPrompt.includes('next session')
   ) {
-    responseText = `For your ${goal} goal, review your current Plans tab before creating anything new. Pick the session that best matches your recovery today, keep the main movement first, and adjust volume by one set at a time instead of rewriting the whole week.`;
+    responseText = `[Lokaler Fallback] For your ${goal} goal, review your current Plans tab before creating anything new. Pick the session that best matches your recovery today, keep the main movement first, and adjust volume by one set at a time instead of rewriting the whole week.`;
   } else if (
     lowerPrompt.includes('recovery') ||
     lowerPrompt.includes('sore') ||
     lowerPrompt.includes('fatigue')
   ) {
-    responseText = `Recovery check for ${name}: use your last few sessions, sleep, soreness, and motivation as the signal. If performance is flat and soreness is high, reduce today's working sets by 20-30% and keep technique crisp. If you feel fresh, keep the planned volume and push one top set.`;
+    responseText = `[Lokaler Fallback] Recovery check for ${name}: use your last few sessions, sleep, soreness, and motivation as the signal. If performance is flat and soreness is high, reduce today's working sets by 20-30% and keep technique crisp. If you feel fresh, keep the planned volume and push one top set.`;
   } else if (
     lowerPrompt.includes('cardio') ||
     lowerPrompt.includes('running') ||
     lowerPrompt.includes('conditioning')
   ) {
-    responseText = `Cardio can support your lifting when it stays recoverable. Start with 1-2 easy conditioning sessions per week, keep the pace conversational, and avoid placing hard intervals right before heavy lower-body sessions.`;
+    responseText = `[Lokaler Fallback] Cardio can support your lifting when it stays recoverable. Start with 1-2 easy conditioning sessions per week, keep the pace conversational, and avoid placing hard intervals right before heavy lower-body sessions.`;
   } else if (
     streak > 0 &&
     (lowerPrompt.includes('streak') ||
       lowerPrompt.includes('consistency') ||
       lowerPrompt.includes('motivation'))
   ) {
-    responseText = `Nice consistency, ${name}. Your current streak is ${streak} days. On low-energy days, protect the habit with a shorter session: warm up, hit one priority movement, and leave before the work turns sloppy.`;
+    responseText = `[Lokaler Fallback] Nice consistency, ${name}. Your current streak is ${streak} days. On low-energy days, protect the habit with a shorter session: warm up, hit one priority movement, and leave before the work turns sloppy.`;
   } else {
     const genericResponses = [
-      `Hey ${name}. Give me the specific lift, date range, or session you want to inspect and I will help you turn the log into a next action.
+      `[Lokaler Fallback] Hey ${name}. Give me the specific lift, date range, or session you want to inspect and I will help you turn the log into a next action.
 
 Current context:
 - Logged workouts: ${total}
@@ -207,14 +221,14 @@ Current context:
 - Fitness goal: ${goal}${latestWeight}
 
 Useful prompts: review recent progress, check recovery, estimate PR readiness, or adjust the next workout you already have planned.`,
-      `I can work from your current training context, ${name}. The strongest signal right now is to compare recent working sets, fatigue, and the goal you set: ${goal}.
+      `[Lokaler Fallback] I can work from your current training context, ${name}. The strongest signal right now is to compare recent working sets, fatigue, and the goal you set: ${goal}.
 
 Current context:
 - Logged workouts: ${total}
 - Current streak: ${streak} days${latestWeight}
 
 Ask for a concrete decision, for example: "Should I push bench today?" or "Which exercise should I reduce volume on?".`,
-      `Let's make this practical, ${name}. I can reason over the training log you have locally, then suggest a small next step instead of a whole new plan.
+      `[Lokaler Fallback] Let's make this practical, ${name}. I can reason over the training log you have locally, then suggest a small next step instead of a whole new plan.
 
 Current context:
 - Logged workouts: ${total}

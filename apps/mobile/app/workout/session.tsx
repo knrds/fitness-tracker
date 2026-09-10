@@ -42,11 +42,12 @@ import {
   getCaffeineWarningLevel,
   useCaffeineStore,
 } from '../../src/stores/caffeineStore';
-import { useTheme, Button, Card } from '@fitness-tracker/ui';
+import { useTheme, useDialog, Button, Card } from '@fitness-tracker/ui';
 
 export default function WorkoutSessionScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { showConfirm } = useDialog();
   const insets = useSafeAreaInsets();
   const { width: viewportWidth } = useWindowDimensions();
   const {
@@ -115,7 +116,6 @@ export default function WorkoutSessionScreen() {
     setCurrentWorkoutMg,
   } = useCaffeineStore();
   const [restRemaining, setRestRemaining] = useState(0);
-
 
   useEffect(() => {
     let timer: ReturnType<typeof setInterval> | undefined;
@@ -363,7 +363,17 @@ export default function WorkoutSessionScreen() {
     if (isFinishing) return;
     setIsFinishing(true);
 
-    const finishedSession = finishWorkout();
+    let finishedSession;
+    try {
+      finishedSession = finishWorkout();
+    } catch {
+      setIsFinishing(false);
+      Alert.alert(
+        'Speichern fehlgeschlagen',
+        'Dein Training bleibt geöffnet. Bitte prüfe den freien Speicher und versuche den Abschluss erneut.',
+      );
+      return;
+    }
     if (!finishedSession) {
       setSaveModalVisible(false);
       router.replace('/');
@@ -374,11 +384,21 @@ export default function WorkoutSessionScreen() {
     router.replace('/');
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     if (isFinishing) return;
     const hasCompletedSet = exercises.some((ex) => ex.sets.some((set) => set.completed));
     if (!hasCompletedSet) {
-      finalizeWorkout();
+      const discard = await showConfirm({
+        title: 'Noch kein Satz abgeschlossen',
+        message: 'Möchtest du dieses Training verwerfen oder weitertrainieren?',
+        confirmLabel: 'Training verwerfen',
+        cancelLabel: 'Weitertrainieren',
+        destructive: true,
+      });
+      if (discard) {
+        resetWorkout();
+        if (useWorkoutStore.getState().status === 'idle') router.replace('/');
+      }
       return;
     }
 
@@ -505,7 +525,6 @@ export default function WorkoutSessionScreen() {
   const headerBodyHeight = 68;
   const headerHeight = topSafeArea + headerBodyHeight;
 
-
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Stack.Screen
@@ -565,7 +584,9 @@ export default function WorkoutSessionScreen() {
                   ]}
                   numberOfLines={1}
                 >
-                  {restTimer.isRunning ? `Rest: ${formatElapsed(restRemaining)}` : formatElapsed(elapsed)}
+                  {restTimer.isRunning
+                    ? `Rest: ${formatElapsed(restRemaining)}`
+                    : formatElapsed(elapsed)}
                 </Text>
               </View>
             </View>
@@ -579,7 +600,11 @@ export default function WorkoutSessionScreen() {
         ) : (
           <View key="standard-header" style={styles.standardHeaderContent}>
             <View style={styles.headerLeft}>
-              <Pressable onPress={handleBackAction} style={{ paddingRight: 12 }} accessibilityLabel="Training beenden">
+              <Pressable
+                onPress={handleBackAction}
+                style={{ paddingRight: 12 }}
+                accessibilityLabel="Training beenden"
+              >
                 <Ionicons name="close" size={24} color={theme.colors.muted} />
               </Pressable>
               <Pressable
@@ -628,7 +653,12 @@ export default function WorkoutSessionScreen() {
                         marginLeft: 8,
                       }}
                     >
-                      <Ionicons name="timer-outline" size={14} color="#4ade80" style={{ marginRight: 3 }} />
+                      <Ionicons
+                        name="timer-outline"
+                        size={14}
+                        color="#4ade80"
+                        style={{ marginRight: 3 }}
+                      />
                       <Text
                         style={{
                           color: '#4ade80',

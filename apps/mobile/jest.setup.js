@@ -49,3 +49,10 @@ jest.mock('react-native-reanimated', () => {
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
+
+// Component/legacy-store suites do not run Expo native modules. Dedicated native transaction
+// tests override this boundary with an actual SQLite engine and exercise the same repository.
+jest.mock('./src/data/deviceDatabase', () => ({
+  usesDeviceDatabase: false,
+  getDeviceDatabase: () => null,
+}));

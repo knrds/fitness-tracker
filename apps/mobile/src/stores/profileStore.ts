@@ -23,7 +23,9 @@ import { useAchievementStore } from './achievementStore';
 import { useWorkoutStore } from './workoutStore';
 import { useCaffeineStore } from './caffeineStore';
 import { useHydrationStore } from './hydrationStore';
-import { createHydratedStorage } from './storage';
+import { createHydratedStorage, clearStorageBackups } from './storage';
+import { useCoachStore } from './coachStore';
+import { useSyncStore } from './syncStore';
 
 export interface Profile {
   displayName: string;
@@ -57,7 +59,7 @@ export interface ProfileState {
     longestStreak: number;
     currentStreak: number;
   };
-  clearAllData: () => void;
+  clearAllData: () => Promise<void>;
   exportData: () => string;
 }
 
@@ -150,56 +152,69 @@ export const useProfileStore = create<ProfileState>()(
         };
       },
 
-      clearAllData: () => {
-        // Reset all MMKV persisted stores by setting their Zustand state directly
+      clearAllData: async () => {
+        if (useSyncStore.getState().isSyncing || useCoachStore.getState().isSending) {
+          throw new Error('Wait for active requests before resetting local data');
+        }
+        useSyncStore.setState({ isSyncing: true });
+        useCoachStore.setState({ isSending: true });
+        try {
+          await clearStorageBackups();
+          useCoachStore.getState().clearChatHistory();
+          useSyncStore.getState().clearQueue();
+          // Reset local store documents; this does not delete the cloud account.
 
-        // 1. Profile Store
-        set({ profile: defaultProfile });
+          // 1. Profile Store
+          set({ profile: defaultProfile });
 
-        // 2. History Store
-        useHistoryStore.setState({ sessions: [] });
+          // 2. History Store
+          useHistoryStore.setState({ sessions: [] });
 
-        // 3. Workout Store
-        useWorkoutStore.getState().resetWorkout();
+          // 3. Workout Store
+          useWorkoutStore.getState().resetWorkout();
 
-        // 4. Exercise Store
-        useExerciseStore.setState({
-          exercises: EXERCISES,
-          filteredExercises: EXERCISES,
-          selectedMuscleGroup: null,
-          selectedEquipment: null,
-          searchQuery: '',
-          favoriteIds: [],
-          customExercises: [],
-          exerciseRestDurations: {},
-          persistentNotes: {},
-        });
+          // 4. Exercise Store
+          useExerciseStore.setState({
+            exercises: EXERCISES,
+            filteredExercises: EXERCISES,
+            selectedMuscleGroup: null,
+            selectedEquipment: null,
+            searchQuery: '',
+            favoriteIds: [],
+            customExercises: [],
+            exerciseRestDurations: {},
+            persistentNotes: {},
+          });
 
-        // 5. Body Metric Store
-        useBodyMetricStore.setState({ metrics: [] });
+          // 5. Body Metric Store
+          useBodyMetricStore.setState({ metrics: [] });
 
-        // 6. Achievement Store
-        useAchievementStore.getState().resetAchievements();
+          // 6. Achievement Store
+          useAchievementStore.getState().resetAchievements();
 
-        // 7. Program Store
-        useProgramStore.setState({
-          programs: getDefaultPrograms(),
-          templates: getDefaultTemplates(),
-        });
+          // 7. Program Store
+          useProgramStore.setState({
+            programs: getDefaultPrograms(),
+            templates: getDefaultTemplates(),
+          });
 
-        // 8. Caffeine Store
-        useCaffeineStore.setState({
-          isEnabled: true,
-          currentWorkoutMg: 0,
-          lastWorkoutMg: 0,
-        });
+          // 8. Caffeine Store
+          useCaffeineStore.setState({
+            isEnabled: true,
+            currentWorkoutMg: 0,
+            lastWorkoutMg: 0,
+          });
 
-        // 9. Hydration Store
-        useHydrationStore.setState({
-          dateKey: formatDateLocal(new Date()),
-          dailyGoalMl: 2500,
-          todayIntakeMl: 0,
-        });
+          // 9. Hydration Store
+          useHydrationStore.setState({
+            dateKey: formatDateLocal(new Date()),
+            dailyGoalMl: 2500,
+            todayIntakeMl: 0,
+          });
+        } finally {
+          useSyncStore.setState({ isSyncing: false });
+          useCoachStore.setState({ isSending: false });
+        }
       },
 
       exportData: () => {

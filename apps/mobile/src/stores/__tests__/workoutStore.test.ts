@@ -278,7 +278,7 @@ describe('workoutStore', () => {
     const result = useWorkoutStore.getState().finishWorkout();
 
     expect(result).toBeNull();
-    expect(useWorkoutStore.getState().status).toBe('idle');
+    expect(useWorkoutStore.getState().status).toBe('active');
     const historySessions = useHistoryStore.getState().sessions;
     expect(historySessions.length).toBe(0);
   });

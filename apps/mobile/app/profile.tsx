@@ -223,12 +223,19 @@ export default function ProfileScreen() {
         {
           text: 'Reset Everything',
           style: 'destructive',
-          onPress: () => {
-            clearAllData();
-            setName('User');
-            setGoal('');
-            setLevel('');
-            Alert.alert('Data Cleared', 'All local data has been reset.');
+          onPress: async () => {
+            try {
+              await clearAllData();
+              setName('User');
+              setGoal('');
+              setLevel('');
+              Alert.alert(
+                'Data Cleared',
+                'Local training data and recovery backups have been reset. Your account and cloud data remain available.',
+              );
+            } catch {
+              Alert.alert('Reset Failed', 'Local data could not be fully reset. Please try again.');
+            }
           },
         },
       ],

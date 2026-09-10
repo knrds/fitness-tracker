@@ -691,7 +691,8 @@ export const useSyncStore = create<SyncState>()(
           queue: [...state.queue, newOp],
         }));
 
-        get().processQueue();
+        // Start external work only after the synchronous local transaction has committed.
+        void Promise.resolve().then(() => get().processQueue());
       },
 
       setOnline: (online) => {

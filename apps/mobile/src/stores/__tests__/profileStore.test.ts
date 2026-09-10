@@ -8,6 +8,8 @@ import { getDefaultPrograms, getDefaultTemplates, useProgramStore } from '../pro
 import { useWorkoutStore } from '../workoutStore';
 import { useCaffeineStore } from '../caffeineStore';
 import { useHydrationStore } from '../hydrationStore';
+import { useSyncStore } from '../syncStore';
+import { useCoachStore } from '../coachStore';
 
 jest.mock('react-native-mmkv', () => ({
   MMKV: jest.fn().mockImplementation(() => ({
@@ -174,7 +176,7 @@ describe('profileStore', () => {
     expect(stats.totalVolume).toBe(2205);
   });
 
-  it('should clear all local data across stores', () => {
+  it('should clear all local data across stores', async () => {
     const date = new Date('2026-06-01T18:00:00.000Z');
     const session: WorkoutSession = {
       id: 'session-1',
@@ -225,9 +227,18 @@ describe('profileStore', () => {
       todayIntakeMl: 1250,
     });
 
-    useProfileStore.getState().clearAllData();
+    useCoachStore.setState({
+      messages: [
+        { id: 'test-message', role: 'user', content: 'Private test note', createdAt: date },
+      ],
+    });
+    await useProfileStore.getState().clearAllData();
 
     expect(useHistoryStore.getState().sessions).toHaveLength(0);
+    expect(useSyncStore.getState().queue).toHaveLength(0);
+    expect(useCoachStore.getState().messages).toHaveLength(0);
+    expect(useSyncStore.getState().isSyncing).toBe(false);
+    expect(useCoachStore.getState().isSending).toBe(false);
     expect(useWorkoutStore.getState().status).toBe('idle');
     expect(useWorkoutStore.getState().lastFinishedSession).toBeUndefined();
     expect(useAchievementStore.getState().xp).toBe(0);

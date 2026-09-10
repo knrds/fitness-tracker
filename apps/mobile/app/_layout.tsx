@@ -22,6 +22,7 @@ import { useAuthStore } from '../src/stores/authStore';
 import { useWorkoutStore } from '../src/stores/workoutStore';
 import { getResumeWorkoutDecision } from '../src/utils/resumeWorkoutGuard';
 import { inspectStartupState } from '../src/utils/startup-recovery';
+import { PersistenceGate } from '../src/components/PersistenceGate';
 
 if (Platform.OS !== 'web') {
   SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -266,7 +267,9 @@ export default function RootLayout() {
                 }}
               />
             )}
-            <RootNavigator />
+            <PersistenceGate>
+              <RootNavigator />
+            </PersistenceGate>
           </DialogProvider>
         </ThemeProvider>
       </SafeAreaProvider>

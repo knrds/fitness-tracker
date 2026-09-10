@@ -30,7 +30,7 @@ const achievementPersistedSchema = z.object({
   xp: z.number().int().nonnegative(),
   level: z.number().int().positive(),
   unlockedAchievements: z.record(z.union([z.string(), z.instanceof(Date)])),
-  repeatCounts: z.record(z.number().int().nonnegative()),
+  repeatCounts: z.record(z.number().int().nonnegative()).default({}),
   newlyUnlocked: z.array(z.string()),
   levelUpTo: z.number().int().positive().nullable(),
 });
@@ -443,6 +443,7 @@ export const useAchievementStore = create<AchievementState>()(
         'achievement-storage',
         achievementPersistedSchema,
         defaultPersistedState,
+        2,
       ),
       version: 2,
       migrate: (persistedState) => {

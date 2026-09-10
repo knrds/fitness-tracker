@@ -42,3 +42,20 @@ yarn-error.*
 
 # Build outputs
 packages/*/dist/
+
+# Rebuild hygiene
+coverage/
+dist-native/
+output/
+.playwright-cli/
+*.log
+*.db
+*.sqlite
+*.sqlite-*
+.env.*
+!.env.example
+.idea/
+.vscode/
+Thumbs.db
+apps/mobile/ios/
+apps/mobile/android/

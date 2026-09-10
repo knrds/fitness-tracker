@@ -703,83 +703,69 @@ export const useSyncStore = create<SyncState>()(
       },
 
       processQueue: async () => {
-        if (!isSupabaseConfigured) return;
-        if (get().isSyncing) return;
-
-        const online = await checkConnectivity();
-        set({ isOnline: online });
-        if (!online) return;
-
-        const { queue } = get();
-        if (queue.length === 0) return;
-
+        const userId = useAuthStore.getState().user?.id;
+        if (!isSupabaseConfigured || !userId || get().isSyncing || get().queue.length === 0) return;
+        // Lock before the first await; otherwise concurrent connectivity checks start two workers.
         set({ isSyncing: true, syncError: null });
-
-        // Process queue sequentially (FIFO) to preserve foreign key constraints
-        const remainingQueue = [...queue];
-
-        while (remainingQueue.length > 0) {
-          const op = remainingQueue[0];
-          if (!op) break;
-
-          try {
-            if (op.operation === 'INSERT' || op.operation === 'UPDATE') {
-              await upsertPreparedPayload(prepareDbPayloadForSync(op.table, op.payload));
-            } else if (op.operation === 'DELETE') {
-              const payloadObj = asDbRecord(op.payload);
-              const { error } = await supabase
-                .from(op.table)
-                .delete()
-                .eq('id', payloadObj.id as string);
-              if (error) throw error;
-            }
-
-            remainingQueue.shift();
-            set({ queue: [...remainingQueue] });
-          } catch (error: unknown) {
-            const message = getErrorMessage(error);
-            console.error(`[Sync Store] Sync operation ${op.id} failed:`, error);
-
-            const isNetworkError =
-              message.includes('Network request failed') ||
-              getErrorStatus(error) === 0 ||
-              getErrorCode(error) === 'PGRST' ||
-              !(await checkConnectivity());
-
-            if (isNetworkError) {
-              set({ isOnline: false, isSyncing: false });
+        try {
+          const online = await checkConnectivity();
+          set({ isOnline: online });
+          if (!online) return;
+          while (get().queue.length > 0) {
+            if (useAuthStore.getState().user?.id !== userId) return;
+            const op = get().queue[0];
+            if (!op) break;
+            try {
+              if (op.operation === 'INSERT' || op.operation === 'UPDATE') {
+                await upsertPreparedPayload(prepareDbPayloadForSync(op.table, op.payload));
+              } else {
+                const payloadObj = asDbRecord(op.payload);
+                const { error } = await supabase
+                  .from(op.table)
+                  .delete()
+                  .eq('id', payloadObj.id as string);
+                if (error) throw error;
+              }
+              if (useAuthStore.getState().user?.id !== userId) return;
+              // Acknowledge only this operation, preserving entries appended during the request.
+              set((state) => ({ queue: state.queue.filter((entry) => entry.id !== op.id) }));
+            } catch (error: unknown) {
+              if (useAuthStore.getState().user?.id !== userId) return;
+              const message = getErrorMessage(error);
+              set((state) => ({
+                queue: state.queue.map((entry) =>
+                  entry.id === op.id ? { ...entry, retryCount: entry.retryCount + 1 } : entry,
+                ),
+                syncError: message,
+              }));
+              // Stop at the first error. Retain FIFO dependencies and allow explicit retry.
+              if (
+                message.includes('Network request failed') ||
+                getErrorStatus(error) === 0 ||
+                getErrorCode(error) === 'PGRST'
+              )
+                set({ isOnline: false });
               return;
             }
-
-            op.retryCount += 1;
-            if (op.retryCount >= 3) {
-              remainingQueue.shift();
-              set({ queue: [...remainingQueue], syncError: message || 'Operation discarded' });
-            } else {
-              const failedOp = remainingQueue.shift();
-              if (failedOp) {
-                remainingQueue.push(failedOp);
-              }
-              set({ queue: [...remainingQueue] });
-            }
           }
+          set({ lastSyncedAt: new Date() });
+        } catch (error: unknown) {
+          set({ syncError: getErrorMessage(error) });
+        } finally {
+          set({ isSyncing: false });
         }
-
-        set({ isSyncing: false, lastSyncedAt: new Date() });
       },
 
       pullFromCloud: async () => {
-        if (!isSupabaseConfigured) return;
+        if (!isSupabaseConfigured || get().isSyncing) return;
         const user = useAuthStore.getState().user;
         if (!user) return;
 
-        const online = await checkConnectivity();
-        set({ isOnline: online });
-        if (!online) return;
-
         set({ isSyncing: true, syncError: null });
-
         try {
+          const online = await checkConnectivity();
+          set({ isOnline: online });
+          if (!online) return;
           // Dynamic store imports prevent circular dependency warnings at runtime.
           const exerciseStore = (await import('./exerciseStore')).useExerciseStore;
           const programStore = (await import('./programStore')).useProgramStore;

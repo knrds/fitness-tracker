@@ -14,7 +14,7 @@ describe('getResumeWorkoutDecision', () => {
     ).toBe('ignore');
   });
 
-  it('clears empty or invalid active workout state without prompting', () => {
+  it('preserves empty or invalid active workout state by prompting', () => {
     expect(
       getResumeWorkoutDecision({
         status: 'active',
@@ -22,7 +22,7 @@ describe('getResumeWorkoutDecision', () => {
         exercises: [{}],
         now,
       }),
-    ).toBe('clear');
+    ).toBe('prompt');
 
     expect(
       getResumeWorkoutDecision({
@@ -33,10 +33,10 @@ describe('getResumeWorkoutDecision', () => {
         notes: '',
         now,
       }),
-    ).toBe('clear');
+    ).toBe('prompt');
   });
 
-  it('clears stale sessions and prompts for real unfinished sessions', () => {
+  it('preserves stale sessions and prompts for real unfinished sessions', () => {
     expect(
       getResumeWorkoutDecision({
         status: 'active',
@@ -44,7 +44,7 @@ describe('getResumeWorkoutDecision', () => {
         exercises: [{ sets: [{ completed: true }] }],
         now,
       }),
-    ).toBe('clear');
+    ).toBe('prompt');
 
     expect(
       getResumeWorkoutDecision({
@@ -57,7 +57,7 @@ describe('getResumeWorkoutDecision', () => {
     ).toBe('prompt');
   });
 
-  it('clears active workout sessions with no completed sets', () => {
+  it('preserves active workout sessions with no completed sets', () => {
     expect(
       getResumeWorkoutDecision({
         status: 'active',
@@ -65,6 +65,6 @@ describe('getResumeWorkoutDecision', () => {
         exercises: [{ sets: [{ completed: false }] }],
         now,
       }),
-    ).toBe('clear');
+    ).toBe('prompt');
   });
 });

@@ -21,6 +21,7 @@ import { KeyboardDoneAccessory } from '../src/components/workout/KeyboardDoneAcc
 import { useAuthStore } from '../src/stores/authStore';
 import { useWorkoutStore } from '../src/stores/workoutStore';
 import { getResumeWorkoutDecision } from '../src/utils/resumeWorkoutGuard';
+import { inspectStartupState } from '../src/utils/startup-recovery';
 
 if (Platform.OS !== 'web') {
   SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -28,33 +29,16 @@ if (Platform.OS !== 'web') {
 
 function StartupWorkoutChecker() {
   const router = useRouter();
-  const { status, resetWorkout, resumeWorkout, startedAt } = useWorkoutStore();
-  const [hasChecked, setHasChecked] = useState(false);
+  const { status, resetWorkout, resumeWorkout } = useWorkoutStore();
   const [modalVisible, setModalVisible] = useState(false);
   const theme = useTheme();
 
   useEffect(() => {
-    if ((status === 'active' || status === 'paused') && !hasChecked) {
-      setHasChecked(true);
-
-      const { exercises, name, notes } = useWorkoutStore.getState();
-      const decision = getResumeWorkoutDecision({
-        status,
-        startedAt,
-        exercises,
-        name,
-        notes,
-        now: Date.now(),
-        staleAfterHours: 12,
-      });
-
-      if (decision === 'clear') {
-        resetWorkout();
-      } else if (decision === 'prompt') {
-        setModalVisible(true);
-      }
-    }
-  }, [status, hasChecked, startedAt, resetWorkout]);
+    return inspectStartupState(useWorkoutStore.persist, () => {
+      const decision = getResumeWorkoutDecision(useWorkoutStore.getState());
+      if (decision === 'prompt') setModalVisible(true);
+    });
+  }, []);
 
   useEffect(() => {
     if (Platform.OS === 'web') {

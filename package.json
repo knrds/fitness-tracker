@@ -9,6 +9,7 @@
     "expo": "pnpm --filter @fitness-tracker/mobile start:lan",
     "expo:clear": "pnpm --filter @fitness-tracker/mobile start:lan:clear",
     "expo:tunnel": "pnpm --filter @fitness-tracker/mobile start:tunnel",
+    "dev-client": "pnpm --filter @fitness-tracker/mobile start:dev-client",
     "build": "pnpm --filter @fitness-tracker/mobile build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
@@ -40,7 +41,7 @@
     "typescript": "~5.9.3"
   },
   "engines": {
-    "node": ">=20.19.4",
+    "node": ">=24.0.0",
     "pnpm": ">=9.0.0"
   }
 }

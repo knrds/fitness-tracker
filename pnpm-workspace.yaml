@@ -1,3 +1,7 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# Expo SDK 54 CLI still pins this vulnerable patch (GHSA-23hp-3jrh-7fpw).
+overrides:
+  'tar@7.5.16': '7.5.19'

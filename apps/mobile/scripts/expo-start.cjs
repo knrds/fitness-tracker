@@ -9,7 +9,7 @@ const startProcess = spawn(process.execPath, [expoCli, ...args], {
   cwd: projectRoot,
   env: {
     ...process.env,
-    EXPO_NO_DEPENDENCY_VALIDATION: process.env.EXPO_NO_DEPENDENCY_VALIDATION || '1',
+    ...(args.includes('--dev-client') ? { APP_VARIANT: process.env.APP_VARIANT || 'development' } : {}),
     EXPO_NO_TELEMETRY: process.env.EXPO_NO_TELEMETRY || '1',
   },
   stdio: 'inherit',

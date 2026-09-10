@@ -1,8 +1,13 @@
 # Volt Performance – native Mobile Modernisierung
 
-React Native/Expo Trainings-App für iOS und Android, primär unter Windows entwickelt. Branch: rebuild/clean-mobile-app. Referenz: 570383a. Der vorhandene Funktionsumfang bleibt erhalten; Persistenz und Sync werden vertikal erneuert.
+React Native/Expo Trainings-App für iOS und Android, unter Windows entwickelt. Workspace: D:\TrainingsAppGPT. Branch: rebuild/clean-mobile-app. Referenz: 570383a.
 
-## Einstieg
-Node 22 LTS und pnpm 11.5.0. Im Repository: pnpm install --frozen-lockfile, pnpm typecheck, pnpm lint, pnpm test. Täglicher nativer Start: pnpm expo. Web-Vorschau: pnpm dev; diese exportiert statisch und bietet aktuell kein Fast Refresh.
+## Start
+Node 24 (getestet: 24.13.0), pnpm 11.5.0. Installieren: `pnpm install --frozen-lockfile`. Prüfen: `pnpm typecheck`, `pnpm lint`, `pnpm test`. Nativer Development Client: `pnpm dev-client`. Ein installiertes passendes Development-Binary ist dafür erforderlich; siehe IOS_SETUP.md und ANDROID_SETUP.md.
 
-Lies DEVELOPMENT.md, IOS_SETUP.md und KNOWN_ISSUES.md. Der vollständige Ausgangsbefund steht in docs/AUDIT_2026-09-10.md. ROADMAP.md trennt implementierte Schritte von offenen Geräte-/Releaseprüfungen. Dies ist noch kein freigegebener App-Store-Stand.
+Die optionale Web-Vorschau startet mit `pnpm dev`. Sie ist ein statischer Export ohne Fast Refresh und ohne native SQLite-Garantien.
+
+## Stand vom 10.09.2026
+Audit abgeschlossen. Recovery/Queue abgesichert, nativer SQLite-Dokumentenspeicher mit Legacy-Import und atomarem Workout-Abschluss implementiert. 171 Tests bestanden, darunter elf Tests mit echter SQLite-Engine. iOS-/Android-JS-Bündelung erfolgreich; noch keine native Geräteabnahme.
+
+IMPLEMENTATION_STATUS.md enthält Änderungen, Nachweise und Grenzen. ROADMAP.md enthält die nächsten Schritte. docs/AUDIT_2026-09-10.md bleibt der unveränderte Ausgangsbefund. Keine App-Store- oder Sicherheitsfreigabe.

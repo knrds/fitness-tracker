@@ -1,7 +1,22 @@
-# Bekannte Probleme
+# Bekannte Probleme und Freigabegrenzen
 
-Vollständige Referenzbefunde B01–B23: docs/AUDIT_2026-09-10.md. Aktuell besteht keine Releasefreigabe. Höchste Priorität: Startup/Recovery-Löschung, Queue-Rennen, Hydration-Datenverlust, Benutzerisolation, öffentlicher Providerkey-Pfad.
+Keine Releasefreigabe. Der historische Audit B01–B23 bleibt in docs/AUDIT_2026-09-10.md.
 
-Weitere offene Gates: SQL-Transaktionen, NULL-Mapping, Tombstones, Default-IDs/Seed, Auth-Callback, Server-Rate-Limit, vollständiger Export/Löschung, Migration und Geräte-E2E. Referenz-Dependency-Audit meldete 71 Advisories inkl. tar critical; tatsächliche Exposition gesondert prüfen.
+## Bearbeitet
+- B01: Start/Recovery löscht keine neuen oder alten Sessions mehr; auch leeres Finish verlangt ausdrückliches Verwerfen.
+- B02/B08: Worker vor erstem await gesperrt, Ack anhand ID, parallel angefügte und fehlgeschlagene Operationen bleiben erhalten.
+- B03: Rohdaten/Backups behalten, validierte Werte verwendet, UI bis Hydration gesperrt. Unbekannte defekte Altformate benötigen weiterhin gezielte Reparatur.
+- B05: Client-Providerkey-Pfad entfernt. Serverseitiger Coach B06 bleibt unsicher für öffentlichen Betrieb.
+- B11 teilweise: lokale Backups, Coach und Queue werden beim lokalen Reset berücksichtigt; Account-/Cloud-Löschung bleibt offen.
+- B14 nativ: gemeinsamer SQLite-Commit für Workout/History/Queue/XP/Koffein mit Rollback. Web-Vorschau weiterhin ohne dieselbe Transaktionsgarantie.
+- B15: lokale Kalenderarithmetik mit LA/Berlin/UTC-/DST-Regressionen.
+- B23 teilweise: Expo-Patchprüfung grün; tar 7.5.16 gezielt auf 7.5.19 korrigiert.
 
-Baseline bestanden: Typen, Lint, 136 Tests, Web- und native JS-Bündelung. Nicht bestanden/fehlend: Expo-Patchcheck (3 Abweichungen), echte iOS/Android-/Backend-Abnahme. Behobene IDs und neue Testzahlen nach Implementierung ergänzen; nicht den historischen Auditbericht umschreiben.
+## Weiterhin kritisch
+B04 Account-Isolation, B06 Coach-Auth/Limits, B07 Remote-Transaktion, B09 NULL-Mapping, B10 Pull-Konflikte/Fehler/Tombstones, B12 Auth-Callbacks, B13 globale Default-IDs/Seed. Keiner dieser Punkte wurde durch den lokalen SQLite-Vertikalschnitt als gelöst erklärt.
+
+Aktuell 67 Dependency-Befunde: 0 critical, 47 high, 18 moderate, 2 low. Exposition pro Abhängigkeit weiter priorisieren; keine pauschale Unbedenklichkeit. Auth-Tokens bleiben im bestehenden Speicher. Kein SQLCipher/OS-Protection-Gerätenachweis. Export ist unvollständig, Reset noch kein atomarer Gesamtlöschbefehl.
+
+Performance: gemeinsame DB, aber weiterhin JSON-Dokumente und teilweise große Store-Subscriptions. Alle Daten gemeinsam lokal, noch keine Benutzerpartitionen. Geräte-Kill/Low-Space/Low-Memory, VoiceOver/TalkBack, Tastaturen und Cloud-RLS sind noch nicht abgenommen.
+
+Web: Unterrouten direkt aufrufen kann im statischen Preview 404 ergeben; über Home navigieren. Ein Animated-useNativeDriver-Warnhinweis im Web ist bekannt. Während erneuten Exports ist dist vorübergehend nicht verfügbar.

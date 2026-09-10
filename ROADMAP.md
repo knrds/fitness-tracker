@@ -1,17 +1,18 @@
 # Roadmap
 
-- [x] Referenz inventarisiert, Stack/Domain/Stores/SQL/History untersucht.
-- [x] Baseline: Typecheck, Lint, 136 Tests und Web/iOS/Android-JS-Export erfolgreich.
-- [x] Auditbericht und Zielarchitektur festgelegt, Workspace/Branch vorbereitet.
-- [ ] Phase 1: Recovery- und Queue-Datenverlust verhindern, Client-Secret-Pfad entfernen; Regressionen grün.
-- [ ] Phase 2: EAS Development Build konfigurieren, natives iPhone/Android tatsächlich testen.
-- [ ] Phase 3: SQLite-Workout-Vertikalschnitt mit atomarem Finalize und Legacy-Import.
-- [ ] Phase 4: History/Übungen/Templates mit derselben lokalen Datenquelle.
-- [ ] Phase 5: Programme/Body/Profil vollständig migrieren.
-- [ ] Phase 6: Account-Isolation und Auth-Deep-Links inklusive Geräteabnahme.
-- [ ] Phase 7: Postgres-RPC, Outbox, Tombstones, Konflikte und RLS-Tests.
-- [ ] Phase 8: Accessibility, Sprachkonsistenz und gezieltes Profiling.
-- [ ] Phase 9: authentifizierter Coach mit Limits und transparentem Fallback.
-- [ ] Phase 10: Release-Gates, TestFlight und Android interne Tests.
+- [x] Referenz inventarisiert, Audit und Ausgangsnachweise dokumentiert.
+- [x] Workspace/Branch eingerichtet; ursprüngliche 136 Tests bestanden.
+- [x] Phase 1: Startup/Recovery, Queue-Rennen und stilles Verwerfen, Client-Providerkey-Pfad und Streak-Fehler korrigiert.
+- [x] Phase 2a: EAS-Profile, getrennte App-Varianten, Dev-Client, Expo-Patches und Startkommando vorbereitet.
+- [ ] Phase 2b: EAS-Projekt verknüpfen und iPhone-/Android-Gerätebuild tatsächlich abnehmen. Apple-Mitgliedschaft fehlt.
+- [x] Phase 3a: Native SQLite-Dokumentpersistenz, validierter Legacy-Import, atomarer Workout-Abschluss, SQL-/UI-Rollback, Daten-Ladesperre und Fehlerdialoge getestet.
+- [ ] Phase 3b: Sessions/Sets/History/Outbox normalisieren, Benutzerpartition und granulare Writes; Crash-/Migrationsabnahme auf Geräten und Profiling großer History.
+- [ ] Phase 4: Übungen/Templates auf granulare Repositories umstellen, vollständige Parameter beim Kopieren, History/PR-Begriffe konsistent machen.
+- [ ] Phase 5: Programme/Body/Profil mit vollständigen Datenbefehlen und Import-/Exportvertrag.
+- [ ] Phase 6: Account-Isolation, sichere Tokenmigration und Auth-Deep-Links, Nutzerwechsel A→B→Gast.
+- [ ] Phase 7: Postgres-RPC, Tombstones, Revision-Konflikte, Pagination, NULL-DTOs und reale RLS-Tests.
+- [ ] Phase 8: Accessibility, Sprachen und gemessene Performance.
+- [ ] Phase 9: authentifizierter Coach mit Limits und transparenter Datenfreigabe.
+- [ ] Phase 10: vollständige Release-Gates, TestFlight und Android interne Tests.
 
-Jede Phase braucht Tests, aktualisierte Dokumentation und überprüfbare Akzeptanz. Detailumfang, Risiken und Schätzungen: Audit Abschnitt 16. Keine Phase wegen eines grünen JS-Bundles als native Abnahme markieren.
+Aktueller stabiler Entwicklungszwischenstand: Phase 1 + 2a + 3a. Nächste unabhängige Kernarbeit: Phase 3b; Geräte-/Account-Gates bleiben offen und blockieren keine lokale Entwicklung. Keine native Abnahme aufgrund eines erfolgreichen JS-Exports behaupten.

@@ -1,7 +1,7 @@
 # Android
 
-Windows unterstützt lokale Android-Builds. Android Studio, SDK, passendes JDK und Emulator installieren oder physisches Android mit USB-Debugging anschließen. Aus apps/mobile: pnpm exec expo run:android --device. Alternativ EAS development-Profil als APK bauen und auf Testgerät installieren. Danach Metro für tägliche Änderungen nutzen.
+Development-/Preview-Profile erzeugen interne APKs; production ist als App Bundle konfiguriert. Getrennte Paketnamen verhindern eine Kollision zwischen Development und Production. Expo/EAS-Projekt muss noch verknüpft werden.
 
-Production erstellt AAB für Google Play. Interner Test vor Veröffentlichung. Package-ID, Signing und Store-Metadaten separat konfigurieren. Debugsignaturen und lokale SDK-Pfade nicht committen.
+Aus apps/mobile: npx eas-cli build --platform android --profile development. Dieser externe Build wurde noch nicht gestartet. Auf Emulator oder Testgerät installieren, anschließend im Repository pnpm dev-client. Ein lokaler Android-Build unter Windows benötigt zusätzlich Android Studio/SDK und passende Java-/Gradle-Konfiguration; das wurde nicht eingerichtet oder geprüft.
 
-Geräteabnahme: Back-Taste, Edge-to-edge/Safe-Area, Tastatur, Prozessbeendigung, Offline-Persistenz, Timer im Hintergrund und spätere Permission-Flows. Erfolgreicher Hermes-Export im Audit belegt nur das JS-Bundling.
+Abnahme: Tastatur, Android-Back, Offline, Prozess-Kill, SQLite-Migration, Recovery, Finish/History, Accessibility. Android-Hermes-JS-Export ist erfolgreich, aber kein Ersatz für eine kompilierte APK oder einen Gerätetest.

@@ -1,7 +1,15 @@
 # Architektur
 
-Entscheidung: Hybrid-Modernisierung im bestehenden Monorepo. apps/mobile/app enthält Expo-Routen; packages/domain bleibt React-freie Business Logic; packages/ui enthält Volt-Tokens und Primitives. Gegenwärtig persistieren Zustand-Stores in MMKV mit AsyncStorage-Fallback. Das ist ausdrücklich noch nicht die vollständige Zielarchitektur.
+Hybrid-Modernisierung im bestehenden Monorepo. apps/mobile/app enthält Expo-Routen, packages/domain React-freie Business Logic, packages/ui Volt-Tokens und Primitives.
 
-Ziel: features für UI-Orchestrierung, data für SQLite/Repositories/Migrationen/Outbox, services für Supabase und native Adapter. SQLite wird die einzige lokale Wahrheit für Workouts/History. Session und Outbox werden zusammen committed. Kleine Zustand-Projektionen dienen der UI; abgeleitete Werte werden berechnet. Supabase-Sync ist nachgelagert. Keine neue zweite App und kein zusätzlicher Server-Cache ohne echten Bedarf.
+## Aktueller Vertikalschnitt
+Auf iOS/Android öffnet src/data/deviceDatabase.native.ts über expo-sqlite eine gemeinsame training.sqlite. DocumentDatabase stellt parametrisierte Dokumentzugriffe, Schema-Versionierung und synchrone Transaktionen bereit. Alle elf bisher über createHydratedStorage gespeicherten Stores nutzen nativ diese Datenbank. Auth-Token-Speicher bleibt separat und ist noch zu modernisieren.
 
-Transaktions- und Benutzergrenzen müssen vor dem Austausch aller Screens funktionieren. Siehe DATABASE.md und DECISIONS.md.
+Zustand bleibt die UI-Projektion. Der Speicheradapter validiert Import und native Writes. Beim Finish werden History, vorhandene Outbox-Queue, XP, Koffein und aktiver Zustand in einer SQLite-Transaktion geschrieben. Bei Fehlern werden auch die beteiligten Projektionen zurückgesetzt. Normale fehlgeschlagene Workout-Änderungen behalten den alten Stand und melden einen UI-Fehler. Der Queue-Worker startet erst im folgenden Microtask, nach dem lokalen Commit.
+
+PersistenceGate hält Trainingsaktionen und Auth-Initialisierung bis zum erfolgreichen Laden aller Stores zurück. Unlesbare Daten blockieren die App, statt überschrieben zu werden. Plattformdateien trennen native SQLite von der optionalen Web-Vorschau, die weiterhin KV verwendet.
+
+## Bewusste Grenze
+Die erste Stufe speichert validierte Store-Dokumente, keine vollständig normalisierten Session-/Set-/Outbox-Zeilen. Das ersetzt elf getrennte native Speicherorte ohne einen parallelen, unbenutzten Datenpfad einzuführen. Große History-Snapshots und synchrone Writes müssen vor Release gemessen und durch granulare Repositories ersetzt werden.
+
+Nächste Stufe: normalisierte Sessions/Sets/Outbox, Benutzerpartitionen und vollständige Befehlsgrenzen. Benutzerwechsel, Remote-Konflikte und serverseitige Transaktionen sind weiterhin offen. Nicht jede Store-Aktion und nicht der gesamte Datenreset sind bereits transaktional.

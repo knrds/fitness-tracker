@@ -1,7 +1,11 @@
 # Entwicklung unter Windows
 
-Hauptworkspace: D:\TrainingsAppGPT. Node 22 LTS empfohlen, pnpm 11.5.0 gepinnt. Audit wurde außerdem unter Node 24.13.0 bestanden. Installieren: pnpm install --frozen-lockfile. Prüfen: pnpm typecheck, pnpm lint, pnpm test. Nur auf Arbeitsbranch committen; nicht nach main pushen.
+Hauptworkspace: D:\TrainingsAppGPT. Node 24 (lokal getestet 24.13.0), pnpm 11.5.0. CI nutzt Node 24; EAS-Profile pinnen Node 24.13.0 und pnpm 11.5.0. node:sqlite wird nur in Tests verwendet, Expo SQLite auf Geräten.
 
-Bestehender Start: pnpm expo (LAN), pnpm expo:tunnel als Ausweichweg. Für eigene native Development Builds wird expo-dev-client installiert und Metro mit --dev-client gestartet. Nach TS/UI-Änderungen Fast Refresh, nach Native-Modulen/App-Konfiguration neues Binary.
+Installieren: pnpm install --frozen-lockfile. Prüfen: pnpm typecheck, pnpm lint, pnpm test. Kleine lokale Commits auf rebuild/clean-mobile-app. Kein Push/Merge nach main.
 
-pnpm dev ist lediglich ein statischer Web-Export mit Server. Direkte Unterrouten liefern im Referenzpreview 404; Home öffnen und in der App navigieren. Das Webpreview ist kein Ersatz für Geräteabnahme. Niemals echte Provider-Secrets in EXPO_PUBLIC_ Variablen verwenden.
+Nativer Tagesstart: pnpm dev-client. Das setzt APP_VARIANT=development und startet Metro über LAN. Zuvor muss ein Development-Binary mit expo-dev-client und expo-sqlite installiert sein. Nach Native-Modulen/App-Konfiguration neu bauen, nach TS/UI-Änderungen Fast Refresh verwenden.
+
+Legacy-Startkommandos pnpm expo / expo:tunnel bleiben verfügbar. pnpm dev ist ausschließlich die statische Web-Vorschau. Nicht während eines laufenden Exports Browser-Smoke-Tests durchführen; dist wird dabei erneuert.
+
+Providersecrets niemals unter EXPO_PUBLIC_ konfigurieren. Der lokale SQLite-Stand ist noch nicht für Konto-/Cloud-Betrieb freigegeben. Siehe KNOWN_ISSUES.md.

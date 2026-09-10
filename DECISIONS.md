@@ -11,3 +11,12 @@ Alter, fehlende abgeschlossene Sets, Zod-Fehler oder drei Sync-Fehler sind keine
 
 ## ADR-004 – Plattformnachweis
 JS-Bundle ist kein signierter nativer Build. Gerätetests bleiben Pflicht. Apple-Mitgliedschaft noch offen. SDK-Majorupgrade separat, damit Recovery-Fixes eindeutig prüfbar bleiben.
+
+## ADR-005 – Gemeinsame SQLite-Dokumente als erster Vertikalschnitt
+Am 10.09.2026 ist eine native SQLite-Datenbank mit versioniertem Dokumentenschema eingebunden. Damit kann der bestehende Workout-Befehl sofort History, Queue, XP, Koffein und Abschlusszustand atomar speichern. Bestehende UI-/Domain-Verträge bleiben nutzbar; kein zweiter unbenutzter Datenpfad. Normalisierte Session-/Set-/Outbox-Zeilen bleiben das Ziel, insbesondere wegen großer Verläufe, Benutzerpartitionen und granularer Writes. Elf Integrationstests verwenden echte SQLite statt einer SQL-Attrappe.
+
+## ADR-006 – Fehler sichtbar lassen, Originaldaten behalten
+Unbekannte oder beschädigte Altformate sperren die betroffenen Writes und die Trainingsoberfläche. Eine erneute Prüfung ist möglich; automatische Reparatur oder Reset würde Daten erfinden oder löschen. Normale fehlgeschlagene native Workout-Änderungen rollen den UI-Stand zurück und zeigen einen Fehler. Migrationen behalten Originalbytes; ausdrücklich bestätigter lokaler Reset entfernt auch diese Backups. Vollständiger Export, Reparatur-UI und Accountlöschung bleiben eigene Schritte.
+
+## ADR-007 – Gezieltes Dependency-Patching
+Expo 54 wurde innerhalb kompatibler Patchstände angeglichen. expo-dev-client ermöglicht eigene Gerätebuilds, expo-sqlite liefert die native Transaktionsbasis. Das UI-Paket verwendet denselben Expo-Patch für seine Haptics-Peerauflösung. tar@7.5.16 wird auf 7.5.19 überschrieben, weil die Expo-CLI noch die betroffene Version bindet. Kein Majorupgrade und kein pauschales audit fix --force. Restliche 67 Advisory-Befunde bleiben offen. Node 24 für lokale Tests, CI und EAS ist explizit konfiguriert.

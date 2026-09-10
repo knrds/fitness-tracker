@@ -25,9 +25,10 @@ export function calculateStreak(sessions: WorkoutSession[]): number {
   const latestStr = formatDateLocal(latestDate);
 
   // Find diff in days between today and latest session
-  const tDate = new Date(todayStr);
+  // Construct a local calendar date; parsing YYYY-MM-DD instead means UTC.
+  const tDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12);
   const lDate = new Date(latestStr);
-  const diffDays = Math.floor((tDate.getTime() - lDate.getTime()) / (1000 * 3600 * 24));
+  const diffDays = Math.floor((Date.parse(todayStr) - lDate.getTime()) / (1000 * 3600 * 24));
 
   if (diffDays > 1) return 0; // Streak broken
 

@@ -8,13 +8,9 @@ import {
   WorkoutSession,
   WorkoutTemplate,
   UnitSystem,
-  ActiveWorkoutStatusSchema,
-  SessionExerciseSchema,
-  UUIDSchema,
-  WorkoutSessionSchema,
 } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
-import { z } from 'zod';
+import { workoutPersistedSchema } from '../data/persistedContracts';
 import { useHistoryStore } from './historyStore';
 import { useAchievementStore } from './achievementStore';
 import { useExerciseStore } from './exerciseStore';
@@ -28,30 +24,6 @@ import {
   withoutStorageWrites,
 } from '../data/storageTransaction';
 import { useStorageHealth } from './storageHealth';
-
-const workoutPersistedSchema = z.object({
-  sessionId: UUIDSchema.optional(),
-  templateId: UUIDSchema.optional(),
-  programId: UUIDSchema.optional(),
-  lastFinishedSession: WorkoutSessionSchema.optional(),
-  lastUpdatedAt: z.coerce.date().optional(),
-  status: ActiveWorkoutStatusSchema,
-  name: z.string(),
-  elapsedSeconds: z.number(),
-  currentExerciseIndex: z.number().int(),
-  currentSetIndex: z.number().int(),
-  exercises: z.array(SessionExerciseSchema),
-  restTimer: z.object({
-    isRunning: z.boolean(),
-    durationSeconds: z.number().int().nonnegative(),
-    endsAt: z.coerce.date().optional(),
-  }),
-  notes: z.string(),
-  startedAt: z.coerce.date().optional(),
-  pausedAt: z.coerce.date().optional(),
-  accumulatedPauseMs: z.number().int().nonnegative(),
-  isMinimized: z.boolean().optional(),
-});
 
 const defaultState = {
   status: 'idle' as const,

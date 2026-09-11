@@ -1,3 +1,4 @@
+import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
 import React, { useState } from 'react';
 import {
   View,
@@ -6,7 +7,6 @@ import {
   ScrollView,
   Pressable,
   Dimensions,
-  Alert,
   Animated,
   Platform,
   TextInput,

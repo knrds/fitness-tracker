@@ -2,6 +2,13 @@ import { create } from 'zustand';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
 import { isSupabaseConfigured, supabase } from '../utils/supabase';
+import {
+  beginScopeChange,
+  completeScopeChange,
+  getStorageScope,
+  isScopeCurrent,
+} from '../data/storageScope';
+import { UUIDSchema } from '@fitness-tracker/domain';
 
 interface AuthCredentials {
   email: string;
@@ -14,6 +21,8 @@ export interface AuthState {
   isLoading: boolean;
   isConfigured: boolean;
   isInitialized: boolean;
+  isSwitchingAccount: boolean;
+  sessionError: string | null;
   initialize: () => Promise<void>;
   signIn: (credentials: AuthCredentials) => Promise<{ error?: string }>;
   signUp: (
@@ -33,55 +42,36 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   isLoading: isSupabaseConfigured,
   isConfigured: isSupabaseConfigured,
   isInitialized: false,
+  isSwitchingAccount: false,
+  sessionError: null,
 
   initialize: async () => {
-    if (get().isInitialized) return;
-
+    if (get().isInitialized && !get().sessionError) return;
     if (!isSupabaseConfigured) {
-      set({ isLoading: false, isInitialized: true, session: null, user: null });
+      set({ isLoading: false, isInitialized: true, session: null, user: null, sessionError: null });
       return;
     }
-
-    set({ isLoading: true });
-
-    const { data, error } = await supabase.auth.getSession();
-    if (!error) {
+    set({ isLoading: true, sessionError: null });
+    const generation = getStorageScope().generation;
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (generation !== getStorageScope().generation) return;
+      if (error) throw error;
+      authSubscription?.unsubscribe();
+      const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+        // This callback must remain synchronous; Supabase holds its auth lock here.
+        void applyAccountSession(session);
+      });
+      authSubscription = listener.subscription;
+      await applyAccountSession(data.session);
+    } catch {
+      if (generation !== getStorageScope().generation) return;
       set({
-        session: data.session,
-        user: data.session?.user ?? null,
+        isLoading: false,
+        sessionError: 'Das Konto konnte nicht sicher geladen werden. Bitte versuche es erneut.',
       });
     }
-
-    authSubscription?.unsubscribe();
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const prevUser = get().user;
-
-      set({
-        session,
-        user: session?.user ?? null,
-        isLoading: false,
-        isInitialized: true,
-      });
-
-      if (session?.user) {
-        try {
-          const { useSyncStore } = await import('./syncStore');
-          if (!prevUser) {
-            const { migrateLocalUserData } = await import('./authMigration');
-            migrateLocalUserData(session.user.id);
-          }
-          await useSyncStore.getState().pullFromCloud();
-          await useSyncStore.getState().processQueue();
-        } catch (err) {
-          console.error('[Auth Store] Post-login migration/sync failed:', err);
-        }
-      }
-    });
-    authSubscription = listener.subscription;
-
-    set({ isLoading: false, isInitialized: true });
   },
-
   signIn: async ({ email, password }) => {
     if (!isSupabaseConfigured) {
       return { error: 'Supabase is not configured for this environment.' };
@@ -129,11 +119,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
 
     set({ isLoading: true });
     const { error } = await supabase.auth.signOut();
-    set({
-      isLoading: false,
-      session: error ? get().session : null,
-      user: error ? get().user : null,
-    });
+    if (!error) await applyAccountSession(null);
+    set({ isLoading: false });
 
     return error ? { error: error.message } : {};
   },
@@ -148,8 +135,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       type: 'signup',
       email,
       options: {
-        emailRedirectTo: 'fitness-tracker://'
-      }
+        emailRedirectTo: 'fitness-tracker://',
+      },
     });
     set({ isLoading: false });
 
@@ -182,3 +169,66 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     return error ? { error: error.message } : {};
   },
 }));
+
+let accountChange: Promise<void> = Promise.resolve();
+export function applyAccountSession(session: Session | null): Promise<void> {
+  const current = useAuthStore.getState();
+  if (
+    current.isInitialized &&
+    !current.isSwitchingAccount &&
+    !current.sessionError &&
+    current.user?.id === session?.user.id
+  ) {
+    useAuthStore.setState({ session, user: session?.user ?? null, isLoading: false });
+    return Promise.resolve();
+  }
+  const generation = beginScopeChange();
+  useAuthStore.setState({ isSwitchingAccount: true, sessionError: null });
+  accountChange = accountChange.then(async () => {
+    if (generation !== getStorageScope().generation) return;
+    try {
+      const partition = session ? `account:${UUIDSchema.parse(session.user.id)}` : 'legacy';
+      const { switchPersistencePartition } = await import('./persistenceLifecycle');
+      await switchPersistencePartition(partition, generation);
+      if (!completeScopeChange(generation)) return;
+      useAuthStore.setState({
+        session,
+        user: session?.user ?? null,
+        isSwitchingAccount: false,
+        isLoading: false,
+        isInitialized: true,
+        sessionError: null,
+      });
+      if (session && isSupabaseConfigured) {
+        const scope = getStorageScope();
+        // Schedule external calls after the auth callback has released its lock.
+        setTimeout(() => {
+          if (!isScopeCurrent(scope)) return;
+          void import('./syncStore')
+            .then(async ({ useSyncStore }) => {
+              if (!isScopeCurrent(scope)) return;
+              await useSyncStore.getState().pullFromCloud();
+              if (isScopeCurrent(scope)) await useSyncStore.getState().processQueue();
+            })
+            .catch(() => {
+              if (isScopeCurrent(scope))
+                useAuthStore.setState({
+                  sessionError: 'Cloud-Abgleich fehlgeschlagen. Lokale Daten bleiben erhalten.',
+                });
+            });
+        }, 0);
+      }
+    } catch {
+      if (generation !== getStorageScope().generation) return;
+      useAuthStore.setState({
+        session: null,
+        user: null,
+        isSwitchingAccount: false,
+        isLoading: false,
+        sessionError:
+          'Die Daten dieses Kontos konnten nicht sicher geladen werden. Bitte versuche es erneut.',
+      });
+    }
+  });
+  return accountChange;
+}

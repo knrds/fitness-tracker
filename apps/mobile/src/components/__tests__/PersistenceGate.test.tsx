@@ -4,6 +4,7 @@ import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { DialogProvider, ThemeProvider } from '@fitness-tracker/ui';
 import { PersistenceGate } from '../PersistenceGate';
 import { useStorageHealth } from '../../stores/storageHealth';
+import { useAuthStore } from '../../stores/authStore';
 
 let mockReady = false;
 let mockHydrationListener: (() => void) | undefined;
@@ -37,7 +38,17 @@ const mount = () =>
   );
 beforeEach(() => {
   mockReady = false;
+  useAuthStore.setState(useAuthStore.getInitialState(), true);
   useStorageHealth.setState({ blockedStores: [], writeError: false });
+});
+
+it('hides training controls throughout an account transition even when stores were previously ready', () => {
+  mockReady = true;
+  useAuthStore.setState({ isInitialized: true, isSwitchingAccount: true });
+  const screen = mount();
+  expect(screen.queryByText('Training controls')).toBeNull();
+  act(() => useAuthStore.setState({ isSwitchingAccount: false }));
+  expect(screen.getByText('Training controls')).toBeTruthy();
 });
 
 it('keeps training actions unavailable until every store has hydrated', () => {

@@ -1,3 +1,4 @@
+import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
 import React from 'react';
 import {
   StyleSheet,
@@ -9,7 +10,6 @@ import {
   Animated,
   Platform,
   Modal,
-  Alert,
   useWindowDimensions,
 } from 'react-native';
 import { useRouter, Href } from 'expo-router';

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Button, useTheme, useDialog } from '@fitness-tracker/ui';
 import { useStorageHealth } from '../stores/storageHealth';
+import { useAuthStore } from '../stores/authStore';
+import { getStorageScope, isScopeCurrent } from '../data/storageScope';
 import {
   isPersistenceReady,
   retryHydration,
@@ -16,14 +18,27 @@ export function PersistenceGate({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(isPersistenceReady);
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState(false);
+  const accountReady = useAuthStore(
+    (state) => state.isInitialized && !state.isSwitchingAccount && !state.sessionError,
+  );
+  const sessionError = useAuthStore((state) => state.sessionError);
+  const initialize = useAuthStore((state) => state.initialize);
+  useEffect(() => {
+    const auth = useAuthStore.getState();
+    if (ready && blocked.length === 0 && !auth.isSwitchingAccount && !auth.sessionError)
+      void initialize();
+  }, [ready, blocked.length, initialize]);
   useEffect(() => {
     if (!writeError) return;
+    const scope = getStorageScope();
     void showAlert({
       title: 'Änderung nicht gespeichert',
       message:
         'Die letzte Eingabe konnte nicht gespeichert werden. Der vorherige Stand bleibt erhalten. Prüfe die Eingabe und den freien Gerätespeicher und versuche es erneut.',
       tone: 'danger',
-    }).then(() => useStorageHealth.getState().dismissWriteError());
+    }).then(() => {
+      if (isScopeCurrent(scope)) useStorageHealth.getState().dismissWriteError();
+    });
   }, [writeError, showAlert]);
   useEffect(() => {
     const check = () => setReady(isPersistenceReady());
@@ -31,7 +46,7 @@ export function PersistenceGate({ children }: { children: React.ReactNode }) {
     check();
     return unsubscribe;
   }, []);
-  if (blocked.length === 0 && ready) return <>{children}</>;
+  if (blocked.length === 0 && ready && accountReady) return <>{children}</>;
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>
@@ -39,9 +54,9 @@ export function PersistenceGate({ children }: { children: React.ReactNode }) {
           accessibilityRole="header"
           style={[theme.typography.heading, { color: theme.colors.text }]}
         >
-          {blocked.length ? 'Gespeicherte Daten prüfen' : 'Training wird geladen'}
+          {blocked.length || sessionError ? 'Gespeicherte Daten prüfen' : 'Training wird geladen'}
         </Text>
-        {blocked.length ? (
+        {blocked.length || sessionError ? (
           <>
             <Text
               accessibilityRole="alert"
@@ -63,7 +78,8 @@ export function PersistenceGate({ children }: { children: React.ReactNode }) {
                 setRetrying(true);
                 setRetryError(false);
                 try {
-                  await retryHydration();
+                  if (sessionError) await initialize();
+                  else await retryHydration();
                 } catch {
                   setRetryError(true);
                 } finally {

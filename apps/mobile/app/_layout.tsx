@@ -145,11 +145,7 @@ function RootNavigator() {
   const theme = useTheme();
   const router = useRouter();
   const pathname = usePathname();
-  const { initialize, isConfigured, isInitialized, isLoading, session } = useAuthStore();
-
-  useEffect(() => {
-    initialize().catch(() => {});
-  }, [initialize]);
+  const { isConfigured, isInitialized, isLoading, session } = useAuthStore();
 
   useEffect(() => {
     Keyboard.dismiss();
@@ -198,6 +194,9 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  const dialogScope = useAuthStore((state) =>
+    state.isSwitchingAccount ? 'changing-account' : (state.user?.id ?? 'local'),
+  );
   const [fontWaitTimedOut, setFontWaitTimedOut] = useState(false);
   const [fontsLoaded, fontError] = useFonts({
     ...Ionicons.font,
@@ -240,7 +239,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <DialogProvider>
+          <DialogProvider key={dialogScope}>
             {Platform.OS === 'web' && (
               <style
                 dangerouslySetInnerHTML={{

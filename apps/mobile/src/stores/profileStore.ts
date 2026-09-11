@@ -1,3 +1,4 @@
+import { getStorageScope, isScopeCurrent } from '../data/storageScope';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import {
@@ -153,6 +154,8 @@ export const useProfileStore = create<ProfileState>()(
       },
 
       clearAllData: async () => {
+        const scope = getStorageScope();
+        if (!isScopeCurrent(scope)) throw new Error('Account change in progress');
         if (useSyncStore.getState().isSyncing || useCoachStore.getState().isSending) {
           throw new Error('Wait for active requests before resetting local data');
         }
@@ -160,6 +163,7 @@ export const useProfileStore = create<ProfileState>()(
         useCoachStore.setState({ isSending: true });
         try {
           await clearStorageBackups();
+          if (!isScopeCurrent(scope)) throw new Error('Account changed during local reset');
           useCoachStore.getState().clearChatHistory();
           useSyncStore.getState().clearQueue();
           // Reset local store documents; this does not delete the cloud account.
@@ -212,8 +216,8 @@ export const useProfileStore = create<ProfileState>()(
             todayIntakeMl: 0,
           });
         } finally {
-          useSyncStore.setState({ isSyncing: false });
-          useCoachStore.setState({ isSending: false });
+          if (isScopeCurrent(scope)) useSyncStore.setState({ isSyncing: false });
+          if (isScopeCurrent(scope)) useCoachStore.setState({ isSending: false });
         }
       },
 

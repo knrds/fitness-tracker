@@ -1,3 +1,4 @@
+import { scopedAlert as Alert } from '../../utils/scopedAlert';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import {
@@ -6,7 +7,6 @@ import {
   StyleSheet,
   Pressable,
   TextInput,
-  Alert,
   Platform,
   Modal,
   ScrollView,

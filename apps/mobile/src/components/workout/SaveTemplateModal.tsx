@@ -1,3 +1,4 @@
+import { scopedAlert as Alert } from '../../utils/scopedAlert';
 import React, { useState, useEffect } from 'react';
 import {
   Modal,
@@ -6,7 +7,6 @@ import {
   StyleSheet,
   TextInput,
   Pressable,
-  Alert,
   Platform,
   Keyboard,
 } from 'react-native';

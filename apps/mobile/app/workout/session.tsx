@@ -1,3 +1,5 @@
+import { getStorageScope, isScopeCurrent } from '../../src/data/storageScope';
+import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
   View,
@@ -7,7 +9,6 @@ import {
   Pressable,
   TextInput,
   Platform,
-  Alert,
   PanResponder,
   Animated,
   NativeSyntheticEvent,
@@ -385,6 +386,7 @@ export default function WorkoutSessionScreen() {
   };
 
   const handleFinish = async () => {
+    const scope = getStorageScope();
     if (isFinishing) return;
     const hasCompletedSet = exercises.some((ex) => ex.sets.some((set) => set.completed));
     if (!hasCompletedSet) {
@@ -395,7 +397,7 @@ export default function WorkoutSessionScreen() {
         cancelLabel: 'Weitertrainieren',
         destructive: true,
       });
-      if (discard) {
+      if (discard && isScopeCurrent(scope)) {
         resetWorkout();
         if (useWorkoutStore.getState().status === 'idle') router.replace('/');
       }

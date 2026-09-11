@@ -9,6 +9,7 @@ export function connect(db: DatabaseSync) {
     execSync: (sql) => db.exec(sql),
     runSync: (sql, ...parameters) => db.prepare(sql).run(...parameters),
     getFirstSync: (sql, ...parameters) => db.prepare(sql).get(...parameters) ?? null,
+    getAllSync: (sql, ...parameters) => db.prepare(sql).all(...parameters),
   });
 }
 

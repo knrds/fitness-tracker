@@ -11,7 +11,6 @@ import {
   ProgramSchema,
   ProgramWorkoutSchema,
   SessionExerciseSchema,
-  SyncOperationSchema,
   TemplateExerciseSchema,
   UserSchema,
   UUIDSchema,
@@ -30,6 +29,7 @@ import type {
 
 import { createHydratedStorage } from './storage';
 import { useAuthStore } from './authStore';
+import { getStorageScope, isScopeCurrent } from '../data/storageScope';
 import { isSupabaseConfigured, supabase } from '../utils/supabase';
 
 type DbRecord = Record<string, unknown>;
@@ -71,11 +71,7 @@ export type PreparedDbPayload =
 // ---------------------------------------------------------------------------
 // Persisted Sync State Schema
 // ---------------------------------------------------------------------------
-const SyncPersistSchema = z.object({
-  queue: z.array(SyncOperationSchema),
-  lastSyncedAt: z.coerce.date().nullable(),
-  isOnline: z.boolean(),
-});
+import { syncPersistedSchema as SyncPersistSchema } from '../data/persistedContracts';
 
 type SyncPersistState = z.infer<typeof SyncPersistSchema>;
 
@@ -576,8 +572,10 @@ async function checkConnectivity(): Promise<boolean> {
   }
 }
 
-async function deleteSessionChildren(sessionId: unknown): Promise<void> {
+async function deleteSessionChildren(sessionId: unknown, assertCurrent: () => void): Promise<void> {
   if (typeof sessionId !== 'string') return;
+
+  assertCurrent();
 
   const { data: oldExercises } = await supabase
     .from('session_exercises')
@@ -593,28 +591,37 @@ async function deleteSessionChildren(sessionId: unknown): Promise<void> {
     : [];
 
   if (oldExerciseIds.length > 0) {
+    assertCurrent();
     await supabase.from('exercise_sets').delete().in('session_exercise_id', oldExerciseIds);
   }
+
+  assertCurrent();
 
   await supabase.from('session_exercises').delete().eq('session_id', sessionId);
 }
 
-async function upsertPreparedPayload(prepared: PreparedDbPayload): Promise<void> {
+async function upsertPreparedPayload(
+  prepared: PreparedDbPayload,
+  assertCurrent: () => void,
+): Promise<void> {
   if (prepared.kind === 'workout_session') {
+    assertCurrent();
     const { error: sessionErr } = await supabase
       .from('workout_sessions')
       .upsert(prepared.sessionRow);
     if (sessionErr) throw sessionErr;
 
-    await deleteSessionChildren(prepared.sessionRow.id);
+    await deleteSessionChildren(prepared.sessionRow.id, assertCurrent);
 
     for (const sessionExercise of prepared.sessionExercises) {
+      assertCurrent();
       const { error: exerciseErr } = await supabase
         .from('session_exercises')
         .insert(sessionExercise.row);
       if (exerciseErr) throw exerciseErr;
 
       if (sessionExercise.setRows.length > 0) {
+        assertCurrent();
         const { error: setsErr } = await supabase
           .from('exercise_sets')
           .insert(sessionExercise.setRows);
@@ -625,10 +632,13 @@ async function upsertPreparedPayload(prepared: PreparedDbPayload): Promise<void>
   }
 
   if (prepared.kind === 'workout_template') {
+    assertCurrent();
     const { error: templateErr } = await supabase
       .from('workout_templates')
       .upsert(prepared.templateRow);
     if (templateErr) throw templateErr;
+
+    assertCurrent();
 
     await supabase
       .from('template_exercises')
@@ -636,6 +646,7 @@ async function upsertPreparedPayload(prepared: PreparedDbPayload): Promise<void>
       .eq('template_id', prepared.templateRow.id as string);
 
     if (prepared.templateExerciseRows.length > 0) {
+      assertCurrent();
       const { error: exercisesErr } = await supabase
         .from('template_exercises')
         .insert(prepared.templateExerciseRows);
@@ -645,8 +656,11 @@ async function upsertPreparedPayload(prepared: PreparedDbPayload): Promise<void>
   }
 
   if (prepared.kind === 'program') {
+    assertCurrent();
     const { error: programErr } = await supabase.from('programs').upsert(prepared.programRow);
     if (programErr) throw programErr;
+
+    assertCurrent();
 
     await supabase
       .from('program_workouts')
@@ -654,6 +668,7 @@ async function upsertPreparedPayload(prepared: PreparedDbPayload): Promise<void>
       .eq('program_id', prepared.programRow.id as string);
 
     if (prepared.programWorkoutRows.length > 0) {
+      assertCurrent();
       const { error: workoutsErr } = await supabase
         .from('program_workouts')
         .insert(prepared.programWorkoutRows);
@@ -661,6 +676,8 @@ async function upsertPreparedPayload(prepared: PreparedDbPayload): Promise<void>
     }
     return;
   }
+
+  assertCurrent();
 
   const { error } = await supabase.from(prepared.table).upsert(prepared.row);
   if (error) throw error;
@@ -705,20 +722,30 @@ export const useSyncStore = create<SyncState>()(
 
       processQueue: async () => {
         const userId = useAuthStore.getState().user?.id;
+        const scope = getStorageScope();
+        const current = () => isScopeCurrent(scope) && useAuthStore.getState().user?.id === userId;
+        const assertCurrent = () => {
+          if (!current()) throw new Error('Account changed during sync');
+        };
+        if (!current()) return;
         if (!isSupabaseConfigured || !userId || get().isSyncing || get().queue.length === 0) return;
         // Lock before the first await; otherwise concurrent connectivity checks start two workers.
         set({ isSyncing: true, syncError: null });
         try {
           const online = await checkConnectivity();
+          if (!current()) return;
           set({ isOnline: online });
           if (!online) return;
           while (get().queue.length > 0) {
-            if (useAuthStore.getState().user?.id !== userId) return;
+            if (!current()) return;
             const op = get().queue[0];
             if (!op) break;
             try {
               if (op.operation === 'INSERT' || op.operation === 'UPDATE') {
-                await upsertPreparedPayload(prepareDbPayloadForSync(op.table, op.payload));
+                await upsertPreparedPayload(
+                  prepareDbPayloadForSync(op.table, op.payload),
+                  assertCurrent,
+                );
               } else {
                 const payloadObj = asDbRecord(op.payload);
                 const { error } = await supabase
@@ -727,11 +754,11 @@ export const useSyncStore = create<SyncState>()(
                   .eq('id', payloadObj.id as string);
                 if (error) throw error;
               }
-              if (useAuthStore.getState().user?.id !== userId) return;
+              if (!current()) return;
               // Acknowledge only this operation, preserving entries appended during the request.
               set((state) => ({ queue: state.queue.filter((entry) => entry.id !== op.id) }));
             } catch (error: unknown) {
-              if (useAuthStore.getState().user?.id !== userId) return;
+              if (!current()) return;
               const message = getErrorMessage(error);
               set((state) => ({
                 queue: state.queue.map((entry) =>
@@ -751,9 +778,10 @@ export const useSyncStore = create<SyncState>()(
           }
           set({ lastSyncedAt: new Date() });
         } catch (error: unknown) {
+          if (!current()) return;
           set({ syncError: getErrorMessage(error) });
         } finally {
-          set({ isSyncing: false });
+          if (current()) set({ isSyncing: false });
         }
       },
 
@@ -761,10 +789,14 @@ export const useSyncStore = create<SyncState>()(
         if (!isSupabaseConfigured || get().isSyncing) return;
         const user = useAuthStore.getState().user;
         if (!user) return;
+        const scope = getStorageScope();
+        const current = () => isScopeCurrent(scope) && useAuthStore.getState().user?.id === user.id;
+        if (!current()) return;
 
         set({ isSyncing: true, syncError: null });
         try {
           const online = await checkConnectivity();
+          if (!current()) return;
           set({ isOnline: online });
           if (!online) return;
           // Dynamic store imports prevent circular dependency warnings at runtime.
@@ -773,14 +805,16 @@ export const useSyncStore = create<SyncState>()(
           const historyStore = (await import('./historyStore')).useHistoryStore;
           const bodyMetricStore = (await import('./bodyMetricStore')).useBodyMetricStore;
           const profileStore = (await import('./profileStore')).useProfileStore;
+          if (!current()) return;
 
           const { data: userProfile } = await supabase
             .from('users')
             .select('*')
             .eq('id', user.id)
             .single();
+          if (!current()) return;
           const remoteProfile = normalizeRemoteUser(userProfile);
-          if (remoteProfile) {
+          if (remoteProfile && remoteProfile.id === user.id) {
             profileStore.setState({
               profile: {
                 ...profileStore.getState().profile,
@@ -808,7 +842,10 @@ export const useSyncStore = create<SyncState>()(
             .eq('is_custom', true)
             .eq('owner_id', user.id);
 
-          const parsedExercises = parseRemoteRows(remoteExercises, normalizeRemoteExercise);
+          if (!current()) return;
+          const parsedExercises = parseRemoteRows(remoteExercises, normalizeRemoteExercise).filter(
+            (row) => row.ownerId === user.id,
+          );
           if (parsedExercises.length > 0) {
             const localStore = exerciseStore.getState();
             const mergedCustom = [...localStore.customExercises];
@@ -836,9 +873,14 @@ export const useSyncStore = create<SyncState>()(
 
           const { data: remoteTemplates } = await supabase
             .from('workout_templates')
-            .select('*, template_exercises(*)');
+            .select('*, template_exercises(*)')
+            .eq('user_id', user.id);
 
-          const parsedTemplates = parseRemoteRows(remoteTemplates, normalizeRemoteWorkoutTemplate);
+          if (!current()) return;
+          const parsedTemplates = parseRemoteRows(
+            remoteTemplates,
+            normalizeRemoteWorkoutTemplate,
+          ).filter((row) => row.userId === user.id);
           if (parsedTemplates.length > 0) {
             const localStore = programStore.getState();
             const mergedTemplates = [...localStore.templates];
@@ -864,9 +906,13 @@ export const useSyncStore = create<SyncState>()(
 
           const { data: remotePrograms } = await supabase
             .from('programs')
-            .select('*, program_workouts(*)');
+            .select('*, program_workouts(*)')
+            .eq('user_id', user.id);
 
-          const parsedPrograms = parseRemoteRows(remotePrograms, normalizeRemoteProgram);
+          if (!current()) return;
+          const parsedPrograms = parseRemoteRows(remotePrograms, normalizeRemoteProgram).filter(
+            (row) => row.userId === user.id,
+          );
           if (parsedPrograms.length > 0) {
             const localStore = programStore.getState();
             const mergedPrograms = [...localStore.programs];
@@ -892,9 +938,14 @@ export const useSyncStore = create<SyncState>()(
 
           const { data: remoteSessions } = await supabase
             .from('workout_sessions')
-            .select('*, session_exercises(*, exercise_sets(*))');
+            .select('*, session_exercises(*, exercise_sets(*))')
+            .eq('user_id', user.id);
 
-          const parsedSessions = parseRemoteRows(remoteSessions, normalizeRemoteWorkoutSession);
+          if (!current()) return;
+          const parsedSessions = parseRemoteRows(
+            remoteSessions,
+            normalizeRemoteWorkoutSession,
+          ).filter((row) => row.userId === user.id);
           if (parsedSessions.length > 0) {
             const localStore = historyStore.getState();
             const mergedSessions = [...localStore.sessions];
@@ -919,9 +970,15 @@ export const useSyncStore = create<SyncState>()(
             historyStore.setState({ sessions: mergedSessions });
           }
 
-          const { data: remoteMetrics } = await supabase.from('body_metrics').select('*');
+          const { data: remoteMetrics } = await supabase
+            .from('body_metrics')
+            .select('*')
+            .eq('user_id', user.id);
 
-          const parsedMetrics = parseRemoteRows(remoteMetrics, normalizeRemoteBodyMetric);
+          if (!current()) return;
+          const parsedMetrics = parseRemoteRows(remoteMetrics, normalizeRemoteBodyMetric).filter(
+            (row) => row.userId === user.id,
+          );
           if (parsedMetrics.length > 0) {
             const localStore = bodyMetricStore.getState();
             const mergedMetrics = [...localStore.metrics];
@@ -946,11 +1003,12 @@ export const useSyncStore = create<SyncState>()(
 
           set({ lastSyncedAt: new Date() });
         } catch (error: unknown) {
+          if (!current()) return;
           const message = getErrorMessage(error);
           console.error('[Sync Store] Pull from cloud failed:', error);
           set({ syncError: message || 'Pull failed' });
         } finally {
-          set({ isSyncing: false });
+          if (current()) set({ isSyncing: false });
         }
       },
     }),

@@ -1,10 +1,10 @@
+import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
 import React, { useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
-  Alert,
   Platform,
   Modal,
   Share,
@@ -563,7 +563,7 @@ export default function WorkoutsScreen() {
             <Pressable
               style={[
                 styles.menuItem,
-                templates.findIndex((t) => t.id === menuTemplate?.id) === 0 && { opacity: 0.4 }
+                templates.findIndex((t) => t.id === menuTemplate?.id) === 0 && { opacity: 0.4 },
               ]}
               disabled={templates.findIndex((t) => t.id === menuTemplate?.id) === 0}
               onPress={() => {
@@ -579,9 +579,13 @@ export default function WorkoutsScreen() {
             <Pressable
               style={[
                 styles.menuItem,
-                templates.findIndex((t) => t.id === menuTemplate?.id) === templates.length - 1 && { opacity: 0.4 }
+                templates.findIndex((t) => t.id === menuTemplate?.id) === templates.length - 1 && {
+                  opacity: 0.4,
+                },
               ]}
-              disabled={templates.findIndex((t) => t.id === menuTemplate?.id) === templates.length - 1}
+              disabled={
+                templates.findIndex((t) => t.id === menuTemplate?.id) === templates.length - 1
+              }
               onPress={() => {
                 if (menuTemplate) {
                   handleMoveTemplate(menuTemplate.id, 'down');

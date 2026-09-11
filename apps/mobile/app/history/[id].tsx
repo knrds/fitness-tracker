@@ -1,3 +1,4 @@
+import { getStorageScope, isScopeCurrent } from '../../src/data/storageScope';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Share } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
@@ -74,7 +75,9 @@ export default function WorkoutDetailScreen() {
   };
 
   const handleRepeatWorkout = async () => {
+    const scope = getStorageScope();
     const start = () => {
+      if (!isScopeCurrent(scope)) return;
       startWorkoutFromSession(session);
       router.push('/workout/session' as unknown as Parameters<typeof router.push>[0]);
     };

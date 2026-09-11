@@ -107,4 +107,29 @@ describe('DialogProvider', () => {
       expect(getByTestId('dialog-result').props.children).toBe('delete');
     });
   });
+  it('cancels a pending confirmation when its account provider unmounts', async () => {
+    const result = jest.fn();
+    const PendingConfirmation = () => {
+      const { showConfirm } = useDialog();
+      return (
+        <Pressable
+          onPress={() => {
+            void showConfirm({ title: 'Delete old account data?' }).then(result);
+          }}
+        >
+          <Text>Confirm old account</Text>
+        </Pressable>
+      );
+    };
+    const screen = render(
+      <ThemeProvider>
+        <DialogProvider>
+          <PendingConfirmation />
+        </DialogProvider>
+      </ThemeProvider>,
+    );
+    fireEvent.press(screen.getByText('Confirm old account'));
+    screen.unmount();
+    await waitFor(() => expect(result).toHaveBeenCalledWith(false));
+  });
 });

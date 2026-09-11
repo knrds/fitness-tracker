@@ -10,6 +10,7 @@ import { useBodyMetricStore } from './bodyMetricStore';
 import { useExerciseStore } from './exerciseStore';
 import { useHistoryStore } from './historyStore';
 import { streamCoachResponse, checkConnectivity } from '../utils/coachApi';
+import { getStorageScope, isScopeCurrent } from '../data/storageScope';
 
 // ---------------------------------------------------------------------------
 // Persisted Coach State Schema
@@ -56,10 +57,13 @@ export const useCoachStore = create<CoachState>()(
       error: null,
 
       sendMessage: async (content: string) => {
-        if (!content.trim()) return;
+        const scope = getStorageScope();
+        if (!content.trim() || get().isSending || !isScopeCurrent(scope)) return;
+        set({ isSending: true });
 
         // Check connection
         const online = await checkConnectivity();
+        if (!isScopeCurrent(scope)) return;
         set({ isOnline: online, error: null });
 
         // 1. Construct and append user message
@@ -156,6 +160,7 @@ export const useCoachStore = create<CoachState>()(
           const responseStream = streamCoachResponse(currentHistory, context);
 
           for await (const chunk of responseStream) {
+            if (!isScopeCurrent(scope)) return;
             set((state) => {
               const updatedMessages = state.messages.map((msg) => {
                 if (msg.id === assistantMsgId) {
@@ -167,6 +172,7 @@ export const useCoachStore = create<CoachState>()(
             });
           }
         } catch (err: unknown) {
+          if (!isScopeCurrent(scope)) return;
           const errMsg = err instanceof Error ? err.message : 'Failed to get a coach response.';
           set({ error: errMsg });
 
@@ -184,7 +190,7 @@ export const useCoachStore = create<CoachState>()(
             return { messages: updatedMessages };
           });
         } finally {
-          set({ isSending: false });
+          if (isScopeCurrent(scope)) set({ isSending: false });
         }
       },
 
@@ -193,8 +199,9 @@ export const useCoachStore = create<CoachState>()(
       },
 
       updateOnlineStatus: async () => {
+        const scope = getStorageScope();
         const online = await checkConnectivity();
-        set({ isOnline: online });
+        if (isScopeCurrent(scope)) set({ isOnline: online });
       },
     }),
     {

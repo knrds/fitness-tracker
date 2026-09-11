@@ -6,16 +6,19 @@ import { isExpoGo } from '../utils/runtime';
 import { useStorageHealth } from './storageHealth';
 import { getDeviceDatabase, usesDeviceDatabase } from '../data/deviceDatabase';
 import { areStorageWritesSuspended } from '../data/storageTransaction';
+import { getStorageScope, isSameScope, scopedStorageKey, StorageScope } from '../data/storageScope';
 
-const backupCleaners = new Map<string, () => void | Promise<void>>();
+const backupCleaners = new Map<string, (scope: StorageScope) => void | Promise<void>>();
 export async function clearStorageBackups() {
+  const scope = getStorageScope();
   const results = await Promise.allSettled(
-    [...backupCleaners.values()].map((clear) => Promise.resolve().then(clear)),
+    [...backupCleaners.values()].map((clear) => Promise.resolve().then(() => clear(scope))),
   );
   if (results.some((result) => result.status === 'rejected')) {
     throw new Error('Local backup deletion failed');
   }
-  getDeviceDatabase()?.clearLegacyBackups();
+  getDeviceDatabase()?.clearLegacyBackups(scope.partition);
+  if (!isSameScope(scope)) throw new Error('Account changed during local reset');
 }
 
 const envelopeSchema = z.object({
@@ -63,6 +66,7 @@ export function createHydratedStorage<T extends object>(
   }
   // Also protects the interval before asynchronous hydration completes.
   let writable = false;
+  let loadedScope = getStorageScope();
   const failRead = (): never => {
     writable = false;
     useStorageHealth.getState().block(storageId);
@@ -76,7 +80,7 @@ export function createHydratedStorage<T extends object>(
   };
   const allowWrite = () => {
     if (areStorageWritesSuspended()) return false;
-    if (writable) return true;
+    if (writable && isSameScope(loadedScope)) return true;
     useStorageHealth.getState().block(storageId);
     return false;
   };
@@ -84,7 +88,8 @@ export function createHydratedStorage<T extends object>(
   const observedNames = new Set<string>();
   if (usesDeviceDatabase) {
     const legacy = mmkv;
-    backupCleaners.set(storageId, async () => {
+    backupCleaners.set(storageId, async (scope) => {
+      if (scope.partition !== 'legacy') return;
       // After explicit local reset, remove retained legacy sources as well as backups.
       for (const name of observedNames) {
         legacy?.delete(name);
@@ -94,17 +99,33 @@ export function createHydratedStorage<T extends object>(
     });
     return {
       getItem: async (name) => {
+        const scope = getStorageScope();
         observedNames.add(name);
         writable = false;
         try {
           const database = getDeviceDatabase();
           if (!database) return failRead();
-          if (database.hasImported(name)) return accept(database.read(name));
-          const raw = legacy?.getString(name) ?? (await AsyncStorage.getItem(name));
+          if (database.hasImported(name, scope.partition)) {
+            loadedScope = scope;
+            return accept(database.read(name, scope.partition));
+          }
+          // Unscoped legacy data remains on this device and is never silently assigned to an account.
+          const raw =
+            scope.partition === 'legacy'
+              ? (legacy?.getString(name) ?? (await AsyncStorage.getItem(name)))
+              : null;
+          if (!isSameScope(scope)) throw new Error('Stale storage read');
           const validated = raw == null ? null : decode(raw, schema, supportedVersion);
-          database.importLegacy(name, raw, validated == null ? null : JSON.stringify(validated));
-          return accept(database.read(name));
+          database.importLegacy(
+            name,
+            raw,
+            validated == null ? null : JSON.stringify(validated),
+            scope.partition,
+          );
+          loadedScope = scope;
+          return accept(database.read(name, scope.partition));
         } catch {
+          if (!isSameScope(scope)) throw new Error('Stale storage read');
           return failRead();
         }
       },
@@ -116,21 +137,23 @@ export function createHydratedStorage<T extends object>(
         const database = getDeviceDatabase();
         if (!database) throw new Error('Native database unavailable');
         const validated = { ...value, state: schema.parse(value.state) };
-        database.write(name, JSON.stringify(validated));
+        database.write(name, JSON.stringify(validated), loadedScope.partition);
       },
       removeItem: (name) => {
-        if (allowWrite()) getDeviceDatabase()?.remove(name);
+        if (allowWrite()) getDeviceDatabase()?.remove(name, loadedScope.partition);
       },
     };
   }
   if (mmkv) {
     const storage = mmkv;
-    backupCleaners.set(storageId, () => {
-      observedNames.forEach((name) => storage.delete(backupKey(name)));
+    backupCleaners.set(storageId, (scope) => {
+      observedNames.forEach((name) => storage.delete(backupKey(scopedStorageKey(name, scope))));
     });
     return {
       getItem: (name) => {
         observedNames.add(name);
+        loadedScope = getStorageScope();
+        name = scopedStorageKey(name, loadedScope);
         writable = false;
         try {
           const raw = storage.getString(name) ?? temporaryValue(name);
@@ -143,35 +166,43 @@ export function createHydratedStorage<T extends object>(
         }
       },
       setItem: (name, value) => {
-        if (allowWrite()) storage.set(name, JSON.stringify(value));
+        if (allowWrite()) storage.set(scopedStorageKey(name, loadedScope), JSON.stringify(value));
       },
       removeItem: (name) => {
-        if (allowWrite()) storage.delete(name);
+        if (allowWrite()) storage.delete(scopedStorageKey(name, loadedScope));
       },
     };
   }
 
-  backupCleaners.set(storageId, async () => {
-    await AsyncStorage.multiRemove([...observedNames].map(backupKey));
+  backupCleaners.set(storageId, async (scope) => {
+    await AsyncStorage.multiRemove(
+      [...observedNames].map((name) => backupKey(scopedStorageKey(name, scope))),
+    );
   });
   return {
     getItem: async (name) => {
+      const scope = getStorageScope();
       observedNames.add(name);
+      name = scopedStorageKey(name, scope);
       writable = false;
       try {
         const raw = (await AsyncStorage.getItem(name)) ?? temporaryValue(name);
         if (raw != null && (await AsyncStorage.getItem(backupKey(name))) == null)
           await AsyncStorage.setItem(backupKey(name), raw);
+        if (!isSameScope(scope)) throw new Error('Stale storage read');
+        loadedScope = scope;
         return accept(raw);
       } catch {
+        if (!isSameScope(scope)) throw new Error('Stale storage read');
         return failRead();
       }
     },
     setItem: async (name, value) => {
-      if (allowWrite()) await AsyncStorage.setItem(name, JSON.stringify(value));
+      if (allowWrite())
+        await AsyncStorage.setItem(scopedStorageKey(name, loadedScope), JSON.stringify(value));
     },
     removeItem: async (name) => {
-      if (allowWrite()) await AsyncStorage.removeItem(name);
+      if (allowWrite()) await AsyncStorage.removeItem(scopedStorageKey(name, loadedScope));
     },
   };
 }

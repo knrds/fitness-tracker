@@ -1,4 +1,12 @@
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Animated,
   Easing,
@@ -81,12 +89,22 @@ export const useDialog = () => {
 export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const theme = useTheme();
   const [dialog, setDialog] = useState<ActiveDialog | null>(null);
+  const activeDialog = useRef<ActiveDialog | null>(null);
+  useEffect(
+    () => () => {
+      activeDialog.current?.resolve();
+      activeDialog.current = null;
+    },
+    [],
+  );
   const [checked, setChecked] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(18)).current;
 
   const openDialog = useCallback(
     (nextDialog: ActiveDialog) => {
+      activeDialog.current?.resolve();
+      activeDialog.current = nextDialog;
       setChecked(false);
       setDialog(nextDialog);
       fadeAnim.setValue(0);
@@ -126,6 +144,8 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           useNativeDriver: Platform.OS !== 'web',
         }),
       ]).start(() => {
+        if (activeDialog.current !== currentDialog) return;
+        activeDialog.current = null;
         setDialog(null);
         currentDialog?.resolve(value);
       });

@@ -1,5 +1,6 @@
+import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { isIOS } from '../../src/utils/platform';
 import { Ionicons } from '@expo/vector-icons';

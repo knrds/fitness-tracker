@@ -1,3 +1,4 @@
+import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -6,7 +7,6 @@ import {
   TextInput,
   ScrollView,
   Pressable,
-  Alert,
   Platform,
   Modal,
   PanResponder,
@@ -304,9 +304,7 @@ export default function ProgramBuilderScreen() {
   const handleMoveWorkoutToDay = (workout: ProgramWorkout, targetDay: number) => {
     if (!activeProgram) return;
 
-    const otherWorkouts = activeProgram.workouts.filter(
-      (w: ProgramWorkout) => w.id !== workout.id,
-    );
+    const otherWorkouts = activeProgram.workouts.filter((w: ProgramWorkout) => w.id !== workout.id);
 
     const targetDayWorkouts = otherWorkouts
       .filter((w: ProgramWorkout) => w.week === selectedWeek && w.dayOfWeek === targetDay)
@@ -574,10 +572,7 @@ export default function ProgramBuilderScreen() {
                       >
                         <Text style={[styles.editText, { color: theme.colors.text }]}>Edit</Text>
                       </Pressable>
-                      <Pressable
-                        onPress={() => setRescheduleWorkout(w)}
-                        hitSlop={8}
-                      >
+                      <Pressable onPress={() => setRescheduleWorkout(w)} hitSlop={8}>
                         <Text style={[styles.editText, { color: theme.colors.primary }]}>Move</Text>
                       </Pressable>
                       <Pressable onPress={() => removeWorkout(w.id)} hitSlop={8}>
@@ -842,15 +837,14 @@ export default function ProgramBuilderScreen() {
             onPress={(e: { stopPropagation: () => void }) => e.stopPropagation()}
           >
             <Text
-              style={[
-                styles.modalTitle,
-                { color: theme.colors.text, ...theme.typography.heading },
-              ]}
+              style={[styles.modalTitle, { color: theme.colors.text, ...theme.typography.heading }]}
             >
               Move Workout
             </Text>
             <Text style={[styles.modalSub, { color: theme.colors.muted }]}>
-              Select target day for &quot;{templates.find((t) => t.id === rescheduleWorkout?.templateId)?.name || 'Workout'}&quot;:
+              Select target day for &quot;
+              {templates.find((t) => t.id === rescheduleWorkout?.templateId)?.name || 'Workout'}
+              &quot;:
             </Text>
             <ScrollView style={{ maxHeight: 240 }}>
               {[1, 2, 3, 4, 5, 6, 7].map((dayNum) => (
@@ -859,7 +853,9 @@ export default function ProgramBuilderScreen() {
                   style={[
                     styles.menuItem,
                     { borderBottomWidth: 1, borderBottomColor: theme.colors.border },
-                    rescheduleWorkout?.dayOfWeek === dayNum && { backgroundColor: 'rgba(144, 213, 255, 0.1)' }
+                    rescheduleWorkout?.dayOfWeek === dayNum && {
+                      backgroundColor: 'rgba(144, 213, 255, 0.1)',
+                    },
                   ]}
                   onPress={() => {
                     if (rescheduleWorkout) {
@@ -870,7 +866,8 @@ export default function ProgramBuilderScreen() {
                 >
                   <Ionicons name="calendar-outline" size={18} color={theme.colors.primary} />
                   <Text style={[styles.menuItemText, { color: theme.colors.text }]}>
-                    {getDayName(dayNum)} {rescheduleWorkout?.dayOfWeek === dayNum ? '(Current)' : ''}
+                    {getDayName(dayNum)}{' '}
+                    {rescheduleWorkout?.dayOfWeek === dayNum ? '(Current)' : ''}
                   </Text>
                 </Pressable>
               ))}
@@ -884,8 +881,8 @@ export default function ProgramBuilderScreen() {
                   marginTop: 12,
                   height: 44,
                   justifyContent: 'center',
-                  alignItems: 'center'
-                }
+                  alignItems: 'center',
+                },
               ]}
               onPress={() => setRescheduleWorkout(null)}
             >

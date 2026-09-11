@@ -4,7 +4,6 @@ import {
   WorkoutSession,
   UUID,
   ExerciseSet,
-  WorkoutSessionSchema,
   calculateStreak,
   getBestWeights,
   summarizeSessionExercise,
@@ -25,9 +24,7 @@ export interface HistoryStore {
   getPreviousPerformance: (exerciseId: UUID) => { date: Date; sets: ExerciseSet[] } | null;
 }
 
-const historyPersistedSchema = z.object({
-  sessions: z.array(WorkoutSessionSchema),
-});
+import { historyPersistedSchema } from '../data/persistedContracts';
 
 type HistoryPersistedState = z.infer<typeof historyPersistedSchema>;
 

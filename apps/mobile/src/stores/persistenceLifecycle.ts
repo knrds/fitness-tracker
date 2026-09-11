@@ -10,18 +10,35 @@ import { useCaffeineStore } from './caffeineStore';
 import { useCoachStore } from './coachStore';
 import { useSyncStore } from './syncStore';
 
+import type { StoreApi } from 'zustand';
+import { withoutStorageWrites } from '../data/storageTransaction';
+import { selectStoragePartition } from '../data/storageScope';
+import { useStorageHealth } from './storageHealth';
+
+function trackStore<T>(
+  store: StoreApi<T> & {
+    persist: {
+      hasHydrated: () => boolean;
+      rehydrate: () => Promise<void> | void;
+      onFinishHydration: (listener: () => void) => () => void;
+    };
+  },
+) {
+  return { persist: store.persist, reset: () => store.setState(store.getInitialState(), true) };
+}
+
 const stores = [
-  useWorkoutStore,
-  useHistoryStore,
-  useExerciseStore,
-  useProgramStore,
-  useProfileStore,
-  useBodyMetricStore,
-  useAchievementStore,
-  useHydrationStore,
-  useCaffeineStore,
-  useCoachStore,
-  useSyncStore,
+  trackStore(useWorkoutStore),
+  trackStore(useHistoryStore),
+  trackStore(useExerciseStore),
+  trackStore(useProgramStore),
+  trackStore(useProfileStore),
+  trackStore(useBodyMetricStore),
+  trackStore(useAchievementStore),
+  trackStore(useHydrationStore),
+  trackStore(useCaffeineStore),
+  trackStore(useCoachStore),
+  trackStore(useSyncStore),
 ];
 
 export const isPersistenceReady = () => stores.every((store) => store.persist.hasHydrated());
@@ -36,4 +53,13 @@ export async function retryHydration() {
       .filter((store) => !store.persist.hasHydrated())
       .map((store) => store.persist.rehydrate()),
   );
+}
+
+export async function switchPersistencePartition(partition: string, generation: number) {
+  if (!selectStoragePartition(partition, generation)) return;
+  withoutStorageWrites(() => stores.forEach((store) => store.reset()));
+  useStorageHealth.setState({ blockedStores: [], writeError: false });
+  await Promise.all(stores.map((store) => store.persist.rehydrate()));
+  if (!isPersistenceReady() || useStorageHealth.getState().blockedStores.length)
+    throw new Error('Account storage could not be loaded');
 }

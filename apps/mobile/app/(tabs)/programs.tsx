@@ -1,3 +1,4 @@
+import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
 import React, { useState, useRef, useMemo } from 'react';
 import {
   View,
@@ -6,7 +7,6 @@ import {
   Pressable,
   Modal,
   TextInput,
-  Alert,
   Platform,
   ScrollView,
   Share,
@@ -740,7 +740,7 @@ export default function ProgramListScreen() {
             <Pressable
               style={[
                 styles.menuItem,
-                programs.findIndex((p) => p.id === menuProgram?.id) === 0 && { opacity: 0.4 }
+                programs.findIndex((p) => p.id === menuProgram?.id) === 0 && { opacity: 0.4 },
               ]}
               disabled={programs.findIndex((p) => p.id === menuProgram?.id) === 0}
               onPress={() => {
@@ -756,7 +756,9 @@ export default function ProgramListScreen() {
             <Pressable
               style={[
                 styles.menuItem,
-                programs.findIndex((p) => p.id === menuProgram?.id) === programs.length - 1 && { opacity: 0.4 }
+                programs.findIndex((p) => p.id === menuProgram?.id) === programs.length - 1 && {
+                  opacity: 0.4,
+                },
               ]}
               disabled={programs.findIndex((p) => p.id === menuProgram?.id) === programs.length - 1}
               onPress={() => {

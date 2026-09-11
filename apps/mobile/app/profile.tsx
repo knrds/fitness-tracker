@@ -1,3 +1,5 @@
+import { getStorageScope, isScopeCurrent } from '../src/data/storageScope';
+import { scopedAlert as Alert } from '../src/utils/scopedAlert';
 import React, { useState } from 'react';
 import {
   View,
@@ -6,7 +8,6 @@ import {
   ScrollView,
   Pressable,
   TextInput,
-  Alert,
   Share,
   Modal,
   Image,
@@ -257,6 +258,7 @@ export default function ProfileScreen() {
   };
 
   const handlePickImage = async () => {
+    const scope = getStorageScope();
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
@@ -265,6 +267,7 @@ export default function ProfileScreen() {
         quality: 0.5,
         base64: true,
       });
+      if (!isScopeCurrent(scope)) return;
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
         if (asset.base64) {

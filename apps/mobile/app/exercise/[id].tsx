@@ -1,3 +1,4 @@
+import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -6,7 +7,6 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  Alert,
   Switch,
   Modal,
 } from 'react-native';

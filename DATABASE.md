@@ -1,32 +1,36 @@
 # Lokale Datenbank und Migration
 
-## Installiert
-expo-sqlite ~16.0.10, Expo SDK 54. Native Datei: training.sqlite. Schema-Version: PRAGMA user_version = 1. Konfiguration: WAL, synchronous=FULL, busy_timeout=3000. Eine neuere Schema-Version wird ohne Migration verweigert.
+expo-sqlite ~16.0.10, Expo SDK 54; native Datei training.sqlite. PRAGMA user_version = 2, WAL, synchronous=FULL, busy_timeout=3000, foreign_keys=ON. Neuere Versionen werden verweigert.
 
-| Tabelle | Spalten | Zweck |
+| Tabelle | Schlüssel / Beziehungen | Inhalt |
 | --- | --- | --- |
-| state_documents | key TEXT PRIMARY KEY, value TEXT NOT NULL | Validierte Zustand-Persistenzumschläge als JSON |
-| legacy_imports | key TEXT PRIMARY KEY, raw TEXT NULL, imported_at TEXT NOT NULL | Originalbytes und idempotenter Importmarker |
+| state_documents | partition, key | Validierte Store-Metadaten; andere Stores weiter als Dokument |
+| legacy_imports | partition, key | Originalbytes, Importzeitpunkt und idempotenter Marker |
+| normalization_backups | partition, key | Unveränderte v1-Dokumente vor der Tabellenmigration |
+| workout_sessions | partition, collection, id | Session-Metadaten und Position; collection = history / active / finished |
+| session_exercises | partition, collection, session_id, id | Übungs-Metadaten und Position, FK auf Session |
+| exercise_sets | partition, collection, session_id, exercise_id, id | Vollständige Satzdaten und Position, FK auf Übung |
+| sync_operations | partition, collection, id | Einzelner Queue-Auftrag samt Payload, Retry-Zähler und Position |
 
-SQL-Werte werden gebunden. Es gibt keine dynamischen Tabellen-/Spaltennamen aus Benutzereingaben. Datumskonvertierung erfolgt pro Zod-Feld; ISO-Text in Notizen bleibt Text.
+Metadaten/Fachattribute werden pro Zeile als validiertes JSON gespeichert. Verschachtelte Übungen/Sätze liegen ausschließlich in ihren eigenen Tabellen. active/current enthält den aktiven Store-Zustand; finished hält den zuletzt abgeschlossenen Dialog-Snapshot. History bleibt der Verlauf. Outbox-Payloads bleiben eigenständige unveränderliche Synchronisationsaufträge.
 
-## Einmaliger Import
-1. Existiert ein Importmarker, wird nur SQLite gelesen.
-2. Sonst wird MMKV gelesen; bei fehlendem Wert folgt AsyncStorage, auch wenn MMKV verfügbar ist.
-3. Envelope, unterstützte Version und Fachschema werden validiert. Bekannte Achievement-v1-Daten bekommen repeatCounts={} ohne Verlust bisheriger XP.
-4. Validiertes Dokument, unveränderte Originalbytes und Marker werden zusammen committed.
-5. Ein Fehler lässt Quelldaten bestehen und verhindert den Marker. Auch neuere/defekte Formate sperren Writes; keine Default-Ersetzung.
+Alle Werte werden gebunden. Die Tabellenhierarchie verwendet zusammengesetzte Fremdschlüssel und ON DELETE CASCADE. Identische IDs in unterschiedlichen Partitionen kollidieren nicht. Löschen, Backup-Cleanup und Importmarker sind ebenfalls partitionsbezogen. Datumsfelder werden ausschließlich durch Fachschemas konvertiert.
 
-Die alten Quellen bleiben als Rückfallmaterial erhalten. Beim ausdrücklich bestätigten lokalen Datenreset werden ursprüngliche native KV-Quellen, zusätzliche Backups und SQL-Rohbackups entfernt. Importmarker bleiben erhalten, damit alte Daten nicht wieder importiert werden. Physische Löschung alter SQLite-/WAL-Seiten und Verschlüsselung sind noch kein verifiziertes Releaseversprechen.
+## Migration
+Schema 0/1 wird innerhalb einer einzigen BEGIN-IMMEDIATE-Transaktion auf Schema 2 gebracht. Vorhandene Dokumente und Importmarker erhalten die Partition legacy. Die drei betroffenen Store-Dokumente werden validiert, ihre unveränderten Bytes gesichert, anschließend in Zeilen aufgeteilt. Erst nach Erfolg wird user_version=2 gesetzt. Ein Fehler in einem späteren Dokument rollt Tabellen, Daten und Versionsnummer gemeinsam zurück.
 
-Web-KV legt die erste gelesene Fassung unter <name>.pre-rebuild-backup ab. Diese Backups gehören zum lokalen Reset. Sie werden nicht automatisch übertragen.
+MMKV/AsyncStorage wird ausschließlich in legacy einmalig importiert. Existiert ein Marker, wird nur SQLite gelesen. Der Erstimport schreibt validierte Daten, Originalbytes und Marker atomar. Ein neuer Account beginnt mit seinem eigenen leeren Speicherbereich; lokale Altdaten werden ihm nicht automatisch zugeordnet.
 
-## Workout-Commit
-BEGIN IMMEDIATE → History + Queue + XP + Koffein + finished-Workout → COMMIT. Jeder Fehler → ROLLBACK und Rücksetzen aller fünf UI-Projektionen. Zweiter Finish bei bereits abgeschlossenem Zustand erzeugt keine zweite Session. Ein Workout ohne abgeschlossene Sets bleibt erhalten, bis der Nutzer es ausdrücklich verwirft.
+## Workout-Commit und granulare Writes
+BEGIN IMMEDIATE → History + Outbox + XP + Koffein + finished-Workout → COMMIT. Fehler rollen SQL und UI-Projektionen zurück. Jede andere mehrzeilige Repository-Schreiboperation ist ebenfalls atomar und beteiligt sich an einem bereits laufenden Finish-Commit.
 
-## Noch offen
-Normalisierte Session-/Set-Zeilen, Queue-Zeilen mit Owner/Revision/Retry-Zeit, Foreign Keys, Benutzerpartitionen, große Datenmengen, vollständige Export-/Recovery-Oberfläche. Reparatur unbekannter beschädigter Altformate ist bewusst kein automatisches Löschen: Original sichern, Format gezielt reparieren und über „Erneut laden“ validieren.
+Die Zeilendifferenz erhält unveränderte Sessions/Übungen/Sätze. Ein geänderter Satz ersetzt nicht den gesamten Verlauf. Entfernte Eltern löschen ausschließlich ihre eigenen Nachkommen. Die ursprüngliche Array-Reihenfolge bleibt über position erhalten.
 
-Server: docs/schema.sql bleibt unverändert. Elf RLS-Tabellen sind definiert, aber kein produktiver Supabase-/RLS-Test wurde durchgeführt. Lokale SQLite-Atomizität behebt nicht die bisherige mehrstufige Remote-Upsert-Sequenz.
+## Nachweise und offene Arbeiten
+24 Integrationstests in drei Suites verwenden echte SQLite. Geprüft: v1-Migration und Rollback, Originalbytes, Reopen, vollständige Satzparameter, einzelne SQL-Updates, Sortierung, CASCADE, doppelte IDs, Partitionen, tatsächlicher Konto-/Store-Wechsel, lokaler Reset und atomarer Finish.
+
+Noch offen: granulare Fachattribute/Abfragen statt ganzer JS-Snapshots, Pagination, Mengen-/Geräteprofiling, Outbox-Revisionen/Retry-Zeit/Tombstones, vollständige Export-/Recovery-UI und historische Eigentümerzuordnung. Kein Nachweis physischer Löschung alter SQLite-/WAL-Seiten oder Verschlüsselung.
+
+Server docs/schema.sql ist unverändert und nicht auf ein externes Projekt angewendet. Lokale Atomizität ersetzt keine serverseitige RPC/RLS-Abnahme.
 
 Quelle: https://docs.expo.dev/versions/v54.0.0/sdk/sqlite/

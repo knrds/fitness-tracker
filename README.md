@@ -7,7 +7,7 @@ Node 24 (getestet: 24.13.0), pnpm 11.5.0. Installieren: `pnpm install --frozen-l
 
 Die optionale Web-Vorschau startet mit `pnpm dev`. Sie ist ein statischer Export ohne Fast Refresh und ohne native SQLite-Garantien.
 
-## Stand vom 10.09.2026
-Audit abgeschlossen. Recovery/Queue abgesichert, nativer SQLite-Dokumentenspeicher mit Legacy-Import und atomarem Workout-Abschluss implementiert. 171 Tests bestanden, darunter elf Tests mit echter SQLite-Engine. iOS-/Android-JS-Bündelung erfolgreich; noch keine native Geräteabnahme.
+## Stand vom 11.09.2026
+Audit abgeschlossen. Recovery/Queue abgesichert, SQLite-Schema 2 mit granularen Workout-/Satz-/Outbox-Zeilen, Legacy-Import, atomarem Abschluss und lokalen Accountpartitionen implementiert. 191 Tests bestanden, darunter 24 mit echter SQLite-Engine. iOS-/Android-JS-Bündelung erfolgreich; noch keine native Geräteabnahme.
 
 IMPLEMENTATION_STATUS.md enthält Änderungen, Nachweise und Grenzen. ROADMAP.md enthält die nächsten Schritte. docs/AUDIT_2026-09-10.md bleibt der unveränderte Ausgangsbefund. Keine App-Store- oder Sicherheitsfreigabe.

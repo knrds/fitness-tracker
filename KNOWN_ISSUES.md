@@ -12,11 +12,14 @@ Keine Releasefreigabe. Der historische Audit B01–B23 bleibt in docs/AUDIT_2026
 - B15: lokale Kalenderarithmetik mit LA/Berlin/UTC-/DST-Regressionen.
 - B23 teilweise: Expo-Patchprüfung grün; tar 7.5.16 gezielt auf 7.5.19 korrigiert.
 
+- B04 teilweise: lokale Partitionen für alle Stores/Backups, serialisierter Kontowechsel, Generation gegen alte Anfragen und Bestätigungen; A→B→Gast sowie A→B→A in Hosttests. Unpartitionierte historische Besitzer, feste Gast-ID, sichere Token und reale RLS-/Gerätenachweise offen.
+- B14 erweitert: normalisierte Session-/Set-/Outbox-Zeilen mit Foreign Keys und Rollback; v1-Migration getestet.
+
 ## Weiterhin kritisch
-B04 Account-Isolation, B06 Coach-Auth/Limits, B07 Remote-Transaktion, B09 NULL-Mapping, B10 Pull-Konflikte/Fehler/Tombstones, B12 Auth-Callbacks, B13 globale Default-IDs/Seed. Keiner dieser Punkte wurde durch den lokalen SQLite-Vertikalschnitt als gelöst erklärt.
+B04 historische Eigentümerzuordnung/Abnahme der Benutzergrenzen, B06 Coach-Auth/Limits, B07 Remote-Transaktion, B09 NULL-Mapping, B10 Pull-Konflikte/Fehler/Tombstones, B12 Auth-Callbacks, B13 globale Default-IDs/Seed. Keiner dieser Punkte wurde durch den lokalen SQLite-Vertikalschnitt als gelöst erklärt.
 
 Aktuell 67 Dependency-Befunde: 0 critical, 47 high, 18 moderate, 2 low. Exposition pro Abhängigkeit weiter priorisieren; keine pauschale Unbedenklichkeit. Auth-Tokens bleiben im bestehenden Speicher. Kein SQLCipher/OS-Protection-Gerätenachweis. Export ist unvollständig, Reset noch kein atomarer Gesamtlöschbefehl.
 
-Performance: gemeinsame DB, aber weiterhin JSON-Dokumente und teilweise große Store-Subscriptions. Alle Daten gemeinsam lokal, noch keine Benutzerpartitionen. Geräte-Kill/Low-Space/Low-Memory, VoiceOver/TalkBack, Tastaturen und Cloud-RLS sind noch nicht abgenommen.
+Performance: granulare native Session-/Übungs-/Satz-/Queue-Zeilen, aber weiterhin große JS-Store-Projektionen und Subscriptions. Lokale Accountpartitionen sind umgesetzt; reale Geräte-/Backend-Abnahme bleibt offen. Geräte-Kill/Low-Space/Low-Memory, VoiceOver/TalkBack, Tastaturen und Cloud-RLS sind noch nicht abgenommen.
 
 Web: Unterrouten direkt aufrufen kann im statischen Preview 404 ergeben; über Home navigieren. Ein Animated-useNativeDriver-Warnhinweis im Web ist bekannt. Während erneuten Exports ist dist vorübergehend nicht verfügbar.

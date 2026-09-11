@@ -20,3 +20,12 @@ Unbekannte oder beschädigte Altformate sperren die betroffenen Writes und die T
 
 ## ADR-007 – Gezieltes Dependency-Patching
 Expo 54 wurde innerhalb kompatibler Patchstände angeglichen. expo-dev-client ermöglicht eigene Gerätebuilds, expo-sqlite liefert die native Transaktionsbasis. Das UI-Paket verwendet denselben Expo-Patch für seine Haptics-Peerauflösung. tar@7.5.16 wird auf 7.5.19 überschrieben, weil die Expo-CLI noch die betroffene Version bindet. Kein Majorupgrade und kein pauschales audit fix --force. Restliche 67 Advisory-Befunde bleiben offen. Node 24 für lokale Tests, CI und EAS ist explizit konfiguriert.
+
+## ADR-008 – Granulare SQL-Zeilen und serialisierte Accountprojektionen (11.09.2026)
+Schema 2 normalisiert Session-/Übungs-/Satz-/Outbox-Hierarchien; Metadaten bleiben pro Zeile validiertes JSON. Die bestehenden Store-Verträge bleiben erhalten, SQL-Differenzwrites vermeiden unveränderte Zeilen. Paging/kleinere JS-Projektionen folgen anhand von Messungen.
+
+Alle Tabellen/KV-Schlüssel werden partitioniert. Alte Daten bleiben unter legacy, Accounts erhalten eigene Bereiche; automatische Gastdaten-Zuordnung ist entfernt. Eine Generation entwertet alte Arbeit auch bei A→B→A. Kontowechsel laden seriell, veröffentlichen den Benutzer erst nach erfolgreicher Hydration und sperren UI bei Fehlern. Historische gemischte Eigentümer werden nicht geraten.
+
+Supabase-Callbacks bleiben synchron; externe Aufrufe werden nach dem Callback eingeplant. Für echte Tests des dynamischen Hydrationspfads wird @babel/plugin-transform-dynamic-import ausschließlich unter NODE_ENV=test aktiviert; Metro verarbeitet dynamische Imports unverändert selbst.
+
+Quellen: https://supabase.com/docs/reference/javascript/auth-onauthstatechange und https://supabase.com/docs/guides/troubleshooting/why-is-my-supabase-api-call-not-returning-PGzXw0 sowie https://babeljs.io/docs/babel-plugin-transform-dynamic-import

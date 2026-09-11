@@ -1,15 +1,22 @@
 # Architektur
 
-Hybrid-Modernisierung im bestehenden Monorepo. apps/mobile/app enthält Expo-Routen, packages/domain React-freie Business Logic, packages/ui Volt-Tokens und Primitives.
+Hybrid-Modernisierung im Monorepo: apps/mobile/app enthält Expo-Routen, packages/domain React-freie Business Logic, packages/ui Volt-Primitives.
 
-## Aktueller Vertikalschnitt
-Auf iOS/Android öffnet src/data/deviceDatabase.native.ts über expo-sqlite eine gemeinsame training.sqlite. DocumentDatabase stellt parametrisierte Dokumentzugriffe, Schema-Versionierung und synchrone Transaktionen bereit. Alle elf bisher über createHydratedStorage gespeicherten Stores nutzen nativ diese Datenbank. Auth-Token-Speicher bleibt separat und ist noch zu modernisieren.
+## Persistenz und Befehle
+Auf iOS/Android öffnet deviceDatabase.native.ts über expo-sqlite die training.sqlite (Schema 2). Alle elf Stores verwenden dieselbe Datenbank. Zustand ist die UI-Projektion. Aktive und abgeschlossene Workouts, Übungen, Sätze und Outbox-Aufträge liegen in getrennten Zeilen; kleinere Store-Zustände bleiben validierte JSON-Dokumente. Die Repository-Schicht rekonstruiert beim Laden die bestehenden Store-Verträge. Es gibt keinen parallel genutzten alten History-Datenpfad.
 
-Zustand bleibt die UI-Projektion. Der Speicheradapter validiert Import und native Writes. Beim Finish werden History, vorhandene Outbox-Queue, XP, Koffein und aktiver Zustand in einer SQLite-Transaktion geschrieben. Bei Fehlern werden auch die beteiligten Projektionen zurückgesetzt. Normale fehlgeschlagene Workout-Änderungen behalten den alten Stand und melden einen UI-Fehler. Der Queue-Worker startet erst im folgenden Microtask, nach dem lokalen Commit.
+Ein Satz-Update schreibt nur geänderte Satz-/Metadatenzeilen. Unveränderte Session-/Übungszeilen bleiben erhalten. Fremdschlüssel mit CASCADE sichern die Hierarchie. Das Repository bindet Werte und verwendet ausschließlich intern definierte Tabellen-/Spaltennamen. Details: DATABASE.md.
 
-PersistenceGate hält Trainingsaktionen und Auth-Initialisierung bis zum erfolgreichen Laden aller Stores zurück. Unlesbare Daten blockieren die App, statt überschrieben zu werden. Plattformdateien trennen native SQLite von der optionalen Web-Vorschau, die weiterhin KV verwendet.
+Der Finish-Befehl schreibt History, Queue, XP, Koffein und Abschlussstatus atomar. SQL-Fehler setzen auch die fünf UI-Projektionen zurück. Der Worker startet nach dem synchronen Commit. Noch nicht jeder andere Store-Befehl ist vollständig transaktional.
 
-## Bewusste Grenze
-Die erste Stufe speichert validierte Store-Dokumente, keine vollständig normalisierten Session-/Set-/Outbox-Zeilen. Das ersetzt elf getrennte native Speicherorte ohne einen parallelen, unbenutzten Datenpfad einzuführen. Große History-Snapshots und synchrone Writes müssen vor Release gemessen und durch granulare Repositories ersetzt werden.
+## Benutzergrenzen
+Jede Tabelle einschließlich Dokumenten, Importmarkern und Backups enthält eine Partition. Account-Daten liegen unter account:<validierte UUID>; bisherige lokale Daten bleiben in legacy. Web verwendet entsprechend getrennte KV-Schlüssel. Es erfolgt keine automatische Gastdaten-Zuordnung oder Übertragung beim Login.
 
-Nächste Stufe: normalisierte Sessions/Sets/Outbox, Benutzerpartitionen und vollständige Befehlsgrenzen. Benutzerwechsel, Remote-Konflikte und serverseitige Transaktionen sind weiterhin offen. Nicht jede Store-Aktion und nicht der gesamte Datenreset sind bereits transaktional.
+Ein serialisierter Kontowechsel sperrt die Oberfläche, verwirft die alten UI-Projektionen ohne Speicher-Write und hydratisiert alle elf Stores aus der Zielpartition. Erst nach erfolgreichem Laden wird das Konto freigegeben. Eine Generation entwertet alte Connectivity-, Pull-, Upload- und Coach-Antworten auch bei A→B→A. Native Bestätigungsaktionen sind an ihre Generation gebunden, UI-Dialoge werden beim Wechsel abgebrochen, verspätete Bildauswahl wird ignoriert.
+
+PersistenceGate wartet auf Daten und Kontoauflösung. Fehler lassen die Oberfläche gesperrt und erlauben Retry. Supabase-Callbacks bleiben synchron; Cloud-Aufrufe starten außerhalb des Auth-Callbacks.
+
+## Grenzen
+Die UI serialisiert und liest weiterhin ganze Store-Projektionen; SQL-Writes sind granular, die JS-Verarbeitung großer Verläufe noch nicht. Datenbankzeilen enthalten validierte Metadaten-JSONs, keine vollständig spaltenweise normalisierten Fachattribute. Paging, Messungen auf Geräten, vollständige Befehlsgrenzen, Revisionen und Tombstones folgen.
+
+Historische unpartitionierte Daten können bereits gemischte Besitzer enthalten und bleiben im lokalen Altbestand. Eine explizite Eigentümer-/Importentscheidung sowie ein neuer installationsbezogener Gastbezeichner fehlen. Auth-Token-Speicherung, reale RLS-Abnahme und sichere Cloud-Transaktionen bleiben offen.

@@ -35,7 +35,7 @@ Audit und erste Kernarbeit sind als überprüfbarer Entwicklungszwischenstand um
 | Gespeicherte Satzpause beeinflusst Timer nicht | Satzpause hat Vorrang; 0 Sekunden startet keinen Timer |
 
 ## Nachweise
-201 erfolgreiche Tests (48 Domain, 153 Mobile), darunter 26 echte SQLite-Integrationstests. Typecheck/Lint, Expo dependency check und Expo Doctor (18/18) erfolgreich. Web- und iOS-/Android-Hermes-Exporte erfolgreich. Browser-Smoke: erster Start, 20 kg × 10, Reload/Resume, Finish, 200 kg/1 Set, History nach Neustart; leeres Finish und beschädigte Speicherbytes geprüft. Siehe TESTING.md.
+211 erfolgreiche Tests (54 Domain, 157 Mobile), darunter 26 echte SQLite-Integrationstests. Typecheck/Lint, Expo dependency check und Expo Doctor (18/18) erfolgreich. Web- und iOS-/Android-Hermes-Exporte erfolgreich. Browser-Smoke: erster Start, 20 kg × 10, Reload/Resume, Finish, 200 kg/1 Set, History nach Neustart; leeres Finish und beschädigte Speicherbytes sowie Speichern/Neustart einer Vorlage geprüft. Siehe TESTING.md.
 
 Lokale Implementierungscommits: e3f79f5 (Recovery), e9b3989 (Queue), 65de5a6 (Client-Key-Pfad), 2868e1b (Kalendertage), 1b0ce4a (Native Build/Dependencies), ff5d8ff (SQLite/Import/Transaktion/UI-Schutz). Ausgangsdokumentation: 64f92c5.
 
@@ -43,10 +43,20 @@ Lokale Implementierungscommits: e3f79f5 (Recovery), e9b3989 (Queue), 65de5a6 (Cl
 Keine neuen Clientsecrets, keine zusätzliche Telemetrie, keine Übermittlung der Migration/Backups. SQL-Werte werden gebunden. Lokale Backups dienen der Migration und werden beim lokalen Reset einbezogen. Serverseitiger Coach, historische Eigentümerzuordnung/Abnahme der Benutzergrenzen, Auth-Tokens, Cloud-Löschung und restliche Dependency-Befunde verhindern weiterhin eine Releasefreigabe.
 
 ## Architekturgrenze und nächster Schritt
-SQLite-Schema 2 ist im nativen Pfad eingebunden. Session-/Übungs-/Satz-/Outbox-Zeilen und lokale Accountpartitionen sind implementiert und mit echten SQLite-/Store-Tests geprüft. JS verarbeitet weiterhin ganze Store-Projektionen; vollständige Befehlsgrenzen, Paging, historische Eigentümerentscheidung und Geräteabnahme bleiben offen. Phase 4a ist umgesetzt; nächste lokale Arbeit ist Phase 4b (Übungs-/Vorlagen-Repositories und History-/PR-Konsistenz). iPhone/EAS-Konto sind vorhanden; Apple-Developer-Mitgliedschaft fehlt.
+SQLite-Schema 2 ist im nativen Pfad eingebunden. Session-/Übungs-/Satz-/Outbox-Zeilen und lokale Accountpartitionen sind implementiert und mit echten SQLite-/Store-Tests geprüft. JS verarbeitet weiterhin ganze Store-Projektionen; vollständige Befehlsgrenzen, Paging, historische Eigentümerentscheidung und Geräteabnahme bleiben offen. Phase 4a und 4b.1 sind umgesetzt; nächste lokale Arbeit ist Phase 4b.2 (granulare Übungs-/Vorlagen-Repositories). iPhone/EAS-Konto sind vorhanden; Apple-Developer-Mitgliedschaft fehlt.
 
 Die Screenshots sind Browsernachweise. Die SQLite-Tests laufen mit echter Desktop-SQLite-Engine hinter der Expo-Bindungsgrenze. Weder das noch ein Hermes-Bundle beweist einen erfolgreichen nativen Gerätebuild.
 
 Phase-3b-Implementierung lokal committed als a4649b5 (normalisierte Persistenz und Accountgrenzen).
+Phase-4a-Implementierung lokal committed als 672327f (Workoutdetails und Vorlagenziele).
+
+| Before | After |
+| --- | --- |
+| Verlauf ignoriert spätere Vorkommen derselben Übung | Summen und Datenpunkte erfassen alle Vorkommen |
+| Beide Übungsvorkommen erhalten die ersten früheren Satzwerte | Prefill/Last sucht das passende geordnete Vorkommen |
+| Doppelte Übung kann zweimal PR-XP erhalten | Ein e1RM-Rekord pro Übung und Training |
+| Custom-Namen fehlen in der Abschlussberechnung | Gleiche Namen und e1RM-Auswertung wie im Verlauf |
+| Allgemeines PR-Symbol verdeckt unterschiedliche Kennzahlen | Gewichtskurve nennt Weight PR; e1RM-Rekord separat verfügbar |
+| Unbestätigte Zielwerte können als beste aktuelle e1RM erscheinen | Nur abgeschlossene Nicht-Warmup-Sätze für die aktuelle Schätzung |
 
 Vorlagen bleiben im bestehenden Datenvertrag gleichförmige Arbeitssätze mit Zielen aus dem ersten Arbeitssatz. Die Oberfläche erklärt diese Auswahl; einzelne Satzvarianten, Zeiten und Distanzen bleiben vollständig im Verlauf und beim direkten Wiederholen erhalten. Es wurde kein vollständiges Vorlage-zu-Workout-Roundtripformat für individuelle Sätze behauptet.

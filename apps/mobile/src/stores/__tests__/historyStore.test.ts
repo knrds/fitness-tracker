@@ -75,4 +75,37 @@ describe('historyStore', () => {
 
     expect(prs['ex-1']).toBe(110);
   });
+
+  it('looks up the matching occurrence instead of reusing the first exercise', () => {
+    const date = new Date('2026-09-01T10:00:00Z');
+    const makeSession = (id: string, startedAt: Date, weights: number[]): WorkoutSession => ({
+      id,
+      userId: 'user',
+      name: id,
+      startedAt,
+      createdAt: date,
+      updatedAt: date,
+      exercises: weights.map((weight, order) => ({
+        id: `${id}-${order}`,
+        exerciseId: 'ex-1',
+        order,
+        sets: [
+          {
+            id: `${id}-set-${order}`,
+            setNumber: 1,
+            type: 'working',
+            completed: true,
+            weight,
+            reps: 5,
+          },
+        ],
+      })),
+    });
+    const past = makeSession('past', date, [40, 60]);
+    const recent = makeSession('recent', new Date('2026-09-02T10:00:00Z'), [50]);
+    useHistoryStore.setState({ sessions: [past, recent] });
+    expect(useHistoryStore.getState().getPreviousPerformance('ex-1')?.sets[0]?.weight).toBe(50);
+    expect(useHistoryStore.getState().getPreviousPerformance('ex-1', 1)?.sets[0]?.weight).toBe(60);
+    expect(useHistoryStore.getState().getPreviousPerformance('ex-1', 2)).toBeNull();
+  });
 });

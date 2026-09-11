@@ -282,7 +282,10 @@ export const useWorkoutStore = create<WorkoutStore>()(
           set((state) => {
             const previousPerformance = useHistoryStore
               .getState()
-              .getPreviousPerformance(exerciseId);
+              .getPreviousPerformance(
+                exerciseId,
+                state.exercises.filter((ex) => ex.exerciseId === exerciseId).length,
+              );
             const previousSets =
               previousPerformance?.sets.map((set, index) =>
                 createSetFromPreviousPerformance(set, index),

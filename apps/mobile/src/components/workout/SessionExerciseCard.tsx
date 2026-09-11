@@ -123,9 +123,12 @@ export const SessionExerciseCard = ({
 
   const getPreviousPerformance = useHistoryStore((state) => state.getPreviousPerformance);
   const historySessions = useHistoryStore((state) => state.sessions);
+  const occurrenceIndex = sessionExercises
+    .filter((ex) => ex.exerciseId === sessionExercise.exerciseId)
+    .findIndex((ex) => ex.id === sessionExercise.id);
   const lastPerformance = React.useMemo(
-    () => getPreviousPerformance(sessionExercise.exerciseId),
-    [getPreviousPerformance, sessionExercise.exerciseId],
+    () => getPreviousPerformance(sessionExercise.exerciseId, occurrenceIndex),
+    [getPreviousPerformance, sessionExercise.exerciseId, occurrenceIndex, historySessions],
   );
   const [plateCalcVisible, setPlateCalcVisible] = useState(false);
   const [infoModalVisible, setInfoModalVisible] = useState(false);
@@ -143,6 +146,7 @@ export const SessionExerciseCard = ({
     if (isCardio) return 0;
     let maxE1rm = 0;
     sessionExercise.sets.forEach((set) => {
+      if (!set.completed || set.type === 'warmup') return;
       const wVal = set.weight || 0;
       const rVal = set.reps || 0;
       const dispWeight = isImperial ? wVal * 2.20462 : wVal;
@@ -162,6 +166,7 @@ export const SessionExerciseCard = ({
     if (lastPerformance) {
       let lastMaxE1rm = 0;
       lastPerformance.sets.forEach((set) => {
+        if (!set.completed || set.type === 'warmup') return;
         const wVal = set.weight || 0;
         const rVal = set.reps || 0;
         const dispWeight = isImperial ? wVal * 2.20462 : wVal;

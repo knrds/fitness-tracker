@@ -87,6 +87,36 @@ describe('achievementStore', () => {
     expect(invalidIcons).toEqual([]);
   });
 
+  it('does not award a PR using a different formula for a custom exercise', () => {
+    useExerciseStore.setState({
+      exercises: useExerciseStore
+        .getState()
+        .exercises.map((ex) => ({ ...ex, name: 'Custom Curl', isCustom: true })),
+    });
+    const past = createBenchSession('past', new Date('2026-09-01T10:00:00Z'));
+    past.exercises[0]!.sets[0]!.reps = 1;
+    const current = createBenchSession('current', new Date('2026-09-02T10:00:00Z'));
+    current.exercises[0]!.sets[0]!.weight = 90;
+    useHistoryStore.setState({ sessions: [past, current] });
+    useAchievementStore.getState().awardXpAndCheckAchievements(current);
+    expect(useAchievementStore.getState().repeatCounts['rep_session_pr']).toBeUndefined();
+  });
+
+  it('awards PR bonus only once for repeated occurrences of the same exercise', () => {
+    const current = createBenchSession('current', new Date('2026-09-02T10:00:00Z'));
+    const first = current.exercises[0]!;
+    current.exercises.push({
+      ...first,
+      id: 'second',
+      order: 1,
+      sets: [{ ...first.sets[0]!, id: 'second-set', weight: 110 }],
+    });
+    useHistoryStore.setState({ sessions: [current] });
+    useAchievementStore.getState().awardXpAndCheckAchievements(current);
+    expect(useAchievementStore.getState().xp).toBe(335);
+    expect(useAchievementStore.getState().repeatCounts['rep_session_pr']).toBe(1);
+  });
+
   it('should award XP and unlock first_workout achievement on first session finished', () => {
     const mockSession: WorkoutSession = {
       id: 'session-1',

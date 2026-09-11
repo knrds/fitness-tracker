@@ -257,7 +257,7 @@ describe('analytics helpers', () => {
     expect(getBestE1RMs(sessions)[EX_UUID_1]?.weight).toBe(105);
   });
 
-  it('builds chronological exercise progress and marks max weight PR points', () => {
+  it('builds chronological exercise progress and marks improving estimated records', () => {
     const sessions = [
       createMockSession('s1', new Date('2026-06-01T10:00:00'), [
         {

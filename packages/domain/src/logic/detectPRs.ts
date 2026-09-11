@@ -1,6 +1,5 @@
-import { WorkoutSession } from '../types';
-import { estimateOneRepMax } from './estimateOneRepMax';
-import { EXERCISES } from '../data/exercises';
+import { WorkoutSession, UUID } from '../types';
+import { getBestE1RMs } from './getBestE1RMs';
 
 export interface PRDelta {
   exerciseId: string;
@@ -10,58 +9,28 @@ export interface PRDelta {
   weight: number;
 }
 
-export function detectPRs(session: WorkoutSession, history: WorkoutSession[]): PRDelta[] {
+export function detectPRs(
+  session: WorkoutSession,
+  history: WorkoutSession[],
+  exerciseNames?: Record<UUID, string>,
+): PRDelta[] {
+  const previous = getBestE1RMs(
+    history.filter((s) => s.id !== session.id),
+    exerciseNames,
+  );
+  const current = getBestE1RMs([session], exerciseNames);
   const deltas: PRDelta[] = [];
-
-  // Filter out the current session if it exists in the history list (to compare strictly against past sessions)
-  const pastSessions = history.filter((s) => s.id !== session.id);
-
-  // Group past sessions by exercise to find historical max e1RMs
-  const historicalMaxE1RM: Record<string, number> = {};
-  pastSessions.forEach((s) => {
-    s.exercises.forEach((ex) => {
-      ex.sets.forEach((set) => {
-        if (set.completed && set.weight && set.reps && set.type !== 'warmup') {
-          const exerciseName = EXERCISES.find((e) => e.id === ex.exerciseId)?.name;
-          const e1rm = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir, exerciseName);
-          if (!historicalMaxE1RM[ex.exerciseId] || e1rm > historicalMaxE1RM[ex.exerciseId]!) {
-            historicalMaxE1RM[ex.exerciseId] = e1rm;
-          }
-        }
-      });
-    });
-  });
-
-  // Check the current session's exercises
-  for (const ex of session.exercises) {
-    let maxSessionSet: { weight: number; reps: number; e1rm: number } | null = null;
-
-    for (const set of ex.sets) {
-      if (set.completed && set.weight && set.reps && set.type !== 'warmup') {
-        const exerciseName = EXERCISES.find((e) => e.id === ex.exerciseId)?.name;
-        const e1rm = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir, exerciseName);
-        if (!maxSessionSet || e1rm > maxSessionSet.e1rm) {
-          maxSessionSet = { weight: set.weight, reps: set.reps, e1rm };
-        }
-      }
-    }
-
-    if (maxSessionSet) {
-      const prevMax = historicalMaxE1RM[ex.exerciseId];
-      if (prevMax === undefined || maxSessionSet.e1rm > prevMax) {
-        const delta: PRDelta = {
-          exerciseId: ex.exerciseId,
-          newE1RM: maxSessionSet.e1rm,
-          reps: maxSessionSet.reps,
-          weight: maxSessionSet.weight,
-        };
-        if (prevMax !== undefined) {
-          delta.previousE1RM = prevMax;
-        }
-        deltas.push(delta);
-      }
-    }
+  for (const [exerciseId, best] of Object.entries(current)) {
+    const previousE1RM = previous[exerciseId]?.e1RM;
+    if (previousE1RM !== undefined && best.e1RM <= previousE1RM) continue;
+    const delta: PRDelta = {
+      exerciseId,
+      newE1RM: best.e1RM,
+      weight: best.weight,
+      reps: best.reps,
+    };
+    if (previousE1RM !== undefined) delta.previousE1RM = previousE1RM;
+    deltas.push(delta);
   }
-
   return deltas;
 }

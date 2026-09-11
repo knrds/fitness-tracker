@@ -62,7 +62,10 @@ export const useAchievementStore = create<AchievementState>()(
 
         // --- Session-level metrics (for repeatable achievements) ---
         const sessionVolume = calculateVolume(session, { includeWarmups: false });
-        const newPRs = detectPRs(session, historyStore.sessions);
+        const exerciseNames = Object.fromEntries(
+          exerciseStore.exercises.map((ex) => [ex.id, ex.name]),
+        );
+        const newPRs = detectPRs(session, historyStore.sessions, exerciseNames);
         const sessionPrCount = newPRs.length;
         const sessionSetCount = session.exercises.reduce(
           (sum, ex) => sum + ex.sets.filter((s) => s.completed && s.type !== 'warmup').length,

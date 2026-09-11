@@ -890,9 +890,10 @@ function ProgressView() {
     );
 
     sortedSessions.forEach((session) => {
-      const sEx = session.exercises.find((ex) => ex.exerciseId === selectedExId);
-      if (!sEx) return;
-      sEx.sets.forEach((set) => {
+      const sets = session.exercises
+        .filter((ex) => ex.exerciseId === selectedExId)
+        .flatMap((ex) => ex.sets);
+      sets.forEach((set) => {
         if (set.completed && set.type !== 'warmup') {
           totalSets++;
           if (set.reps !== undefined && set.reps > 0) {
@@ -1013,7 +1014,7 @@ function ProgressView() {
       setSelectedPoint({
         date: new Date(item.date).toLocaleDateString(),
         volume: vol,
-        isPR: item.isPR,
+        isPR: item.isWeightPR,
         maxWeight: isImperial ? Math.round(item.maxWeight * 2.20462) : Math.round(item.maxWeight),
         e1rm: isImperial ? Math.round(item.maxE1RM * 2.20462) : Math.round(item.maxE1RM),
       });
@@ -1105,7 +1106,7 @@ function ProgressView() {
               {selectedPoint.isPR && (
                 <Text style={{ color: '#FFB020', fontFamily: 'SpaceGrotesk_700Bold' }}>
                   {' '}
-                  (★ PR!)
+                  (★ Weight PR)
                 </Text>
               )}
             </Text>
@@ -1143,7 +1144,7 @@ function ProgressView() {
             }}
             getDotColor={(dataPoint, dataPointIndex) => {
               const point = history[dataPointIndex];
-              return point?.isPR ? '#FFB020' : theme.colors.primary;
+              return point?.isWeightPR ? '#FFB020' : theme.colors.primary;
             }}
             chartConfig={{
               backgroundColor: theme.colors.surface,

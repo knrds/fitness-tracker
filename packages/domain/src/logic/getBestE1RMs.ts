@@ -35,12 +35,17 @@ export function getBestE1RMs(
           !set.completed ||
           set.type === 'warmup' ||
           set.weight === undefined ||
-          set.reps === undefined
+          set.reps === undefined ||
+          !Number.isFinite(set.weight) ||
+          set.weight <= 0 ||
+          !Number.isFinite(set.reps) ||
+          set.reps <= 0
         ) {
           return;
         }
 
         const e1RM = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir, exerciseName);
+        if (!Number.isFinite(e1RM) || e1RM <= 0) return;
         const currentBest = bestE1RMs[exercise.exerciseId];
 
         if (!currentBest || e1RM > currentBest.e1RM) {

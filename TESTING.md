@@ -1,6 +1,6 @@
 # Testnachweise – 11.09.2026
 
-201 Tests bestanden: Domain/Vitest 48 Tests in 6 Dateien, Mobile/Jest 153 Tests in 33 Suites. Keine Tests deaktiviert. Baseline: 136 Tests. Typecheck und Lint erfolgreich.
+211 Tests bestanden: Domain/Vitest 54 Tests in 7 Dateien, Mobile/Jest 157 Tests in 33 Suites. Keine Tests deaktiviert. Baseline: 136 Tests. Typecheck und Lint erfolgreich.
 
 ## Was tatsächlich geprüft wurde
 - Recovery einmal nach Hydration, leere/alte Sessions bleiben erhalten.
@@ -45,3 +45,10 @@ Browser-Smoke nach Phase 3b (11.09.2026, 390×844): Start aus leerem Profil, Wor
 Acht Domain-Regressionen prüfen komplette Satzdetails, neue IDs/keine Completion-Übernahme, fehlende Werte und echte Nullen, RIR/Rest/Supersets, Wiederholungsbereiche, Zielwertänderungen, doppelte Übungsvorkommen, Warmup-Auswahl und leere Rep-Ziele. Zwei weitere echte SQLite-Tests gehen über den tatsächlichen Store: Finish→Repeat→Add Set→Rehydrate erhält Details und History; Template→Rehydrate→Complete nutzt die vorgeschriebene Pause und explizite 0 korrekt.
 ### Zusätzlicher Browsercheck Phase 4a
 Am 11.09.2026 in Chromium bei 390 × 844: Training mit 20 kg × 10 und RIR 2 abgeschlossen, als „QA Kopierparameter“ gespeichert und aus Home erneut gestartet. Gewicht, Wiederholungen und RIR sind übernommen, der neue Satz ist unbestätigt. Der Vorlagendialog wurde visuell geprüft; sein Hinweis auf gleichförmige Arbeitssätze ist vollständig lesbar. Browserkonsole: keine Fehler, bekannter Animated-Web-Warnhinweis. Screenshots: phase4a-template-dialog.png und phase4a-template-restarted.png. Kein nativer Gerätenachweis.
+
+## Phase 4b.1
+Sechs neue Domain-Regressionen: alle Übungsvorkommen pro Datenpunkt; genau ein PR pro Übung/Training; Gewicht und e1RM als unterschiedliche Rekorde; keine Gleichstand-/Warmup-/unbestätigten PRs; keine Null-/fehlenden e1RM-Werte; konsistente Custom-Namen und RIR-Priorität. Die Fehler wurden vor dem Fix reproduziert.
+
+Vier Store-Regressionen: frühere Satzwerte je Übungsvorkommen einschließlich älterer passender Session; tatsächliches Prefill des zweiten Vorkommens; Custom-Curl erzeugt keinen PR durch abweichende Standardformel; doppeltes Vorkommen erhält nur einmal den PR-XP-Bonus (335 statt 435 XP im Test). Vollständiger Testlauf grün. Typecheck erkannte zwei unzulässige explizite undefined-Felder in Testfixtures; diese werden nun korrekt ausgelassen, ohne Typausnahmen.
+
+Browser-Visualprüfung Phase 4b.1: neues, leeres Chromium-Testprofil mit zwei gezielt eingespeisten synthetischen History-Sessions (20×10 + 30×5; 35×5). Verlauf zeigt 350/175 kg Volumen; Progress zeigt drei Sätze in zwei Sessions, initiale e1RM 32,5 kg und Maximum 37,9 kg. Chart-Tap zeigt lesbar „Weight PR“; Screenshot phase4b-history-progress.png visuell geprüft. Der erste Fixture-Versuch enthielt ein ungültiges ISO-Datum und wurde von der Ladebarriere korrekt abgelehnt; nach Korrektur ausschließlich der synthetischen Testbytes war Laden möglich. Dieser Check belegt Darstellung/Hydration, nicht den Finish- oder nativen Datenbankpfad. Diese sind separat durch Store-/SQLite-Tests abgedeckt.

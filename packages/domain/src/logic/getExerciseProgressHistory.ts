@@ -1,6 +1,6 @@
 import { WorkoutSession, UUID } from '../types';
 import { EXERCISES } from '../data/exercises';
-import { estimateOneRepMax } from './estimateOneRepMax';
+import { getBestE1RMs } from './getBestE1RMs';
 import { summarizeSessionExercise } from './summarizeSessionExercise';
 
 export interface ExerciseProgressPoint {
@@ -9,6 +9,8 @@ export interface ExerciseProgressPoint {
   maxWeight: number;
   maxE1RM: number;
   isPR: boolean;
+  isWeightPR: boolean;
+  isE1RMPR: boolean;
 }
 
 export function getExerciseProgressHistory(
@@ -21,40 +23,34 @@ export function getExerciseProgressHistory(
     (a, b) => a.startedAt.getTime() - b.startedAt.getTime(),
   );
   let historicalMaxWeight = 0;
+  let historicalMaxE1RM = 0;
 
   sortedSessions.forEach((session) => {
-    const exercise = session.exercises.find((entry) => entry.exerciseId === exerciseId);
-    if (!exercise) return;
-
-    const volume = summarizeSessionExercise(exercise).totalVolume;
-    let sessionMaxE1RM = 0;
-    let sessionMaxWeight = 0;
-
-    exercise.sets.forEach((set) => {
-      if (!set.completed || set.type === 'warmup' || set.weight === undefined) {
-        return;
-      }
-
-      sessionMaxWeight = Math.max(sessionMaxWeight, set.weight);
-
-      if (set.reps !== undefined) {
-        const e1RM = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir, exerciseName);
-        sessionMaxE1RM = Math.max(sessionMaxE1RM, e1RM);
-      }
-    });
+    const occurrences = session.exercises.filter((entry) => entry.exerciseId === exerciseId);
+    if (occurrences.length === 0) return;
+    const summaries = occurrences.map(summarizeSessionExercise);
+    const volume = summaries.reduce((total, summary) => total + summary.totalVolume, 0);
+    const sessionMaxWeight = Math.max(0, ...summaries.map((summary) => summary.maxWeight));
+    const sessionMaxE1RM =
+      getBestE1RMs(
+        [{ ...session, exercises: occurrences }],
+        exerciseName === undefined ? undefined : { [exerciseId]: exerciseName },
+      )[exerciseId]?.e1RM ?? 0;
 
     if (volume > 0) {
-      const isPR = sessionMaxWeight > historicalMaxWeight;
-      if (isPR) {
-        historicalMaxWeight = sessionMaxWeight;
-      }
+      const isWeightPR = sessionMaxWeight > historicalMaxWeight;
+      const isE1RMPR = sessionMaxE1RM > historicalMaxE1RM;
+      historicalMaxWeight = Math.max(historicalMaxWeight, sessionMaxWeight);
+      historicalMaxE1RM = Math.max(historicalMaxE1RM, sessionMaxE1RM);
 
       points.push({
         date: session.startedAt,
         volume,
         maxWeight: sessionMaxWeight,
         maxE1RM: sessionMaxE1RM,
-        isPR,
+        isPR: isE1RMPR,
+        isWeightPR,
+        isE1RMPR,
       });
     }
   });

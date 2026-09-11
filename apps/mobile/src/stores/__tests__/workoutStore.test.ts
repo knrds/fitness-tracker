@@ -42,6 +42,44 @@ describe('workoutStore', () => {
     expect(state.exercises[0]!.exerciseId).toBe('exercise-123');
   });
 
+  it('prefills repeated exercises from their corresponding historical occurrence', () => {
+    const date = new Date('2026-09-01T10:00:00Z');
+    useHistoryStore.setState({
+      sessions: [
+        {
+          id: 'past',
+          userId: LOCAL_USER_ID,
+          name: 'Past',
+          startedAt: date,
+          createdAt: date,
+          updatedAt: date,
+          exercises: [40, 60].map((weight, order) => ({
+            id: `past-ex-${order}`,
+            exerciseId: 'repeated',
+            order,
+            sets: [
+              {
+                id: `past-set-${order}`,
+                setNumber: 1,
+                type: 'working',
+                completed: true,
+                weight,
+                reps: 5,
+              },
+            ],
+          })),
+        },
+      ],
+    });
+    useWorkoutStore.getState().startWorkout();
+    useWorkoutStore.getState().addExercise('repeated');
+    useWorkoutStore.getState().addExercise('repeated');
+    expect(useWorkoutStore.getState().exercises.map((ex) => ex.sets[0]?.weight)).toEqual([40, 60]);
+    expect(
+      useWorkoutStore.getState().exercises.every((ex) => ex.sets.every((set) => !set.completed)),
+    ).toBe(true);
+  });
+
   it('should prefill added exercises with the last completed performance', () => {
     const date = new Date('2026-06-09T12:00:00.000Z');
     useHistoryStore.getState().addSession({

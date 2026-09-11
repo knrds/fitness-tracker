@@ -29,3 +29,8 @@ Alle Tabellen/KV-Schlüssel werden partitioniert. Alte Daten bleiben unter legac
 Supabase-Callbacks bleiben synchron; externe Aufrufe werden nach dem Callback eingeplant. Für echte Tests des dynamischen Hydrationspfads wird @babel/plugin-transform-dynamic-import ausschließlich unter NODE_ENV=test aktiviert; Metro verarbeitet dynamische Imports unverändert selbst.
 
 Quellen: https://supabase.com/docs/reference/javascript/auth-onauthstatechange und https://supabase.com/docs/guides/troubleshooting/why-is-my-supabase-api-call-not-returning-PGzXw0 sowie https://babeljs.io/docs/babel-plugin-transform-dynamic-import
+
+## ADR-009 – Gemeinsame Planungslogik, bestehender Template-Vertrag (11.09.2026)
+workoutPlanning in packages/domain kopiert alle vorhandenen Satz-/Übungsfelder für Wiederholung und Folgesätze, ersetzt IDs und entfernt Completion-Metadaten. Template-Start/Erstellung nutzt alle unterstützten Ziele einschließlich RIR und Rest sowie Superset-Gruppen. Unveränderte Rep-Bereiche bleiben bei Updates erhalten; gleiche Übungen werden nach geordnetem Vorkommen verglichen.
+
+Der bisherige Template-Vertrag beschreibt gleichförmige Arbeitssätze. Ein Save erzeugt Zielwerte aus dem ersten Arbeitssatz und ersetzt kein vollständiges Archiv individueller Sätze. Die Oberfläche erläutert diese Grenze; vollständige Varianten/Zeiten/Distanzen bleiben im Verlauf und beim Wiederholen erhalten. Ein erweitertes Vorlagenformat benötigt später Fachschema, UI, Migration und Serververtrag gemeinsam.

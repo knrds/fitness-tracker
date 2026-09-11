@@ -23,3 +23,5 @@ Aktuell 67 Dependency-Befunde: 0 critical, 47 high, 18 moderate, 2 low. Expositi
 Performance: granulare native Session-/Übungs-/Satz-/Queue-Zeilen, aber weiterhin große JS-Store-Projektionen und Subscriptions. Lokale Accountpartitionen sind umgesetzt; reale Geräte-/Backend-Abnahme bleibt offen. Geräte-Kill/Low-Space/Low-Memory, VoiceOver/TalkBack, Tastaturen und Cloud-RLS sind noch nicht abgenommen.
 
 Web: Unterrouten direkt aufrufen kann im statischen Preview 404 ergeben; über Home navigieren. Ein Animated-useNativeDriver-Warnhinweis im Web ist bekannt. Während erneuten Exports ist dist vorübergehend nicht verfügbar.
+
+B17 in Phase 4a bearbeitet: direkte Wiederholung und Folgesätze erhalten sämtliche aktuellen Details; Template-Pfade erhalten alle bestehenden Zielparameter inklusive RIR/Rest/Gruppe. Änderungserkennung verarbeitet geordnete Übungsvorkommen (Teil von B20), Gewichte/Reps/RPE/RIR/Rest und Rep-Bereiche. Vorlagen bilden weiterhin gleichförmige Arbeitssätze ab; individuelle Satzvarianten und Zeit-/Distanzziele benötigen eine Vertragserweiterung. Die übrige B20-History-Auswertung ist noch offen.

@@ -20,3 +20,5 @@ PersistenceGate wartet auf Daten und Kontoauflösung. Fehler lassen die Oberflä
 Die UI serialisiert und liest weiterhin ganze Store-Projektionen; SQL-Writes sind granular, die JS-Verarbeitung großer Verläufe noch nicht. Datenbankzeilen enthalten validierte Metadaten-JSONs, keine vollständig spaltenweise normalisierten Fachattribute. Paging, Messungen auf Geräten, vollständige Befehlsgrenzen, Revisionen und Tombstones folgen.
 
 Historische unpartitionierte Daten können bereits gemischte Besitzer enthalten und bleiben im lokalen Altbestand. Eine explizite Eigentümer-/Importentscheidung sowie ein neuer installationsbezogener Gastbezeichner fehlen. Auth-Token-Speicherung, reale RLS-Abnahme und sichere Cloud-Transaktionen bleiben offen.
+
+Planungslogik: packages/domain/src/logic/workoutPlanning.ts ist React-/Expo-frei und erhält den UUID-Erzeuger als Abhängigkeit. Workout-Store und Template-Speicheroberfläche verwenden dieselben Funktionen. Die bestehende Template-Aggregation wird ausdrücklich beschrieben; direkte Wiederholung kopiert alle Satzdetails.

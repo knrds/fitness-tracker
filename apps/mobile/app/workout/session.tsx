@@ -27,7 +27,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isIOS } from '../../src/utils/platform';
 
 import {
-  TemplateExercise,
+  templateExercisesFromSession,
+  hasTemplateChanges,
   SessionExercise,
   summarizeSessionExercise,
 } from '@fitness-tracker/domain';
@@ -313,53 +314,6 @@ export default function WorkoutSessionScreen() {
     );
   }
 
-  const mapToTemplateExercises = (sessionExercises: SessionExercise[]): TemplateExercise[] => {
-    return sessionExercises.map((ex) => {
-      const workingSets = ex.sets.filter((s) => s.type !== 'warmup');
-      const firstSet = workingSets[0] || ex.sets[0];
-      return {
-        id: Crypto.randomUUID(),
-        exerciseId: ex.exerciseId,
-        order: ex.order,
-        targetSets: workingSets.length > 0 ? workingSets.length : 1,
-        ...(firstSet?.reps !== undefined ? { targetReps: firstSet.reps } : {}),
-        ...(firstSet?.weight !== undefined ? { targetWeight: firstSet.weight } : {}),
-        ...(firstSet?.rpe !== undefined ? { targetRpe: firstSet.rpe } : {}),
-        ...(ex.notes !== undefined ? { notes: ex.notes } : {}),
-      };
-    });
-  };
-
-  const checkIfTemplateChanged = () => {
-    if (!templateId) return false;
-    const { templates } = useProgramStore.getState();
-    const originalTemplate = templates.find((t) => t.id === templateId);
-    if (!originalTemplate) return false;
-
-    // 1. Check if number of exercises changed
-    if (originalTemplate.exercises.length !== exercises.length) return true;
-
-    for (let i = 0; i < exercises.length; i++) {
-      const liveEx = exercises[i];
-      if (!liveEx) continue;
-      const tmplEx = originalTemplate.exercises.find((te) => te.exerciseId === liveEx.exerciseId);
-
-      // 2. Check if exercise is added, removed or replaced
-      if (!tmplEx) return true;
-      // 3. Check if exercise order changed
-      if (liveEx.order !== tmplEx.order) return true;
-
-      // 4. Check if number of sets (excluding warmups) changed
-      const workingSets = liveEx.sets.filter((s) => s.type !== 'warmup');
-      if (workingSets.length !== tmplEx.targetSets) return true;
-
-      // 5. Check if exercise notes changed
-      if ((liveEx.notes || '') !== (tmplEx.notes || '')) return true;
-    }
-
-    return false;
-  };
-
   const finalizeWorkout = async () => {
     if (isFinishing) return;
     setIsFinishing(true);
@@ -405,7 +359,10 @@ export default function WorkoutSessionScreen() {
     }
 
     if (templateId) {
-      const hasChanged = checkIfTemplateChanged();
+      const original = useProgramStore
+        .getState()
+        .templates.find((template) => template.id === templateId);
+      const hasChanged = original ? hasTemplateChanges(original.exercises, exercises) : false;
       if (!hasChanged) {
         // No changes to template, just save the workout session history and exit!
         finalizeWorkout();
@@ -418,8 +375,11 @@ export default function WorkoutSessionScreen() {
 
   const handleUpdateTemplate = () => {
     if (isFinishing || !templateId) return;
+    const original = useProgramStore
+      .getState()
+      .templates.find((template) => template.id === templateId);
     updateTemplate(templateId, {
-      exercises: mapToTemplateExercises(exercises),
+      exercises: templateExercisesFromSession(exercises, Crypto.randomUUID, original?.exercises),
     });
     setSaveModalVisible(false);
     finalizeWorkout();
@@ -429,7 +389,7 @@ export default function WorkoutSessionScreen() {
     if (isFinishing) return;
     createTemplate({
       name: templateName,
-      exercises: mapToTemplateExercises(exercises),
+      exercises: templateExercisesFromSession(exercises, Crypto.randomUUID),
     });
     setSaveModalVisible(false);
     finalizeWorkout();

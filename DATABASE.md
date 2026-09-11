@@ -27,7 +27,7 @@ BEGIN IMMEDIATE → History + Outbox + XP + Koffein + finished-Workout → COMMI
 Die Zeilendifferenz erhält unveränderte Sessions/Übungen/Sätze. Ein geänderter Satz ersetzt nicht den gesamten Verlauf. Entfernte Eltern löschen ausschließlich ihre eigenen Nachkommen. Die ursprüngliche Array-Reihenfolge bleibt über position erhalten.
 
 ## Nachweise und offene Arbeiten
-24 Integrationstests in drei Suites verwenden echte SQLite. Geprüft: v1-Migration und Rollback, Originalbytes, Reopen, vollständige Satzparameter, einzelne SQL-Updates, Sortierung, CASCADE, doppelte IDs, Partitionen, tatsächlicher Konto-/Store-Wechsel, lokaler Reset und atomarer Finish.
+26 Integrationstests in drei Suites verwenden echte SQLite. Geprüft: v1-Migration und Rollback, Originalbytes, Reopen, vollständige Satzparameter, einzelne SQL-Updates, Sortierung, CASCADE, doppelte IDs, Partitionen, tatsächlicher Konto-/Store-Wechsel, lokaler Reset und atomarer Finish.
 
 Noch offen: granulare Fachattribute/Abfragen statt ganzer JS-Snapshots, Pagination, Mengen-/Geräteprofiling, Outbox-Revisionen/Retry-Zeit/Tombstones, vollständige Export-/Recovery-UI und historische Eigentümerzuordnung. Kein Nachweis physischer Löschung alter SQLite-/WAL-Seiten oder Verschlüsselung.
 

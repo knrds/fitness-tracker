@@ -77,6 +77,10 @@ export const SaveTemplateModal = ({
               ? 'Du hast das Training angepasst. Möchtest du das bestehende Template überschreiben oder ein neues erstellen?'
               : 'Speichere dieses Training als Template ab, um es später einfach wiederholen zu können.'}
           </Text>
+          <Text style={[styles.subtitle, { color: theme.colors.muted }]}>
+            Für alle Arbeitssätze gelten die Zielwerte des ersten Arbeitssatzes. Aufwärmsätze und
+            individuelle Satzdetails bleiben im Trainingsverlauf.
+          </Text>
 
           {templateId && onUpdate && (
             <Pressable

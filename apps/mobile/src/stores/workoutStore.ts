@@ -8,6 +8,9 @@ import {
   WorkoutSession,
   WorkoutTemplate,
   UnitSystem,
+  createPlannedSet,
+  repeatSessionExercises,
+  startTemplateExercises,
 } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
 import { workoutPersistedSchema } from '../data/persistedContracts';
@@ -53,20 +56,8 @@ const removeSupersetGroup = (exercise: SessionExercise): SessionExercise => {
   return nextExercise;
 };
 
-const createSetFromPreviousPerformance = (set: ExerciseSet, index: number): ExerciseSet => ({
-  id: Crypto.randomUUID(),
-  setNumber: index + 1,
-  type: set.type,
-  completed: false,
-  ...(set.weight !== undefined ? { weight: set.weight } : {}),
-  ...(set.reps !== undefined ? { reps: set.reps } : {}),
-  ...(set.rpe !== undefined ? { rpe: set.rpe } : {}),
-  ...(set.rir !== undefined ? { rir: set.rir } : {}),
-  ...(set.restSeconds !== undefined ? { restSeconds: set.restSeconds } : {}),
-  ...(set.durationSeconds !== undefined ? { durationSeconds: set.durationSeconds } : {}),
-  ...(set.distanceMeters !== undefined ? { distanceMeters: set.distanceMeters } : {}),
-  ...(set.notes !== undefined ? { notes: set.notes } : {}),
-});
+const createSetFromPreviousPerformance = (set: ExerciseSet, index: number): ExerciseSet =>
+  createPlannedSet(set, index, Crypto.randomUUID);
 
 export interface WorkoutActions {
   startWorkout: (name?: string) => void;
@@ -154,29 +145,13 @@ export const useWorkoutStore = create<WorkoutStore>()(
         startWorkoutFromSession: (session) => {
           useCaffeineStore.getState().resetCurrentWorkout();
           set(() => {
-            const exercises: SessionExercise[] = session.exercises.map((sEx) => {
-              const sets: ExerciseSet[] = sEx.sets.map((sSet) => ({
-                id: Crypto.randomUUID(),
-                setNumber: sSet.setNumber,
-                type: sSet.type,
-                completed: false,
-                ...(sSet.weight !== undefined ? { weight: sSet.weight } : {}),
-                ...(sSet.reps !== undefined ? { reps: sSet.reps } : {}),
-                ...(sSet.rpe !== undefined ? { rpe: sSet.rpe } : {}),
-              }));
-              return {
-                id: Crypto.randomUUID(),
-                exerciseId: sEx.exerciseId,
-                order: sEx.order,
-                sets,
-                ...(sEx.notes !== undefined ? { notes: sEx.notes } : {}),
-              };
-            });
+            const exercises = repeatSessionExercises(session.exercises, Crypto.randomUUID);
 
             return {
               ...defaultState,
               status: 'active',
               name: session.name,
+              notes: session.notes ?? '',
               startedAt: new Date(),
               sessionId: Crypto.randomUUID(),
               templateId: undefined,
@@ -190,29 +165,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
         startWorkoutFromTemplate: (template, programId) => {
           useCaffeineStore.getState().resetCurrentWorkout();
           set(() => {
-            const exercises: SessionExercise[] = template.exercises.map((tEx) => {
-              const sets: ExerciseSet[] = [];
-              for (let j = 0; j < tEx.targetSets; j++) {
-                const set: ExerciseSet = {
-                  id: Crypto.randomUUID(),
-                  setNumber: j + 1,
-                  type: 'working',
-                  completed: false,
-                  ...(tEx.targetWeight !== undefined ? { weight: tEx.targetWeight } : {}),
-                  ...(tEx.targetReps !== undefined ? { reps: tEx.targetReps } : {}),
-                  ...(tEx.targetRpe !== undefined ? { rpe: tEx.targetRpe } : {}),
-                };
-                sets.push(set);
-              }
-              const sessionEx: SessionExercise = {
-                id: Crypto.randomUUID(),
-                exerciseId: tEx.exerciseId,
-                order: tEx.order,
-                sets,
-                ...(tEx.notes !== undefined ? { notes: tEx.notes } : {}),
-              };
-              return sessionEx;
-            });
+            const exercises = startTemplateExercises(template.exercises, Crypto.randomUUID);
 
             return {
               ...defaultState,
@@ -370,21 +323,15 @@ export const useWorkoutStore = create<WorkoutStore>()(
               if (ex.id !== sessionExerciseId) return ex;
 
               const lastSet = ex.sets[ex.sets.length - 1];
-              const defaults: Partial<ExerciseSet> = {};
-              if (lastSet) {
-                if (lastSet.weight !== undefined) defaults.weight = lastSet.weight;
-                if (lastSet.reps !== undefined) defaults.reps = lastSet.reps;
-                if (lastSet.rpe !== undefined) defaults.rpe = lastSet.rpe;
-                if (lastSet.rir !== undefined) defaults.rir = lastSet.rir;
-                if (lastSet.type !== undefined) defaults.type = lastSet.type;
-              }
-
               const newSet: ExerciseSet = {
-                id: Crypto.randomUUID(),
-                setNumber: ex.sets.length + 1,
-                type: 'working',
-                completed: false,
-                ...defaults,
+                ...(lastSet
+                  ? createPlannedSet(lastSet, ex.sets.length, Crypto.randomUUID)
+                  : {
+                      id: Crypto.randomUUID(),
+                      setNumber: ex.sets.length + 1,
+                      type: 'working' as const,
+                      completed: false,
+                    }),
                 ...setPartial,
               };
               return { ...ex, sets: [...ex.sets, newSet] };
@@ -404,6 +351,9 @@ export const useWorkoutStore = create<WorkoutStore>()(
 
         completeSet: (sessionExerciseId, setId) =>
           set((state) => {
+            const exercise = state.exercises.find((ex) => ex.id === sessionExerciseId);
+            const targetSet = exercise?.sets.find((set) => set.id === setId);
+            if (!exercise || !targetSet) return {};
             let wasCompleted = false;
             const exercises = state.exercises.map((ex) => {
               if (ex.id !== sessionExerciseId) return ex;
@@ -435,20 +385,21 @@ export const useWorkoutStore = create<WorkoutStore>()(
             }
 
             // Auto-start rest timer
-            const exercise = state.exercises.find((ex) => ex.id === sessionExerciseId);
-            const durationSeconds = exercise
-              ? useExerciseStore.getState().exerciseRestDurations[exercise.exerciseId] ||
-                state.restTimer.durationSeconds ||
-                90
-              : state.restTimer.durationSeconds || 90;
+            const durationSeconds =
+              targetSet.restSeconds ??
+              useExerciseStore.getState().exerciseRestDurations[exercise.exerciseId] ??
+              state.restTimer.durationSeconds ??
+              90;
 
             return {
               exercises,
               lastUpdatedAt: new Date(),
               restTimer: {
-                isRunning: true,
+                isRunning: durationSeconds > 0,
                 durationSeconds,
-                endsAt: new Date(Date.now() + durationSeconds * 1000),
+                ...(durationSeconds > 0
+                  ? { endsAt: new Date(Date.now() + durationSeconds * 1000) }
+                  : {}),
               },
             };
           }),

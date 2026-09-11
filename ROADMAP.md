@@ -8,7 +8,8 @@
 - [x] Phase 3a: Native SQLite-Persistenz, Legacy-Import, atomarer Workout-Abschluss, SQL-/UI-Rollback und Ladebarriere.
 - [x] Phase 3b – Code/Hosttests: Session-/Übungs-/Satz-/Outbox-Zeilen, Schema-2-Migration, granulare SQL-Writes, partitionsbezogene Stores/Reset und serialisierter Accountwechsel mit Schutz vor verspäteten Antworten.
 - [ ] Phase 3c – Abnahme: reale Altbestände, Crash-/Migrationsprüfung auf Geräten, große History messen, JS-Projektionen/Pagination verkleinern.
-- [ ] Phase 4: Übungen/Templates auf granulare Repositories umstellen, vollständige Parameter beim Kopieren, History/PR-Begriffe konsistent machen.
+- [x] Phase 4a: Domain-Kopierlogik für vollständige Workout-/Satzdetails, unterstützte Template-Ziele, RIR/Pausen/Supersets, Bereichserhalt und Änderungserkennung je Übungsvorkommen; native Wiederherstellung geprüft.
+- [ ] Phase 4b: Übungen/Templates auf granulare Repositories umstellen, History/PR-Begriffe konsistent machen. Erweiterte Vorlagen für individuelle Sätze/Zeiten/Distanzen benötigen einen eigenen Datenvertrag.
 - [ ] Phase 5: Programme/Body/Profil mit vollständigen Datenbefehlen und Import-/Exportvertrag.
 - [ ] Phase 6: Benutzergrenzen mit realen Accounts/Geräten abnehmen; historische Eigentümerzuordnung und Gast-ID, sichere Tokenmigration und Auth-Deep-Links. Lokale Accountpartitionen und Generation-Schutz sind bereits implementiert.
 - [ ] Phase 7: Postgres-RPC, Tombstones, Revision-Konflikte, Pagination, NULL-DTOs und reale RLS-Tests.
@@ -16,4 +17,4 @@
 - [ ] Phase 9: authentifizierter Coach mit Limits und transparenter Datenfreigabe.
 - [ ] Phase 10: Release-Gates, TestFlight und Android interne Tests.
 
-Stabiler Entwicklungszwischenstand: Phase 1 + 2a + 3a + Code/Hosttests von 3b; 191 Tests. Nächste lokale Kernarbeit: Phase 4, beginnend mit B17 (Parameter beim Wiederholen/Starten aus Vorlagen). Geräte-/Account-Gates bleiben offen. Kein Hermes-Export wird als nativer Gerätebuild ausgegeben.
+Stabiler Entwicklungszwischenstand: Phase 1 + 2a + 3a + Code/Hosttests von 3b sowie Phase 4a; 201 Tests. Nächste lokale Kernarbeit: Phase 4b (granulare Übungs-/Vorlagen-Repositories und konsistente History-/PR-Auswertung). Geräte-/Account-Gates bleiben offen. Kein Hermes-Export wird als nativer Gerätebuild ausgegeben.

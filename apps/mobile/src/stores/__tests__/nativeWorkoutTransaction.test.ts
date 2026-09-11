@@ -20,6 +20,7 @@ import {
   isScopeChanging,
 } from '../../data/storageScope';
 import type { Session } from '@supabase/supabase-js';
+import type { WorkoutTemplate } from '@fitness-tracker/domain';
 
 let mockRepository: DocumentDatabase | undefined;
 jest.mock('../../data/deviceDatabase', () => ({
@@ -257,5 +258,85 @@ describe('native workout path with a real SQLite engine', () => {
     expect(useWorkoutStore.getState().sessionId).toBe(bId);
     await applyAccountSession(null);
     expect(useWorkoutStore.getState().sessionId).toBe(guestId);
+  });
+  it('persists all copied session/set details across native hydration with fresh IDs', async () => {
+    const originalExercise = useWorkoutStore.getState().exercises[0]!;
+    useWorkoutStore.setState({
+      exercises: [{ ...originalExercise, supersetGroup: 'A', notes: 'Exercise cue' }],
+    });
+    useWorkoutStore.getState().updateWorkoutNotes('Workout cue');
+    useWorkoutStore
+      .getState()
+      .updateSet(originalExercise.id, originalExercise.sets[0]!.id, {
+        rir: 0,
+        restSeconds: 125,
+        durationSeconds: 45,
+        distanceMeters: 20,
+        notes: 'Set cue',
+      });
+    const history = useWorkoutStore.getState().finishWorkout()!;
+    useWorkoutStore.getState().startWorkoutFromSession(history);
+    const repeatedId = useWorkoutStore.getState().sessionId;
+    const repeatedExercise = useWorkoutStore.getState().exercises[0]!;
+    useWorkoutStore.getState().addSet(repeatedExercise.id);
+    withoutStorageWrites(() => useWorkoutStore.getState().resetWorkout());
+    await useWorkoutStore.persist.rehydrate();
+    const restored = useWorkoutStore.getState();
+    expect(restored.sessionId).toBe(repeatedId);
+    expect(restored.sessionId).not.toBe(history.id);
+    expect(restored.notes).toBe('Workout cue');
+    expect(restored.exercises[0]).toMatchObject({ notes: 'Exercise cue', supersetGroup: 'A' });
+    expect(restored.exercises[0]?.sets).toHaveLength(2);
+    for (const set of restored.exercises[0]!.sets) {
+      expect(set).toMatchObject({
+        rir: 0,
+        restSeconds: 125,
+        durationSeconds: 45,
+        distanceMeters: 20,
+        notes: 'Set cue',
+        completed: false,
+      });
+      expect(set).not.toHaveProperty('completedAt');
+      expect(set.id).not.toBe(history.exercises[0]?.sets[0]?.id);
+    }
+    expect(useHistoryStore.getState().sessions[0]?.exercises[0]?.sets).toHaveLength(1);
+    expect(useHistoryStore.getState().sessions[0]?.exercises[0]?.sets[0]?.completed).toBe(true);
+  });
+  it('restores template targets and uses prescribed rest including explicit zero', async () => {
+    const template: WorkoutTemplate = {
+      id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      userId: a.user.id,
+      name: 'Target test',
+      isArchived: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      exercises: [
+        {
+          id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+          exerciseId: '46a26651-02df-41d4-84ca-8452ebd20001',
+          order: 0,
+          targetSets: 2,
+          targetReps: 8,
+          targetRir: 0,
+          targetRestSeconds: 125,
+          supersetGroup: 'A',
+          notes: 'Controlled',
+        },
+      ],
+    };
+    useWorkoutStore.getState().startWorkoutFromTemplate(template);
+    withoutStorageWrites(() => useWorkoutStore.getState().resetWorkout());
+    await useWorkoutStore.persist.rehydrate();
+    const exercise = useWorkoutStore.getState().exercises[0]!;
+    expect(exercise).toMatchObject({ supersetGroup: 'A', notes: 'Controlled' });
+    expect(exercise.sets[0]).toMatchObject({ rir: 0, restSeconds: 125 });
+    useWorkoutStore.getState().completeSet(exercise.id, exercise.sets[0]!.id);
+    expect(useWorkoutStore.getState().restTimer).toMatchObject({
+      isRunning: true,
+      durationSeconds: 125,
+    });
+    useWorkoutStore.getState().updateSet(exercise.id, exercise.sets[1]!.id, { restSeconds: 0 });
+    useWorkoutStore.getState().completeSet(exercise.id, exercise.sets[1]!.id);
+    expect(useWorkoutStore.getState().restTimer).toEqual({ isRunning: false, durationSeconds: 0 });
   });
 });

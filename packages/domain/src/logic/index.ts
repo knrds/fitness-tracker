@@ -7,3 +7,4 @@ export * from './summarizeSessionExercise';
 export * from './getExerciseProgressHistory';
 export * from './getBestWeights';
 export * from './getBestE1RMs';
+export * from './workoutPlanning';

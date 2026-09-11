@@ -1,13 +1,13 @@
 # Testnachweise – 11.09.2026
 
-191 Tests bestanden: Domain/Vitest 40 Tests in 5 Dateien, Mobile/Jest 151 Tests in 33 Suites. Keine Tests deaktiviert. Baseline: 136 Tests. Typecheck und Lint erfolgreich.
+201 Tests bestanden: Domain/Vitest 48 Tests in 6 Dateien, Mobile/Jest 153 Tests in 33 Suites. Keine Tests deaktiviert. Baseline: 136 Tests. Typecheck und Lint erfolgreich.
 
 ## Was tatsächlich geprüft wurde
 - Recovery einmal nach Hydration, leere/alte Sessions bleiben erhalten.
 - Queue-Erweiterung während Upload, Single-flight und dauerhafte Fehlerqueue.
 - Ungültiges JSON, unbekannte Persistenzversion, Async-Hydration-Rennen, unveränderte Backups, Schema-Defaults, ISO-Notizen.
 - Workout-Hydration für Version 0/1 erhält Session-/Template-/Programm-IDs, Sets und Daten.
-- 24 Tests in drei Suites nutzen eine echte SQLite-Engine über node:sqlite (Node 24.13.0, SQLite 3.50.4): Datei erneut öffnen, idempotenter Import, SQL-Fehlerinjektion, Importmarker-Rollback, Backup-Löschung ohne Wiederimport, gebundene SQL-Werte, Versionsschutz, tatsächlicher Store-Finalize inklusive Queue/XP, SQL- und UI-Rollback, einmaliger Retry, fehlgeschlagene Set-Eingabe sowie native Legacy-Importpfade.
+- 26 Tests in drei Suites nutzen eine echte SQLite-Engine über node:sqlite (Node 24.13.0, SQLite 3.50.4): Datei erneut öffnen, idempotenter Import, SQL-Fehlerinjektion, Importmarker-Rollback, Backup-Löschung ohne Wiederimport, gebundene SQL-Werte, Versionsschutz, tatsächlicher Store-Finalize inklusive Queue/XP, SQL- und UI-Rollback, einmaliger Retry, fehlgeschlagene Set-Eingabe sowie native Legacy-Importpfade.
 - Vier UI-Tests für Ladebarriere, Recovery-Retry und sichtbaren Schreibfehler.
 - Lokaler Reset berücksichtigt Coach, Queue und Backup-Cleanup.
 
@@ -40,3 +40,8 @@ Noch erforderlich: echtes iPhone/Android, Flugmodus, OS-Kill, Speicherfehler auf
 
 
 Browser-Smoke nach Phase 3b (11.09.2026, 390×844): Start aus leerem Profil, Workout-Notiz eingeben, leeres Finish → Weitertrainieren, Root neu laden → Recovery → Resume. Dieselbe Notiz blieb erhalten. Neue Screenshots phase3b-empty-finish.png und phase3b-resumed-workout.png visuell geprüft. Accountwechsel wurde hier in den SQLite-/Store-Integrationstests geprüft, nicht mit einem echten Supabase-Konto im Browser.
+
+## Phase 4a
+Acht Domain-Regressionen prüfen komplette Satzdetails, neue IDs/keine Completion-Übernahme, fehlende Werte und echte Nullen, RIR/Rest/Supersets, Wiederholungsbereiche, Zielwertänderungen, doppelte Übungsvorkommen, Warmup-Auswahl und leere Rep-Ziele. Zwei weitere echte SQLite-Tests gehen über den tatsächlichen Store: Finish→Repeat→Add Set→Rehydrate erhält Details und History; Template→Rehydrate→Complete nutzt die vorgeschriebene Pause und explizite 0 korrekt.
+### Zusätzlicher Browsercheck Phase 4a
+Am 11.09.2026 in Chromium bei 390 × 844: Training mit 20 kg × 10 und RIR 2 abgeschlossen, als „QA Kopierparameter“ gespeichert und aus Home erneut gestartet. Gewicht, Wiederholungen und RIR sind übernommen, der neue Satz ist unbestätigt. Der Vorlagendialog wurde visuell geprüft; sein Hinweis auf gleichförmige Arbeitssätze ist vollständig lesbar. Browserkonsole: keine Fehler, bekannter Animated-Web-Warnhinweis. Screenshots: phase4a-template-dialog.png und phase4a-template-restarted.png. Kein nativer Gerätenachweis.

@@ -23,13 +23,11 @@ Audit und erste Kernarbeit sind als überprüfbarer Entwicklungszwischenstand um
 | Expo-Patches uneinheitlich, Dev-Client/EAS fehlen | SDK-54-Patches angeglichen, Dev-Client/SQLite, drei EAS-Profile und Startkommando |
 | Kritischer tar-Befund im Buildwerkzeug | Gezieltes Override 7.5.16→7.5.19; 0 critical, weitere 67 Befunde offen |
 | CI prüft Typen/Tests | Zusätzlich Lint; Node 24 wie lokaler Testlauf |
-
 | Alle Accounts verwenden dieselben lokalen Stores | Getrennte Partitionen, serielles Rehydratisieren und UI-Sperre beim Wechsel |
 | Späte Cloud-/Coach-Antwort kann neue Kontodaten verändern | Generation schützt auch A→B→A und lässt neue Worker-Sperren unverändert |
 | Alte Bestätigung kann nach Wechsel Aktionen auslösen | Native Aktionen generationsgebunden, UI-Dialoge abgebrochen, Bildauswahl geprüft |
 | Login ordnet Gastdaten automatisch dem Konto zu | Altbestand bleibt lokal; keine automatische Zuordnung oder Übertragung |
 | Dynamische Imports im Jest-Pfad waren nicht ausführbar | Babel-Transformation ausschließlich für Tests; realer Hydrationspfad wird geprüft |
-
 | Kopieren verliert RIR/Pausen/Dauer/Distanz/Notizen/Supersets | Gemeinsame Domain-Kopierlogik, neue IDs, keine übernommenen Abschlüsse; native Wiederherstellung geprüft |
 | Vorlagen-Änderungsprüfung erkennt Zielwertänderungen nicht zuverlässig | Zielwerte/Gruppe je geordnetem Übungsvorkommen prüfen; Rep-Bereiche beim Update erhalten |
 | Gespeicherte Satzpause beeinflusst Timer nicht | Satzpause hat Vorrang; 0 Sekunden startet keinen Timer |
@@ -49,6 +47,7 @@ Die Screenshots sind Browsernachweise. Die SQLite-Tests laufen mit echter Deskto
 
 Phase-3b-Implementierung lokal committed als a4649b5 (normalisierte Persistenz und Accountgrenzen).
 Phase-4a-Implementierung lokal committed als 672327f (Workoutdetails und Vorlagenziele).
+Phase-4b.1-Implementierung lokal committed als c224b66 (History, Übungsvorkommen und PR-Auswertung).
 
 | Before | After |
 | --- | --- |

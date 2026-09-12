@@ -597,6 +597,9 @@ export interface ChatMessage {
 
 export interface CoachPlan {
   name: string;
+  /** Absent on older messages: one day is a template, multiple days a program. */
+  kind?: 'template' | 'program' | undefined;
+  durationWeeks?: number | undefined;
   days: Array<{
     name: string;
     exercises: Array<{

@@ -27,6 +27,16 @@ import { useHydrationStore } from './hydrationStore';
 import { createHydratedStorage, clearStorageBackups } from './storage';
 import { useCoachStore } from './coachStore';
 import { useSyncStore } from './syncStore';
+import { runStorageTransaction } from '../data/storageTransaction';
+import { workoutPersistedSchema } from '../data/persistedContracts';
+
+function snapshotStore<T extends object>(store: {
+  getState: () => T;
+  setState: (state: T) => void;
+}) {
+  const previous = store.getState();
+  return () => store.setState(previous);
+}
 
 export interface Profile {
   displayName: string;
@@ -161,61 +171,79 @@ export const useProfileStore = create<ProfileState>()(
         }
         useSyncStore.setState({ isSyncing: true });
         useCoachStore.setState({ isSending: true });
+        const restorers = [
+          snapshotStore(useProfileStore),
+          snapshotStore(useHistoryStore),
+          snapshotStore(useWorkoutStore),
+          snapshotStore(useExerciseStore),
+          snapshotStore(useBodyMetricStore),
+          snapshotStore(useAchievementStore),
+          snapshotStore(useProgramStore),
+          snapshotStore(useCaffeineStore),
+          snapshotStore(useHydrationStore),
+          snapshotStore(useSyncStore),
+          snapshotStore(useCoachStore),
+        ];
         try {
           await clearStorageBackups();
           if (!isScopeCurrent(scope)) throw new Error('Account changed during local reset');
-          // Reset owns the request lock; the interactive clear command intentionally rejects it.
-          useCoachStore.setState({ messages: [], error: null });
-          useSyncStore.getState().clearQueue();
-          // Reset local store documents; this does not delete the cloud account.
+          runStorageTransaction(
+            () => {
+              // Reset owns the request lock; the interactive clear command intentionally rejects it.
+              useCoachStore.setState({ messages: [], error: null });
+              useSyncStore.getState().clearQueue();
+              // Reset local store documents; this does not delete the cloud account.
 
-          // 1. Profile Store
-          set({ profile: defaultProfile });
+              // 1. Profile Store
+              set({ profile: defaultProfile });
 
-          // 2. History Store
-          useHistoryStore.setState({ sessions: [] });
+              // 2. History Store
+              useHistoryStore.setState({ sessions: [] });
 
-          // 3. Workout Store
-          useWorkoutStore.getState().resetWorkout();
+              // 3. Workout Store
+              useWorkoutStore.getState().resetWorkout();
 
-          // 4. Exercise Store
-          useExerciseStore.setState({
-            exercises: EXERCISES,
-            filteredExercises: EXERCISES,
-            selectedMuscleGroup: null,
-            selectedEquipment: null,
-            searchQuery: '',
-            favoriteIds: [],
-            customExercises: [],
-            exerciseRestDurations: {},
-            persistentNotes: {},
-          });
+              // 4. Exercise Store
+              useExerciseStore.setState({
+                exercises: EXERCISES,
+                filteredExercises: EXERCISES,
+                selectedMuscleGroup: null,
+                selectedEquipment: null,
+                searchQuery: '',
+                favoriteIds: [],
+                customExercises: [],
+                exerciseRestDurations: {},
+                persistentNotes: {},
+              });
 
-          // 5. Body Metric Store
-          useBodyMetricStore.setState({ metrics: [] });
+              // 5. Body Metric Store
+              useBodyMetricStore.setState({ metrics: [] });
 
-          // 6. Achievement Store
-          useAchievementStore.getState().resetAchievements();
+              // 6. Achievement Store
+              useAchievementStore.getState().resetAchievements();
 
-          // 7. Program Store
-          useProgramStore.setState({
-            programs: getDefaultPrograms(),
-            templates: getDefaultTemplates(),
-          });
+              // 7. Program Store
+              useProgramStore.setState({
+                programs: getDefaultPrograms(),
+                templates: getDefaultTemplates(),
+              });
 
-          // 8. Caffeine Store
-          useCaffeineStore.setState({
-            isEnabled: true,
-            currentWorkoutMg: 0,
-            lastWorkoutMg: 0,
-          });
+              // 8. Caffeine Store
+              useCaffeineStore.setState({
+                isEnabled: true,
+                currentWorkoutMg: 0,
+                lastWorkoutMg: 0,
+              });
 
-          // 9. Hydration Store
-          useHydrationStore.setState({
-            dateKey: formatDateLocal(new Date()),
-            dailyGoalMl: 2500,
-            todayIntakeMl: 0,
-          });
+              // 9. Hydration Store
+              useHydrationStore.setState({
+                dateKey: formatDateLocal(new Date()),
+                dailyGoalMl: 2500,
+                todayIntakeMl: 0,
+              });
+            },
+            () => restorers.forEach((restore) => restore()),
+          );
         } finally {
           if (isScopeCurrent(scope)) useSyncStore.setState({ isSyncing: false });
           if (isScopeCurrent(scope)) useCoachStore.setState({ isSending: false });
@@ -223,12 +251,42 @@ export const useProfileStore = create<ProfileState>()(
       },
 
       exportData: () => {
+        const exercise = useExerciseStore.getState();
+        const achievements = useAchievementStore.getState();
+        const hydration = useHydrationStore.getState();
+        const caffeine = useCaffeineStore.getState();
         const data = {
+          schemaVersion: 2,
+          exportedAt: new Date().toISOString(),
           profile: get().profile,
           history: useHistoryStore.getState().sessions,
           customExercises: useExerciseStore.getState().customExercises,
           favorites: useExerciseStore.getState().favoriteIds,
           bodyMetrics: useBodyMetricStore.getState().metrics,
+          programs: useProgramStore.getState().programs,
+          templates: useProgramStore.getState().templates,
+          exercisePreferences: {
+            persistentNotes: exercise.persistentNotes,
+            exerciseRestDurations: exercise.exerciseRestDurations,
+          },
+          achievements: {
+            xp: achievements.xp,
+            level: achievements.level,
+            unlockedAchievements: achievements.unlockedAchievements,
+            repeatCounts: achievements.repeatCounts,
+          },
+          hydration: {
+            dateKey: hydration.dateKey,
+            dailyGoalMl: hydration.dailyGoalMl,
+            todayIntakeMl: hydration.todayIntakeMl,
+          },
+          caffeine: {
+            isEnabled: caffeine.isEnabled,
+            currentWorkoutMg: caffeine.currentWorkoutMg,
+            lastWorkoutMg: caffeine.lastWorkoutMg,
+          },
+          coachMessages: useCoachStore.getState().messages,
+          workout: workoutPersistedSchema.parse(useWorkoutStore.getState()),
         };
 
         return JSON.stringify(data, null, 2);

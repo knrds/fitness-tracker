@@ -20,6 +20,23 @@ jest.mock('react-native-mmkv', () => ({
 }));
 
 describe('profileStore', () => {
+  it('exports training plans, preferences, coach history and progress without runtime credentials', () => {
+    useProgramStore.setState({ programs: getDefaultPrograms(), templates: getDefaultTemplates() });
+    useExerciseStore.setState({
+      persistentNotes: { exercise: 'Seat 4' },
+      exerciseRestDurations: { exercise: 90 },
+    });
+    const exported = JSON.parse(useProfileStore.getState().exportData());
+    expect(exported.schemaVersion).toBe(2);
+    expect(exported.programs).toHaveLength(getDefaultPrograms().length);
+    expect(exported.templates).toHaveLength(getDefaultTemplates().length);
+    expect(exported.exercisePreferences.persistentNotes.exercise).toBe('Seat 4');
+    expect(exported.hydration.dailyGoalMl).toBe(2500);
+    expect(exported.achievements.xp).toBe(0);
+    expect(exported.coachMessages).toEqual(useCoachStore.getState().messages);
+    expect(exported.sync).toBeUndefined();
+    expect(exported.auth).toBeUndefined();
+  });
   beforeEach(() => {
     useProfileStore.setState({
       profile: {

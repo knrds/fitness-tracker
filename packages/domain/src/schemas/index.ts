@@ -364,33 +364,43 @@ export type SyncOperationInput = z.input<typeof SyncOperationSchema>;
 
 export const ChatRoleSchema = z.enum(['user', 'assistant', 'system']);
 
-export const CoachPlanSchema = z.object({
-  name: z.string().trim().min(1).max(100),
-  days: z
-    .array(
-      z.object({
-        name: z.string().trim().min(1).max(100),
-        exercises: z
-          .array(
-            z
-              .object({
-                exerciseId: UUIDSchema,
-                sets: z.number().int().min(1).max(10),
-                reps: z.number().int().min(1).max(50),
-                repsMax: z.number().int().min(1).max(50),
-                rir: z.number().int().min(0).max(5),
-                restSeconds: z.number().int().min(15).max(600),
-                notes: z.string().max(500),
-              })
-              .refine((exercise) => exercise.repsMax >= exercise.reps),
-          )
-          .min(1)
-          .max(12),
-      }),
-    )
-    .min(1)
-    .max(7),
-});
+export const CoachPlanSchema = z
+  .object({
+    name: z.string().trim().min(1).max(100),
+    kind: z.enum(['template', 'program']).optional(),
+    durationWeeks: z.number().int().min(1).max(104).optional(),
+    days: z
+      .array(
+        z.object({
+          name: z.string().trim().min(1).max(100),
+          exercises: z
+            .array(
+              z
+                .object({
+                  exerciseId: UUIDSchema,
+                  sets: z.number().int().min(1).max(10),
+                  reps: z.number().int().min(1).max(50),
+                  repsMax: z.number().int().min(1).max(50),
+                  rir: z.number().int().min(0).max(5),
+                  restSeconds: z.number().int().min(15).max(600),
+                  notes: z.string().max(500),
+                })
+                .refine((exercise) => exercise.repsMax >= exercise.reps),
+            )
+            .min(1)
+            .max(12),
+        }),
+      )
+      .min(1)
+      .max(7),
+  })
+  .refine(
+    (plan) =>
+      plan.kind !== 'template' || (plan.days.length === 1 && (plan.durationWeeks ?? 1) === 1),
+    {
+      message: 'A workout template contains exactly one day, without a multiweek schedule.',
+    },
+  );
 
 export const ChatMessageSchema = z.object({
   id: UUIDSchema,

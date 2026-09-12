@@ -15,10 +15,17 @@ export function CoachPlanCard({ message }: { message: ChatMessage }) {
   const [error, setError] = useState('');
   if (!message.plan) return null;
   const saved = Boolean(message.savedTemplateIds?.length);
+  const isProgram =
+    message.plan.kind === 'program' || (!message.plan.kind && message.plan.days.length > 1);
   return (
     <View style={{ gap: 14, marginTop: 16, minWidth: 0 }}>
       <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700' }}>
         {message.plan.name}
+      </Text>
+      <Text style={{ color: theme.colors.muted, fontSize: 13 }}>
+        {isProgram
+          ? `Programm · ${message.plan.days.length} Trainingstage · ${message.plan.durationWeeks ?? 1} Woche(n)`
+          : 'Workout-Template · 1 Trainingstag'}
       </Text>
       {message.plan.days.map((day, index) => (
         <View
@@ -52,7 +59,10 @@ export function CoachPlanCard({ message }: { message: ChatMessage }) {
         accessibilityRole="button"
         onPress={() => {
           if (saved) {
-            router.navigate({ pathname: '/workouts', params: { tab: 'programs' } });
+            router.navigate({
+              pathname: '/workouts',
+              params: { tab: isProgram ? 'programs' : 'templates' },
+            });
             return;
           }
           try {
@@ -72,7 +82,11 @@ export function CoachPlanCard({ message }: { message: ChatMessage }) {
         }}
       >
         <Text style={{ color: theme.colors.background, fontWeight: '600' }}>
-          {saved ? 'Gespeichert · In Plans öffnen' : 'Plan und Workouts speichern'}
+          {saved
+            ? 'Gespeichert · In Plans öffnen'
+            : isProgram
+              ? 'Programm und Workouts speichern'
+              : 'Workout-Template speichern'}
         </Text>
       </Pressable>
     </View>

@@ -6,9 +6,12 @@ function validPlan(plan, catalog) {
   return (
     isRecord(plan) &&
     text(plan.name, 100) &&
+    (plan.kind === undefined || ['template', 'program'].includes(plan.kind)) &&
+    (plan.durationWeeks === undefined || integer(plan.durationWeeks, 1, 104)) &&
     Array.isArray(plan.days) &&
     plan.days.length >= 1 &&
     plan.days.length <= 7 &&
+    (plan.kind !== 'template' || (plan.days.length === 1 && (plan.durationWeeks ?? 1) === 1)) &&
     plan.days.every(
       (day) =>
         isRecord(day) &&
@@ -50,7 +53,12 @@ function planResponseFormat(catalog) {
     notes: shortText,
   });
   const day = object({ name: shortText, exercises: { type: 'array', items: exercise } });
-  const plan = object({ name: shortText, days: { type: 'array', items: day } });
+  const plan = object({
+    name: shortText,
+    kind: { type: 'string', enum: ['template', 'program'] },
+    durationWeeks: { type: 'integer', minimum: 1, maximum: 104 },
+    days: { type: 'array', items: day },
+  });
   return {
     type: 'json_schema',
     json_schema: {
@@ -88,4 +96,11 @@ function parsePlanReply(content, catalog) {
     return null;
   }
 }
-module.exports = { validPlan, planInstruction, planResponseFormat, parsePlanReply };
+module.exports = {
+  validPlan,
+  planInstruction:
+    planInstruction +
+    ` Classify plan.kind explicitly: "template" for one workout or one training day, including a generic training-plan request that yields one day. A template MUST have exactly one day and durationWeeks:1. Use "program" ONLY when the user explicitly requests a split, several training days, a weekly or multiweek program. A follow-up asking for a template of one workout from an earlier program must produce only that template. Set durationWeeks to the requested number of weeks (1-104), otherwise 1. A multiweek program repeats the displayed weekly schedule; never imply unprovided periodization. Never add a program to a single-workout request.`,
+  planResponseFormat,
+  parsePlanReply,
+};

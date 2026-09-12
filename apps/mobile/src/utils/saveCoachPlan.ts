@@ -51,36 +51,42 @@ export function saveCoachPlan(
     })),
   }));
   WorkoutTemplateSchema.array().parse(templates);
-  // One editable week; never silently activate a program or interrupt an active workout.
-  const program: Program = {
-    id: Crypto.randomUUID(),
-    userId,
-    name: plan.name,
-    durationWeeks: 1,
-    isActive: false,
-    createdAt: now,
-    updatedAt: now,
-    workouts: templates.map((template, index) => ({
-      id: Crypto.randomUUID(),
-      templateId: template.id,
-      week: 1,
-      dayOfWeek: Math.floor((index * 7) / templates.length) + 1,
-      order: index,
-    })),
-  };
-  ProgramSchema.parse(program);
+  const isProgram = plan.kind === 'program' || (!plan.kind && plan.days.length > 1);
+  const durationWeeks = plan.durationWeeks ?? 1;
+  // Only explicit programs or legacy multi-day splits get an inactive schedule.
+  const program: Program | undefined = isProgram
+    ? {
+        id: Crypto.randomUUID(),
+        userId,
+        name: plan.name,
+        durationWeeks,
+        isActive: false,
+        createdAt: now,
+        updatedAt: now,
+        workouts: Array.from({ length: durationWeeks }, (_, week) =>
+          templates.map((template, index) => ({
+            id: Crypto.randomUUID(),
+            templateId: template.id,
+            week: week + 1,
+            dayOfWeek: Math.floor((index * 7) / templates.length) + 1,
+            order: index,
+          })),
+        ).flat(),
+      }
+    : undefined;
+  if (program) ProgramSchema.parse(program);
   const previousProgram = useProgramStore.getState();
   const previousSync = useSyncStore.getState();
   const ids = templates.map((template) => template.id);
   runStorageTransaction(
     () => {
       useProgramStore.setState((state) => ({
-        templates: [...state.templates, ...templates],
-        programs: [...state.programs, program],
+        templates: [...templates, ...state.templates],
+        programs: program ? [program, ...state.programs] : state.programs,
       }));
       for (const template of templates)
         useSyncStore.getState().addToQueue('workout_templates', 'INSERT', template);
-      useSyncStore.getState().addToQueue('programs', 'INSERT', program);
+      if (program) useSyncStore.getState().addToQueue('programs', 'INSERT', program);
       useCoachStore.setState((state) => ({
         messages: state.messages.map((item) =>
           item.id === messageId ? { ...item, savedTemplateIds: ids } : item,

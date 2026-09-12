@@ -2,15 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   KeyboardAvoidingView,
-  NativeSyntheticEvent,
   Platform,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
-  TextInputKeyPressEventData,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +18,7 @@ import { HorizontalFadeScroll } from '../../src/components/HorizontalFadeScroll'
 import { useCoachStore } from '../../src/stores/coachStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import * as ImagePicker from 'expo-image-picker';
+import { CoachComposer } from '../../src/components/CoachComposer';
 import { CoachPlanCard } from '../../src/components/CoachPlanCard';
 import { CoachSources } from '../../src/components/CoachSources';
 import { useCoachRecorder } from '../../src/hooks/useCoachRecorder';
@@ -99,14 +96,6 @@ export default function CoachScreen() {
     void handleSend(suggestion);
   };
 
-  const handleInputKeyPress = (event: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
-    const nativeEvent = event.nativeEvent as TextInputKeyPressEventData & { shiftKey?: boolean };
-    if (Platform.OS !== 'web' || nativeEvent.key !== 'Enter' || nativeEvent.shiftKey) return;
-
-    (event as unknown as { preventDefault?: () => void }).preventDefault?.();
-    void handleSend(inputText);
-  };
-
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <View
@@ -116,7 +105,7 @@ export default function CoachScreen() {
             backgroundColor: theme.colors.background,
             paddingTop: Math.max(insets.top, 16),
             paddingBottom: hasWorkoutBar ? 80 : 0,
-            maxWidth: 1040,
+            maxWidth: 800,
             width: '100%',
             alignSelf: 'center',
           },
@@ -287,166 +276,20 @@ export default function CoachScreen() {
             </View>
           )}
 
-          <View style={{ paddingHorizontal: 24, gap: 8 }}>
-            {image ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Image
-                  source={{ uri: image }}
-                  style={{ width: 64, height: 64, borderRadius: 10 }}
-                />
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => setImage(undefined)}
-                  style={{ minHeight: 44, justifyContent: 'center' }}
-                >
-                  <Text style={{ color: theme.colors.muted }}>Bild entfernen</Text>
-                </Pressable>
-              </View>
-            ) : null}
-            {recorder.error || attachmentError ? (
-              <Text accessibilityRole="alert" style={{ color: theme.colors.accent }}>
-                {recorder.error || attachmentError}
-              </Text>
-            ) : null}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Trainingsplan als Bild anhängen"
-                disabled={isSending || recorder.busy || recorder.recording}
-                onPress={() => void pickImage()}
-                style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
-              >
-                <Ionicons name="image-outline" size={22} color={theme.colors.primary} />
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={
-                  recorder.recording
-                    ? 'Aufnahme beenden und transkribieren'
-                    : 'Sprachmemo aufnehmen'
-                }
-                disabled={isSending || recorder.busy}
-                onPress={recorder.toggle}
-                style={{
-                  width: 44,
-                  height: 44,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 22,
-                  backgroundColor: recorder.recording ? theme.colors.primary : theme.colors.surface,
-                }}
-              >
-                <Ionicons
-                  name={recorder.recording ? 'stop' : 'mic-outline'}
-                  size={22}
-                  color={recorder.recording ? theme.colors.background : theme.colors.primary}
-                />
-              </Pressable>
-              <Text style={{ flex: 1, minWidth: 0, color: theme.colors.muted, fontSize: 11 }}>
-                {recorder.busy
-                  ? 'Wird transkribiert …'
-                  : recorder.recording
-                    ? 'Aufnahme läuft · max. 60 s'
-                    : 'Bild und Sprachmemo werden über OpenRouter verarbeitet. Transkript vor dem Senden bearbeiten.'}
-              </Text>
-              {recorder.recording ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Aufnahme verwerfen"
-                  onPress={recorder.cancel}
-                  style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <Ionicons name="close" size={22} color={theme.colors.muted} />
-                </Pressable>
-              ) : null}
-            </View>
-          </View>
-          <View
-            style={[
-              styles.inputRow,
-              {
-                borderTopColor: theme.colors.border,
-                backgroundColor: theme.colors.background,
-                paddingBottom: Math.max(insets.bottom + 8, 16),
-              },
-            ]}
-          >
-            <View
-              style={[
-                styles.inputWrapper,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                },
-              ]}
-            >
-              <TextInput
-                style={[styles.input, { color: theme.colors.text }]}
-                placeholder="Ask your coach..."
-                placeholderTextColor={theme.colors.muted}
-                value={inputText}
-                onChangeText={setInputText}
-                multiline
-                blurOnSubmit={false}
-                maxLength={4000}
-                editable={!isSending}
-                returnKeyType="send"
-                enterKeyHint="send"
-                submitBehavior="submit"
-                onKeyPress={handleInputKeyPress}
-                {...(Platform.OS === 'web'
-                  ? {
-                      onKeyDown: (e: {
-                        key: string;
-                        shiftKey: boolean;
-                        preventDefault: () => void;
-                      }) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          void handleSend(inputText);
-                        }
-                      },
-                    }
-                  : {})}
-                onSubmitEditing={() => {
-                  void handleSend(inputText);
-                }}
-                accessibilityLabel="Coach message"
-              />
-            </View>
-            <Pressable
-              style={[
-                styles.sendButton,
-                {
-                  backgroundColor:
-                    isSending ||
-                    recorder.busy ||
-                    recorder.recording ||
-                    (!inputText.trim() && !image)
-                      ? theme.colors.surface
-                      : theme.colors.primary,
-                },
-              ]}
-              onPress={() => {
-                void handleSend(inputText);
-              }}
-              disabled={
-                isSending || recorder.busy || recorder.recording || (!inputText.trim() && !image)
-              }
-              accessibilityRole="button"
-              accessibilityLabel="Send coach message"
-            >
-              <Ionicons
-                name="send"
-                size={18}
-                color={
-                  isSending || recorder.busy || recorder.recording || (!inputText.trim() && !image)
-                    ? theme.colors.muted
-                    : theme.colors.background
-                }
-              />
-            </Pressable>
-          </View>
+          <CoachComposer
+            value={inputText}
+            onChangeText={setInputText}
+            image={image}
+            onRemoveImage={() => setImage(undefined)}
+            onPickImage={() => void pickImage()}
+            onSend={() => void handleSend(inputText)}
+            sending={isSending}
+            recording={recorder.recording}
+            transcribing={recorder.busy}
+            onToggleRecording={recorder.toggle}
+            onCancelRecording={recorder.cancel}
+            error={recorder.error || attachmentError}
+          />
         </KeyboardAvoidingView>
       </View>
     </View>
@@ -516,7 +359,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   bubble: {
-    maxWidth: '85%',
+    maxWidth: '94%',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -563,7 +406,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   suggestionPill: {
-    height: 36,
+    minHeight: 44,
     borderRadius: 18,
     borderWidth: 1,
     paddingHorizontal: 16,
@@ -572,35 +415,5 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontFamily: 'Manrope_600SemiBold',
-  },
-  inputRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    gap: 12,
-    alignItems: 'flex-end',
-  },
-  inputWrapper: {
-    flex: 1,
-    minWidth: 0,
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    maxHeight: 100,
-  },
-  input: {
-    fontSize: 16,
-    fontFamily: 'Manrope_500Medium',
-    paddingTop: 0,
-    paddingBottom: 0,
-  },
-  sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });

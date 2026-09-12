@@ -35,6 +35,29 @@ describe('programStore', () => {
     expect(state.programs[0]!.name).toBe('Test Program');
     expect(state.programs[0]!.durationWeeks).toBe(8);
   });
+  it('prepends new programs and templates while preserving the existing manual order', () => {
+    for (const name of ['A', 'B', 'C']) {
+      useProgramStore.getState().createProgram({ name });
+      useProgramStore.getState().createTemplate({ name });
+    }
+    const state = useProgramStore.getState();
+    useProgramStore.getState().updateProgramsOrder([...state.programs].reverse());
+    useProgramStore.getState().updateTemplatesOrder([...state.templates].reverse());
+    useProgramStore.getState().createProgram({ name: 'New' });
+    useProgramStore.getState().createTemplate({ name: 'New' });
+    expect(useProgramStore.getState().programs.map((item) => item.name)).toEqual([
+      'New',
+      'A',
+      'B',
+      'C',
+    ]);
+    expect(useProgramStore.getState().templates.map((item) => item.name)).toEqual([
+      'New',
+      'A',
+      'B',
+      'C',
+    ]);
+  });
 
   it('updates an existing program', () => {
     useProgramStore.getState().createProgram({ id: 'p1', name: 'Old Name' });

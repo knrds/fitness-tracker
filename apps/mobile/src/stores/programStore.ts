@@ -518,7 +518,7 @@ export const useProgramStore = create<ProgramState>()(
             updatedAt: now,
           } as Program;
           useSyncStore.getState().addToQueue('programs', 'INSERT', newProgram);
-          return { programs: [...state.programs, newProgram] };
+          return { programs: [newProgram, ...state.programs] };
         }),
 
       updateProgram: (id, updates) =>
@@ -546,7 +546,12 @@ export const useProgramStore = create<ProgramState>()(
         set((state) => {
           const updatedPrograms = state.programs.map((p) => {
             if (p.id === id) {
-              const updated = { ...p, isActive: true, startedAt: new Date(), updatedAt: new Date() };
+              const updated = {
+                ...p,
+                isActive: true,
+                startedAt: new Date(),
+                updatedAt: new Date(),
+              };
               useSyncStore.getState().addToQueue('programs', 'INSERT', updated);
               return updated;
             }
@@ -579,7 +584,7 @@ export const useProgramStore = create<ProgramState>()(
             updatedAt: now,
           } as WorkoutTemplate;
           useSyncStore.getState().addToQueue('workout_templates', 'INSERT', newTemplate);
-          return { templates: [...state.templates, newTemplate] };
+          return { templates: [newTemplate, ...state.templates] };
         }),
 
       updateTemplate: (id, updates) =>

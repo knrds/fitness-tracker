@@ -4,6 +4,8 @@
   "version": "0.1.0",
   "packageManager": "pnpm@11.5.0",
   "scripts": {
+    "coach:local": "node api/local-server.cjs",
+    "test:api": "node --test api/coach-chat.test.cjs",
     "dev": "pnpm --filter @fitness-tracker/mobile dev",
     "web": "pnpm --filter @fitness-tracker/mobile web",
     "expo": "pnpm --filter @fitness-tracker/mobile start:lan",
@@ -13,7 +15,7 @@
     "build": "pnpm --filter @fitness-tracker/mobile build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test",
+    "test": "pnpm -r test && pnpm test:api",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
   },
   "devDependencies": {

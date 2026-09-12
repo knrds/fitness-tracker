@@ -70,9 +70,36 @@ describe('coachApi', () => {
       'https://coach.example.test/chat',
       expect.objectContaining({
         method: 'POST',
-        body: expect.stringContaining('"model":"test-model"'),
+        body: expect.stringContaining('Review my squat'),
       }),
     );
     expect(mockInvoke).not.toHaveBeenCalled();
+  });
+
+  it('surfaces server failures instead of inventing a local reply', async () => {
+    process.env.EXPO_PUBLIC_COACH_CHAT_ENDPOINT = 'https://coach.example.test/chat';
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503 });
+    const { streamCoachResponse } = jest.requireActual<typeof import('../coachApi')>('../coachApi');
+    await expect(
+      streamCoachResponse([], {
+        profile: { displayName: 'Test', preferredUnits: 'metric' },
+        stats: { totalWorkouts: 0, currentStreak: 0 },
+      }).next(),
+    ).rejects.toThrow('nicht vollständig eingerichtet');
+    expect(mockInvoke).not.toHaveBeenCalled();
+  });
+
+  it('rejects an HTML preview page instead of showing it as a coach response', async () => {
+    process.env.EXPO_PUBLIC_COACH_CHAT_ENDPOINT = 'https://coach.example.test/chat';
+    global.fetch = jest
+      .fn()
+      .mockResolvedValue({ ok: true, text: async () => '<html>preview</html>' });
+    const { streamCoachResponse } = jest.requireActual<typeof import('../coachApi')>('../coachApi');
+    await expect(
+      streamCoachResponse([], {
+        profile: { displayName: 'Test', preferredUnits: 'metric' },
+        stats: { totalWorkouts: 0, currentStreak: 0 },
+      }).next(),
+    ).rejects.toThrow('JSON');
   });
 });

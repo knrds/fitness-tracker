@@ -62,7 +62,7 @@ export const useCoachStore = create<CoachState>()(
         set({ isSending: true });
 
         // Check connection
-        const online = await checkConnectivity();
+        const online = await checkConnectivity().catch(() => false);
         if (!isScopeCurrent(scope)) return;
         set({ isOnline: online, error: null });
 
@@ -176,25 +176,19 @@ export const useCoachStore = create<CoachState>()(
           const errMsg = err instanceof Error ? err.message : 'Failed to get a coach response.';
           set({ error: errMsg });
 
-          // Revert the placeholder back to an error prompt
-          set((state) => {
-            const updatedMessages = state.messages.map((msg) => {
-              if (msg.id === assistantMsgId) {
-                return {
-                  ...msg,
-                  content: 'Sorry, I had trouble generating that response. Please try again.',
-                };
-              }
-              return msg;
-            });
-            return { messages: updatedMessages };
-          });
+          // Keep the user's question for retry; never persist an error as an AI answer.
+          set((state) => ({
+            messages: state.messages.filter(
+              (msg) => msg.id !== assistantMsgId || msg.role !== 'assistant',
+            ),
+          }));
         } finally {
           if (isScopeCurrent(scope)) set({ isSending: false });
         }
       },
 
       clearChatHistory: () => {
+        if (get().isSending) return;
         set({ messages: [], error: null });
       },
 

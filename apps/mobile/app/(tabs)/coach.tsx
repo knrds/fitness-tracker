@@ -19,6 +19,7 @@ import { ChatMessage } from '@fitness-tracker/domain';
 
 import { HorizontalFadeScroll } from '../../src/components/HorizontalFadeScroll';
 import { useCoachStore } from '../../src/stores/coachStore';
+import { useWorkoutStore } from '../../src/stores/workoutStore';
 
 const SUGGESTIONS = [
   'Review recent progress',
@@ -31,6 +32,7 @@ const SUGGESTIONS = [
 export default function CoachScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const hasWorkoutBar = useWorkoutStore((state) => state.status !== 'idle' && state.isMinimized);
   const { messages, isSending, error, sendMessage, clearChatHistory } = useCoachStore();
   const [inputText, setInputText] = useState('');
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
@@ -69,7 +71,11 @@ export default function CoachScreen() {
     <View
       style={[
         styles.container,
-        { backgroundColor: theme.colors.background, paddingTop: Math.max(insets.top, 16) },
+        {
+          backgroundColor: theme.colors.background,
+          paddingTop: Math.max(insets.top, 16),
+          paddingBottom: hasWorkoutBar ? 80 : 0,
+        },
       ]}
     >
       <View style={styles.header}>
@@ -91,6 +97,7 @@ export default function CoachScreen() {
             { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
           ]}
           onPress={clearChatHistory}
+          disabled={isSending}
           accessibilityRole="button"
           accessibilityLabel="Clear coach chat"
           testID="reset-chat-btn"
@@ -162,7 +169,8 @@ export default function CoachScreen() {
               Ready when you are
             </Text>
             <Text style={[styles.welcomeText, { color: theme.colors.muted }]}>
-              Start with a training question from your current log.
+              Deine Frage, die letzten Nachrichten und eine Zusammenfassung deiner Trainingsdaten
+              werden an den KI-Dienst gesendet.
             </Text>
           </View>
         }
@@ -237,14 +245,20 @@ export default function CoachScreen() {
               enterKeyHint="send"
               submitBehavior="submit"
               onKeyPress={handleInputKeyPress}
-              {...(Platform.OS === 'web' ? {
-                onKeyDown: (e: { key: string; shiftKey: boolean; preventDefault: () => void }) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    void handleSend(inputText);
+              {...(Platform.OS === 'web'
+                ? {
+                    onKeyDown: (e: {
+                      key: string;
+                      shiftKey: boolean;
+                      preventDefault: () => void;
+                    }) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        void handleSend(inputText);
+                      }
+                    },
                   }
-                }
-              } : {})}
+                : {})}
               onSubmitEditing={() => {
                 void handleSend(inputText);
               }}

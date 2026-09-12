@@ -72,8 +72,8 @@ describe('coachStore', () => {
     const state = useCoachStore.getState();
     expect(state.isSending).toBe(false);
     expect(state.error).toBe('API failure');
-    expect(state.messages.length).toBe(2);
-    expect(state.messages[1]?.content).toContain('Sorry, I had trouble');
+    expect(state.messages.length).toBe(1);
+    expect(state.messages[0]?.content).toBe('Force failure');
   });
 
   it('should clear chat history correctly', () => {

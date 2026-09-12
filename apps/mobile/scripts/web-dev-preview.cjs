@@ -35,7 +35,11 @@ if (exportResult.status !== 0) {
 
 console.log(`[web] Serving apps/mobile/dist on http://localhost:${port}`);
 
-const serveProcess = spawn(process.execPath, [expoCli, 'serve', '--port', port], commandOptions);
+const serveProcess = spawn(
+  process.execPath,
+  [path.resolve(projectRoot, '../../api/local-server.cjs')],
+  { ...commandOptions, env: { ...commandOptions.env, COACH_LOCAL_PORT: port } },
+);
 
 const stopServe = () => {
   if (!serveProcess.killed) {

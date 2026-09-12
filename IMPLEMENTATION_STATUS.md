@@ -1,5 +1,27 @@
 # Umsetzungsstand vom 12.09.2026
 
+## Abgeschlossener Zwischenstand: Workout-Vereinfachung und echter Coach
+
+| Before | After |
+| --- | --- |
+| Satz-Schnellleiste und fehleranfällige Fokusumleitung | Entfernt; manuelle Dezimalwerte mit Punkt/Komma bleiben während des Tippens erhalten |
+| Scrollen ersetzt Header und entfernt Abbrechen/Minimieren | Gleichbleibender Header mit mindestens 44-px-Aktionsflächen |
+| Lange Übungsnamen zwischen vier Werkzeugicons eingequetscht | Titel in normaler Schreibweise; Statistik, Warmup und Scheibenrechner im scrollbar begrenzten Optionsmenü |
+| Sehr breite Desktop-Inhalte | Workout maximal 960 px, Coach maximal 920 px, dunkler Hintergrund über volle Breite |
+| Koffein-Kommentar „trollst du“ | Hinweis auf mögliche Extra-Null mit Augenzwinkern und Bitte um Mengen-/Einheitenprüfung |
+| Freie Timer-Verschiebung, Federbewegung, harter Moduswechsel | Fester unterer Anker, 220-ms-Größenanimation, Reduced Motion, keine automatische Öffnung bei Ablauf |
+| Kleine Heatmap-Zeichnungen | Größere Vektorkarte, Front-/Rückseitenüberblendung, Zahlenlegende und beschriftete 44-px-Tasten |
+| OpenRouter 402 wird als 502 maskiert | Sichere Fehlercodes und Guthabenhinweis; Startprüfung von Schlüssel/Modell sowie pnpm coach:check |
+| Gescheiterte Frage muss erneut eingegeben werden | Erneut-senden-Aktion ohne Nachrichtenduplikat; Hervorhebungen in Antworten lesbar dargestellt |
+| Lokaler Reset scheitert an eigener Coach-Sperre | Reset leert Nachrichten direkt unter seiner bestehenden Sperre |
+| Resume nach Reload legt zweite Workout-Route an | Bestehende Workout-Ansicht wird weitergenutzt |
+
+230 Tests bestehen (57 Domain, 166 Mobile, 7 API), Typecheck/Lint sowie Web-/iOS-/Android-Hermes-Exporte erfolgreich. Echter OpenRouter-Test zuerst HTTP 402 (Insufficient credits), später HTTP 200 mit deepseek/deepseek-v4-flash; Antwort übernahm die metrische Einheit des isolierten Testprofils. Kein Schlüssel wurde protokolliert. Guthaben-/Modellverfügbarkeit bleibt extern abhängig; keine Garantie gegen spätere Providerfehler.
+
+Browser 390×844 und 1440×1000: Headerposition und Finish unverändert nach Scrollen; Timerhöhe 72–222 px ohne Überschwingen, Unterkante konstant, 29 Zwischenmessungen; 12,5 wird nach Blur/Reload als 12.5 wiederhergestellt; Optionswerkzeuge und Koffeinhinweis erreichbar. Heatmap-Schultertaste per emuliertem Touch erfolgreich (145×44 px), Front/Rückseite geprüft. Screenshots polish-workout-mobile.png, polish-workout-desktop.png, polish-coach-desktop.png und polish-heatmap-mobile.png geprüft.
+
+Neue Nutzerergänzungen folgen nach diesem Zwischenstand: menschlichere Heatmap über Higgsfield, Kreisindikator für ausgeklappten Timer, Navigation/Tab-Übergänge, Suche, Abschlussübersicht, Achievements und weitere Profil-/Body-/Programmverbesserungen. Native Geräteabnahme bleibt offen. Die nachfolgenden Abschnitte beschreiben frühere Meilensteine.
+
 ## Aktuell: Bedienung, Muskelregionen und Coach
 
 | Before | After |

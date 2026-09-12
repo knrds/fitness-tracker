@@ -1,5 +1,7 @@
 # Backend
 
+Aktualisierung 12.09.2026: Konfiguriertes deepseek/deepseek-v4-flash wurde real aufgerufen. Anfangs kam HTTP 402 wegen fehlendem Guthaben/Schlüssellimit; dieser Fehler wird nun als PROVIDER_CREDITS/402 statt pauschal 502 angezeigt. Späterer Browseraufruf: HTTP 200 mit korrekter metrischer Profileinheit. pnpm coach:check und der lokale Start prüfen Schlüssel/Modell read-only. Sie können das gesamte Account-Guthaben nicht garantieren, da die Credits-Verwaltung einen Management-Key erfordert. Kein Management-Key nötig oder angefordert. Wiederholen im Coach dupliziert die Frage nicht.
+
 ## Coach am 12.09.2026
 
 Lokaler Browserbetrieb mit OpenRouter: api/.env.example nach .env.coach.local im Repository kopieren, OPENROUTER_API_KEY und OPENROUTER_MODEL setzen. Datei ist ignoriert. pnpm dev baut die Vorschau und startet App/API auf Port 8081. pnpm coach:local nutzt einen vorhandenen Export auf Port 8096. Nach Konfigurationsänderungen Server neu starten. Keine Providersecrets in Expo-Variablen.

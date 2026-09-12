@@ -1,5 +1,7 @@
 # Roadmap
 
+Weiterer Zwischenstand 12.09.: Workout-Vereinfachung, ruhiger Timer, Dezimaleingabe, sichere Coach-Diagnose/Retries und reale DeepSeek-Antwort implementiert; 230 Tests. Neue Nutzerliste für Navigation, Suche, Achievements, Abschlussübersicht, menschliche Heatmap und weitere UI-Verbesserungen hat zunächst Vorrang vor Phase 4b.2.
+
 12.09.2026: Vorgezogene Nutzerkorrekturen für Drag-and-drop, regionale Übungsfilter/Heatmap und lokalen OpenRouter-Server implementiert; 227 Tests bestehen. Phase 8/9 bleiben wegen nativer Performance-/Accessibility- und realer Provider-/Backendabnahme offen. Details: IMPLEMENTATION_STATUS.md.
 
 - [x] Referenz inventarisiert, Audit und Ausgangsnachweise dokumentiert.

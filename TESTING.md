@@ -1,5 +1,7 @@
 # Testnachweise – 12.09.2026
 
+Aktueller Zusatzlauf: 230 Tests (57 Domain, 166 Mobile, 7 API), Typecheck/Lint und drei Plattform-Exporte bestanden. Neue API-/Clientregression: Kreditfehler inklusive Fehlerobjekt in HTTP 200, keine rohen Providerdetails; Store-Retry ohne Duplikate. Bestehende Reset-Regression deckte den Konflikt mit der Coach-Sperre auf und besteht nach Fix. Reanimated-Testmock um Reduced Motion ergänzt, UUIDs im Retry-Test realistisch eindeutig. Reale Browser-/Provider-Nachweise siehe aktuellsten Abschnitt IMPLEMENTATION_STATUS.md.
+
 227 Tests bestanden: Domain/Vitest 57 Tests in 8 Dateien, Mobile/Jest 164 Tests in 35 Suites, Node API 6 Tests. Keine Tests deaktiviert. Baseline: 136 Tests. Typecheck und Lint erfolgreich. pnpm test enthält nun auch die API-Tests.
 
 Neue Regressionen prüfen regionale Filter, körpergewichtsgeeignete Muskelaktivität, gemessene Drop-Ziele, Abbruch/Kontowechsel während einer Geste sowie echten HTTP-Vertrag statt Chatfallback. API-Tests prüfen Auth, fehlende Konfiguration, serverseitige Modellwahl, tatsächliche Frage, Systemrollen und die Grenze zum lokalen Modus. Providerzugriff wird dabei simuliert. Reale Browserprüfung: Maus-Reorder im Training, Touch-Reorder von Vorlagen, Schulter-Hitmap-Einstieg und lokale Coach-503-Antwort mit sichtbarer Frage/Fehlermeldung; Senden trotz minimiertem Training. Native Gesten und sämtliche Kalender-Dropvarianten bleiben ungeprüft. Web und Hermes für beide Plattformen exportiert; keine signierten Builds.

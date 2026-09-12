@@ -107,10 +107,23 @@ module.exports = async function handler(req, res) {
       }),
     });
     const data = await response.json().catch(() => null);
-    if (!response.ok)
-      return res
-        .status(response.status === 429 ? 429 : 502)
-        .json({ error: 'AI provider unavailable' });
+    if (!response.ok || data?.error) {
+      const status = data?.error?.code || response.status;
+      const failures = {
+        402: [402, 'PROVIDER_CREDITS', 'OpenRouter credits exhausted'],
+        401: [502, 'PROVIDER_AUTH', 'OpenRouter key rejected'],
+        403: [502, 'PROVIDER_ACCESS', 'OpenRouter request not permitted'],
+        400: [502, 'PROVIDER_REQUEST', 'OpenRouter model or request configuration invalid'],
+        404: [502, 'PROVIDER_MODEL', 'OpenRouter model unavailable'],
+        429: [429, 'PROVIDER_LIMIT', 'OpenRouter rate limit reached'],
+      };
+      const [httpStatus, code, error] = failures[status] || [
+        502,
+        'PROVIDER_UNAVAILABLE',
+        'AI provider unavailable',
+      ];
+      return res.status(httpStatus).json({ code, error });
+    }
     const reply = data?.choices?.[0]?.message?.content;
     if (typeof reply !== 'string' || !reply.trim())
       return res.status(502).json({ error: 'Empty AI response' });

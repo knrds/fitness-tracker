@@ -25,7 +25,8 @@ interface CoachState extends CoachPersistState {
   isSending: boolean;
   isOnline: boolean;
   error: string | null;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, retryId?: string) => Promise<void>;
+  retryLastMessage: () => Promise<void>;
   clearChatHistory: () => void;
   updateOnlineStatus: () => Promise<void>;
 }
@@ -56,9 +57,15 @@ export const useCoachStore = create<CoachState>()(
       isOnline: true,
       error: null,
 
-      sendMessage: async (content: string) => {
+      sendMessage: async (content: string, retryId?: string) => {
         const scope = getStorageScope();
         if (!content.trim() || get().isSending || !isScopeCurrent(scope)) return;
+        const lastMessage = get().messages.at(-1);
+        const retryMessage =
+          retryId && lastMessage?.id === retryId && lastMessage.role === 'user'
+            ? lastMessage
+            : undefined;
+        if (retryId && !retryMessage) return;
         set({ isSending: true });
 
         // Check connection
@@ -67,7 +74,7 @@ export const useCoachStore = create<CoachState>()(
         set({ isOnline: online, error: null });
 
         // 1. Construct and append user message
-        const userMsg: ChatMessage = {
+        const userMsg: ChatMessage = retryMessage ?? {
           id: Crypto.randomUUID(),
           role: 'user',
           content: content.trim(),
@@ -84,7 +91,7 @@ export const useCoachStore = create<CoachState>()(
         };
 
         set((state) => ({
-          messages: [...state.messages, userMsg, assistantMsg],
+          messages: [...state.messages, ...(retryMessage ? [] : [userMsg]), assistantMsg],
           isSending: true,
         }));
 
@@ -163,7 +170,7 @@ export const useCoachStore = create<CoachState>()(
             if (!isScopeCurrent(scope)) return;
             set((state) => {
               const updatedMessages = state.messages.map((msg) => {
-                if (msg.id === assistantMsgId) {
+                if (msg.id === assistantMsgId && msg.role === 'assistant') {
                   return { ...msg, content: chunk };
                 }
                 return msg;
@@ -187,6 +194,10 @@ export const useCoachStore = create<CoachState>()(
         }
       },
 
+      retryLastMessage: async () => {
+        const last = get().messages.at(-1);
+        if (get().error && last?.role === 'user') await get().sendMessage(last.content, last.id);
+      },
       clearChatHistory: () => {
         if (get().isSending) return;
         set({ messages: [], error: null });

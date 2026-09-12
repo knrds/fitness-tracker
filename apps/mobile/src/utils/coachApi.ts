@@ -85,7 +85,22 @@ export async function* streamCoachResponse(
       }),
     });
     if (!response.ok) {
+      const data: unknown = await response.json().catch(() => null);
+      const providerErrors: Record<string, string> = {
+        PROVIDER_CREDITS:
+          'Das OpenRouter-Guthaben reicht nicht aus. Bitte Guthaben oder das Limit des API-Schlüssels prüfen und danach erneut senden.',
+        PROVIDER_AUTH:
+          'OpenRouter lehnt den API-Schlüssel ab. Bitte die Server-Konfiguration prüfen und neu starten.',
+        PROVIDER_ACCESS:
+          'OpenRouter erlaubt diese Anfrage nicht. Bitte Modellzugriff und Kontoeinstellungen prüfen.',
+        PROVIDER_REQUEST:
+          'OpenRouter akzeptiert Modell oder Anfrage-Konfiguration nicht. Bitte das konfigurierte Modell prüfen.',
+        PROVIDER_MODEL: 'Das konfigurierte OpenRouter-Modell ist derzeit nicht verfügbar.',
+      };
+      if (isRecord(data) && typeof data.code === 'string' && providerErrors[data.code])
+        throw new Error(providerErrors[data.code]);
       const errors: Record<number, string> = {
+        402: 'Das OpenRouter-Guthaben reicht nicht aus. Bitte Guthaben oder API-Schlüssel-Limit prüfen.',
         401: 'Bitte anmelden, um den KI-Coach zu verwenden.',
         403: 'Dein Konto hat keinen Zugriff auf den KI-Coach.',
         404: 'Das Coach-Backend wurde unter dieser URL nicht gefunden.',

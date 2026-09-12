@@ -33,6 +33,22 @@ const request = () => ({
   headers: { authorization: 'Bearer test-token' },
   body: { messages: [{ role: 'user', content: 'Review my training' }], context: {} },
 });
+test('preserves credit errors without exposing raw provider details, including HTTP 200 errors', async () => {
+  process.env.OPENROUTER_API_KEY = 'private-test-key';
+  process.env.OPENROUTER_MODEL = 'configured-model';
+  for (const status of [402, 200]) {
+    global.fetch = async () => ({
+      ok: status === 200,
+      status,
+      json: async () => ({ error: { code: 402, message: 'private-test-key provider internals' } }),
+    });
+    const r = res();
+    await handler({ ...request(), localCoachUser: 'loopback-development' }, r);
+    assert.equal(r.code, 402);
+    assert.equal(r.body.code, 'PROVIDER_CREDITS');
+    assert.equal(JSON.stringify(r.body).includes('private-test-key'), false);
+  }
+});
 test('requires authentication before contacting a provider', async () => {
   global.fetch = () => {
     throw Error('must not fetch');

@@ -1,5 +1,10 @@
 import { useCoachStore } from '../coachStore';
 
+jest.mock('expo-crypto', () => {
+  let sequence = 0;
+  return { randomUUID: () => `00000000-0000-4000-8000-${String(++sequence).padStart(12, '0')}` };
+});
+
 // Mock coachApi functions
 const mockStreamCoachResponse = jest.fn();
 const mockCheckConnectivity = jest.fn().mockResolvedValue(true);
@@ -90,5 +95,21 @@ describe('coachStore', () => {
     const state = useCoachStore.getState();
     expect(state.messages).toEqual([]);
     expect(state.error).toBeNull();
+  });
+  it('retries a failed question without duplicating it', async () => {
+    mockStreamCoachResponse.mockImplementation(() => {
+      throw new Error('No credits');
+    });
+    await useCoachStore.getState().sendMessage('Meine letzte Frage');
+    mockStreamCoachResponse.mockImplementation(async function* () {
+      yield 'Echte Testantwort';
+    });
+    await useCoachStore.getState().retryLastMessage();
+    const messages = useCoachStore.getState().messages;
+    expect(messages.map((message) => [message.role, message.content])).toEqual([
+      ['user', 'Meine letzte Frage'],
+      ['assistant', 'Echte Testantwort'],
+    ]);
+    expect(useCoachStore.getState().error).toBeNull();
   });
 });

@@ -78,7 +78,7 @@ describe('coachApi', () => {
 
   it('surfaces server failures instead of inventing a local reply', async () => {
     process.env.EXPO_PUBLIC_COACH_CHAT_ENDPOINT = 'https://coach.example.test/chat';
-    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503 });
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503, json: async () => ({}) });
     const { streamCoachResponse } = jest.requireActual<typeof import('../coachApi')>('../coachApi');
     await expect(
       streamCoachResponse([], {
@@ -101,5 +101,22 @@ describe('coachApi', () => {
         stats: { totalWorkouts: 0, currentStreak: 0 },
       }).next(),
     ).rejects.toThrow('JSON');
+  });
+  it('explains exhausted OpenRouter credits without showing raw provider text', async () => {
+    process.env.EXPO_PUBLIC_COACH_CHAT_ENDPOINT = 'https://coach.example.test/chat';
+    global.fetch = jest
+      .fn()
+      .mockResolvedValue({
+        ok: false,
+        status: 402,
+        json: async () => ({ code: 'PROVIDER_CREDITS', error: 'untrusted provider details' }),
+      });
+    const { streamCoachResponse } = jest.requireActual<typeof import('../coachApi')>('../coachApi');
+    await expect(
+      streamCoachResponse([], {
+        profile: { displayName: 'Test', preferredUnits: 'metric' },
+        stats: { totalWorkouts: 0, currentStreak: 0 },
+      }).next(),
+    ).rejects.toThrow('OpenRouter-Guthaben');
   });
 });

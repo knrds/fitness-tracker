@@ -14,6 +14,7 @@ import {
   LayoutChangeEvent,
   ViewStyle,
   Dimensions,
+  useWindowDimensions,
   Animated,
   PanResponder,
 } from 'react-native';
@@ -100,6 +101,7 @@ export const SessionExerciseCard = ({
   onSwipeEnd,
 }: Props) => {
   const theme = useTheme();
+  const { height: windowHeight } = useWindowDimensions();
   const router = useRouter();
   const navigateToInstructions = () => {
     router.push(`/exercise/${sessionExercise.exerciseId}`);
@@ -390,7 +392,12 @@ export const SessionExerciseCard = ({
           <Text
             style={[
               styles.title,
-              { color: theme.colors.text, ...theme.typography.heading, fontSize: 18 },
+              {
+                color: theme.colors.text,
+                fontFamily: 'SpaceGrotesk_700Bold',
+                fontSize: 17,
+                lineHeight: 23,
+              },
             ]}
           >
             {exercise.name}
@@ -412,32 +419,11 @@ export const SessionExerciseCard = ({
         </Pressable>
         {!collapsed && (
           <View style={styles.headerIcons}>
-            <Pressable onPress={() => setInfoModalVisible(true)} style={styles.iconBtn}>
-              <Ionicons name="information-circle-outline" size={24} color={theme.colors.primary} />
-            </Pressable>
-            {!isCardio && (
-              <Pressable onPress={handleWarmupCalc} style={styles.iconBtn}>
-                <Text
-                  style={{
-                    color: theme.colors.muted,
-                    fontFamily: 'SpaceGrotesk_700Bold',
-                    fontSize: 18,
-                    lineHeight: 24,
-                    textAlign: 'center',
-                  }}
-                >
-                  W
-                </Text>
-              </Pressable>
-            )}
-            {!isCardio && (
-              <Pressable onPress={() => setPlateCalcVisible(true)} style={styles.iconBtn}>
-                <Ionicons name="barbell-outline" size={24} color={theme.colors.muted} />
-              </Pressable>
-            )}
             <Pressable
               onPress={() => setOptionsVisible(true)}
               style={styles.iconBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Übungsoptionen"
               testID="exercise-options-btn"
             >
               <Ionicons name="ellipsis-horizontal" size={24} color={theme.colors.muted} />
@@ -648,147 +634,196 @@ export const SessionExerciseCard = ({
             >
               Übungs-Optionen
             </Text>
-
-            <Pressable
-              style={styles.optionRow}
-              onPress={() => {
-                setShowNotes(!showNotes);
-                setOptionsVisible(false);
-              }}
-            >
-              <Ionicons
-                name={showNotes ? 'eye-off-outline' : 'document-text-outline'}
-                size={20}
-                color={theme.colors.primary}
-              />
-              <Text style={[styles.optionText, { color: theme.colors.text }]}>
-                {showNotes ? 'Notizen ausblenden' : 'Notizen einblenden'}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.optionRow}
-              onPress={() => {
-                setOptionsVisible(false);
-                navigateToInstructions();
-              }}
-            >
-              <Ionicons name="book-outline" size={20} color={theme.colors.primary} />
-              <Text style={[styles.optionText, { color: theme.colors.text }]}>
-                Anleitung anzeigen
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.optionRow}
-              onPress={() => {
-                setOptionsVisible(false);
-                handleToggleSuperset();
-              }}
-            >
-              <Ionicons
-                name="link-outline"
-                size={20}
-                color={sessionExercise.supersetGroup ? theme.colors.primary : theme.colors.muted}
-              />
-              <Text style={[styles.optionText, { color: theme.colors.text }]}>
-                {sessionExercise.supersetGroup ? 'Supersatz trennen' : 'Als Supersatz koppeln'}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.optionRow}
-              onPress={() => {
-                const rpeDisabled = rpeDisabledExerciseIds.includes(sessionExercise.exerciseId);
-                const nextDisabled = rpeDisabled
-                  ? rpeDisabledExerciseIds.filter((id) => id !== sessionExercise.exerciseId)
-                  : [...rpeDisabledExerciseIds, sessionExercise.exerciseId];
-                useProfileStore.getState().updateProfile({ rpeDisabledExerciseIds: nextDisabled });
-                setOptionsVisible(false);
-              }}
-            >
-              <Ionicons
-                name={showRpe ? 'eye-off-outline' : 'eye-outline'}
-                size={20}
-                color={theme.colors.primary}
-              />
-              <Text style={[styles.optionText, { color: theme.colors.text }]}>
-                {showRpe ? 'RPE verbergen' : 'RPE anzeigen'}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.optionRow}
-              onPress={() => {
-                const rirDisabled = rirDisabledExerciseIds.includes(sessionExercise.exerciseId);
-                const nextDisabled = rirDisabled
-                  ? rirDisabledExerciseIds.filter((id) => id !== sessionExercise.exerciseId)
-                  : [...rirDisabledExerciseIds, sessionExercise.exerciseId];
-                useProfileStore.getState().updateProfile({ rirDisabledExerciseIds: nextDisabled });
-                setOptionsVisible(false);
-              }}
-            >
-              <Ionicons
-                name={showRir ? 'eye-off-outline' : 'eye-outline'}
-                size={20}
-                color={theme.colors.primary}
-              />
-              <Text style={[styles.optionText, { color: theme.colors.text }]}>
-                {showRir ? 'RIR verbergen' : 'RIR anzeigen'}
-              </Text>
-            </Pressable>
-
-            {sessionExercises.indexOf(sessionExercise) > 0 && (
+            <ScrollView style={{ maxHeight: Math.max(120, windowHeight - 240) }}>
               <Pressable
                 style={styles.optionRow}
                 onPress={() => {
-                  const idx = sessionExercises.indexOf(sessionExercise);
-                  const reordered = [...sessionExercises];
-                  const temp = reordered[idx];
-                  reordered[idx] = reordered[idx - 1]!;
-                  reordered[idx - 1] = temp!;
-                  reorderExercises(reordered);
                   setOptionsVisible(false);
+                  setInfoModalVisible(true);
                 }}
               >
-                <Ionicons name="arrow-up-outline" size={20} color={theme.colors.primary} />
+                <Ionicons
+                  name="information-circle-outline"
+                  size={20}
+                  color={theme.colors.primary}
+                />
                 <Text style={[styles.optionText, { color: theme.colors.text }]}>
-                  Nach oben verschieben
+                  Statistik anzeigen
                 </Text>
               </Pressable>
-            )}
+              {!isCardio && (
+                <Pressable
+                  style={styles.optionRow}
+                  onPress={() => {
+                    setOptionsVisible(false);
+                    handleWarmupCalc();
+                  }}
+                >
+                  <Ionicons name="flame-outline" size={20} color={theme.colors.primary} />
+                  <Text style={[styles.optionText, { color: theme.colors.text }]}>
+                    Aufwärmsätze berechnen
+                  </Text>
+                </Pressable>
+              )}
+              {!isCardio && (
+                <Pressable
+                  style={styles.optionRow}
+                  onPress={() => {
+                    setOptionsVisible(false);
+                    setPlateCalcVisible(true);
+                  }}
+                >
+                  <Ionicons name="barbell-outline" size={20} color={theme.colors.primary} />
+                  <Text style={[styles.optionText, { color: theme.colors.text }]}>
+                    Scheibenrechner
+                  </Text>
+                </Pressable>
+              )}
 
-            {sessionExercises.indexOf(sessionExercise) < sessionExercises.length - 1 && (
               <Pressable
                 style={styles.optionRow}
                 onPress={() => {
-                  const idx = sessionExercises.indexOf(sessionExercise);
-                  const reordered = [...sessionExercises];
-                  const temp = reordered[idx];
-                  reordered[idx] = reordered[idx + 1]!;
-                  reordered[idx + 1] = temp!;
-                  reorderExercises(reordered);
+                  setShowNotes(!showNotes);
                   setOptionsVisible(false);
                 }}
               >
-                <Ionicons name="arrow-down-outline" size={20} color={theme.colors.primary} />
+                <Ionicons
+                  name={showNotes ? 'eye-off-outline' : 'document-text-outline'}
+                  size={20}
+                  color={theme.colors.primary}
+                />
                 <Text style={[styles.optionText, { color: theme.colors.text }]}>
-                  Nach unten verschieben
+                  {showNotes ? 'Notizen ausblenden' : 'Notizen einblenden'}
                 </Text>
               </Pressable>
-            )}
 
-            <Pressable
-              style={styles.optionRow}
-              onPress={() => {
-                setOptionsVisible(false);
-                confirmDeleteExercise();
-              }}
-            >
-              <Ionicons name="trash-outline" size={20} color="#ef4444" />
-              <Text style={[styles.optionText, { color: '#ef4444' }]}>Übung löschen</Text>
-            </Pressable>
+              <Pressable
+                style={styles.optionRow}
+                onPress={() => {
+                  setOptionsVisible(false);
+                  navigateToInstructions();
+                }}
+              >
+                <Ionicons name="book-outline" size={20} color={theme.colors.primary} />
+                <Text style={[styles.optionText, { color: theme.colors.text }]}>
+                  Anleitung anzeigen
+                </Text>
+              </Pressable>
 
+              <Pressable
+                style={styles.optionRow}
+                onPress={() => {
+                  setOptionsVisible(false);
+                  handleToggleSuperset();
+                }}
+              >
+                <Ionicons
+                  name="link-outline"
+                  size={20}
+                  color={sessionExercise.supersetGroup ? theme.colors.primary : theme.colors.muted}
+                />
+                <Text style={[styles.optionText, { color: theme.colors.text }]}>
+                  {sessionExercise.supersetGroup ? 'Supersatz trennen' : 'Als Supersatz koppeln'}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.optionRow}
+                onPress={() => {
+                  const rpeDisabled = rpeDisabledExerciseIds.includes(sessionExercise.exerciseId);
+                  const nextDisabled = rpeDisabled
+                    ? rpeDisabledExerciseIds.filter((id) => id !== sessionExercise.exerciseId)
+                    : [...rpeDisabledExerciseIds, sessionExercise.exerciseId];
+                  useProfileStore
+                    .getState()
+                    .updateProfile({ rpeDisabledExerciseIds: nextDisabled });
+                  setOptionsVisible(false);
+                }}
+              >
+                <Ionicons
+                  name={showRpe ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color={theme.colors.primary}
+                />
+                <Text style={[styles.optionText, { color: theme.colors.text }]}>
+                  {showRpe ? 'RPE verbergen' : 'RPE anzeigen'}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.optionRow}
+                onPress={() => {
+                  const rirDisabled = rirDisabledExerciseIds.includes(sessionExercise.exerciseId);
+                  const nextDisabled = rirDisabled
+                    ? rirDisabledExerciseIds.filter((id) => id !== sessionExercise.exerciseId)
+                    : [...rirDisabledExerciseIds, sessionExercise.exerciseId];
+                  useProfileStore
+                    .getState()
+                    .updateProfile({ rirDisabledExerciseIds: nextDisabled });
+                  setOptionsVisible(false);
+                }}
+              >
+                <Ionicons
+                  name={showRir ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color={theme.colors.primary}
+                />
+                <Text style={[styles.optionText, { color: theme.colors.text }]}>
+                  {showRir ? 'RIR verbergen' : 'RIR anzeigen'}
+                </Text>
+              </Pressable>
+
+              {sessionExercises.indexOf(sessionExercise) > 0 && (
+                <Pressable
+                  style={styles.optionRow}
+                  onPress={() => {
+                    const idx = sessionExercises.indexOf(sessionExercise);
+                    const reordered = [...sessionExercises];
+                    const temp = reordered[idx];
+                    reordered[idx] = reordered[idx - 1]!;
+                    reordered[idx - 1] = temp!;
+                    reorderExercises(reordered);
+                    setOptionsVisible(false);
+                  }}
+                >
+                  <Ionicons name="arrow-up-outline" size={20} color={theme.colors.primary} />
+                  <Text style={[styles.optionText, { color: theme.colors.text }]}>
+                    Nach oben verschieben
+                  </Text>
+                </Pressable>
+              )}
+
+              {sessionExercises.indexOf(sessionExercise) < sessionExercises.length - 1 && (
+                <Pressable
+                  style={styles.optionRow}
+                  onPress={() => {
+                    const idx = sessionExercises.indexOf(sessionExercise);
+                    const reordered = [...sessionExercises];
+                    const temp = reordered[idx];
+                    reordered[idx] = reordered[idx + 1]!;
+                    reordered[idx + 1] = temp!;
+                    reorderExercises(reordered);
+                    setOptionsVisible(false);
+                  }}
+                >
+                  <Ionicons name="arrow-down-outline" size={20} color={theme.colors.primary} />
+                  <Text style={[styles.optionText, { color: theme.colors.text }]}>
+                    Nach unten verschieben
+                  </Text>
+                </Pressable>
+              )}
+
+              <Pressable
+                style={styles.optionRow}
+                onPress={() => {
+                  setOptionsVisible(false);
+                  confirmDeleteExercise();
+                }}
+              >
+                <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                <Text style={[styles.optionText, { color: '#ef4444' }]}>Übung löschen</Text>
+              </Pressable>
+            </ScrollView>
             <Pressable
               style={[
                 styles.modalCloseBtn,
@@ -1019,92 +1054,17 @@ const SetRow = ({
   onUpdate,
   onComplete,
   onDelete,
-  prevSet,
   lastPerformanceSet,
   onSwipeStart,
   onSwipeEnd,
 }: SetRowProps) => {
   const theme = useTheme();
   const isDone = set.completed;
-  const [isWeightFocused, setIsWeightFocused] = useState(false);
-  const weightInputRef = React.useRef<TextInput | null>(null);
-  const weightBlurTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const focusGuardTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isAccessoryInteractionRef = React.useRef(false);
   const swipeX = React.useRef(new Animated.Value(0)).current;
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const rowHeight = React.useRef(new Animated.Value(0)).current;
   const rowOpacity = React.useRef(new Animated.Value(1)).current;
-
-  const clearWeightBlurTimeout = React.useCallback(() => {
-    if (weightBlurTimeoutRef.current) {
-      clearTimeout(weightBlurTimeoutRef.current);
-      weightBlurTimeoutRef.current = null;
-    }
-  }, []);
-
-  const focusWeightInput = React.useCallback(() => {
-    if (isCardio) return;
-
-    const focus = () => weightInputRef.current?.focus();
-    if (typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(focus);
-    } else {
-      setTimeout(focus, 0);
-    }
-  }, [isCardio]);
-
-  const preserveWeightInputFocus = React.useCallback(() => {
-    if (isCardio) return;
-
-    isAccessoryInteractionRef.current = true;
-    clearWeightBlurTimeout();
-    if (focusGuardTimeoutRef.current) {
-      clearTimeout(focusGuardTimeoutRef.current);
-    }
-    setIsWeightFocused(true);
-    focusWeightInput();
-    focusGuardTimeoutRef.current = setTimeout(() => {
-      weightInputRef.current?.focus();
-      isAccessoryInteractionRef.current = false;
-      focusGuardTimeoutRef.current = null;
-    }, 350);
-  }, [clearWeightBlurTimeout, focusWeightInput, isCardio]);
-
-  useEffect(() => {
-    return () => {
-      clearWeightBlurTimeout();
-      if (focusGuardTimeoutRef.current) {
-        clearTimeout(focusGuardTimeoutRef.current);
-      }
-    };
-  }, [clearWeightBlurTimeout]);
-
-  const handleWeightFocus = () => {
-    clearWeightBlurTimeout();
-    setIsWeightFocused(true);
-  };
-
-  const handleWeightBlur = () => {
-    if (isAccessoryInteractionRef.current) {
-      preserveWeightInputFocus();
-      return;
-    }
-
-    clearWeightBlurTimeout();
-    weightBlurTimeoutRef.current = setTimeout(() => {
-      setIsWeightFocused(false);
-      weightBlurTimeoutRef.current = null;
-    }, 300);
-  };
-
-  const handleAccessoryPointerDown = (event: unknown) => {
-    if (Platform.OS === 'web') {
-      (event as { preventDefault?: () => void }).preventDefault?.();
-    }
-    preserveWeightInputFocus();
-  };
 
   const handleLayout = (e: LayoutChangeEvent) => {
     if (!isDeleting) {
@@ -1187,28 +1147,6 @@ const SetRow = ({
     [handleDeleteSet, resetSwipe, swipeX, onSwipeStart, onSwipeEnd],
   );
 
-  const handleWeightModifier = (amount: number) => {
-    preserveWeightInputFocus();
-    const currentVal = set.weight || 0;
-    const modifierKg = isImperial ? amount / 2.20462 : amount;
-    let newVal = Math.max(0, currentVal + modifierKg);
-    const maxValKg = isImperial ? 9999 / 2.20462 : 9999;
-    if (newVal > maxValKg) newVal = maxValKg;
-    onUpdate({ weight: newVal });
-  };
-
-  const handleCopyLastSet = () => {
-    preserveWeightInputFocus();
-    if (prevSet) {
-      onUpdate({
-        ...(prevSet.weight !== undefined ? { weight: prevSet.weight } : {}),
-        ...(prevSet.reps !== undefined ? { reps: prevSet.reps } : {}),
-        ...(prevSet.rpe !== undefined ? { rpe: prevSet.rpe } : {}),
-        ...(prevSet.rir !== undefined ? { rir: prevSet.rir } : {}),
-      });
-    }
-  };
-
   // Format Level (unconverted weight for cardio) or normal weight
   const getDisplayWeight = () => {
     if (!set.weight) return '';
@@ -1221,7 +1159,10 @@ const SetRow = ({
   };
 
   const handleWeightChange = (text: string) => {
-    let val = parseFloat(text) || 0;
+    const normalized = text.replace(',', '.');
+    if (!/^\d*(\.\d*)?$/.test(normalized)) return;
+    setWeightText(text);
+    let val = parseFloat(normalized) || 0;
     if (val > 9999) val = 9999;
     if (isCardio) {
       onUpdate({ weight: val });
@@ -1229,6 +1170,21 @@ const SetRow = ({
       onUpdate({ weight: isImperial ? val / 2.20462 : val });
     }
   };
+
+  const [weightText, setWeightText] = useState(getDisplayWeight);
+  const [editingWeight, setEditingWeight] = useState(false);
+  useEffect(() => {
+    if (!editingWeight) {
+      const weight = set.weight || 0;
+      setWeightText(
+        weight === 0
+          ? ''
+          : isImperial && !isCardio
+            ? (weight * 2.20462).toFixed(1).replace(/\.0$/, '')
+            : String(weight),
+      );
+    }
+  }, [set.weight, isImperial, isCardio, editingWeight]);
 
   const [durationStr, setDurationStr] = useState(() => formatSecondsToDisplay(set.durationSeconds));
   const [isEditingDuration, setIsEditingDuration] = useState(false);
@@ -1318,7 +1274,6 @@ const SetRow = ({
               {getSetTypeBadge()}
             </Pressable>
             <TextInput
-              ref={weightInputRef}
               style={[
                 styles.input,
                 styles.weightCol,
@@ -1327,13 +1282,13 @@ const SetRow = ({
               ]}
               keyboardType="decimal-pad"
               inputMode="decimal"
-              value={getDisplayWeight()}
+              value={weightText}
+              onFocus={() => setEditingWeight(true)}
+              onBlur={() => setEditingWeight(false)}
               onChangeText={handleWeightChange}
               placeholder="-"
               placeholderTextColor={theme.colors.muted}
               selectTextOnFocus={true}
-              onFocus={handleWeightFocus}
-              onBlur={handleWeightBlur}
               inputAccessoryViewID="keyboardDoneAccessory"
             />
             {isCardio ? (
@@ -1467,61 +1422,6 @@ const SetRow = ({
           </View>
         </Animated.View>
       </View>
-      {isWeightFocused && !isCardio && (
-        <View style={styles.accessoryRow}>
-          <Pressable
-            style={styles.accessoryBtn}
-            onPointerDown={handleAccessoryPointerDown}
-            onPressIn={() => handleWeightModifier(-5)}
-          >
-            <Text style={styles.accessoryBtnText}>-5</Text>
-          </Pressable>
-          <Pressable
-            style={styles.accessoryBtn}
-            onPointerDown={handleAccessoryPointerDown}
-            onPressIn={() => handleWeightModifier(-2.5)}
-          >
-            <Text style={styles.accessoryBtnText}>-2.5</Text>
-          </Pressable>
-          <Pressable
-            style={styles.accessoryBtn}
-            onPointerDown={handleAccessoryPointerDown}
-            onPressIn={() => handleWeightModifier(-1.25)}
-          >
-            <Text style={styles.accessoryBtnText}>-1.25</Text>
-          </Pressable>
-          <Pressable
-            style={styles.accessoryBtn}
-            onPointerDown={handleAccessoryPointerDown}
-            onPressIn={() => handleWeightModifier(1.25)}
-          >
-            <Text style={styles.accessoryBtnText}>+1.25</Text>
-          </Pressable>
-          <Pressable
-            style={styles.accessoryBtn}
-            onPointerDown={handleAccessoryPointerDown}
-            onPressIn={() => handleWeightModifier(2.5)}
-          >
-            <Text style={styles.accessoryBtnText}>+2.5</Text>
-          </Pressable>
-          <Pressable
-            style={styles.accessoryBtn}
-            onPointerDown={handleAccessoryPointerDown}
-            onPressIn={() => handleWeightModifier(5)}
-          >
-            <Text style={styles.accessoryBtnText}>+5</Text>
-          </Pressable>
-          {prevSet && (
-            <Pressable
-              style={styles.accessoryBtnCopy}
-              onPointerDown={handleAccessoryPointerDown}
-              onPressIn={handleCopyLastSet}
-            >
-              <Text style={styles.accessoryBtnTextCopy}>Copy Prev</Text>
-            </Pressable>
-          )}
-        </View>
-      )}
       {lastPerformanceSet && (
         <View style={styles.e1rmRow}>
           <Text style={[styles.e1rmText, { color: theme.colors.muted }]}>
@@ -1585,6 +1485,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   iconBtn: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 4,
   },
   deleteExBtn: {
@@ -1840,43 +1744,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Manrope_500Medium',
     backgroundColor: '#0B0B0F',
-  },
-  accessoryRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    backgroundColor: '#1E222B',
-    borderRadius: 8,
-    marginTop: 4,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  accessoryBtn: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    backgroundColor: '#2A2B31',
-    borderRadius: 6,
-    minWidth: 40,
-    alignItems: 'center',
-  },
-  accessoryBtnText: {
-    color: '#90D5FF',
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 12,
-  },
-  accessoryBtnCopy: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    backgroundColor: '#90D5FF',
-    borderRadius: 6,
-    marginLeft: 6,
-  },
-  accessoryBtnTextCopy: {
-    color: '#0B0B0F',
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 12,
   },
 });

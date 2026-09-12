@@ -1,523 +1,222 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
+  withTiming,
+  Easing,
   runOnJS,
+  useReducedMotion,
 } from 'react-native-reanimated';
-import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@fitness-tracker/ui';
-
 import { useWorkoutStore } from '../../stores/workoutStore';
 
 export const RestTimer = () => {
   const theme = useTheme();
   const { restTimer, startRestTimer, stopRestTimer, tickRestTimer, resetRestTimer } =
     useWorkoutStore();
-  const [timeLeft, setTimeLeft] = useState(restTimer.durationSeconds);
-  const [collapsed, setCollapsed] = useState(true);
-  const translateY = useSharedValue(0);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editVal, setEditVal] = useState('');
-
-  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-  const bubbleX = useSharedValue(screenWidth - 16 - 60);
-  const bubbleY = useSharedValue(screenHeight - 160);
-  const startX = useSharedValue(0);
-  const startY = useSharedValue(0);
-
-  const handleFinishEdit = () => {
-    setIsEditing(false);
-    let seconds = 0;
-    if (editVal.includes(':')) {
-      const parts = editVal.split(':');
-      const mins = parseInt(parts[0] || '0', 10) || 0;
-      const secs = parseInt(parts[1] || '0', 10) || 0;
-      seconds = mins * 60 + secs;
-    } else {
-      seconds = parseInt(editVal, 10) || 0;
-    }
-    if (seconds > 0) {
-      startRestTimer(seconds);
-    }
-  };
+  const [remaining, setRemaining] = useState(restTimer.durationSeconds);
+  const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [input, setInput] = useState('');
+  const reducedMotion = useReducedMotion();
+  const expansion = useSharedValue(0);
+  useEffect(() => {
+    expansion.value = withTiming(expanded ? 1 : 0, {
+      duration: reducedMotion ? 0 : 220,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [expanded, expansion, reducedMotion]);
+  const panelStyle = useAnimatedStyle(() => ({ height: 72 + expansion.value * 150 }));
+  const detailStyle = useAnimatedStyle(() => ({
+    opacity: expansion.value,
+    transform: [{ translateY: (1 - expansion.value) * 8 }],
+  }));
 
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | undefined;
-
-    if (restTimer.isRunning && restTimer.endsAt) {
-      const endsAt = restTimer.endsAt;
-      interval = setInterval(() => {
+    const update = () => {
+      if (restTimer.isRunning && restTimer.endsAt) {
+        setRemaining(Math.max(0, Math.ceil((restTimer.endsAt.getTime() - Date.now()) / 1000)));
         tickRestTimer();
-        const remaining = Math.ceil((endsAt.getTime() - Date.now()) / 1000);
-        setTimeLeft(remaining <= 0 ? 0 : remaining);
-      }, 250);
-    } else {
-      setTimeLeft(restTimer.durationSeconds);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
+      } else setRemaining(restTimer.durationSeconds);
     };
+    update();
+    if (!restTimer.isRunning) return;
+    const timer = setInterval(update, 250);
+    return () => clearInterval(timer);
   }, [restTimer.isRunning, restTimer.endsAt, restTimer.durationSeconds, tickRestTimer]);
 
-  useEffect(() => {
-    if (collapsed && !restTimer.isRunning && timeLeft === 0) {
-      setCollapsed(false);
-    }
-  }, [restTimer.isRunning, timeLeft, collapsed]);
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  const formatTime = (seconds: number) =>
+    `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  const finishEdit = () => {
+    setEditing(false);
+    const value = input.trim();
+    let seconds = 0;
+    if (/^\d{1,3}:\d{1,2}$/.test(value)) {
+      const [minutes = 0, remainder = 0] = value.split(':').map(Number);
+      if (remainder < 60) seconds = minutes * 60 + remainder;
+    } else if (/^\d+$/.test(value)) seconds = Number(value);
+    if (seconds > 0 && seconds <= 86400) startRestTimer(seconds);
   };
-
-  const setCollapsedJS = (v: boolean) => setCollapsed(v);
-
   const pan = Gesture.Pan()
-    .onUpdate((e) => {
-      translateY.value = e.translationY;
-    })
-    .onEnd((e) => {
-      if (e.translationY > 24) {
-        runOnJS(setCollapsedJS)(true);
-      } else if (e.translationY < -24) {
-        runOnJS(setCollapsedJS)(false);
-      }
-      translateY.value = withSpring(0, { damping: 26, stiffness: 170 });
+    .minDistance(12)
+    .failOffsetX([-20, 20])
+    .onEnd((event) => {
+      if (event.translationY > 24) runOnJS(setExpanded)(false);
+      else if (event.translationY < -24) runOnJS(setExpanded)(true);
     });
-
-  const bubblePan = Gesture.Pan()
-    .onStart(() => {
-      startX.value = bubbleX.value;
-      startY.value = bubbleY.value;
-    })
-    .onUpdate((e) => {
-      bubbleX.value = startX.value + e.translationX;
-      bubbleY.value = startY.value + e.translationY;
-    })
-    .onEnd((e) => {
-      const midPoint = screenWidth / 2;
-      const endX = bubbleX.value + e.velocityX * 0.1;
-      const targetX = endX < midPoint ? 16 : screenWidth - 16 - 60;
-
-      const endY = bubbleY.value + e.velocityY * 0.1;
-      const targetY = Math.max(80, Math.min(screenHeight - 180, endY));
-
-      bubbleX.value = withSpring(targetX, { damping: 22, stiffness: 120 });
-      bubbleY.value = withSpring(targetY, { damping: 22, stiffness: 120 });
-    });
-
-  const bubbleTap = Gesture.Tap().onEnd(() => {
-    runOnJS(setCollapsedJS)(false);
-  });
-
-  const composedBubbleGesture = Gesture.Exclusive(bubblePan, bubbleTap);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
-
-  const bubbleAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: bubbleX.value }, { translateY: bubbleY.value }],
-  }));
-
-  const remaining = Math.max(0, timeLeft);
-  const isLow = restTimer.isRunning && remaining <= 10;
-  const timerColor = isLow ? theme.colors.accent : theme.colors.primary;
-
-  const totalDuration = restTimer.durationSeconds || 90;
-  const elapsedPct =
-    restTimer.isRunning && totalDuration > 0 ? (totalDuration - remaining) / totalDuration : 0;
-
-  const R = 54;
-  const C = 2 * Math.PI * R;
-  const strokeDashoffset = C * (1 - elapsedPct);
-
-  const bubbleR = 24;
-  const bubbleC = 2 * Math.PI * bubbleR;
-  const bubbleStrokeDashoffset = bubbleC * (1 - elapsedPct);
-
-  const useFloatingBubble = false;
-  const showBubble = useFloatingBubble && collapsed && (restTimer.isRunning || timeLeft > 0);
-
-  if (showBubble) {
-    return (
-      <GestureDetector gesture={composedBubbleGesture}>
-        <Animated.View
-          style={[
-            styles.bubbleContainer,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: timerColor,
-            },
-            bubbleAnimatedStyle,
-          ]}
-          testID="rest-timer-bubble"
-        >
-          <Svg
-            width={60}
-            height={60}
-            style={{ transform: [{ rotate: '-90deg' }], position: 'absolute' }}
-          >
-            <Circle
-              cx="30"
-              cy="30"
-              r={bubbleR}
-              stroke={theme.colors.border}
-              strokeWidth="3"
-              fill="transparent"
-            />
-            {elapsedPct > 0 && (
-              <Circle
-                cx="30"
-                cy="30"
-                r={bubbleR}
-                stroke={timerColor}
-                strokeWidth="3"
-                fill="transparent"
-                strokeDasharray={bubbleC}
-                strokeDashoffset={bubbleStrokeDashoffset}
-                strokeLinecap="round"
-              />
-            )}
-          </Svg>
-          <Text style={[styles.bubbleTime, { color: theme.colors.text }]}>
-            {formatTime(remaining)}
-          </Text>
-        </Animated.View>
-      </GestureDetector>
-    );
-  }
+  const progress =
+    restTimer.durationSeconds > 0
+      ? Math.min(1, Math.max(0, remaining / restTimer.durationSeconds))
+      : 0;
 
   return (
-    <GestureDetector gesture={pan}>
-      <Animated.View
-        style={[
-          styles.container,
-          {
-            backgroundColor: theme.colors.surface,
-            borderColor: timerColor,
-            borderRadius: theme.radius.lg,
-          },
-          animatedStyle,
-        ]}
-        testID="rest-timer-container"
-      >
-        <Pressable onPress={() => setCollapsed((c) => !c)} style={styles.gripArea} hitSlop={8}>
-          <View style={[styles.grip, { backgroundColor: theme.colors.border }]} />
-        </Pressable>
-
-        {collapsed ? (
-          <Pressable style={styles.collapsedRow} onPress={() => setCollapsed(false)}>
-            <Text style={[styles.collapsedLabel, { color: theme.colors.muted }]}>REST</Text>
-            <Text style={[styles.collapsedTime, { color: theme.colors.text }]}>
-              {formatTime(remaining)}
-            </Text>
-            <View style={styles.collapsedControls}>
-              {restTimer.isRunning ? (
-                <Pressable hitSlop={8} onPress={stopRestTimer} testID="stop-timer-btn">
-                  <Ionicons name="pause" size={22} color={theme.colors.text} />
-                </Pressable>
-              ) : (
-                <Pressable
-                  hitSlop={8}
-                  onPress={() => startRestTimer(timeLeft || 90)}
-                  testID="start-timer-btn"
-                >
-                  <Ionicons name="play" size={22} color={theme.colors.primary} />
-                </Pressable>
-              )}
-              <Ionicons name="chevron-up" size={20} color={theme.colors.muted} />
-            </View>
+    <Animated.View
+      testID="rest-timer-container"
+      style={[
+        styles.panel,
+        { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+        panelStyle,
+      ]}
+    >
+      <View style={styles.header}>
+        <GestureDetector gesture={pan}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={expanded ? 'Pausentimer einklappen' : 'Pausentimer öffnen'}
+            accessibilityState={{ expanded }}
+            onPress={() => {
+              setEditing(false);
+              setExpanded((value) => !value);
+            }}
+            style={styles.toggle}
+          >
+            <Ionicons name="timer-outline" size={22} color={theme.colors.primary} />
+            <Text style={{ color: theme.colors.muted, fontSize: 12 }}>REST</Text>
+            <Ionicons
+              name={expanded ? 'chevron-down' : 'chevron-up'}
+              size={16}
+              color={theme.colors.muted}
+            />
           </Pressable>
+        </GestureDetector>
+        {editing ? (
+          <TextInput
+            accessibilityLabel="Pausendauer"
+            style={[styles.time, { color: theme.colors.text, minWidth: 90 }]}
+            value={input}
+            onChangeText={setInput}
+            keyboardType="numbers-and-punctuation"
+            autoFocus
+            onSubmitEditing={finishEdit}
+            onBlur={finishEdit}
+          />
         ) : (
-          <>
-            <Text style={[styles.label, { color: theme.colors.muted }]}>Rest Timer</Text>
-
-            {/* Circular Clock Face */}
-            <View style={[styles.clockFace, { borderColor: theme.colors.border }]}>
-              <Svg
-                width={140}
-                height={140}
-                style={{ transform: [{ rotate: '-90deg' }], position: 'absolute' }}
-              >
-                <Circle
-                  cx="70"
-                  cy="70"
-                  r={R}
-                  stroke={theme.colors.border}
-                  strokeWidth="5"
-                  fill="transparent"
-                />
-                {elapsedPct > 0 && (
-                  <Circle
-                    cx="70"
-                    cy="70"
-                    r={R}
-                    stroke={timerColor}
-                    strokeWidth="5"
-                    fill="transparent"
-                    strokeDasharray={C}
-                    strokeDashoffset={strokeDashoffset}
-                    strokeLinecap="round"
-                  />
-                )}
-              </Svg>
-
-              {isEditing ? (
-                <TextInput
-                  style={[
-                    styles.timerText,
-                    {
-                      color: theme.colors.text,
-                      borderBottomWidth: 1,
-                      borderBottomColor: theme.colors.primary,
-                      textAlign: 'center',
-                      minWidth: 90,
-                    },
-                  ]}
-                  value={editVal}
-                  onChangeText={setEditVal}
-                  keyboardType="numbers-and-punctuation"
-                  autoFocus
-                  onSubmitEditing={handleFinishEdit}
-                  onBlur={handleFinishEdit}
-                />
-              ) : (
-                <Pressable
-                  onPress={() => {
-                    if (!restTimer.isRunning) {
-                      setIsEditing(true);
-                      setEditVal(formatTime(remaining));
-                    }
-                  }}
-                >
-                  <Text style={[styles.timerText, { color: theme.colors.text }]}>
-                    {formatTime(remaining)}
-                  </Text>
-                </Pressable>
-              )}
-            </View>
-
-            <View style={styles.controls}>
-              {restTimer.isRunning ? (
-                <Pressable
-                  style={[styles.btn, { backgroundColor: '#ea580c', borderColor: '#ea580c' }]}
-                  onPress={stopRestTimer}
-                  testID="stop-timer-btn"
-                >
-                  <Text style={[styles.btnText, { color: '#ffffff' }]}>Pause</Text>
-                </Pressable>
-              ) : (
-                <Pressable
-                  style={[
-                    styles.btn,
-                    { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
-                  ]}
-                  onPress={() => startRestTimer(timeLeft || 90)}
-                  testID="start-timer-btn"
-                >
-                  <Text style={[styles.btnText, { color: theme.colors.background }]}>Start</Text>
-                </Pressable>
-              )}
-              <Pressable
-                style={[styles.btn, { borderColor: theme.colors.border }]}
-                onPress={resetRestTimer}
-                testID="reset-timer-btn"
-              >
-                <Text style={[styles.btnText, { color: theme.colors.accent }]}>Reset</Text>
-              </Pressable>
-            </View>
-
-            {/* Time Adjustments Grid */}
-            <View style={styles.gridControls}>
-              <Pressable
-                style={[styles.miniBtn, { borderColor: theme.colors.border }]}
-                onPress={() => startRestTimer(Math.max(0, timeLeft - 30))}
-              >
-                <Text style={[styles.miniBtnText, { color: theme.colors.text }]}>−30s</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.miniBtn, { borderColor: theme.colors.border }]}
-                onPress={() => startRestTimer(Math.max(0, timeLeft - 10))}
-              >
-                <Text style={[styles.miniBtnText, { color: theme.colors.text }]}>−10s</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.miniBtn, { borderColor: theme.colors.border }]}
-                onPress={() => startRestTimer(timeLeft + 10)}
-              >
-                <Text style={[styles.miniBtnText, { color: theme.colors.text }]}>+10s</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.miniBtn, { borderColor: theme.colors.border }]}
-                onPress={() => startRestTimer(timeLeft + 30)}
-              >
-                <Text style={[styles.miniBtnText, { color: theme.colors.text }]}>+30s</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.miniBtn, { borderColor: theme.colors.border }]}
-                onPress={() => startRestTimer(timeLeft + 60)}
-              >
-                <Text style={[styles.miniBtnText, { color: theme.colors.text }]}>+1m</Text>
-              </Pressable>
-            </View>
-          </>
+          <Pressable
+            style={styles.timeButton}
+            accessibilityRole="button"
+            accessibilityLabel="Pausendauer bearbeiten"
+            onPress={() => {
+              if (!expanded) setExpanded(true);
+              else if (!restTimer.isRunning) {
+                setInput(formatTime(remaining));
+                setEditing(true);
+              }
+            }}
+          >
+            <Text style={[styles.time, { color: theme.colors.text }]}>{formatTime(remaining)}</Text>
+          </Pressable>
         )}
+        <Pressable
+          testID={restTimer.isRunning ? 'stop-timer-btn' : 'start-timer-btn'}
+          accessibilityRole="button"
+          accessibilityLabel={restTimer.isRunning ? 'Pause anhalten' : 'Pause starten'}
+          style={[styles.play, { backgroundColor: theme.colors.primary }]}
+          onPress={restTimer.isRunning ? stopRestTimer : () => startRestTimer(remaining || 90)}
+        >
+          <Ionicons
+            name={restTimer.isRunning ? 'pause' : 'play'}
+            size={20}
+            color={theme.colors.background}
+          />
+        </Pressable>
+      </View>
+      <Animated.View
+        pointerEvents={expanded ? 'auto' : 'none'}
+        accessibilityElementsHidden={!expanded}
+        importantForAccessibility={expanded ? 'auto' : 'no-hide-descendants'}
+        style={[styles.details, detailStyle]}
+      >
+        <View style={[styles.track, { backgroundColor: theme.colors.border }]}>
+          <View
+            style={{
+              height: 3,
+              width: `${progress * 100}%`,
+              backgroundColor: theme.colors.primary,
+            }}
+          />
+        </View>
+        <View style={styles.adjustments}>
+          {[-30, -10, 10, 30, 60].map((amount) => (
+            <Pressable
+              key={amount}
+              accessibilityRole="button"
+              accessibilityLabel={`${amount > 0 ? 'Plus' : 'Minus'} ${Math.abs(amount)} Sekunden`}
+              style={[styles.adjust, { borderColor: theme.colors.border }]}
+              onPress={() => startRestTimer(Math.max(1, remaining + amount))}
+            >
+              <Text style={{ color: theme.colors.text, fontSize: 13 }}>
+                {amount > 0 ? '+' : '−'}
+                {Math.abs(amount)}s
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <Pressable
+          testID="reset-timer-btn"
+          accessibilityRole="button"
+          onPress={resetRestTimer}
+          style={styles.reset}
+        >
+          <Text style={{ color: theme.colors.muted }}>Timer zurücksetzen</Text>
+        </Pressable>
       </Animated.View>
-    </GestureDetector>
+    </Animated.View>
   );
 };
-
 const styles = StyleSheet.create({
-  container: {
+  panel: {
+    width: '94%',
+    maxWidth: 560,
+    alignSelf: 'center',
     borderWidth: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    paddingTop: 6,
-    alignItems: 'center',
-    marginHorizontal: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
     marginVertical: 8,
   },
-  gripArea: {
-    width: '100%',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  grip: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-  },
-  label: {
-    fontFamily: 'SpaceGrotesk_400Regular',
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  clockFace: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    borderWidth: 3,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    marginVertical: 16,
-  },
-  needleContainer: {
-    position: 'absolute',
-    width: 140,
-    height: 140,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-  },
-  needle: {
-    width: 2,
-    height: 55,
-    marginTop: 10,
-    borderRadius: 1,
-  },
-  clockDot: {
-    position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    zIndex: 2,
-  },
-  timerText: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 28,
-    fontVariant: ['tabular-nums'],
-    zIndex: 1,
-  },
-  controls: {
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'center',
-  },
-  btn: {
-    borderWidth: 1,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 9999,
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  btnText: {
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 14,
-  },
-  gridControls: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    justifyContent: 'center',
-    marginTop: 12,
-  },
-  miniBtn: {
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    minWidth: 50,
-    alignItems: 'center',
-    backgroundColor: 'rgba(144, 213, 255, 0.05)',
-  },
-  miniBtnText: {
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 12,
-  },
-  collapsedRow: {
+  header: {
+    height: 72,
     flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
+    paddingHorizontal: 16,
     gap: 12,
   },
-  collapsedLabel: {
-    fontFamily: 'SpaceGrotesk_400Regular',
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  collapsedTime: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 24,
-    fontVariant: ['tabular-nums'],
+  toggle: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  timeButton: { flex: 1, minHeight: 44, justifyContent: 'center', alignItems: 'flex-end' },
+  time: { fontSize: 28, fontFamily: 'SpaceGrotesk_700Bold', fontVariant: ['tabular-nums'] },
+  play: { height: 44, width: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  details: { paddingHorizontal: 16, paddingBottom: 12, gap: 14 },
+  track: { height: 3, borderRadius: 2, overflow: 'hidden' },
+  adjustments: { flexDirection: 'row', gap: 6 },
+  adjust: {
     flex: 1,
-  },
-  collapsedControls: {
-    flexDirection: 'row',
+    minHeight: 44,
     alignItems: 'center',
-    gap: 16,
-  },
-  bubbleContainer: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 1.5,
     justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
-    zIndex: 9999,
+    borderRadius: 10,
+    borderWidth: 1,
   },
-  bubbleTime: {
-    position: 'absolute',
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 11,
-    textAlign: 'center',
-  },
+  reset: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
 });

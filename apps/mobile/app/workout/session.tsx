@@ -16,18 +16,13 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { useProfileStore } from '../../src/stores/profileStore';
 import * as Crypto from 'expo-crypto';
 import { useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isIOS } from '../../src/utils/platform';
 
-import {
-  templateExercisesFromSession,
-  hasTemplateChanges,
-  summarizeSessionExercise,
-} from '@fitness-tracker/domain';
+import { templateExercisesFromSession, hasTemplateChanges } from '@fitness-tracker/domain';
 
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { SessionExerciseCard } from '../../src/components/workout/SessionExerciseCard';
@@ -73,7 +68,6 @@ export default function WorkoutSessionScreen() {
   const [customCaffeineMg, setCustomCaffeineMg] = useState('');
 
   const sorter = useMeasuredReorder(exercises, reorderExercises);
-  const [showHUD, setShowHUD] = useState(false);
   const { restTimer } = useWorkoutStore();
   const {
     isEnabled: caffeineEnabled,
@@ -102,9 +96,7 @@ export default function WorkoutSessionScreen() {
   }, [restTimer.isRunning, restTimer.endsAt]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const yOffset = event.nativeEvent.contentOffset.y;
     sorter.onScroll(event);
-    setShowHUD(yOffset > 100);
   };
 
   useEffect(() => {
@@ -289,15 +281,11 @@ export default function WorkoutSessionScreen() {
   const totalSetsCount = exercises.reduce((acc, ex) => acc + ex.sets.length, 0);
   const progressPercent = totalSetsCount > 0 ? (completedSetsCount / totalSetsCount) * 100 : 0;
 
-  const totalVolume = exercises.reduce(
-    (sum, exercise) => sum + summarizeSessionExercise(exercise).totalVolume,
-    0,
-  );
-  const preferredUnits = useProfileStore.getState().profile?.preferredUnits || 'metric';
-  const isImperial = preferredUnits === 'imperial';
-  const volumeDisplay = isImperial ? Math.round(totalVolume * 2.20462) : Math.round(totalVolume);
   const caffeineWarningLevel = getCaffeineWarningLevel(currentWorkoutMg);
-  const caffeineTrollText = currentWorkoutMg > 1500 ? 'Come on jetzt trollst du aber...' : null;
+  const caffeineTrollText =
+    currentWorkoutMg > 1500
+      ? 'Da hat sich wohl eine Extra-Null eingeschlichen 😉 Bitte Menge und Einheit prüfen.'
+      : null;
   const caffeineWarningText =
     caffeineTrollText ??
     (caffeineWarningLevel === 'extreme'
@@ -335,7 +323,7 @@ export default function WorkoutSessionScreen() {
           styles.headerContainer,
           {
             backgroundColor: theme.colors.surface,
-            borderBottomColor: showHUD ? theme.colors.border : theme.colors.muted,
+            borderBottomColor: theme.colors.border,
             height: headerHeight,
             minHeight: headerHeight,
             paddingTop: topSafeArea,
@@ -347,134 +335,94 @@ export default function WorkoutSessionScreen() {
           },
         ]}
       >
-        {showHUD ? (
-          <View key="hud-header" style={styles.hudRow}>
-            <View style={styles.hudStatsGroup}>
-              <View style={styles.hudCol}>
-                <Ionicons
-                  name="barbell-outline"
-                  size={16}
-                  color={theme.colors.muted}
-                  style={{ marginRight: 4 }}
-                />
-                <Text style={[styles.hudText, { color: theme.colors.text }]} numberOfLines={1}>
-                  {volumeDisplay} {isImperial ? 'lbs' : 'kg'}
-                </Text>
-              </View>
-              <View style={styles.hudCol}>
-                <Ionicons
-                  name={restTimer.isRunning ? 'timer-outline' : 'time-outline'}
-                  size={16}
-                  color={restTimer.isRunning ? '#4ade80' : theme.colors.muted}
-                  style={{ marginRight: 4 }}
-                />
-                <Text
-                  style={[
-                    styles.hudText,
-                    {
-                      color: restTimer.isRunning ? '#4ade80' : theme.colors.text,
-                      fontFamily: 'SpaceGrotesk_700Bold',
-                    },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {restTimer.isRunning
-                    ? `Rest: ${formatElapsed(restRemaining)}`
-                    : formatElapsed(elapsed)}
-                </Text>
-              </View>
-            </View>
-            <Button
-              title="FINISH"
-              variant="primary"
-              onPress={handleFinish}
-              style={styles.hudFinishButton}
-            />
-          </View>
-        ) : (
-          <View key="standard-header" style={styles.standardHeaderContent}>
-            <View style={styles.headerLeft}>
-              <Pressable
-                onPress={handleBackAction}
-                style={{ paddingRight: 12 }}
-                accessibilityLabel="Training beenden"
+        <View
+          key="standard-header"
+          style={[
+            styles.standardHeaderContent,
+            { maxWidth: 960, width: '100%', alignSelf: 'center' },
+          ]}
+        >
+          <View style={styles.headerLeft}>
+            <Pressable
+              onPress={handleBackAction}
+              style={{ minWidth: 44, minHeight: 44, justifyContent: 'center' }}
+              accessibilityLabel="Training beenden"
+            >
+              <Ionicons name="close" size={24} color={theme.colors.muted} />
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                setMinimized(true);
+                router.navigate('/(tabs)/workouts');
+              }}
+              style={{ paddingRight: 12 }}
+              accessibilityLabel="Training minimieren"
+            >
+              <Ionicons name="chevron-down" size={24} color={theme.colors.primary} />
+            </Pressable>
+            <View style={styles.headerTitleGroup}>
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.standardTitle,
+                  theme.typography.heading,
+                  { color: theme.colors.text },
+                ]}
               >
-                <Ionicons name="close" size={24} color={theme.colors.muted} />
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  setMinimized(true);
-                  router.navigate('/(tabs)/workouts');
-                }}
-                style={{ paddingRight: 12 }}
-                accessibilityLabel="Training minimieren"
-              >
-                <Ionicons name="chevron-down" size={24} color={theme.colors.primary} />
-              </Pressable>
-              <View style={styles.headerTitleGroup}>
+                {name}
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
                 <Text
                   numberOfLines={1}
                   style={[
-                    styles.standardTitle,
-                    theme.typography.heading,
-                    { color: theme.colors.text },
+                    styles.standardElapsed,
+                    theme.typography.display,
+                    { color: theme.colors.primary },
                   ]}
                 >
-                  {name}
+                  {formatElapsed(elapsed)}
                 </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      styles.standardElapsed,
-                      theme.typography.display,
-                      { color: theme.colors.primary },
-                    ]}
+                {restTimer.isRunning && (
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: 'rgba(74, 222, 128, 0.15)',
+                      borderColor: '#4ade80',
+                      borderWidth: 1,
+                      borderRadius: 6,
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                      marginLeft: 8,
+                    }}
                   >
-                    {formatElapsed(elapsed)}
-                  </Text>
-                  {restTimer.isRunning && (
-                    <View
+                    <Ionicons
+                      name="timer-outline"
+                      size={14}
+                      color="#4ade80"
+                      style={{ marginRight: 3 }}
+                    />
+                    <Text
                       style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        backgroundColor: 'rgba(74, 222, 128, 0.15)',
-                        borderColor: '#4ade80',
-                        borderWidth: 1,
-                        borderRadius: 6,
-                        paddingHorizontal: 6,
-                        paddingVertical: 2,
-                        marginLeft: 8,
+                        color: '#4ade80',
+                        fontFamily: 'SpaceGrotesk_700Bold',
+                        fontSize: 12,
                       }}
                     >
-                      <Ionicons
-                        name="timer-outline"
-                        size={14}
-                        color="#4ade80"
-                        style={{ marginRight: 3 }}
-                      />
-                      <Text
-                        style={{
-                          color: '#4ade80',
-                          fontFamily: 'SpaceGrotesk_700Bold',
-                          fontSize: 12,
-                        }}
-                      >
-                        Rest: {formatElapsed(restRemaining)}
-                      </Text>
-                    </View>
-                  )}
-                </View>
+                      Rest: {formatElapsed(restRemaining)}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
-            <Button
-              title="FINISH"
-              variant="primary"
-              onPress={handleFinish}
-              style={{ height: 40, paddingHorizontal: 16 }}
-            />
           </View>
-        )}
+          <Button
+            title="FINISH"
+            variant="primary"
+            onPress={handleFinish}
+            style={{ height: 40, paddingHorizontal: 16 }}
+          />
+        </View>
 
         {/* Progress Bar */}
         {totalSetsCount > 0 && (
@@ -504,7 +452,10 @@ export default function WorkoutSessionScreen() {
         onLayout={sorter.onLayout}
         onContentSizeChange={sorter.onContentSizeChange}
         style={styles.content}
-        contentContainerStyle={[styles.contentContainer, { paddingTop: headerHeight + 16 }]}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingTop: headerHeight + 16, maxWidth: 960, width: '100%', alignSelf: 'center' },
+        ]}
         keyboardDismissMode="none"
         keyboardShouldPersistTaps="always"
         scrollEnabled={sorter.scrollEnabled}

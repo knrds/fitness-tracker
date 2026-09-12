@@ -17,6 +17,7 @@ jest.mock('react-native-reanimated', () => {
     withDelay: (_delay, value) => value,
     withSpring: immediate,
     withTiming: immediate,
+    useReducedMotion: () => false,
     interpolate: (value, inputRange, outputRange) => {
       if (value <= inputRange[0]) {
         return outputRange[0];

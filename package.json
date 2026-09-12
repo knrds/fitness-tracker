@@ -5,6 +5,7 @@
   "packageManager": "pnpm@11.5.0",
   "scripts": {
     "coach:local": "node api/local-server.cjs",
+    "coach:check": "node api/provider-check.cjs",
     "test:api": "node --test api/coach-chat.test.cjs",
     "dev": "pnpm --filter @fitness-tracker/mobile dev",
     "web": "pnpm --filter @fitness-tracker/mobile web",

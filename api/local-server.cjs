@@ -106,6 +106,7 @@ const server = http.createServer((req, res) => {
   });
 });
 server.listen(port, '127.0.0.1', () => {
+  require('./provider-check.cjs').checkProvider().then(console.log);
   console.log(`Local app + Coach API: http://127.0.0.1:${port}`);
   console.log(
     process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_MODEL

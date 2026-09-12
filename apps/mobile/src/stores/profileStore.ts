@@ -164,7 +164,8 @@ export const useProfileStore = create<ProfileState>()(
         try {
           await clearStorageBackups();
           if (!isScopeCurrent(scope)) throw new Error('Account changed during local reset');
-          useCoachStore.getState().clearChatHistory();
+          // Reset owns the request lock; the interactive clear command intentionally rejects it.
+          useCoachStore.setState({ messages: [], error: null });
           useSyncStore.getState().clearQueue();
           // Reset local store documents; this does not delete the cloud account.
 

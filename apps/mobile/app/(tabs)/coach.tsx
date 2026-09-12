@@ -33,7 +33,8 @@ export default function CoachScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const hasWorkoutBar = useWorkoutStore((state) => state.status !== 'idle' && state.isMinimized);
-  const { messages, isSending, error, sendMessage, clearChatHistory } = useCoachStore();
+  const { messages, isSending, error, sendMessage, retryLastMessage, clearChatHistory } =
+    useCoachStore();
   const [inputText, setInputText] = useState('');
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
 
@@ -68,226 +69,262 @@ export default function CoachScreen() {
   };
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: theme.colors.background,
-          paddingTop: Math.max(insets.top, 16),
-          paddingBottom: hasWorkoutBar ? 80 : 0,
-        },
-      ]}
-    >
-      <View style={styles.header}>
-        <View style={styles.titleContainer}>
-          <Text
-            style={[styles.headerTitle, { color: theme.colors.text, ...theme.typography.heading }]}
-          >
-            COACH
-          </Text>
-          <Text
-            style={[styles.subtitle, { color: theme.colors.muted, ...theme.typography.caption }]}
-          >
-            Training log companion
-          </Text>
-        </View>
-        <Pressable
-          style={[
-            styles.iconButton,
-            { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
-          ]}
-          onPress={clearChatHistory}
-          disabled={isSending}
-          accessibilityRole="button"
-          accessibilityLabel="Clear coach chat"
-          testID="reset-chat-btn"
-        >
-          <Ionicons name="trash-outline" size={20} color={theme.colors.muted} />
-        </Pressable>
-      </View>
-
-      {error ? (
-        <View
-          style={[
-            styles.errorBanner,
-            { backgroundColor: theme.colors.surface, borderColor: theme.colors.accent },
-          ]}
-        >
-          <Ionicons name="warning-outline" size={16} color={theme.colors.accent} />
-          <Text style={[styles.errorText, { color: theme.colors.text }]}>{error}</Text>
-        </View>
-      ) : null}
-
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.chatList}
-        keyboardShouldPersistTaps="handled"
-        renderItem={({ item }) => {
-          const isUser = item.role === 'user';
-          return (
-            <View style={[styles.messageRow, isUser ? styles.userRow : styles.assistantRow]}>
-              <View
-                style={[
-                  styles.bubble,
-                  isUser
-                    ? { backgroundColor: theme.colors.primary }
-                    : {
-                        backgroundColor: theme.colors.surface,
-                        borderColor: theme.colors.border,
-                        borderWidth: 1,
-                      },
-                ]}
-              >
-                {item.content === '...' ? (
-                  <View style={styles.loaderContainer}>
-                    <ActivityIndicator size="small" color={theme.colors.primary} />
-                  </View>
-                ) : (
-                  <Text
-                    style={[
-                      styles.messageText,
-                      isUser
-                        ? { color: theme.colors.background, fontFamily: 'Manrope_600SemiBold' }
-                        : { color: theme.colors.text, fontFamily: 'Manrope_500Medium' },
-                    ]}
-                  >
-                    {item.content}
-                  </Text>
-                )}
-              </View>
-            </View>
-          );
-        }}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <View style={[styles.welcomeIconContainer, { backgroundColor: theme.colors.surface }]}>
-              <Ionicons name="chatbubble-ellipses" size={32} color={theme.colors.primary} />
-            </View>
-            <Text style={[styles.welcomeTitle, { color: theme.colors.text }]}>
-              Ready when you are
-            </Text>
-            <Text style={[styles.welcomeText, { color: theme.colors.muted }]}>
-              Deine Frage, die letzten Nachrichten und eine Zusammenfassung deiner Trainingsdaten
-              werden an den KI-Dienst gesendet.
-            </Text>
-          </View>
-        }
-      />
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: theme.colors.background,
+            paddingTop: Math.max(insets.top, 16),
+            paddingBottom: hasWorkoutBar ? 80 : 0,
+            maxWidth: 920,
+            width: '100%',
+            alignSelf: 'center',
+          },
+        ]}
       >
-        {messages.length === 0 && (
-          <View style={styles.suggestionsContainer}>
-            <HorizontalFadeScroll contentContainerStyle={styles.suggestionsList}>
-              {SUGGESTIONS.map((suggestion) => (
-                <Pressable
-                  key={suggestion}
-                  style={[
-                    styles.suggestionPill,
-                    {
-                      backgroundColor: theme.colors.surface,
-                      borderColor: theme.colors.border,
-                    },
-                  ]}
-                  onPress={() => handleSuggestionPress(suggestion)}
-                >
-                  <Text
-                    style={[
-                      styles.suggestionText,
-                      {
-                        color: theme.colors.primary,
-                        ...theme.typography.caption,
-                      },
-                    ]}
-                  >
-                    {suggestion}
-                  </Text>
-                </Pressable>
-              ))}
-            </HorizontalFadeScroll>
-          </View>
-        )}
-
-        <View
-          style={[
-            styles.inputRow,
-            {
-              borderTopColor: theme.colors.border,
-              backgroundColor: theme.colors.background,
-              paddingBottom: Math.max(insets.bottom + 8, 16),
-            },
-          ]}
-        >
-          <View
-            style={[
-              styles.inputWrapper,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
-              },
-            ]}
-          >
-            <TextInput
-              style={[styles.input, { color: theme.colors.text }]}
-              placeholder="Ask your coach..."
-              placeholderTextColor={theme.colors.muted}
-              value={inputText}
-              onChangeText={setInputText}
-              multiline
-              blurOnSubmit={false}
-              maxLength={500}
-              editable={!isSending}
-              returnKeyType="send"
-              enterKeyHint="send"
-              submitBehavior="submit"
-              onKeyPress={handleInputKeyPress}
-              {...(Platform.OS === 'web'
-                ? {
-                    onKeyDown: (e: {
-                      key: string;
-                      shiftKey: boolean;
-                      preventDefault: () => void;
-                    }) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        void handleSend(inputText);
-                      }
-                    },
-                  }
-                : {})}
-              onSubmitEditing={() => {
-                void handleSend(inputText);
-              }}
-              accessibilityLabel="Coach message"
-            />
+        <View style={styles.header}>
+          <View style={styles.titleContainer}>
+            <Text
+              style={[
+                styles.headerTitle,
+                { color: theme.colors.text, ...theme.typography.heading },
+              ]}
+            >
+              COACH
+            </Text>
+            <Text
+              style={[styles.subtitle, { color: theme.colors.muted, ...theme.typography.caption }]}
+            >
+              Training log companion
+            </Text>
           </View>
           <Pressable
             style={[
-              styles.sendButton,
-              {
-                backgroundColor:
-                  isSending || !inputText.trim() ? theme.colors.surface : theme.colors.primary,
-              },
+              styles.iconButton,
+              { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
             ]}
-            onPress={() => {
-              void handleSend(inputText);
-            }}
-            disabled={isSending || !inputText.trim()}
+            onPress={clearChatHistory}
+            disabled={isSending}
             accessibilityRole="button"
-            accessibilityLabel="Send coach message"
+            accessibilityLabel="Clear coach chat"
+            testID="reset-chat-btn"
           >
-            <Ionicons
-              name="send"
-              size={18}
-              color={isSending || !inputText.trim() ? theme.colors.muted : theme.colors.background}
-            />
+            <Ionicons name="trash-outline" size={20} color={theme.colors.muted} />
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+
+        {error ? (
+          <View
+            style={[
+              styles.errorBanner,
+              { backgroundColor: theme.colors.surface, borderColor: theme.colors.accent },
+            ]}
+          >
+            <Ionicons name="warning-outline" size={16} color={theme.colors.accent} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.errorText, { color: theme.colors.text }]}>{error}</Text>
+              <Pressable
+                accessibilityRole="button"
+                disabled={isSending}
+                onPress={() => {
+                  void retryLastMessage();
+                }}
+                style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }}
+              >
+                <Text style={{ color: theme.colors.primary, fontWeight: '600' }}>
+                  Erneut senden
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.chatList}
+          keyboardShouldPersistTaps="handled"
+          renderItem={({ item }) => {
+            const isUser = item.role === 'user';
+            return (
+              <View style={[styles.messageRow, isUser ? styles.userRow : styles.assistantRow]}>
+                <View
+                  style={[
+                    styles.bubble,
+                    isUser
+                      ? { backgroundColor: theme.colors.primary }
+                      : {
+                          backgroundColor: theme.colors.surface,
+                          borderColor: theme.colors.border,
+                          borderWidth: 1,
+                        },
+                  ]}
+                >
+                  {item.content === '...' ? (
+                    <View style={styles.loaderContainer}>
+                      <ActivityIndicator size="small" color={theme.colors.primary} />
+                    </View>
+                  ) : (
+                    <Text
+                      style={[
+                        styles.messageText,
+                        isUser
+                          ? { color: theme.colors.background, fontFamily: 'Manrope_600SemiBold' }
+                          : { color: theme.colors.text, fontFamily: 'Manrope_500Medium' },
+                      ]}
+                    >
+                      {isUser
+                        ? item.content
+                        : item.content.split(/(\*\*[^*\n]+\*\*)/g).map((part, index) =>
+                            part.startsWith('**') && part.endsWith('**') ? (
+                              <Text key={index} style={{ fontFamily: 'Manrope_600SemiBold' }}>
+                                {part.slice(2, -2)}
+                              </Text>
+                            ) : (
+                              part
+                            ),
+                          )}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            );
+          }}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <View
+                style={[styles.welcomeIconContainer, { backgroundColor: theme.colors.surface }]}
+              >
+                <Ionicons name="chatbubble-ellipses" size={32} color={theme.colors.primary} />
+              </View>
+              <Text style={[styles.welcomeTitle, { color: theme.colors.text }]}>
+                Ready when you are
+              </Text>
+              <Text style={[styles.welcomeText, { color: theme.colors.muted }]}>
+                Deine Frage, die letzten Nachrichten und eine Zusammenfassung deiner Trainingsdaten
+                werden an den KI-Dienst gesendet.
+              </Text>
+            </View>
+          }
+        />
+
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        >
+          {messages.length === 0 && (
+            <View style={styles.suggestionsContainer}>
+              <HorizontalFadeScroll contentContainerStyle={styles.suggestionsList}>
+                {SUGGESTIONS.map((suggestion) => (
+                  <Pressable
+                    key={suggestion}
+                    style={[
+                      styles.suggestionPill,
+                      {
+                        backgroundColor: theme.colors.surface,
+                        borderColor: theme.colors.border,
+                      },
+                    ]}
+                    onPress={() => handleSuggestionPress(suggestion)}
+                  >
+                    <Text
+                      style={[
+                        styles.suggestionText,
+                        {
+                          color: theme.colors.primary,
+                          ...theme.typography.caption,
+                        },
+                      ]}
+                    >
+                      {suggestion}
+                    </Text>
+                  </Pressable>
+                ))}
+              </HorizontalFadeScroll>
+            </View>
+          )}
+
+          <View
+            style={[
+              styles.inputRow,
+              {
+                borderTopColor: theme.colors.border,
+                backgroundColor: theme.colors.background,
+                paddingBottom: Math.max(insets.bottom + 8, 16),
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.inputWrapper,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                },
+              ]}
+            >
+              <TextInput
+                style={[styles.input, { color: theme.colors.text }]}
+                placeholder="Ask your coach..."
+                placeholderTextColor={theme.colors.muted}
+                value={inputText}
+                onChangeText={setInputText}
+                multiline
+                blurOnSubmit={false}
+                maxLength={500}
+                editable={!isSending}
+                returnKeyType="send"
+                enterKeyHint="send"
+                submitBehavior="submit"
+                onKeyPress={handleInputKeyPress}
+                {...(Platform.OS === 'web'
+                  ? {
+                      onKeyDown: (e: {
+                        key: string;
+                        shiftKey: boolean;
+                        preventDefault: () => void;
+                      }) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          void handleSend(inputText);
+                        }
+                      },
+                    }
+                  : {})}
+                onSubmitEditing={() => {
+                  void handleSend(inputText);
+                }}
+                accessibilityLabel="Coach message"
+              />
+            </View>
+            <Pressable
+              style={[
+                styles.sendButton,
+                {
+                  backgroundColor:
+                    isSending || !inputText.trim() ? theme.colors.surface : theme.colors.primary,
+                },
+              ]}
+              onPress={() => {
+                void handleSend(inputText);
+              }}
+              disabled={isSending || !inputText.trim()}
+              accessibilityRole="button"
+              accessibilityLabel="Send coach message"
+            >
+              <Ionicons
+                name="send"
+                size={18}
+                color={
+                  isSending || !inputText.trim() ? theme.colors.muted : theme.colors.background
+                }
+              />
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </View>
     </View>
   );
 }

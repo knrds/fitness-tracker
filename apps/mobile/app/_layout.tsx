@@ -30,6 +30,7 @@ if (Platform.OS !== 'web') {
 
 function StartupWorkoutChecker() {
   const router = useRouter();
+  const pathname = usePathname();
   const { status, resetWorkout, resumeWorkout } = useWorkoutStore();
   const [modalVisible, setModalVisible] = useState(false);
   const theme = useTheme();
@@ -98,7 +99,8 @@ function StartupWorkoutChecker() {
                   resumeWorkout();
                 }
                 setModalVisible(false);
-                router.push('/workout/session');
+                useWorkoutStore.getState().setMinimized(false);
+                if (pathname !== '/workout/session') router.navigate('/workout/session');
               }}
             >
               <Text

@@ -1,5 +1,7 @@
 # Roadmap
 
+12.09.2026: Vorgezogene Nutzerkorrekturen für Drag-and-drop, regionale Übungsfilter/Heatmap und lokalen OpenRouter-Server implementiert; 227 Tests bestehen. Phase 8/9 bleiben wegen nativer Performance-/Accessibility- und realer Provider-/Backendabnahme offen. Details: IMPLEMENTATION_STATUS.md.
+
 - [x] Referenz inventarisiert, Audit und Ausgangsnachweise dokumentiert.
 - [x] Workspace/Branch eingerichtet; ursprüngliche 136 Tests bestanden.
 - [x] Phase 1: Startup/Recovery, Queue-Rennen/stilles Verwerfen, Client-Providerkey-Pfad und Streak korrigiert.

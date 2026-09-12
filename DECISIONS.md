@@ -1,5 +1,8 @@
 # Entscheidungen
 
+## ADR-011 – Lokaler Coach und gemessene Sortierung (12.09.2026)
+Nutzer hat OpenRouter, kein Backend. Deshalb Loopback-Server für lokale Browserentwicklung, ohne zusätzliche Kontoanforderung; öffentlicher Handler bleibt authentifiziert. Native Nutzung braucht später HTTPS-Hosting. Keine öffentliche API ohne Auth und keine Providersecrets im Client. Gemeinsamer PanResponder-Hook reduziert Layoutwechsel und Persistenzwrites beim Sortieren; native Framerate ist noch zu messen. Heatmap zeigt Arbeitssatzzahlen statt kg-Volumen, damit Körpergewichtsübungen sichtbar werden; keine physiologische Belastungsmessung.
+
 ## ADR-001 – Hybrid statt Komplettrewrite (10.09.2026)
 Expo/RN passt zu Windows+iPhone und vorhandenen 136 Tests. Domain/UI erhalten, riskante Datenpfade vertikal erneuern. Flutter/Bare würden die Datenfehler nicht automatisch lösen. Referenz bleibt Commit 570383a.
 

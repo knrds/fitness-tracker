@@ -1,4 +1,21 @@
-# Umsetzungsstand vom 11.09.2026
+# Umsetzungsstand vom 12.09.2026
+
+## Aktuell: Bedienung, Muskelregionen und Coach
+
+| Before | After |
+| --- | --- |
+| Feste Zeilenhöhen, Einklappen beim Berühren | Gemessene Sortierung in fünf Ansichten, Bewegungsschwelle, animierte Nachbarn, Randscrollen, Commit beim Ablegen |
+| Kleine Ziehgriffe konkurrieren mit Seitenscrollen | Mindestens 44 × 44, Touch-Steuerung und Accessibility-Aktionen |
+| Schulterfilter berücksichtigt nur eine Untergruppe | Regionale Filter einschließlich aller Schultergruppen und sekundärer Muskeln; Heatmap-Einstieg entfernt alte Suchfilter |
+| Körpergewichtsübungen bei null kg unsichtbar | Heatmap zählt abgeschlossene Arbeitssätze der letzten sieben Kalendertage |
+| Generische lokale Chatantwort | Echter HTTP-Pfad, Servervalidierung, öffentliche Auth, Timeouts und sichtbare Fehler |
+| OpenRouter-Key ohne lokalen Server | Loopback-Server, Konfigurationsvorlage, Einbindung in pnpm dev |
+| Trainingsleiste verdeckt Coach-Sendeknopf | Eingabe erhält Abstand zur Leiste |
+| Separate Vorlagenkopie im Programmeditor | Gemeinsame Domain-Konvertierung erhält unterstützte RIR-/Pausen-/Gruppenziele |
+
+227 Tests bestehen: 57 Domain, 164 Mobile, 6 API; darin 26 reale SQLite-Integrationstests. Typecheck/Lint, Web- und beide Hermes-Exporte erfolgreich. Chromium 390 × 844: Trainingskarten per Maus und Vorlagen per emuliertem Touch umgeordnet; Schulterregion öffnet Übungen; Coach sendet bis zur echten lokalen 503-Antwort und behält die Frage ohne Fake-Antwort. Screenshots shoulders-mobile.png und coach-mobile.png visuell geprüft.
+
+Offen: echter OpenRouter-Aufruf nach Schlüssel-/Modelleintrag in .env.coach.local; HTTPS-Backend für iPhone; native Gesten-/Framerate-Abnahme und sämtliche Kalender-Dropvarianten. PanResponder bleibt die Gestenerkennung. Exporte sind keine Gerätebuilds. Nächster größerer Schritt: Phase 4b.2, granulare Übungs-/Vorlagen-Repositories. Die folgenden Nachweise dokumentieren frühere Meilensteine.
 
 Audit und erste Kernarbeit sind als überprüfbarer Entwicklungszwischenstand umgesetzt. Repository: D:\TrainingsAppGPT, Branch rebuild/clean-mobile-app. Keine Veröffentlichung, kein Push und kein signierter Gerätebuild.
 

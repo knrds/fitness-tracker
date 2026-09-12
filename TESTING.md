@@ -1,6 +1,8 @@
-# Testnachweise – 11.09.2026
+# Testnachweise – 12.09.2026
 
-211 Tests bestanden: Domain/Vitest 54 Tests in 7 Dateien, Mobile/Jest 157 Tests in 33 Suites. Keine Tests deaktiviert. Baseline: 136 Tests. Typecheck und Lint erfolgreich.
+227 Tests bestanden: Domain/Vitest 57 Tests in 8 Dateien, Mobile/Jest 164 Tests in 35 Suites, Node API 6 Tests. Keine Tests deaktiviert. Baseline: 136 Tests. Typecheck und Lint erfolgreich. pnpm test enthält nun auch die API-Tests.
+
+Neue Regressionen prüfen regionale Filter, körpergewichtsgeeignete Muskelaktivität, gemessene Drop-Ziele, Abbruch/Kontowechsel während einer Geste sowie echten HTTP-Vertrag statt Chatfallback. API-Tests prüfen Auth, fehlende Konfiguration, serverseitige Modellwahl, tatsächliche Frage, Systemrollen und die Grenze zum lokalen Modus. Providerzugriff wird dabei simuliert. Reale Browserprüfung: Maus-Reorder im Training, Touch-Reorder von Vorlagen, Schulter-Hitmap-Einstieg und lokale Coach-503-Antwort mit sichtbarer Frage/Fehlermeldung; Senden trotz minimiertem Training. Native Gesten und sämtliche Kalender-Dropvarianten bleiben ungeprüft. Web und Hermes für beide Plattformen exportiert; keine signierten Builds.
 
 ## Was tatsächlich geprüft wurde
 - Recovery einmal nach Hydration, leere/alte Sessions bleiben erhalten.

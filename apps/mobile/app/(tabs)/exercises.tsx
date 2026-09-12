@@ -8,7 +8,12 @@ import { ExerciseRow } from '../../src/components/exercises/ExerciseRow';
 import { CustomExerciseModal } from '../../src/components/exercises/CustomExerciseModal';
 import { useTheme, EmptyState } from '@fitness-tracker/ui';
 import { Ionicons } from '@expo/vector-icons';
-import { Equipment, MovementPattern, MuscleGroup } from '@fitness-tracker/domain';
+import {
+  Equipment,
+  MovementPattern,
+  MuscleGroup,
+  matchesMuscleRegion,
+} from '@fitness-tracker/domain';
 import { HorizontalFadeScroll } from '../../src/components/HorizontalFadeScroll';
 
 const MUSCLE_FILTERS = [
@@ -131,6 +136,7 @@ export default function ExercisesScreen({ embedded = false }: ExercisesScreenPro
 
   React.useEffect(() => {
     if (params.muscle) {
+      useExerciseStore.getState().resetFilters();
       setSelectedMuscle(params.muscle);
     }
   }, [params.muscle]);
@@ -192,10 +198,7 @@ export default function ExercisesScreen({ embedded = false }: ExercisesScreenPro
       if (selectedMuscle === MuscleGroup.Obliques) {
         return isObliqueLikeExercise(ex);
       }
-      return selectedMuscle
-        ? ex.primaryMuscles.includes(selectedMuscle as MuscleGroup) ||
-            ex.secondaryMuscles.includes(selectedMuscle as MuscleGroup)
-        : true;
+      return selectedMuscle ? matchesMuscleRegion(ex, selectedMuscle as MuscleGroup) : true;
     })
     .sort((a, b) => {
       switch (sortBy) {

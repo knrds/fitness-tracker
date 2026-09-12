@@ -1,4 +1,5 @@
-import React, { useState, useRef, useMemo } from 'react';
+import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,17 +7,11 @@ import {
   TextInput,
   ScrollView,
   Pressable,
-  PanResponder,
   Animated,
   Keyboard,
-  Platform,
-  Dimensions,
-  LayoutAnimation,
-  ViewStyle,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { ExercisePickerModal } from '../../src/components/workout/ExercisePickerModal';
@@ -52,191 +47,9 @@ export default function WorkoutTemplateBuilderScreen() {
 
   const [isExerciseModalVisible, setExerciseModalVisible] = useState(false);
 
-  const [activeDragId, setActiveDragId] = useState<string | null>(null);
-  const activeDragIdRef = useRef<string | null>(null);
-  const isDraggingActiveRef = useRef(false);
-  const dragY = useRef(new Animated.Value(0)).current;
-  const dragScale = useRef(new Animated.Value(1)).current;
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-  const hoverIndexRef = useRef<number | null>(null);
-  const draggingExerciseRef = useRef<TemplateExercise | null>(null);
-  const dragTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [scrollEnabled, setScrollEnabled] = useState(true);
-  const itemLayouts = useRef<Record<string, { y: number; height: number }>>({});
-
-  const scrollViewRef = useRef<ScrollView>(null);
-  const scrollYRef = useRef(0);
-  const autoScrollInterval = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const startAutoScroll = (direction: 'up' | 'down') => {
-    if (autoScrollInterval.current) return;
-    autoScrollInterval.current = setInterval(() => {
-      const currentScrollY = scrollYRef.current;
-      const step = 10;
-      const newScrollY =
-        direction === 'up' ? Math.max(0, currentScrollY - step) : currentScrollY + step;
-      scrollViewRef.current?.scrollTo({ y: newScrollY, animated: false });
-    }, 16);
-  };
-
-  const stopAutoScroll = () => {
-    if (autoScrollInterval.current) {
-      clearInterval(autoScrollInterval.current);
-      autoScrollInterval.current = null;
-    }
-  };
-
-  const panResponder = useMemo(() => {
-    return PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (e, gestureState) => {
-        return Math.abs(gestureState.dy) > 2;
-      },
-      onPanResponderGrant: () => {
-        const te = draggingExerciseRef.current;
-        if (te) {
-          activeDragIdRef.current = te.id;
-          isDraggingActiveRef.current = true;
-          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-          setActiveDragId(te.id);
-          setScrollEnabled(false);
-          dragY.setValue(0);
-          dragScale.setValue(1);
-          Animated.spring(dragScale, {
-            toValue: 1.03,
-            useNativeDriver: true,
-            tension: 100,
-            friction: 6,
-          }).start();
-          if (Platform.OS !== 'web') {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-          }
-        }
-      },
-      onPanResponderMove: (e, gestureState) => {
-        if (!activeDragIdRef.current) return;
-        dragY.setValue(gestureState.dy);
-        const te = draggingExerciseRef.current;
-        if (te) {
-          const dragIndex = templateExercises.findIndex((item) => item.id === te.id);
-          if (dragIndex !== -1) {
-            const S = 76; // Collapsed height (60) + gap (16)
-            const step = Math.round(gestureState.dy / S);
-            const targetIndex = Math.max(
-              0,
-              Math.min(templateExercises.length - 1, dragIndex + step),
-            );
-            const insertIndex = targetIndex;
-
-            if (insertIndex !== hoverIndexRef.current) {
-              hoverIndexRef.current = insertIndex;
-              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-              setHoverIndex(insertIndex);
-            }
-          }
-        }
-
-        // Auto scroll when dragging near screen edges
-        const { height: screenHeight } = Dimensions.get('window');
-        const touchY = gestureState.moveY;
-        if (touchY > 0 && touchY < 180) {
-          startAutoScroll('up');
-        } else if (touchY > screenHeight - 140) {
-          startAutoScroll('down');
-        } else {
-          stopAutoScroll();
-        }
-      },
-      onPanResponderRelease: (e, gestureState) => {
-        stopAutoScroll();
-        if (dragTimeoutRef.current) {
-          clearTimeout(dragTimeoutRef.current);
-        }
-        isDraggingActiveRef.current = false;
-        const te = draggingExerciseRef.current;
-        draggingExerciseRef.current = null;
-        if (!activeDragIdRef.current) {
-          activeDragIdRef.current = null;
-          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-          setActiveDragId(null);
-          hoverIndexRef.current = null;
-          setHoverIndex(null);
-          setScrollEnabled(true);
-          dragY.setValue(0);
-          return;
-        }
-        activeDragIdRef.current = null;
-        if (te) {
-          const dragIndex = templateExercises.findIndex((item) => item.id === te.id);
-          if (dragIndex !== -1) {
-            const S = 76;
-            const step = Math.round(gestureState.dy / S);
-            const targetIndex = Math.max(
-              0,
-              Math.min(templateExercises.length - 1, dragIndex + step),
-            );
-            const insertIndex = targetIndex;
-
-            const otherExercises = templateExercises.filter((item) => item.id !== te.id);
-            const reordered = [...otherExercises];
-            reordered.splice(insertIndex, 0, te);
-            const finalReordered = reordered.map((item, idx) => ({ ...item, order: idx }));
-            setTemplateExercises(finalReordered);
-          }
-        }
-        Animated.parallel([
-          Animated.spring(dragY, {
-            toValue: 0,
-            useNativeDriver: true,
-            tension: 80,
-            friction: 8,
-          }),
-          Animated.spring(dragScale, {
-            toValue: 1,
-            useNativeDriver: true,
-            tension: 80,
-            friction: 8,
-          }),
-        ]).start(() => {
-          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-          setActiveDragId(null);
-          hoverIndexRef.current = null;
-          setHoverIndex(null);
-          setScrollEnabled(true);
-        });
-      },
-      onPanResponderTerminate: () => {
-        stopAutoScroll();
-        if (dragTimeoutRef.current) {
-          clearTimeout(dragTimeoutRef.current);
-        }
-        draggingExerciseRef.current = null;
-        activeDragIdRef.current = null;
-        isDraggingActiveRef.current = false;
-        Animated.parallel([
-          Animated.spring(dragY, {
-            toValue: 0,
-            useNativeDriver: true,
-            tension: 80,
-            friction: 8,
-          }),
-          Animated.spring(dragScale, {
-            toValue: 1,
-            useNativeDriver: true,
-            tension: 80,
-            friction: 8,
-          }),
-        ]).start(() => {
-          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-          setActiveDragId(null);
-          hoverIndexRef.current = null;
-          setHoverIndex(null);
-          setScrollEnabled(true);
-        });
-      },
-    });
-  }, [templateExercises]);
-
+  const sorter = useMeasuredReorder(templateExercises, (items) =>
+    setTemplateExercises(items.map((item, order) => ({ ...item, order }))),
+  );
   if (programId && !program) {
     return (
       <View style={styles.centered}>
@@ -310,13 +123,15 @@ export default function WorkoutTemplateBuilderScreen() {
       </View>
 
       <ScrollView
-        ref={scrollViewRef}
+        ref={sorter.scrollViewRef}
+        onLayout={sorter.onLayout}
+        onContentSizeChange={sorter.onContentSizeChange}
         onScroll={(e) => {
-          scrollYRef.current = e.nativeEvent.contentOffset.y;
+          sorter.onScroll(e);
         }}
         scrollEventThrottle={16}
         contentContainerStyle={styles.content}
-        scrollEnabled={scrollEnabled}
+        scrollEnabled={sorter.scrollEnabled}
         keyboardDismissMode="on-drag"
         automaticallyAdjustKeyboardInsets={true}
       >
@@ -345,116 +160,30 @@ export default function WorkoutTemplateBuilderScreen() {
         <Text style={styles.sectionTitle}>Exercises</Text>
         {templateExercises.map((te, index) => {
           const ex = exercises.find((e) => e.id === te.exerciseId);
-          const isDraggingThis = te.id === activeDragId;
-          const otherExercises = templateExercises.filter((item) => item.id !== activeDragId);
-          const isHovered =
-            activeDragId !== null &&
-            hoverIndex !== null &&
-            otherExercises[hoverIndex]?.id === te.id;
-
-          let shiftY = 0;
-          if (activeDragId !== null && hoverIndex !== null && !isDraggingThis) {
-            const dragIndex = templateExercises.findIndex((item) => item.id === activeDragId);
-            const myIndex = templateExercises.findIndex((item) => item.id === te.id);
-            const totalShift = 76; // Collapsed height (60) + gap (16)
-
-            if (myIndex < dragIndex) {
-              if (myIndex >= hoverIndex) {
-                shiftY = totalShift;
-              }
-            } else if (myIndex > dragIndex) {
-              if (myIndex < hoverIndex) {
-                shiftY = -totalShift;
-              }
-            }
-          }
 
           return (
             <Animated.View
               key={te.id}
               onLayout={(e) => {
-                if (!isDraggingActiveRef.current && activeDragId !== te.id) {
-                  itemLayouts.current[te.id] = {
-                    y: e.nativeEvent.layout.y,
-                    height: e.nativeEvent.layout.height,
-                  };
-                }
+                if (!sorter.activeDragId) sorter.itemLayouts.current[te.id] = e.nativeEvent.layout;
               }}
-              style={[
-                isDraggingThis && {
-                  transform: [{ translateY: dragY }, { scale: dragScale }],
-                  zIndex: 9999,
-                  opacity: 0.85,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.35,
-                  shadowRadius: 6,
-                  elevation: 5,
-                },
-                !isDraggingThis &&
-                  activeDragId !== null && {
-                    transform: [{ translateY: shiftY }],
-                  },
-                Platform.OS === 'web' &&
-                  activeDragId !== null &&
-                  ({
-                    transition: 'transform 0.2s ease',
-                  } as unknown as ViewStyle),
-              ]}
+              style={[sorter.getRowStyle(te.id)]}
             >
-              <Card
-                padding="md"
-                style={[
-                  styles.exerciseCard,
-                  isHovered && {
-                    borderColor: '#90D5FF',
-                    borderWidth: 1.5,
-                    borderStyle: 'dashed',
-                    backgroundColor: 'rgba(144, 213, 255, 0.05)',
-                  },
-                ]}
-              >
+              <Card padding="md" style={styles.exerciseCard}>
                 <View style={styles.exHeader}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <View
                       style={[
                         styles.dragHandle,
+                        sorter.handleStyle,
                         {
-                          cursor: 'grab',
-                          touchAction: 'none',
-                          userSelect: 'none',
-                          WebkitUserSelect: 'none',
-                        } as unknown as ViewStyle,
+                          minWidth: 44,
+                          minHeight: 44,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        },
                       ]}
-                      onPointerDown={() => {
-                        draggingExerciseRef.current = te;
-                        activeDragIdRef.current = te.id;
-                        setActiveDragId(te.id);
-                        setScrollEnabled(false);
-                      }}
-                      onTouchStart={() => {
-                        draggingExerciseRef.current = te;
-                        activeDragIdRef.current = te.id;
-                        setActiveDragId(te.id);
-                        setScrollEnabled(false);
-                      }}
-                      onPointerUp={() => {
-                        if (!isDraggingActiveRef.current) {
-                          draggingExerciseRef.current = null;
-                          activeDragIdRef.current = null;
-                          setActiveDragId(null);
-                          setScrollEnabled(true);
-                        }
-                      }}
-                      onTouchEnd={() => {
-                        if (!isDraggingActiveRef.current) {
-                          draggingExerciseRef.current = null;
-                          activeDragIdRef.current = null;
-                          setActiveDragId(null);
-                          setScrollEnabled(true);
-                        }
-                      }}
-                      {...panResponder.panHandlers}
+                      {...sorter.getHandleProps(te.id)}
                     >
                       <Ionicons name="reorder-two" size={24} color={theme.colors.primary} />
                     </View>
@@ -466,7 +195,10 @@ export default function WorkoutTemplateBuilderScreen() {
                           const temp = reordered[index];
                           reordered[index] = reordered[index - 1]!;
                           reordered[index - 1] = temp!;
-                          const finalReordered = reordered.map((item, idx) => ({ ...item, order: idx }));
+                          const finalReordered = reordered.map((item, idx) => ({
+                            ...item,
+                            order: idx,
+                          }));
                           setTemplateExercises(finalReordered);
                         }}
                         hitSlop={8}
@@ -482,7 +214,10 @@ export default function WorkoutTemplateBuilderScreen() {
                           const temp = reordered[index];
                           reordered[index] = reordered[index + 1]!;
                           reordered[index + 1] = temp!;
-                          const finalReordered = reordered.map((item, idx) => ({ ...item, order: idx }));
+                          const finalReordered = reordered.map((item, idx) => ({
+                            ...item,
+                            order: idx,
+                          }));
                           setTemplateExercises(finalReordered);
                         }}
                         hitSlop={8}
@@ -505,7 +240,7 @@ export default function WorkoutTemplateBuilderScreen() {
                 </View>
 
                 {/* Table Column Headers */}
-                {activeDragId === null && (
+                {true && (
                   <>
                     <View style={styles.tableHeaderRow}>
                       <Text

@@ -8,3 +8,4 @@ export * from './getExerciseProgressHistory';
 export * from './getBestWeights';
 export * from './getBestE1RMs';
 export * from './workoutPlanning';
+export * from './muscleRegions';

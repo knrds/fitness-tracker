@@ -1,3 +1,5 @@
+import { templateExercisesFromSession } from '@fitness-tracker/domain';
+import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
 import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
 import React, { useState, useEffect } from 'react';
 import {
@@ -9,10 +11,7 @@ import {
   Pressable,
   Platform,
   Modal,
-  PanResponder,
   Animated,
-  ViewStyle,
-  LayoutAnimation,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -59,132 +58,58 @@ export default function ProgramBuilderScreen() {
   const [rescheduleWorkout, setRescheduleWorkout] = useState<ProgramWorkout | null>(null);
 
   const dayLayouts = React.useRef<Record<number, { y: number; height: number }>>({});
-  const [scrollEnabled, setScrollEnabled] = useState(true);
-  const [activeDragId, setActiveDragId] = useState<string | null>(null);
-  const activeDragIdRef = React.useRef<string | null>(null);
-  const isDraggingActiveRef = React.useRef(false);
-  const dragY = React.useRef(new Animated.Value(0)).current;
-  const draggingWorkoutRef = React.useRef<ProgramWorkout | null>(null);
-
-  const panResponder = React.useMemo(() => {
-    return PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (e, gestureState) => {
-        return Math.abs(gestureState.dy) > 2;
+  const rowLayouts = React.useRef<Record<string, { y: number; height: number }>>({});
+  const sorter = useMeasuredReorder(
+    (activeProgram?.workouts ?? [])
+      .filter((w) => w.week === selectedWeek)
+      .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.order - b.order),
+    () => {},
+    {
+      onDrop: (workout, dropY) => {
+        if (!activeProgram) return;
+        const days = Object.entries(dayLayouts.current);
+        const target =
+          days.find(([, layout]) => dropY >= layout.y && dropY <= layout.y + layout.height) ??
+          days.sort(
+            ([, a], [, b]) =>
+              Math.abs(dropY - a.y - a.height / 2) - Math.abs(dropY - b.y - b.height / 2),
+          )[0];
+        if (!target) return;
+        const targetDay = Number(target[0]);
+        const other = activeProgram.workouts.filter((w) => w.id !== workout.id);
+        const destination = other
+          .filter((w) => w.week === selectedWeek && w.dayOfWeek === targetDay)
+          .sort((a, b) => a.order - b.order);
+        const insertIndex = destination.filter((w) => {
+          const layout = sorter.itemLayouts.current[w.id];
+          return layout && dropY > layout.y + layout.height / 2;
+        }).length;
+        destination.splice(insertIndex, 0, { ...workout, dayOfWeek: targetDay });
+        const source = other
+          .filter(
+            (w) =>
+              w.week === selectedWeek &&
+              w.dayOfWeek === workout.dayOfWeek &&
+              w.dayOfWeek !== targetDay,
+          )
+          .sort((a, b) => a.order - b.order);
+        handleChange({
+          workouts: [
+            ...other.filter(
+              (w) =>
+                w.week !== selectedWeek ||
+                (w.dayOfWeek !== targetDay && w.dayOfWeek !== workout.dayOfWeek),
+            ),
+            ...source.map((w, order) => ({ ...w, order })),
+            ...destination.map((w, order) => ({ ...w, order })),
+          ],
+        });
       },
-      onPanResponderGrant: () => {
-        const wk = draggingWorkoutRef.current;
-        if (wk) {
-          activeDragIdRef.current = wk.id;
-          isDraggingActiveRef.current = true;
-          setActiveDragId(wk.id);
-          setScrollEnabled(false);
-          dragY.setValue(0);
-        }
-      },
-      onPanResponderMove: (e, gestureState) => {
-        if (!activeDragIdRef.current) return;
-        dragY.setValue(gestureState.dy);
-      },
-      onPanResponderRelease: (e, gestureState) => {
-        isDraggingActiveRef.current = false;
-        const wk = draggingWorkoutRef.current;
-        draggingWorkoutRef.current = null;
-        activeDragIdRef.current = null;
+    },
+  );
 
-        if (wk && activeProgram) {
-          const initialDay = wk.dayOfWeek;
-          const layout = dayLayouts.current[initialDay];
-          if (layout) {
-            const dropY = layout.y + wk.order * 60 + gestureState.dy;
-
-            let targetDay = initialDay;
-            let minDistance = Infinity;
-
-            Object.entries(dayLayouts.current).forEach(([dayStr, dLayout]) => {
-              const dayNum = parseInt(dayStr, 10);
-              const centerY = dLayout.y + dLayout.height / 2;
-              const dist = Math.abs(dropY - centerY);
-              if (dist < minDistance) {
-                minDistance = dist;
-                targetDay = dayNum;
-              }
-            });
-
-            const otherWorkouts = activeProgram.workouts.filter(
-              (w: ProgramWorkout) => w.id !== wk.id,
-            );
-            const targetDayWorkouts = otherWorkouts
-              .filter((w: ProgramWorkout) => w.week === selectedWeek && w.dayOfWeek === targetDay)
-              .sort((a: ProgramWorkout, b: ProgramWorkout) => a.order - b.order);
-
-            const dayLayout = dayLayouts.current[targetDay];
-            let insertIndex = targetDayWorkouts.length;
-            if (dayLayout) {
-              const relativeY = dropY - dayLayout.y - 45;
-              insertIndex = Math.max(
-                0,
-                Math.min(targetDayWorkouts.length, Math.round(relativeY / 60)),
-              );
-            }
-
-            const newWorkout = {
-              ...wk,
-              dayOfWeek: targetDay,
-              order: insertIndex,
-            };
-
-            targetDayWorkouts.splice(insertIndex, 0, newWorkout);
-            const reorderedTargetDayWorkouts = targetDayWorkouts.map(
-              (w: ProgramWorkout, idx: number) => ({
-                ...w,
-                order: idx,
-              }),
-            );
-
-            handleChange({
-              workouts: [
-                ...otherWorkouts.filter(
-                  (w: ProgramWorkout) => !(w.week === selectedWeek && w.dayOfWeek === targetDay),
-                ),
-                ...reorderedTargetDayWorkouts,
-              ],
-            });
-          }
-        }
-
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setActiveDragId(null);
-        setScrollEnabled(true);
-        dragY.setValue(0);
-      },
-      onPanResponderTerminate: () => {
-        draggingWorkoutRef.current = null;
-        activeDragIdRef.current = null;
-        isDraggingActiveRef.current = false;
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setActiveDragId(null);
-        setScrollEnabled(true);
-        dragY.setValue(0);
-      },
-    });
-  }, [activeProgram, selectedWeek]);
-
-  const mapToTemplateExercises = (sessionExercises: SessionExercise[]): TemplateExercise[] => {
-    return sessionExercises.map((ex) => {
-      const firstSet = ex.sets[0];
-      return {
-        id: Crypto.randomUUID(),
-        exerciseId: ex.exerciseId,
-        order: ex.order,
-        targetSets: ex.sets.length > 0 ? ex.sets.length : 1,
-        ...(firstSet?.reps !== undefined ? { targetReps: firstSet.reps } : {}),
-        ...(firstSet?.weight !== undefined ? { targetWeight: firstSet.weight } : {}),
-        ...(firstSet?.rpe !== undefined ? { targetRpe: firstSet.rpe } : {}),
-        ...(ex.notes !== undefined ? { notes: ex.notes } : {}),
-      };
-    });
-  };
+  const mapToTemplateExercises = (exercises: SessionExercise[]): TemplateExercise[] =>
+    templateExercisesFromSession(exercises, Crypto.randomUUID);
 
   const handleStartTemplate = (template: WorkoutTemplate | undefined, programId: string) => {
     if (!template) return;
@@ -373,7 +298,15 @@ export default function ProgramBuilderScreen() {
           ),
         }}
       />
-      <ScrollView contentContainerStyle={styles.content} scrollEnabled={scrollEnabled}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        scrollEnabled={sorter.scrollEnabled}
+        ref={sorter.scrollViewRef}
+        onLayout={sorter.onLayout}
+        onContentSizeChange={sorter.onContentSizeChange}
+        onScroll={sorter.onScroll}
+        scrollEventThrottle={16}
+      >
         <Text style={styles.label}>Program Name</Text>
         <TextInput
           style={[
@@ -462,8 +395,8 @@ export default function ProgramBuilderScreen() {
           const dayWorkouts = activeProgram.workouts.filter(
             (w: ProgramWorkout) => w.week === selectedWeek && w.dayOfWeek === day,
           );
-          const draggingWorkout = activeDragId
-            ? activeProgram.workouts.find((w: ProgramWorkout) => w.id === activeDragId)
+          const draggingWorkout = sorter.activeDragId
+            ? activeProgram.workouts.find((w: ProgramWorkout) => w.id === sorter.activeDragId)
             : null;
           const isDraggingDay = draggingWorkout?.dayOfWeek === day;
           return (
@@ -475,9 +408,14 @@ export default function ProgramBuilderScreen() {
                 isDraggingDay && { zIndex: 9999, elevation: 10 },
               ]}
               onLayout={(e) => {
-                if (!isDraggingActiveRef.current) {
+                if (!sorter.activeDragId) {
                   const { y, height } = e.nativeEvent.layout;
                   dayLayouts.current[day] = { y, height };
+                  dayWorkouts.forEach((w) => {
+                    const row = rowLayouts.current[w.id];
+                    if (row)
+                      sorter.itemLayouts.current[w.id] = { y: y + row.y, height: row.height };
+                  });
                 }
               }}
             >
@@ -485,63 +423,40 @@ export default function ProgramBuilderScreen() {
 
               {dayWorkouts.map((w: ProgramWorkout) => {
                 const template = templates.find((t) => t.id === w.templateId);
-                const isDraggingThis = w.id === activeDragId;
+
                 return (
                   <Animated.View
                     key={w.id}
+                    onLayout={(e) => {
+                      if (!sorter.activeDragId) {
+                        rowLayouts.current[w.id] = e.nativeEvent.layout;
+                        sorter.itemLayouts.current[w.id] = {
+                          y: (dayLayouts.current[day]?.y ?? 0) + e.nativeEvent.layout.y,
+                          height: e.nativeEvent.layout.height,
+                        };
+                      }
+                    }}
                     style={[
                       styles.workoutRow,
                       {
                         backgroundColor: theme.colors.background,
                         borderColor: theme.colors.border,
                       },
-                      isDraggingThis && {
-                        transform: [{ translateY: dragY }],
-                        zIndex: 9999,
-                        opacity: 0.85,
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 4 },
-                        shadowOpacity: 0.35,
-                        shadowRadius: 6,
-                        elevation: 5,
-                      },
+                      sorter.getRowStyle(w.id),
                     ]}
                   >
                     <View
                       style={[
                         styles.dragHandle,
+                        sorter.handleStyle,
                         {
-                          cursor: 'grab',
-                          touchAction: 'none',
-                          userSelect: 'none',
-                          WebkitUserSelect: 'none',
-                        } as unknown as ViewStyle,
+                          minWidth: 44,
+                          minHeight: 44,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        },
                       ]}
-                      onPointerDown={() => {
-                        draggingWorkoutRef.current = w;
-                        activeDragIdRef.current = w.id;
-                        setActiveDragId(w.id);
-                      }}
-                      onTouchStart={() => {
-                        draggingWorkoutRef.current = w;
-                        activeDragIdRef.current = w.id;
-                        setActiveDragId(w.id);
-                      }}
-                      onPointerUp={() => {
-                        if (!isDraggingActiveRef.current) {
-                          draggingWorkoutRef.current = null;
-                          activeDragIdRef.current = null;
-                          setActiveDragId(null);
-                        }
-                      }}
-                      onTouchEnd={() => {
-                        if (!isDraggingActiveRef.current) {
-                          draggingWorkoutRef.current = null;
-                          activeDragIdRef.current = null;
-                          setActiveDragId(null);
-                        }
-                      }}
-                      {...panResponder.panHandlers}
+                      {...sorter.getHandleProps(w.id)}
                     >
                       <Ionicons name="reorder-two" size={24} color={theme.colors.primary} />
                     </View>

@@ -10,7 +10,7 @@ import {
   Platform,
   Modal,
   ScrollView,
-  GestureResponderHandlers,
+  ViewProps,
   LayoutChangeEvent,
   ViewStyle,
   Dimensions,
@@ -81,7 +81,7 @@ const formatSecondsToDisplay = (totalSecs?: number) => {
 interface Props {
   sessionExercise: SessionExercise;
   collapsed?: boolean;
-  dragHandlers?: GestureResponderHandlers;
+  dragHandlers?: ViewProps;
   onDragStart?: () => void;
   onDragEnd?: () => void;
   isDragging?: boolean;
@@ -372,8 +372,8 @@ export const SessionExerciseCard = ({
             onTouchEnd={onDragEnd}
             style={
               {
-                paddingRight: 10,
-                paddingVertical: 4,
+                minWidth: 44,
+                minHeight: 44,
                 justifyContent: 'center',
                 alignItems: 'center',
                 cursor: 'grab',

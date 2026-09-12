@@ -16,7 +16,7 @@ import { useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { WorkoutTemplate, MuscleGroup, summarizeSessionExercise } from '@fitness-tracker/domain';
+import { WorkoutTemplate, MuscleGroup, getMuscleActivity } from '@fitness-tracker/domain';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { useHistoryStore } from '../../src/stores/historyStore';
@@ -26,19 +26,6 @@ import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { getLevelBadge } from '../../src/utils/level';
 import { Button, Card, useTheme } from '@fitness-tracker/ui';
 import { SyncIndicator } from '../../src/components/SyncIndicator';
-
-const isObliqueLikeExerciseName = (name: string) => {
-  const lowerName = name.toLowerCase();
-  return [
-    'oblique',
-    'side bend',
-    'side plank',
-    'russian twist',
-    'woodchop',
-    'wood chop',
-    'twist',
-  ].some((keyword) => lowerName.includes(keyword));
-};
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -77,37 +64,10 @@ export default function HomeScreen() {
   }, [templates, sessions]);
 
   const muscleVolumes = React.useMemo(() => {
-    const volumes: Record<string, number> = {};
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    sevenDaysAgo.setHours(0, 0, 0, 0);
-
-    const recentSessions = sessions.filter((s) => {
-      const sDate = new Date(s.startedAt);
-      return sDate >= sevenDaysAgo;
-    });
-
-    recentSessions.forEach((session) => {
-      session.exercises.forEach((ex) => {
-        const exInfo = exercises.find((e) => e.id === ex.exerciseId);
-        if (!exInfo) return;
-
-        const exerciseVolume = summarizeSessionExercise(ex).totalVolume;
-        if (exerciseVolume > 0) {
-          exInfo.primaryMuscles.forEach((muscle) => {
-            volumes[muscle] = (volumes[muscle] || 0) + exerciseVolume;
-          });
-          if (
-            isObliqueLikeExerciseName(exInfo.name) ||
-            exInfo.secondaryMuscles.includes(MuscleGroup.Obliques)
-          ) {
-            volumes[MuscleGroup.Obliques] = (volumes[MuscleGroup.Obliques] || 0) + exerciseVolume;
-          }
-        }
-      });
-    });
-
-    return volumes;
+    const since = new Date();
+    since.setDate(since.getDate() - 6);
+    since.setHours(0, 0, 0, 0);
+    return getMuscleActivity(sessions, exercises, since);
   }, [sessions, exercises]);
 
   const maxMuscleVolume = React.useMemo(
@@ -115,21 +75,8 @@ export default function HomeScreen() {
     [muscleVolumes],
   );
 
-  const getMuscleColor = (muscle: string) => {
-    let vol = muscleVolumes[muscle] || 0;
-
-    // Combine adjacent muscle groups for better visual heatmap accuracy
-    if (muscle === MuscleGroup.FrontDelts) {
-      vol += muscleVolumes[MuscleGroup.SideDelts] || 0;
-    } else if (muscle === MuscleGroup.RearDelts) {
-      vol += muscleVolumes[MuscleGroup.SideDelts] || 0;
-    } else if (muscle === MuscleGroup.Traps) {
-      vol += muscleVolumes[MuscleGroup.UpperBack] || 0;
-    } else if (muscle === MuscleGroup.Lats) {
-      vol += muscleVolumes[MuscleGroup.UpperBack] || 0;
-    } else if (muscle === MuscleGroup.Abs) {
-      vol += muscleVolumes[MuscleGroup.Obliques] || 0;
-    }
+  const getMuscleColor = (muscle: MuscleGroup) => {
+    const vol = muscleVolumes[muscle] || 0;
 
     if (vol === 0) return '#151821';
 
@@ -622,7 +569,8 @@ export default function HomeScreen() {
         </Text>
         <Card padding="md" style={styles.heatmapCard}>
           <Text style={[styles.heatmapSubtitle, { color: theme.colors.muted }]}>
-            Anatomical volume tracking (last 7 days). Tap any muscle to filter exercises.
+            Completed working sets (last 7 days), including bodyweight exercises. Tap a region to
+            find exercises.
           </Text>
           <View
             style={[

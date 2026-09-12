@@ -1,3 +1,5 @@
+import { useReducedMotion } from 'react-native-reanimated';
+import { useFocusScroll } from '../../src/hooks/useFocusScroll';
 import React, { useState } from 'react';
 import {
   View,
@@ -6,7 +8,7 @@ import {
   FlatList,
   Pressable,
   ScrollView,
-  Dimensions,
+  useWindowDimensions,
   Modal,
   Animated,
   Platform,
@@ -32,11 +34,12 @@ import {
 
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
+import { matchesExerciseSearch } from '../../src/utils/exerciseSearch';
 import { useAchievementStore } from '../../src/stores/achievementStore';
 import { useAchievementCheck } from '../../src/hooks/useAchievementCheck';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { useTheme, Card, EmptyState } from '@fitness-tracker/ui';
-import { getLevelBadge } from '../../src/utils/level';
+import { LevelProgress } from '../../src/components/LevelProgress';
 import { HorizontalFadeScroll } from '../../src/components/HorizontalFadeScroll';
 import { VerticalFadeScroll } from '../../src/components/VerticalFadeScroll';
 
@@ -99,6 +102,7 @@ export default function HistoryScreen() {
 }
 
 function HistoryView() {
+  const scrollRef = useFocusScroll<FlatList<WorkoutSession>>();
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -468,9 +472,14 @@ function HistoryView() {
           style={[
             styles.consistencyDay,
             { borderColor: isToday ? theme.colors.primary : theme.colors.border },
-            count > 0 && { backgroundColor: 'rgba(144, 213, 255, 0.06)' },
+            count > 0 && {
+              backgroundColor: count > 1 ? '#29506A' : '#1C3547',
+              borderColor: '#518BA8',
+            },
           ]}
           disabled={count === 0}
+          accessibilityRole="button"
+          accessibilityLabel={`${key}: ${count} Trainings${isToday ? ', heute' : ''}`}
           onPress={() => setSelectedDateKey(key)}
         >
           <Text
@@ -565,6 +574,7 @@ function HistoryView() {
   return (
     <>
       <FlatList
+        ref={scrollRef}
         data={sessions}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
@@ -594,7 +604,7 @@ function HistoryView() {
                 backgroundColor: theme.colors.surface,
                 borderColor: theme.colors.border,
                 borderRadius: theme.radius.lg,
-                maxWidth: 400,
+                maxWidth: 600,
                 alignItems: 'center',
               },
             ]}
@@ -603,15 +613,13 @@ function HistoryView() {
               <>
                 <Pressable
                   style={styles.modalCloseBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Trainingsübersicht schließen"
                   onPress={() => setSelectedSession(null)}
                   hitSlop={10}
                 >
                   <Ionicons name="close" size={24} color={theme.colors.muted} />
                 </Pressable>
-
-                <View style={styles.modalIconContainer}>
-                  <Ionicons name="barbell" size={48} color={theme.colors.primary} />
-                </View>
 
                 <Text
                   style={[
@@ -627,7 +635,7 @@ function HistoryView() {
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
-                  {selectedSession.name.toUpperCase()}
+                  {selectedSession.name}
                 </Text>
 
                 <Text style={[styles.modalSubtitle, { color: theme.colors.muted }]}>
@@ -683,7 +691,10 @@ function HistoryView() {
                   <Text style={[styles.modalFactTitle, { color: theme.colors.primary }]}>
                     💡 FUN FACT
                   </Text>
-                  <Text style={[styles.modalFactText, { color: theme.colors.text }]}>
+                  <Text
+                    numberOfLines={2}
+                    style={[styles.modalFactText, { color: theme.colors.text }]}
+                  >
                     {getVolumeFunFact(summaryTotalVolume)}
                   </Text>
                 </View>
@@ -825,6 +836,8 @@ function HistoryView() {
 }
 
 function ProgressView() {
+  const reducedMotion = useReducedMotion();
+  const scrollRef = useFocusScroll();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const historyStore = useHistoryStore();
@@ -842,7 +855,7 @@ function ProgressView() {
     return activeExerciseIds.filter((id) => {
       const ex = exercises.find((e) => e.id === id);
       if (!ex) return false;
-      const matchesSearch = ex.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = matchesExerciseSearch(ex, searchQuery);
       const matchesFavorite = showOnlyFavorites ? favoriteIds.includes(id) : true;
       return matchesSearch && matchesFavorite;
     });
@@ -952,22 +965,22 @@ function ProgressView() {
     setCrosshairIdx(null);
     setCrosshairX(null);
     chartFadeAnim.setValue(0);
-    chartSlideAnim.setValue(20);
+    chartSlideAnim.setValue(8);
     Animated.parallel([
       Animated.timing(chartFadeAnim, {
         toValue: 1,
-        duration: 500,
+        duration: reducedMotion ? 0 : 220,
         useNativeDriver: Platform.OS !== 'web',
       }),
       Animated.timing(chartSlideAnim, {
         toValue: 0,
-        duration: 500,
+        duration: reducedMotion ? 0 : 220,
         useNativeDriver: Platform.OS !== 'web',
       }),
     ]).start();
-  }, [selectedExId]);
+  }, [selectedExId, reducedMotion]);
 
-  const screenWidth = Dimensions.get('window').width;
+  const { width: screenWidth } = useWindowDimensions();
 
   const getProgressHistory = (exerciseId: string) => {
     const exercise = exercises.find((e) => e.id === exerciseId);
@@ -976,7 +989,7 @@ function ProgressView() {
 
   const renderChart = () => {
     if (!selectedExId) return null;
-    const history = getProgressHistory(selectedExId);
+    const history = getProgressHistory(selectedExId).slice(-24);
     if (history.length < 2) {
       return (
         <Card padding="lg" style={{ alignItems: 'center', marginBottom: 24 }}>
@@ -995,7 +1008,7 @@ function ProgressView() {
       );
     }
 
-    const chartWidth = Math.max(260, Math.min(screenWidth - 112, 600));
+    const chartWidth = Math.max(180, Math.min(screenWidth - 112, 600));
     const chartPaddingRight = 64;
     const chartStep = (chartWidth - chartPaddingRight) / history.length;
 
@@ -1034,8 +1047,10 @@ function ProgressView() {
     };
 
     const data = {
-      labels: history.map((h) =>
-        new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(h.date),
+      labels: history.map((h, index) =>
+        index === 0 || index === history.length - 1 || index % Math.ceil(history.length / 4) === 0
+          ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(h.date)
+          : '',
       ),
       datasets: [
         {
@@ -1061,7 +1076,7 @@ function ProgressView() {
         <Text
           style={[styles.chartTitle, { color: theme.colors.text, ...theme.typography.heading }]}
         >
-          Max Weight History
+          Max Weight History · letzte 24 Trainings
         </Text>
 
         {/* Selected Data Point Details */}
@@ -1155,7 +1170,6 @@ function ProgressView() {
               labelColor: () => theme.colors.muted,
               propsForDots: { r: '6', strokeWidth: '2.5', stroke: theme.colors.surface },
             }}
-            bezier
             style={{ marginVertical: 8, borderRadius: 16 }}
           />
           {crosshairX !== null && (
@@ -1183,6 +1197,7 @@ function ProgressView() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom + 20, 100) }]}
     >
       <Text
@@ -1416,13 +1431,11 @@ function AchievementBadge({ kind }: { kind: 'one_time' | 'repeatable' }) {
 }
 
 function AchievementsView() {
+  const scrollRef = useFocusScroll();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { xp, level, unlockedAchievements, repeatCounts } = useAchievementStore();
   const { getProgress } = useAchievementCheck();
-
-  const currentLevelXp = xp % 500;
-  const xpProgressPercent = Math.min(100, Math.floor((currentLevelXp / 500) * 100));
 
   const oneTime = ACHIEVEMENTS.filter((a) => !a.repeatable);
   const repeatables = ACHIEVEMENTS.filter((a) => a.repeatable);
@@ -1431,37 +1444,10 @@ function AchievementsView() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom + 20, 100) }]}
     >
-      {/* Level Card */}
-      <Card style={styles.levelCard} padding="lg">
-        <View style={styles.levelHeader}>
-          <Text
-            style={[
-              styles.levelTitle,
-              { color: theme.colors.text, ...theme.typography.heading, fontSize: 22 },
-            ]}
-          >
-            LEVEL {level} • {getLevelBadge(level).title} {getLevelBadge(level).icon}
-          </Text>
-          <Text
-            style={[styles.xpText, { color: theme.colors.primary, ...theme.typography.heading }]}
-          >
-            {currentLevelXp} / 500 XP
-          </Text>
-        </View>
-        <View style={[styles.progressBarBg, { backgroundColor: theme.colors.surface }]}>
-          <View
-            style={[
-              styles.progressBarFill,
-              { backgroundColor: theme.colors.primary, width: `${xpProgressPercent}%` },
-            ]}
-          />
-        </View>
-        <Text style={[styles.xpSub, { color: theme.colors.muted, ...theme.typography.caption }]}>
-          {500 - currentLevelXp} XP TO LEVEL {level + 1}
-        </Text>
-      </Card>
+      <LevelProgress level={level} xp={xp} />
 
       {/* Repeatable */}
       <Text
@@ -1513,7 +1499,15 @@ function AchievementsView() {
                   {ach.description}
                 </Text>
               </View>
-              {earned && <Text style={[styles.achCount, { color: GOLD }]}>×{count}</Text>}
+              <Text
+                accessibilityLabel={`${count} Mal absolviert`}
+                style={[
+                  styles.achCount,
+                  { color: earned ? GOLD : theme.colors.muted, fontSize: 12 },
+                ]}
+              >
+                {count}× absolviert
+              </Text>
             </View>
           </Card>
         );
@@ -1558,7 +1552,7 @@ function AchievementsView() {
                     >
                       {ach.name}
                     </Text>
-                    <AchievementBadge kind="one_time" />
+                    <Text style={{ color: theme.colors.primary, fontSize: 12 }}>✓ Absolviert</Text>
                   </View>
                   <Text
                     style={[
@@ -1830,7 +1824,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    flex: 1,
+    flexShrink: 1,
     marginRight: 12,
   },
   modalSummaryStatsRow: {
@@ -1849,9 +1843,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   summaryExerciseList: {
-    maxHeight: 210,
+    maxHeight: 380,
+    flexShrink: 1,
     width: '100%',
-    marginBottom: 18,
+    marginBottom: 12,
   },
   summaryExerciseListContent: {
     gap: 10,
@@ -1970,6 +1965,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   consistencyToggleBtn: {
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
@@ -2033,9 +2030,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   modalIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: 'rgba(144, 213, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -2046,7 +2043,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope_500Medium',
     fontSize: 14,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 12,
   },
   modalSubtitleSmall: {
     fontFamily: 'Manrope_500Medium',
@@ -2057,7 +2054,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   modalStatBox: {
     flex: 1,
@@ -2077,8 +2074,8 @@ const styles = StyleSheet.create({
     width: '100%',
     borderWidth: 1,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+    padding: 10,
+    marginBottom: 12,
   },
   modalFactTitle: {
     fontFamily: 'SpaceGrotesk_700Bold',

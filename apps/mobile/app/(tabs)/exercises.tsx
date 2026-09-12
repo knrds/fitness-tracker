@@ -1,3 +1,4 @@
+import { useFocusScroll } from '../../src/hooks/useFocusScroll';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, Pressable } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
@@ -125,6 +126,7 @@ interface ExercisesScreenProps {
 }
 
 export default function ExercisesScreen({ embedded = false }: ExercisesScreenProps) {
+  const scrollRef = useFocusScroll<FlatList<import('@fitness-tracker/domain').Exercise>>();
   const theme = useTheme();
   const params = useLocalSearchParams<{ muscle?: string }>();
   const insets = useSafeAreaInsets();
@@ -373,6 +375,7 @@ export default function ExercisesScreen({ embedded = false }: ExercisesScreenPro
       </View>
 
       <FlatList
+        ref={scrollRef}
         data={displayExercises}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[

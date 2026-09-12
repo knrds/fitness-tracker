@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useReducedMotion } from 'react-native-reanimated';
 
 import { summarizeSessionExercise, summarizeWorkout } from '@fitness-tracker/domain';
 import { useTheme } from '@fitness-tracker/ui';
@@ -106,6 +107,7 @@ const SubtleConfetti = () => {
 };
 
 export const WorkoutCompleteModal = () => {
+  const reducedMotion = useReducedMotion();
   const theme = useTheme();
   const { lastFinishedSession, clearLastFinishedSession } = useWorkoutStore();
   const { profile } = useProfileStore();
@@ -298,7 +300,7 @@ export const WorkoutCompleteModal = () => {
   return (
     <Modal visible animationType="slide" transparent onRequestClose={clearLastFinishedSession}>
       <Pressable style={styles.overlay} onPress={clearLastFinishedSession}>
-        <SubtleConfetti />
+        {!reducedMotion && <SubtleConfetti />}
         <Pressable
           style={[
             styles.card,
@@ -320,10 +322,10 @@ export const WorkoutCompleteModal = () => {
             </View>
 
             <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
-              WORKOUT COMPLETED!
+              {lastFinishedSession.name}
             </Text>
             <Text style={[styles.subtitle, { color: theme.colors.muted }]}>
-              Great session! Here is what you achieved today:
+              Workout completed · {lastFinishedSession.exercises.length} exercises
             </Text>
 
             <View style={styles.statsRow}>
@@ -364,6 +366,63 @@ export const WorkoutCompleteModal = () => {
               </View>
             </View>
 
+            <View style={{ width: '100%', marginBottom: 16 }}>
+              {lastFinishedSession.exercises.map((exercise) => {
+                const definition = exerciseDefinitions.find(
+                  (item) => item.id === exercise.exerciseId,
+                );
+                const result = summarizeSessionExercise(exercise);
+                return (
+                  <View
+                    key={exercise.id}
+                    style={{
+                      paddingVertical: 12,
+                      borderBottomWidth: 1,
+                      borderColor: theme.colors.border,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: theme.colors.text,
+                        fontSize: 15,
+                        fontFamily: 'SpaceGrotesk_600SemiBold',
+                      }}
+                    >
+                      {definition?.name ?? 'Exercise'}
+                    </Text>
+                    <Text style={{ color: theme.colors.muted, fontSize: 12, marginTop: 5 }}>
+                      {result.workingSetCount} working sets ·{' '}
+                      {Math.round(result.totalVolume * (isImperial ? 2.20462 : 1))}{' '}
+                      {isImperial ? 'lbs' : 'kg'} volume
+                    </Text>
+                    <Text
+                      style={{
+                        color: theme.colors.primary,
+                        fontSize: 13,
+                        marginTop: 5,
+                        lineHeight: 20,
+                      }}
+                    >
+                      {exercise.sets
+                        .filter((set) => set.completed)
+                        .map((set) =>
+                          [
+                            set.type === 'warmup' ? 'Warm-up' : '',
+                            set.weight !== undefined
+                              ? `${Number((set.weight * (isImperial ? 2.20462 : 1)).toFixed(1))} ${isImperial ? 'lbs' : 'kg'}`
+                              : '',
+                            set.reps !== undefined ? `× ${set.reps}` : '',
+                            set.durationSeconds !== undefined ? `${set.durationSeconds}s` : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' '),
+                        )
+                        .join('  ·  ') || 'No completed sets'}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
             <View
               style={[
                 styles.factContainer,
@@ -418,8 +477,8 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
     width: '100%',
-    maxWidth: 400,
-    padding: 24,
+    maxWidth: 600,
+    padding: 20,
     alignItems: 'center',
     maxHeight: '88%',
   },
@@ -431,13 +490,13 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: 'rgba(144, 213, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 10,
   },
   title: {
     fontSize: 22,
@@ -473,8 +532,8 @@ const styles = StyleSheet.create({
     width: '100%',
     borderWidth: 1,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+    padding: 12,
+    marginBottom: 8,
   },
   factTitle: {
     fontFamily: 'SpaceGrotesk_700Bold',

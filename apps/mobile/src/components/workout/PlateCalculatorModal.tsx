@@ -1,3 +1,4 @@
+import { KeyboardDoneAccessory } from './KeyboardDoneAccessory';
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, TextInput, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -221,9 +222,10 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
                   onChangeText={setInputWeight}
                   placeholder="0.0"
                   keyboardType="numeric"
+                  inputAccessoryViewID="keyboardDoneAccessory"
+                  returnKeyType="done"
                   placeholderTextColor={theme.colors.muted}
                   autoFocus
-                  returnKeyType="done"
                 />
                 <Text style={[styles.unitText, { color: theme.colors.muted }]}>
                   {isImperial ? 'lbs' : 'kg'}
@@ -354,6 +356,7 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
           </Pressable>
         </Pressable>
       </Pressable>
+      <KeyboardDoneAccessory />
     </Modal>
   );
 };

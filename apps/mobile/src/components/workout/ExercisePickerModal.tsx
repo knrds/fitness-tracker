@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 
 import { useExerciseStore } from '../../stores/exerciseStore';
+import { matchesExerciseSearch } from '../../utils/exerciseSearch';
 import { useHistoryStore } from '../../stores/historyStore';
 import { CustomExerciseModal } from '../exercises/CustomExerciseModal';
 import { KeyboardDoneAccessory, KEYBOARD_DONE_ID } from './KeyboardDoneAccessory';
@@ -140,9 +141,7 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
     const isFiltered = search !== '' || selectedCategory !== 'All';
     if (isFiltered) {
       return sortedExercises.filter(
-        (ex) =>
-          ex.name.toLowerCase().includes(search.toLowerCase()) &&
-          matchesCategory(ex, selectedCategory),
+        (ex) => matchesExerciseSearch(ex, search) && matchesCategory(ex, selectedCategory),
       );
     }
 

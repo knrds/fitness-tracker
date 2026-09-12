@@ -1,6 +1,7 @@
+import { useFocusScroll } from '../../src/hooks/useFocusScroll';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
 import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -14,7 +15,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@fitness-tracker/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,6 +27,7 @@ import ProgramListScreen from './programs';
 
 export default function WorkoutsScreen() {
   const router = useRouter();
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { templates, deleteTemplate, updateTemplatesOrder } = useProgramStore();
@@ -35,6 +37,7 @@ export default function WorkoutsScreen() {
   const [summaryTemplateId, setSummaryTemplateId] = useState<string | null>(null);
 
   const sorter = useMeasuredReorder(templates, updateTemplatesOrder);
+  useFocusScroll(sorter.scrollViewRef);
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     sorter.onScroll(event);
   };
@@ -130,6 +133,9 @@ export default function WorkoutsScreen() {
   const summaryTemplate = templates.find((t) => t.id === summaryTemplateId) || null;
 
   const [activeTab, setActiveTab] = useState<'workouts' | 'programs'>('workouts');
+  useEffect(() => {
+    if (tab === 'programs' || tab === 'workouts') setActiveTab(tab);
+  }, [tab]);
 
   return (
     <View
@@ -159,7 +165,10 @@ export default function WorkoutsScreen() {
                 styles.tabToggleBtn,
                 isActive && { backgroundColor: theme.colors.background },
               ]}
-              onPress={() => setActiveTab(tab.id)}
+              onPress={() => {
+                setActiveTab(tab.id);
+                router.setParams({ tab: tab.id });
+              }}
             >
               <Ionicons
                 name={tab.icon}

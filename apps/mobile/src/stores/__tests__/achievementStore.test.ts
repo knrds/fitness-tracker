@@ -49,6 +49,33 @@ const createBenchSession = (id: string, completedAt: Date): WorkoutSession => ({
 });
 
 describe('achievementStore', () => {
+  it('does not count planned but uncompleted exercises and muscles as trained', () => {
+    const session = createBenchSession('partially-completed', new Date('2026-06-09T18:00:00'));
+    const base = useExerciseStore.getState().exercises[0]!;
+    const planned = Object.values(MuscleGroup)
+      .slice(0, 9)
+      .map((muscle, index) => ({
+        ...base,
+        id: `planned-${index}`,
+        name: `Planned ${index}`,
+        primaryMuscles: [muscle],
+      }));
+    useExerciseStore.setState({ exercises: [base, ...planned] });
+    session.exercises.push(
+      ...planned.map((exercise, index) => ({
+        ...session.exercises[0]!,
+        id: `planned-session-${index}`,
+        exerciseId: exercise.id,
+        sets: [{ ...session.exercises[0]!.sets[0]!, id: `planned-set-${index}`, completed: false }],
+      })),
+    );
+    useHistoryStore.getState().addSession(session);
+    useAchievementStore.getState().awardXpAndCheckAchievements(session);
+    expect(
+      useAchievementStore.getState().unlockedAchievements['unique_exercises_10'],
+    ).toBeUndefined();
+    expect(useAchievementStore.getState().unlockedAchievements['muscles_5']).toBeUndefined();
+  });
   beforeEach(() => {
     useAchievementStore.getState().resetAchievements();
     useHistoryStore.getState().clearHistory();

@@ -4,6 +4,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useAnimatedProps,
   withTiming,
   Easing,
   runOnJS,
@@ -12,6 +13,8 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@fitness-tracker/ui';
 import { useWorkoutStore } from '../../stores/workoutStore';
+import Svg, { Circle } from 'react-native-svg';
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export const RestTimer = () => {
   const theme = useTheme();
@@ -29,7 +32,7 @@ export const RestTimer = () => {
       easing: Easing.out(Easing.cubic),
     });
   }, [expanded, expansion, reducedMotion]);
-  const panelStyle = useAnimatedStyle(() => ({ height: 72 + expansion.value * 150 }));
+  const panelStyle = useAnimatedStyle(() => ({ height: 72 + expansion.value * 256 }));
   const detailStyle = useAnimatedStyle(() => ({
     opacity: expansion.value,
     transform: [{ translateY: (1 - expansion.value) * 8 }],
@@ -71,6 +74,13 @@ export const RestTimer = () => {
     restTimer.durationSeconds > 0
       ? Math.min(1, Math.max(0, remaining / restTimer.durationSeconds))
       : 0;
+  const ringProgress = useSharedValue(progress);
+  useEffect(() => {
+    ringProgress.value = withTiming(progress, { duration: reducedMotion ? 0 : 250 });
+  }, [progress, reducedMotion, ringProgress]);
+  const ringProps = useAnimatedProps(() => ({
+    strokeDashoffset: 301.593 * (1 - ringProgress.value),
+  }));
 
   return (
     <Animated.View
@@ -109,6 +119,8 @@ export const RestTimer = () => {
             value={input}
             onChangeText={setInput}
             keyboardType="numbers-and-punctuation"
+            inputAccessoryViewID="keyboardDoneAccessory"
+            returnKeyType="done"
             autoFocus
             onSubmitEditing={finishEdit}
             onBlur={finishEdit}
@@ -149,14 +161,41 @@ export const RestTimer = () => {
         importantForAccessibility={expanded ? 'auto' : 'no-hide-descendants'}
         style={[styles.details, detailStyle]}
       >
-        <View style={[styles.track, { backgroundColor: theme.colors.border }]}>
+        <View
+          style={{ alignSelf: 'center', width: 112, height: 112 }}
+          accessibilityLabel={`Pause ${formatTime(remaining)}`}
+        >
+          <Svg width={112} height={112} viewBox="0 0 112 112">
+            <Circle
+              cx={56}
+              cy={56}
+              r={48}
+              fill="none"
+              stroke={theme.colors.border}
+              strokeWidth={5}
+            />
+            <AnimatedCircle
+              cx={56}
+              cy={56}
+              r={48}
+              fill="none"
+              stroke={theme.colors.primary}
+              strokeWidth={5}
+              strokeLinecap="round"
+              strokeDasharray="301.593 301.593"
+              rotation={-90}
+              origin="56,56"
+              animatedProps={ringProps}
+            />
+          </Svg>
           <View
-            style={{
-              height: 3,
-              width: `${progress * 100}%`,
-              backgroundColor: theme.colors.primary,
-            }}
-          />
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}
+          >
+            <Text style={[styles.time, { fontSize: 24, color: theme.colors.text }]}>
+              {formatTime(remaining)}
+            </Text>
+          </View>
         </View>
         <View style={styles.adjustments}>
           {[-30, -10, 10, 30, 60].map((amount) => (

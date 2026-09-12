@@ -35,7 +35,13 @@ export const useAchievementCheck = () => {
         );
         break;
       case 'exercises': {
-        const uniqueEx = new Set(sessions.flatMap((s) => s.exercises.map((ex) => ex.exerciseId)));
+        const uniqueEx = new Set(
+          sessions.flatMap((s) =>
+            s.exercises
+              .filter((ex) => ex.sets.some((set) => set.completed))
+              .map((ex) => ex.exerciseId),
+          ),
+        );
         current = uniqueEx.size;
         break;
       }
@@ -43,6 +49,7 @@ export const useAchievementCheck = () => {
         const trainedMuscles = new Set<MuscleGroup>();
         sessions.forEach((s) => {
           s.exercises.forEach((ex) => {
+            if (!ex.sets.some((set) => set.completed)) return;
             const def = exercises.find((e) => e.id === ex.exerciseId);
             if (def) {
               def.primaryMuscles.forEach((m) => trainedMuscles.add(m));

@@ -20,6 +20,7 @@ import { ChatMessage } from '@fitness-tracker/domain';
 import { HorizontalFadeScroll } from '../../src/components/HorizontalFadeScroll';
 import { useCoachStore } from '../../src/stores/coachStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
+import { useFocusScroll } from '../../src/hooks/useFocusScroll';
 
 const SUGGESTIONS = [
   'Review recent progress',
@@ -37,6 +38,7 @@ export default function CoachScreen() {
     useCoachStore();
   const [inputText, setInputText] = useState('');
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
+  useFocusScroll(flatListRef);
 
   useEffect(() => {
     if (messages.length === 0) return undefined;

@@ -1,3 +1,4 @@
+import { useFocusScroll } from '../../src/hooks/useFocusScroll';
 import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
 import React from 'react';
 import {
@@ -22,11 +23,12 @@ import { useHistoryStore } from '../../src/stores/historyStore';
 import { useAchievementStore } from '../../src/stores/achievementStore';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
-import { getLevelBadge } from '../../src/utils/level';
+import { LevelProgress } from '../../src/components/LevelProgress';
 import { Button, Card, useTheme } from '@fitness-tracker/ui';
 import { SyncIndicator } from '../../src/components/SyncIndicator';
 
 export default function HomeScreen() {
+  const scrollRef = useFocusScroll();
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -214,6 +216,7 @@ export default function HomeScreen() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={[styles.container, { backgroundColor: theme.colors.background }]}
       contentContainerStyle={[
         styles.content,
@@ -279,37 +282,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={styles.levelWrapper}>
-          <View style={styles.levelHeaderRow}>
-            <Text
-              style={[styles.levelText, { color: theme.colors.text, ...theme.typography.caption }]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              LEVEL {level} • {getLevelBadge(level).title} {getLevelBadge(level).icon}
-            </Text>
-            <Text
-              style={[
-                styles.xpTextInline,
-                {
-                  color: theme.colors.primary,
-                  ...theme.typography.caption,
-                },
-              ]}
-              numberOfLines={1}
-            >
-              {xp % 500} / 500 XP
-            </Text>
-          </View>
-          <View style={[styles.xpBarBackground, { backgroundColor: theme.colors.border }]}>
-            <View
-              style={[
-                styles.xpBarFill,
-                { backgroundColor: theme.colors.primary, width: `${(xp % 500) / 5}%` },
-              ]}
-            />
-          </View>
-        </View>
+        <LevelProgress level={level} xp={xp} />
 
         {/* "Today" Card */}
         <Text
@@ -398,7 +371,9 @@ export default function HomeScreen() {
               <Button
                 title="PROGRAMS"
                 variant="ghost"
-                onPress={() => router.push('/programs')}
+                onPress={() =>
+                  router.navigate({ pathname: '/workouts', params: { tab: 'programs' } })
+                }
                 style={{ flex: 1, height: 46, borderWidth: 1, borderColor: theme.colors.border }}
               />
             )}
@@ -652,6 +627,9 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 24,
+    width: '100%',
+    maxWidth: 1100,
+    alignSelf: 'center',
   },
   headerRow: {
     flexDirection: 'row',

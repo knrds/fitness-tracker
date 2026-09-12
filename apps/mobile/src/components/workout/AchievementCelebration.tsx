@@ -1,3 +1,4 @@
+import { LevelEmblem } from '../LevelProgress';
 import React, { useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +10,7 @@ import Animated, {
   withDelay,
   withTiming,
   Easing,
+  useReducedMotion,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
@@ -77,6 +79,7 @@ const ConfettiRain = () => {
 };
 
 export const AchievementCelebration = () => {
+  const reducedMotion = useReducedMotion();
   const { newlyUnlocked, levelUpTo, clearCelebrations } = useAchievementStore();
   const { lastFinishedSession } = useWorkoutStore();
   const theme = useTheme();
@@ -95,7 +98,7 @@ export const AchievementCelebration = () => {
     <Modal visible={isVisible} animationType="fade" transparent onRequestClose={clearCelebrations}>
       <Pressable style={styles.overlay} onPress={clearCelebrations}>
         {/* Render interactive confetti overlay */}
-        <ConfettiRain />
+        {!reducedMotion && <ConfettiRain />}
         <Pressable
           style={[
             styles.card,
@@ -122,7 +125,7 @@ export const AchievementCelebration = () => {
                     },
                   ]}
                 >
-                  <Ionicons name="trophy" size={44} color={theme.colors.primary} />
+                  <LevelEmblem level={levelUpTo} size={80} />
                 </View>
                 <Text
                   style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}

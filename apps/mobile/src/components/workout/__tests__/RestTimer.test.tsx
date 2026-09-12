@@ -24,8 +24,8 @@ describe('RestTimer', () => {
   });
 
   it('renders correctly when not running but time left > 0', () => {
-    const { getByTestId, getByText } = render(<RestTimer />);
-    expect(getByText('1:30')).toBeTruthy(); // default 90s
+    const { getByTestId, getByLabelText } = render(<RestTimer />);
+    expect(getByLabelText('Pausendauer bearbeiten')).toBeTruthy(); // default 90s
     expect(getByTestId('start-timer-btn')).toBeTruthy();
   });
 
@@ -36,11 +36,11 @@ describe('RestTimer', () => {
   });
 
   it('allows custom time entry via TextInput when clicked', () => {
-    const { getByText, getByDisplayValue } = render(<RestTimer />);
+    const { getByLabelText, getByDisplayValue } = render(<RestTimer />);
 
     // First tap expands the collapsed timer, second tap enters edit mode.
-    fireEvent.press(getByText('1:30'));
-    fireEvent.press(getByText('1:30'));
+    fireEvent.press(getByLabelText('Pausendauer bearbeiten'));
+    fireEvent.press(getByLabelText('Pausendauer bearbeiten'));
 
     // The input should be visible with current value
     const input = getByDisplayValue('1:30');
@@ -56,10 +56,10 @@ describe('RestTimer', () => {
   });
 
   it('handles raw number input for custom time', () => {
-    const { getByText, getByDisplayValue } = render(<RestTimer />);
+    const { getByLabelText, getByDisplayValue } = render(<RestTimer />);
 
-    fireEvent.press(getByText('1:30'));
-    fireEvent.press(getByText('1:30'));
+    fireEvent.press(getByLabelText('Pausendauer bearbeiten'));
+    fireEvent.press(getByLabelText('Pausendauer bearbeiten'));
     const input = getByDisplayValue('1:30');
 
     fireEvent.changeText(input, '45');
@@ -70,10 +70,10 @@ describe('RestTimer', () => {
   });
 
   it('guards against invalid time input', () => {
-    const { getByText, getByDisplayValue } = render(<RestTimer />);
+    const { getByLabelText, getByDisplayValue } = render(<RestTimer />);
 
-    fireEvent.press(getByText('1:30'));
-    fireEvent.press(getByText('1:30'));
+    fireEvent.press(getByLabelText('Pausendauer bearbeiten'));
+    fireEvent.press(getByLabelText('Pausendauer bearbeiten'));
     const input = getByDisplayValue('1:30');
 
     fireEvent.changeText(input, 'abc');

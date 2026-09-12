@@ -1,5 +1,7 @@
 # Testnachweise – 12.09.2026
 
+Aktueller Stand: 237 grüne Tests (57 Domain, 173 Mobile, 7 API); Typecheck/Lint und Web-/iOS-/Android-Hermes-Exporte erfolgreich. Neue Regressionen: Such-Leerzeichen/Apps-Alias/Weighted-Suffix; Dezimalkomma ohne Abschneiden; keine Übungs-/Muskel-Meilensteine durch unbearbeitete Übungen. Browser: Programs → Plans, Wochenkopie/-speicherung, Körpermaßauswahl, Satzabschluss/100-kg-Volumen, Kreis-Timer und echte trainingsbezogene DeepSeek-Antwort. Native Tastatur-/Touch-/Screenreader-Prüfung weiterhin ausdrücklich separat.
+
 Aktueller Zusatzlauf: 230 Tests (57 Domain, 166 Mobile, 7 API), Typecheck/Lint und drei Plattform-Exporte bestanden. Neue API-/Clientregression: Kreditfehler inklusive Fehlerobjekt in HTTP 200, keine rohen Providerdetails; Store-Retry ohne Duplikate. Bestehende Reset-Regression deckte den Konflikt mit der Coach-Sperre auf und besteht nach Fix. Reanimated-Testmock um Reduced Motion ergänzt, UUIDs im Retry-Test realistisch eindeutig. Reale Browser-/Provider-Nachweise siehe aktuellsten Abschnitt IMPLEMENTATION_STATUS.md.
 
 227 Tests bestanden: Domain/Vitest 57 Tests in 8 Dateien, Mobile/Jest 164 Tests in 35 Suites, Node API 6 Tests. Keine Tests deaktiviert. Baseline: 136 Tests. Typecheck und Lint erfolgreich. pnpm test enthält nun auch die API-Tests.

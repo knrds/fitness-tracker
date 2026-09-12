@@ -1,5 +1,40 @@
 # Umsetzungsstand vom 12.09.2026
 
+## Aktueller Zwischenstand: Navigation, Körperkarte und Bedienung
+
+Die zuvor begonnenen Workout-/Coach-Korrekturen wurden in 9bbbbcc und d47af9f abgeschlossen. Anschließend wurde die neue Nutzerliste umgesetzt.
+
+| Before | After |
+| --- | --- |
+| Home öffnet einen eigenen Programs-Screen | Einstieg öffnet Plans → Programs; interne Auswahl bleibt über Route-Parameter konsistent |
+| Tab-Inhalte bleiben unten stehen | Fokus setzt Listen sanft nach oben; dezente Tab-Überblendung und aktive Icon-Fläche, reduzierbare Bewegung |
+| Ausgeklappter Timer als Balken | Animierter Kreis; feste Unterkante, 72–328 px Panel ohne Federbewegung |
+| Kleine Übungsliste, dominanter Fun Fact | Breitere Abschluss-/History-Dialoge, mehr Platz für Satzdetails, kompaktere Zusatztexte; Abschluss enthält Übungsdetails und Arbeitsvolumen |
+| Achievements nur nach Typ markiert | Einmalige Erfolge mit „Absolviert“, wiederholbare mit Anzahl einschließlich 0 |
+| Geplante Übungen können Erfolge auslösen | Übungs-/Muskel-Meilensteine und ihre Fortschrittsanzeige zählen nur tatsächlich abgeschlossene Sätze; Regression zunächst rot, danach grün |
+| Generischer Coach-Auftrag | Trainingsbezogene Themen, vorhandenes Profil/Log berücksichtigen, kurze Antworten, fachfremde Anfragen zurückweisen |
+| Grobe alte Körperzeichnung | Größere menschliche Front-/Rückseitenformen mit feineren Konturen und beschrifteten 44-px-Zielen; MIT-Herkunft dokumentiert |
+| Statische XP-Leiste und Emoji-Abzeichen | Animierte XP-Leiste in Home, Profil und Achievements; Higgsfield-Abzeichen als Sprite; Level-Dialog nutzt dasselbe Set |
+| More Metrics zeigt nur leere Felder | Körperkarte zur Bereichswahl, sichtbare Umfangswerte, animierter Auswahlwechsel |
+| Trinkfortschritt nur als Balken | Animierter Wasserbehälter; Zahlen und bestehende Plus-/Minusaktionen bleiben erhalten |
+| Körperfett ohne Erklärung | Info-Aktion erklärt Prozentwert mit Rechenbeispiel und Grenzen der Einordnung |
+| Programme schwer zu bearbeiten | Direkter Einstieg in ausgewählte Woche, leere Woche anhängen, Woche mit neuen IDs duplizieren; Save-Vertrag bleibt explizit, belegte Wochen beim Verkürzen geschützt |
+| Enge Aktionen im Wocheneditor | Titel und Aktionen in getrennten Zeilen, größere Ziele, kürzerer Screen-Titel |
+| Suchbegriffe mit Leerzeichen oder Apps liefern keine Treffer | Gemeinsame normalisierte Suche für Bibliothek, Picker und Progress; Muskel-Aliase und Erhalt eines exakten Übungsnamens bei Zusatz wie Weighted |
+| Dezimalkomma wird bei Körperwerten abgeschnitten | Strenge Komma-/Punktverarbeitung in Body und Profil; ungültige Zusätze werden abgewiesen |
+| Fehlende Tastaturzuordnung in einigen Zahlenfeldern | Ergänzte iOS-Zubehörleisten, Abschlussknopf „Fertig“, zugängliche Checkboxen für Satzabschluss |
+| Überladene Chart-Achsen und Kurvenüberschwingen | Reaktionsfähige Chart-Breite, bis zu 24 jüngste Einheiten mit ausgedünnten Datumslabels, gerade Messpunktverbindungen und kurze Einblendung |
+
+Abschlussprüfung: **237 Tests** (57 Domain, 173 Mobile in 37 Suites, 7 API), Typecheck und Lint erfolgreich. Web-Export und iOS-/Android-Hermes-Exporte erfolgreich. Dies sind keine nativen Gerätebuilds.
+
+Echter lokaler Providerpfad mit deepseek/deepseek-v4-flash: HTTP 200 für Trainingsfrage; fachfremde Gedicht-Anfrage zurückgewiesen. Frühere HTTP-402-Ursache (Guthaben/Schlüssellimit) wird weiterhin präzise gemeldet; keine dauerhafte Providerverfügbarkeitsgarantie. Browser-Tests erfolgten mit einem isolierten Testprofil, nicht mit dem Trainingsbestand des Nutzers.
+
+Browser bestätigt: Programs-Route /workouts?tab=programs; Woche 1 als Woche 5 angehängt und gespeichert; Körperkarten-Auswahl/Umfangseingaben erreichbar; ein Testtraining mit 12,5 kg × 8 abgeschlossen und als 100 kg Arbeitsvolumen dargestellt; Kreis-Timer mobil geprüft. Screenshots liegen in outputs/followup-*.png. Geräteprüfung von iPhone-Tastatur, VoiceOver, Android/TalkBack, Reduce Motion und echter Touch-Performance bleibt offen.
+
+Higgsfield lieferte das Level-Abzeichenset. Die anatomische Bildgenerierung wurde vom Dienst blockiert; stattdessen werden dokumentierte MIT-Anatomiepfade verwendet. Kein 3D-Modell oder KI-generierter medizinischer Messwert wird vorgetäuscht. Historisch bereits vergebene Abzeichen/XP werden nicht still rückwirkend verändert.
+
+Die folgenden Abschnitte dokumentieren frühere Zwischenstände.
+
 ## Abgeschlossener Zwischenstand: Workout-Vereinfachung und echter Coach
 
 | Before | After |

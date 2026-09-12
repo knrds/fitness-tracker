@@ -97,12 +97,17 @@ export const useAchievementStore = create<AchievementState>()(
         });
 
         const uniqueExercisesCount = new Set(
-          historyStore.sessions.flatMap((s) => s.exercises.map((ex) => ex.exerciseId)),
+          historyStore.sessions.flatMap((s) =>
+            s.exercises
+              .filter((ex) => ex.sets.some((set) => set.completed))
+              .map((ex) => ex.exerciseId),
+          ),
         ).size;
 
         const trainedMuscles = new Set<MuscleGroup>();
         historyStore.sessions.forEach((s) => {
           s.exercises.forEach((ex) => {
+            if (!ex.sets.some((set) => set.completed)) return;
             const def = exerciseStore.exercises.find((e) => e.id === ex.exerciseId);
             if (def) {
               def.primaryMuscles.forEach((m) => trainedMuscles.add(m));

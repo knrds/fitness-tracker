@@ -1,3 +1,6 @@
+import { parseDecimalInput } from '../src/utils/decimalInput';
+import { LevelProgress } from '../src/components/LevelProgress';
+import { useAchievementStore } from '../src/stores/achievementStore';
 import { getStorageScope, isScopeCurrent } from '../src/data/storageScope';
 import { scopedAlert as Alert } from '../src/utils/scopedAlert';
 import React, { useState } from 'react';
@@ -31,6 +34,7 @@ import {
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const achievement = useAchievementStore();
   const insets = useSafeAreaInsets();
   const { profile, updateProfile, getStatistics, clearAllData, exportData } = useProfileStore();
   const { isConfigured: isAuthConfigured, signOut } = useAuthStore();
@@ -102,14 +106,14 @@ export default function ProfileScreen() {
     }
 
     if (height.trim()) {
-      const hVal = parseFloat(height);
+      const hVal = parseDecimalInput(height);
       if (isNaN(hVal) || hVal <= 0)
         return Alert.alert('Error', 'Height must be a positive number.');
       updates.heightCm = profile.preferredUnits === 'imperial' ? hVal * 2.54 : hVal;
     }
 
     if (weight.trim()) {
-      const wVal = parseFloat(weight);
+      const wVal = parseDecimalInput(weight);
       if (isNaN(wVal) || wVal <= 0)
         return Alert.alert('Error', 'Weight must be a positive number.');
       const canonicalWeight = profile.preferredUnits === 'imperial' ? wVal / 2.20462 : wVal;
@@ -123,21 +127,21 @@ export default function ProfileScreen() {
     }
 
     if (benchPressMax.trim()) {
-      const val = parseFloat(benchPressMax);
+      const val = parseDecimalInput(benchPressMax);
       if (isNaN(val) || val <= 0)
         return Alert.alert('Error', 'Bench Press Max must be a positive number.');
       updates.benchPressMaxKg = profile.preferredUnits === 'imperial' ? val / 2.20462 : val;
     }
 
     if (squatMax.trim()) {
-      const val = parseFloat(squatMax);
+      const val = parseDecimalInput(squatMax);
       if (isNaN(val) || val <= 0)
         return Alert.alert('Error', 'Squat Max must be a positive number.');
       updates.squatMaxKg = profile.preferredUnits === 'imperial' ? val / 2.20462 : val;
     }
 
     if (deadliftMax.trim()) {
-      const val = parseFloat(deadliftMax);
+      const val = parseDecimalInput(deadliftMax);
       if (isNaN(val) || val <= 0)
         return Alert.alert('Error', 'Deadlift Max must be a positive number.');
       updates.deadliftMaxKg = profile.preferredUnits === 'imperial' ? val / 2.20462 : val;
@@ -155,35 +159,35 @@ export default function ProfileScreen() {
 
     setHeight((prev: string) => {
       if (!prev) return '';
-      const val = parseFloat(prev);
+      const val = parseDecimalInput(prev);
       if (isNaN(val)) return '';
       return isNowImperial ? (val / 2.54).toFixed(1) : (val * 2.54).toFixed(1);
     });
 
     setWeight((prev: string) => {
       if (!prev) return '';
-      const val = parseFloat(prev);
+      const val = parseDecimalInput(prev);
       if (isNaN(val)) return '';
       return isNowImperial ? (val * 2.20462).toFixed(1) : (val / 2.20462).toFixed(1);
     });
 
     setBenchPressMax((prev: string) => {
       if (!prev) return '';
-      const val = parseFloat(prev);
+      const val = parseDecimalInput(prev);
       if (isNaN(val)) return '';
       return isNowImperial ? (val * 2.20462).toFixed(1) : (val / 2.20462).toFixed(1);
     });
 
     setSquatMax((prev: string) => {
       if (!prev) return '';
-      const val = parseFloat(prev);
+      const val = parseDecimalInput(prev);
       if (isNaN(val)) return '';
       return isNowImperial ? (val * 2.20462).toFixed(1) : (val / 2.20462).toFixed(1);
     });
 
     setDeadliftMax((prev: string) => {
       if (!prev) return '';
-      const val = parseFloat(prev);
+      const val = parseDecimalInput(prev);
       if (isNaN(val)) return '';
       return isNowImperial ? (val * 2.20462).toFixed(1) : (val / 2.20462).toFixed(1);
     });
@@ -309,6 +313,7 @@ export default function ProfileScreen() {
         automaticallyAdjustKeyboardInsets={true}
       >
         {/* Profile Picture */}
+        <LevelProgress level={achievement.level} xp={achievement.xp} />
         <View style={styles.avatarSection}>
           <Pressable onPress={handlePickImage} style={styles.avatarContainer}>
             {profile.profileImageUri ? (
@@ -776,6 +781,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    width: '100%',
+    maxWidth: 860,
+    alignSelf: 'center',
     padding: 16,
     paddingBottom: 40,
   },

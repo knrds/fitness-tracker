@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { getCurrentUserId } from './local-user';
 import { createHydratedStorage } from './storage';
 import { useSyncStore } from './syncStore';
+import { matchesExerciseSearch } from '../utils/exerciseSearch';
 
 function filterExercises(
   exercises: Exercise[],
@@ -21,7 +22,7 @@ function filterExercises(
   equipment: Equipment | null,
 ): Exercise[] {
   return exercises.filter((ex) => {
-    const matchesQuery = ex.name.toLowerCase().includes(query.toLowerCase());
+    const matchesQuery = matchesExerciseSearch(ex, query);
     const matchesMuscle = muscleGroup
       ? ex.primaryMuscles.includes(muscleGroup) || ex.secondaryMuscles.includes(muscleGroup)
       : true;

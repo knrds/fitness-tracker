@@ -9,6 +9,7 @@ import {
   Animated,
   Easing,
   Platform,
+  AccessibilityInfo,
 } from 'react-native';
 import { useTheme } from '../ThemeProvider';
 import { Button } from './Button';
@@ -37,6 +38,21 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   const theme = useTheme();
   const [shouldRender, setShouldRender] = useState(visible);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  useEffect(() => {
+    let active = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((value) => {
+      if (active) setReducedMotion(value);
+    });
+    const subscription = AccessibilityInfo.addEventListener(
+      'reduceMotionChanged',
+      setReducedMotion,
+    );
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, []);
 
   // Animated values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -48,13 +64,13 @@ export const Modal: React.FC<ModalProps> = ({
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 250,
+          duration: reducedMotion ? 0 : 200,
           easing: Easing.out(Easing.quad),
           useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(slideAnim, {
           toValue: 0,
-          duration: 250,
+          duration: reducedMotion ? 0 : 200,
           easing: Easing.out(Easing.quad),
           useNativeDriver: Platform.OS !== 'web',
         }),
@@ -63,21 +79,25 @@ export const Modal: React.FC<ModalProps> = ({
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 0,
-          duration: 200,
+          duration: reducedMotion ? 0 : 160,
           easing: Easing.in(Easing.quad),
           useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(slideAnim, {
           toValue: 15,
-          duration: 200,
+          duration: reducedMotion ? 0 : 160,
           easing: Easing.in(Easing.quad),
           useNativeDriver: Platform.OS !== 'web',
         }),
-      ]).start(() => {
-        setShouldRender(false);
+      ]).start(({ finished }) => {
+        if (finished) setShouldRender(false);
       });
     }
-  }, [visible]);
+    return () => {
+      fadeAnim.stopAnimation();
+      slideAnim.stopAnimation();
+    };
+  }, [visible, reducedMotion, fadeAnim, slideAnim]);
 
   return (
     <RNModal visible={shouldRender} transparent animationType="none" onRequestClose={onClose}>
@@ -98,7 +118,12 @@ export const Modal: React.FC<ModalProps> = ({
             <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
               {title}
             </Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Schließen"
+              onPress={onClose}
+              style={styles.closeButton}
+            >
               <Ionicons name="close" size={24} color={theme.colors.muted} />
             </TouchableOpacity>
           </View>
@@ -145,6 +170,8 @@ const styles = StyleSheet.create({
   },
   container: {
     width: '100%',
+    maxWidth: 640,
+    maxHeight: '92%',
     borderWidth: 1,
     overflow: 'hidden',
   },
@@ -162,10 +189,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   closeButton: {
-    padding: 4,
+    minHeight: 44,
+    minWidth: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
-    padding: 24,
+    padding: 16,
+    flexShrink: 1,
   },
   footer: {
     flexDirection: 'row',

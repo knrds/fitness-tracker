@@ -1,3 +1,5 @@
+import { KeyboardDoneAccessory } from '../../src/components/workout/KeyboardDoneAccessory';
+import { useFocusScroll } from '../../src/hooks/useFocusScroll';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
 import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
 import React, { useState } from 'react';
@@ -44,6 +46,7 @@ export default function ProgramListScreen() {
   const [durationWeeks, setDurationWeeks] = useState('4');
 
   const sorter = useMeasuredReorder(programs, updateProgramsOrder);
+  useFocusScroll(sorter.scrollViewRef);
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     sorter.onScroll(event);
   };
@@ -162,14 +165,41 @@ export default function ProgramListScreen() {
         </View>
 
         {/* Week Selector Tabs */}
-        <Text style={styles.calendarTitle}>Weekly Schedule</Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
+          <Text style={styles.calendarTitle}>Weekly Schedule</Text>
+          <Pressable
+            accessibilityRole="button"
+            style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 }}
+            onPress={() =>
+              router.push({
+                pathname: '/programs/builder',
+                params: { id: activeProgram.id, week: String(selectedWeek) },
+              })
+            }
+          >
+            <Text style={{ color: theme.colors.primary }}>Woche bearbeiten</Text>
+          </Pressable>
+        </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.weekTabsScroll}>
           {Array.from({ length: activeProgram.durationWeeks }, (_, i) => i + 1).map((w) => {
             const isSelected = w === selectedWeek;
             return (
               <Pressable
                 key={w}
-                style={[styles.weekTab, isSelected && styles.weekTabSelected]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: isSelected }}
+                style={[
+                  styles.weekTab,
+                  { minHeight: 44, justifyContent: 'center' },
+                  isSelected && styles.weekTabSelected,
+                ]}
                 onPress={() => setSelectedWeek(w)}
               >
                 <Text style={[styles.weekTabText, isSelected && styles.weekTabTextSelected]}>
@@ -434,6 +464,8 @@ export default function ProgramListScreen() {
               value={durationWeeks}
               onChangeText={setDurationWeeks}
               keyboardType="numeric"
+              inputAccessoryViewID="keyboardDoneAccessory"
+              returnKeyType="done"
               placeholder="4"
               placeholderTextColor="#94a3b8"
             />
@@ -451,6 +483,7 @@ export default function ProgramListScreen() {
             </View>
           </View>
         </View>
+        <KeyboardDoneAccessory />
       </Modal>
 
       {/* Program action menu */}
@@ -532,6 +565,7 @@ export default function ProgramListScreen() {
             </Pressable>
           </View>
         </Pressable>
+        <KeyboardDoneAccessory />
       </Modal>
     </View>
   );
@@ -539,7 +573,7 @@ export default function ProgramListScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0B0B0F' },
-  list: { padding: 16 },
+  list: { padding: 16, paddingBottom: 140, width: '100%', maxWidth: 1000, alignSelf: 'center' },
   card: {
     backgroundColor: '#1A1C23',
     borderRadius: 16,

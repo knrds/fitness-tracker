@@ -1,3 +1,8 @@
+import { useReducedMotion } from 'react-native-reanimated';
+import { MeasurementMap } from '../../src/components/MeasurementMap';
+import { WaterVessel } from '../../src/components/WaterVessel';
+import { parseDecimalInput } from '../../src/utils/decimalInput';
+import { useFocusScroll } from '../../src/hooks/useFocusScroll';
 import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
 import React, { useState } from 'react';
 import {
@@ -15,7 +20,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import { BodyMetric, BodyMeasurements, formatDateLocal } from '@fitness-tracker/domain';
+import {
+  BodyMetric,
+  BodyMeasurements,
+  formatDateLocal,
+  MuscleGroup,
+} from '@fitness-tracker/domain';
 import { useBodyMetricStore } from '../../src/stores/bodyMetricStore';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { useHydrationStore } from '../../src/stores/hydrationStore';
@@ -30,6 +40,8 @@ import ExercisesScreen from './exercises';
 type BodyTab = 'metrics' | 'exercises';
 
 export default function BodyTrackingScreen() {
+  const reducedMotion = useReducedMotion();
+  const scrollRef = useFocusScroll();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ tab?: BodyTab }>();
@@ -63,20 +75,20 @@ export default function BodyTrackingScreen() {
   React.useEffect(() => {
     setSelectedPoint(null);
     chartFadeAnim.setValue(0);
-    chartSlideAnim.setValue(20);
+    chartSlideAnim.setValue(8);
     Animated.parallel([
       Animated.timing(chartFadeAnim, {
         toValue: 1,
-        duration: 500,
+        duration: reducedMotion ? 0 : 220,
         useNativeDriver: Platform.OS !== 'web',
       }),
       Animated.timing(chartSlideAnim, {
         toValue: 0,
-        duration: 500,
+        duration: reducedMotion ? 0 : 220,
         useNativeDriver: Platform.OS !== 'web',
       }),
     ]).start();
-  }, [activeChartTab]);
+  }, [activeChartTab, reducedMotion]);
 
   // Form states
   const [weight, setWeight] = useState('');
@@ -125,7 +137,7 @@ export default function BodyTrackingScreen() {
     }
 
     const parsedDate = new Date(`${dateStr}T12:00:00`);
-    if (isNaN(parsedDate.getTime())) {
+    if (isNaN(parsedDate.getTime()) || formatDateLocal(parsedDate) !== dateStr) {
       return Alert.alert('Error', 'Please enter a valid date (YYYY-MM-DD).');
     }
 
@@ -135,7 +147,7 @@ export default function BodyTrackingScreen() {
 
     // Weight conversion: store canonically in kg
     if (weight.trim()) {
-      const wVal = parseFloat(weight);
+      const wVal = parseDecimalInput(weight);
       if (isNaN(wVal) || wVal <= 0)
         return Alert.alert('Error', 'Weight must be a positive number.');
       updates.weightKg = isImperial ? wVal / 2.20462 : wVal;
@@ -143,7 +155,7 @@ export default function BodyTrackingScreen() {
 
     // Body fat %
     if (bodyFat.trim()) {
-      const bfVal = parseFloat(bodyFat);
+      const bfVal = parseDecimalInput(bodyFat);
       if (isNaN(bfVal) || bfVal < 0 || bfVal > 100) {
         return Alert.alert('Error', 'Body fat must be between 0% and 100%.');
       }
@@ -156,7 +168,7 @@ export default function BodyTrackingScreen() {
     if (hasMeasurements) {
       const parseMeasurement = (val: string, label: string) => {
         if (!val.trim()) return undefined;
-        const num = parseFloat(val);
+        const num = parseDecimalInput(val);
         if (isNaN(num) || num <= 0) {
           throw new Error(`${label} must be a positive number.`);
         }
@@ -429,6 +441,7 @@ export default function BodyTrackingScreen() {
 
       {activeBodyTab === 'metrics' ? (
         <ScrollView
+          ref={scrollRef}
           style={styles.container}
           contentContainerStyle={[
             styles.scrollContent,
@@ -587,14 +600,7 @@ export default function BodyTrackingScreen() {
                 {hydrationPercent}%
               </Text>
             </View>
-            <View style={[styles.hydrationTrack, { backgroundColor: theme.colors.border }]}>
-              <View
-                style={[
-                  styles.hydrationFill,
-                  { backgroundColor: theme.colors.primary, width: `${hydrationPercent}%` },
-                ]}
-              />
-            </View>
+            <WaterVessel progress={hydrationProgress} />
             <View style={styles.hydrationButtons}>
               <Pressable
                 style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
@@ -717,6 +723,20 @@ export default function BodyTrackingScreen() {
             </Pressable>
           </View>
 
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Körperfett erklärt"
+            style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+            onPress={() =>
+              Alert.alert(
+                'Körperfett verstehen',
+                'Der Körperfettanteil beschreibt den Anteil deiner Körpermasse, der aus Fett besteht. Beispiel: 20 % bei 80 kg entsprechen 16 kg Fettmasse. Der übrige Anteil umfasst unter anderem Muskeln, Knochen und Wasser. Ein einzelner Prozentwert ist keine Gesundheitsbewertung. Alter, Geschlecht und Messverfahren spielen eine Rolle. Vergleiche deinen Verlauf möglichst mit derselben Messmethode. Quelle: Johns Hopkins Medicine – Body composition assessment.',
+              )
+            }
+          >
+            <Ionicons name="information-circle-outline" size={20} color={theme.colors.primary} />
+            <Text style={{ color: theme.colors.muted }}>Was bedeutet mein Körperfettanteil?</Text>
+          </Pressable>
           {renderChart()}
 
           <Text
@@ -902,65 +922,31 @@ export default function BodyTrackingScreen() {
             CIRCUMFERENCES ({isImperial ? 'INCHES' : 'CM'})
           </Text>
 
-          <View style={styles.inputGrid}>
-            <View style={styles.gridField}>
-              <Input
-                label="Chest"
-                value={chest}
-                onChangeText={setChest}
-                placeholder="Chest"
-                keyboardType="numeric"
-                inputAccessoryViewID={KEYBOARD_DONE_ID}
-              />
-            </View>
-            <View style={styles.gridField}>
-              <Input
-                label="Waist"
-                value={waist}
-                onChangeText={setWaist}
-                placeholder="Waist"
-                keyboardType="numeric"
-                inputAccessoryViewID={KEYBOARD_DONE_ID}
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputGrid}>
-            <View style={styles.gridField}>
-              <Input
-                label="Hips"
-                value={hips}
-                onChangeText={setHips}
-                placeholder="Hips"
-                keyboardType="numeric"
-                inputAccessoryViewID={KEYBOARD_DONE_ID}
-              />
-            </View>
-            <View style={styles.gridField}>
-              <Input
-                label="Arms"
-                value={arms}
-                onChangeText={setArms}
-                placeholder="Arms"
-                keyboardType="numeric"
-                inputAccessoryViewID={KEYBOARD_DONE_ID}
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputGrid}>
-            <View style={styles.gridField}>
-              <Input
-                label="Legs"
-                value={legs}
-                onChangeText={setLegs}
-                placeholder="Legs"
-                keyboardType="numeric"
-                inputAccessoryViewID={KEYBOARD_DONE_ID}
-              />
-            </View>
-            <View style={styles.gridField} />
-          </View>
+          <MeasurementMap
+            unit={isImperial ? 'in' : 'cm'}
+            fields={[
+              { label: 'Chest', value: chest, onChange: setChest, muscles: [MuscleGroup.Chest] },
+              {
+                label: 'Waist',
+                value: waist,
+                onChange: setWaist,
+                muscles: [MuscleGroup.Abs, MuscleGroup.Obliques],
+              },
+              { label: 'Hips', value: hips, onChange: setHips, muscles: [MuscleGroup.Glutes] },
+              {
+                label: 'Arms',
+                value: arms,
+                onChange: setArms,
+                muscles: [MuscleGroup.Biceps, MuscleGroup.Triceps],
+              },
+              {
+                label: 'Legs',
+                value: legs,
+                onChange: setLegs,
+                muscles: [MuscleGroup.Quads, MuscleGroup.Hamstrings],
+              },
+            ]}
+          />
         </ScrollView>
       </Modal>
       <KeyboardDoneAccessory />

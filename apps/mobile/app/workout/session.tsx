@@ -533,6 +533,8 @@ export default function WorkoutSessionScreen() {
                 placeholder="mg"
                 placeholderTextColor={theme.colors.muted}
                 keyboardType="numeric"
+                inputAccessoryViewID="keyboardDoneAccessory"
+                returnKeyType="done"
                 onSubmitEditing={handleAddCustomCaffeine}
               />
               <Pressable

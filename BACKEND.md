@@ -1,5 +1,7 @@
 # Backend
 
+Coach-Verhalten: Der Server-Systemauftrag beschränkt Antworten auf Training, Technik, Programmierung, Erholung, trainingsbezogene Ernährung und die eigenen Logs. Standardziel: 2–4 kurze Sätze bzw. höchstens 3 kurze Punkte, in der Nutzersprache; fachfremde Anfragen zurückweisen. Das ist ein Modellauftrag, keine deterministische Inhaltsklassifikation. Reale Tests nach Server-Neustart mit deepseek/deepseek-v4-flash haben Trainingsantwort und fachfremde Zurückweisung bestätigt. Modell/Guthaben bleiben externe Abhängigkeiten; .env-Änderungen mit Neustart von pnpm dev bzw. pnpm coach:local laden.
+
 Aktualisierung 12.09.2026: Konfiguriertes deepseek/deepseek-v4-flash wurde real aufgerufen. Anfangs kam HTTP 402 wegen fehlendem Guthaben/Schlüssellimit; dieser Fehler wird nun als PROVIDER_CREDITS/402 statt pauschal 502 angezeigt. Späterer Browseraufruf: HTTP 200 mit korrekter metrischer Profileinheit. pnpm coach:check und der lokale Start prüfen Schlüssel/Modell read-only. Sie können das gesamte Account-Guthaben nicht garantieren, da die Credits-Verwaltung einen Management-Key erfordert. Kein Management-Key nötig oder angefordert. Wiederholen im Coach dupliziert die Frage nicht.
 
 ## Coach am 12.09.2026

@@ -1,3 +1,4 @@
+import { KeyboardDoneAccessory } from '../../src/components/workout/KeyboardDoneAccessory';
 import { templateExercisesFromSession } from '@fitness-tracker/domain';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
 import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
@@ -32,7 +33,7 @@ import { useTheme } from '@fitness-tracker/ui';
 export default function ProgramBuilderScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, week } = useLocalSearchParams<{ id?: string; week?: string }>();
   const { programs, updateProgram, templates, createTemplate } = useProgramStore();
   const { sessions } = useHistoryStore();
 
@@ -51,7 +52,15 @@ export default function ProgramBuilderScreen() {
   const activeProgram = localProgram || program;
 
   const { status: activeWorkoutStatus, startWorkoutFromTemplate } = useWorkoutStore();
-  const [selectedWeek, setSelectedWeek] = useState(1);
+  const [selectedWeek, setSelectedWeek] = useState(() => {
+    const requested = Number(week);
+    return Number.isInteger(requested) &&
+      requested > 0 &&
+      requested <= (program?.durationWeeks ?? 1)
+      ? requested
+      : 1;
+  });
+  const weekTabsRef = React.useRef<ScrollView>(null);
   const [activeDay, setActiveDay] = useState<number | null>(null);
   const [modalMode, setModalMode] = useState<'options' | 'templates' | null>(null);
   const [pickerTab, setPickerTab] = useState<'templates' | 'history'>('templates');
@@ -148,6 +157,21 @@ export default function ProgramBuilderScreen() {
 
   const handleSave = () => {
     if (localProgram && program) {
+      if (
+        !Number.isInteger(localProgram.durationWeeks) ||
+        localProgram.durationWeeks < 1 ||
+        localProgram.durationWeeks > 104
+      ) {
+        Alert.alert('Programmdauer prüfen', 'Bitte 1 bis 104 Wochen eintragen.');
+        return;
+      }
+      if (localProgram.workouts.some((workout) => workout.week > localProgram.durationWeeks)) {
+        Alert.alert(
+          'Wochen noch belegt',
+          'In späteren Wochen sind noch Trainings geplant. Verschiebe oder entferne diese zuerst, bevor du das Programm verkürzt.',
+        );
+        return;
+      }
       updateProgram(program.id, localProgram);
       Alert.alert('Success', 'Plan saved successfully!');
       router.back();
@@ -268,10 +292,14 @@ export default function ProgramBuilderScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Stack.Screen
         options={{
-          title: activeProgram.name || 'Plan Editor',
+          title: 'Programm bearbeiten',
           headerShown: true,
           headerLeft: () => (
-            <Pressable onPress={handleCancel} hitSlop={15} style={{ paddingLeft: 8 }}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={handleCancel}
+              style={{ paddingHorizontal: 8, minHeight: 44, justifyContent: 'center' }}
+            >
               <Text
                 style={{
                   color: theme.colors.accent,
@@ -284,7 +312,11 @@ export default function ProgramBuilderScreen() {
             </Pressable>
           ),
           headerRight: () => (
-            <Pressable onPress={handleSave} hitSlop={15} style={{ paddingRight: 8 }}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={handleSave}
+              style={{ paddingHorizontal: 8, minHeight: 44, justifyContent: 'center' }}
+            >
               <Text
                 style={{
                   color: theme.colors.primary,
@@ -354,18 +386,79 @@ export default function ProgramBuilderScreen() {
           value={activeProgram.durationWeeks.toString()}
           onChangeText={(text) => handleChange({ durationWeeks: parseInt(text, 10) || 1 })}
           keyboardType="numeric"
+          inputAccessoryViewID="keyboardDoneAccessory"
+          returnKeyType="done"
           placeholderTextColor="#8A8D9F"
         />
 
         <Text style={styles.sectionTitle}>Weekly Schedule</Text>
 
         {/* Week Selector Tabs */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.weekTabsScroll}>
+        <View style={{ flexDirection: 'row', gap: 12, marginVertical: 12, flexWrap: 'wrap' }}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={activeProgram.durationWeeks >= 104}
+            onPress={() => {
+              const next = activeProgram.durationWeeks + 1;
+              if (next > 104) return;
+              setLocalProgram({ ...activeProgram, durationWeeks: next });
+              setSelectedWeek(next);
+            }}
+            style={{
+              minHeight: 44,
+              padding: 12,
+              borderRadius: 12,
+              backgroundColor: theme.colors.surface,
+            }}
+          >
+            <Text style={{ color: theme.colors.primary }}>+ Leere Woche</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={activeProgram.durationWeeks >= 104}
+            onPress={() => {
+              const next = activeProgram.durationWeeks + 1;
+              if (next > 104) return;
+              const copies = activeProgram.workouts
+                .filter((workout) => workout.week === selectedWeek)
+                .map((workout) => ({ ...workout, id: Crypto.randomUUID(), week: next }));
+              setLocalProgram({
+                ...activeProgram,
+                durationWeeks: next,
+                workouts: [...activeProgram.workouts, ...copies],
+              });
+              setSelectedWeek(next);
+            }}
+            style={{
+              minHeight: 44,
+              padding: 12,
+              borderRadius: 12,
+              backgroundColor: theme.colors.surface,
+            }}
+          >
+            <Text style={{ color: theme.colors.primary }}>Woche {selectedWeek} duplizieren</Text>
+          </Pressable>
+        </View>
+        <Text style={{ color: theme.colors.muted, fontSize: 12, marginBottom: 8 }}>
+          Neue Wochen werden angehängt. Änderungen werden mit Save gespeichert.
+        </Text>
+        <ScrollView
+          ref={weekTabsRef}
+          onContentSizeChange={() => {
+            if (selectedWeek === activeProgram.durationWeeks)
+              weekTabsRef.current?.scrollToEnd({ animated: true });
+          }}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.weekTabsScroll}
+        >
           {Array.from({ length: activeProgram.durationWeeks }, (_, i) => i + 1).map((w) => {
             const isSelected = w === selectedWeek;
             return (
               <Pressable
                 key={w}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: isSelected }}
                 style={[
                   styles.weekTab,
                   isSelected && {
@@ -470,6 +563,7 @@ export default function ProgramBuilderScreen() {
                     </Text>
                     <View style={styles.workoutActions}>
                       <Pressable
+                        style={styles.workoutAction}
                         onPress={() => handleStartTemplate(template, activeProgram.id)}
                         hitSlop={8}
                       >
@@ -478,6 +572,7 @@ export default function ProgramBuilderScreen() {
                         </Text>
                       </Pressable>
                       <Pressable
+                        style={styles.workoutAction}
                         onPress={() =>
                           router.push(
                             `/programs/template-builder?programId=${activeProgram.id}&templateId=${template?.id}&dayOfWeek=${day}&week=${selectedWeek}`,
@@ -487,10 +582,13 @@ export default function ProgramBuilderScreen() {
                       >
                         <Text style={[styles.editText, { color: theme.colors.text }]}>Edit</Text>
                       </Pressable>
-                      <Pressable onPress={() => setRescheduleWorkout(w)} hitSlop={8}>
+                      <Pressable
+                        style={styles.workoutAction}
+                        onPress={() => setRescheduleWorkout(w)}
+                      >
                         <Text style={[styles.editText, { color: theme.colors.primary }]}>Move</Text>
                       </Pressable>
-                      <Pressable onPress={() => removeWorkout(w.id)} hitSlop={8}>
+                      <Pressable style={styles.workoutAction} onPress={() => removeWorkout(w.id)}>
                         <Text style={[styles.removeText, { color: theme.colors.accent }]}>
                           Remove
                         </Text>
@@ -734,6 +832,7 @@ export default function ProgramBuilderScreen() {
             </Pressable>
           </Pressable>
         </Pressable>
+        <KeyboardDoneAccessory />
       </Modal>
 
       {/* Reschedule Workout Day Modal */}
@@ -807,6 +906,7 @@ export default function ProgramBuilderScreen() {
             </Pressable>
           </Pressable>
         </Pressable>
+        <KeyboardDoneAccessory />
       </Modal>
     </View>
   );
@@ -847,6 +947,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   weekTab: {
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -878,6 +980,7 @@ const styles = StyleSheet.create({
   },
   workoutRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#0B0B0F',
@@ -888,7 +991,20 @@ const styles = StyleSheet.create({
     borderColor: '#2A2B31',
   },
   workoutName: { fontSize: 16, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#F4F5F7' },
-  workoutActions: { flexDirection: 'row', gap: 12 },
+  workoutActions: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    gap: 4,
+  },
+  workoutAction: {
+    minHeight: 44,
+    minWidth: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
   editText: { color: '#90D5FF', fontFamily: 'SpaceGrotesk_700Bold' },
   removeText: { color: '#ef4444', fontFamily: 'SpaceGrotesk_700Bold' },
   startText: { color: '#90D5FF', fontFamily: 'SpaceGrotesk_700Bold' },

@@ -1,5 +1,7 @@
 # Bekannte Probleme und Freigabegrenzen
 
+Aktuell: Die weitere UI-Liste inklusive Kreis-Timer ist implementiert und mit 237 Tests geprüft. Generative Anatomie wurde von Higgsfield blockiert; es wird eine lizenzierte anatomische Vektorkarte verwendet, kein 3D-Scan. Historisch zu früh vergebene Übungs-/Muskel-Abzeichen werden nicht rückwirkend automatisch entzogen. iOS-Zahlenzubehör, Touch-Performance und Screenreader sind noch auf echten Geräten zu prüfen. Die nachfolgenden Hinweise enthalten historische Zwischenstände.
+
 Aktualisierung: Schlüssel/Modell sind inzwischen konfiguriert; echter DeepSeek-HTTP-200-Aufruf bestätigt. Vorheriger 402-Guthabenfehler wird präzise ausgewiesen. Lokaler Browser-Coach abgenommen, iPhone benötigt weiterhin HTTPS-Backend und native Abnahme. Timer nun verankert und sanft animiert; gewünschter Kreisindikator und weitere UI-Ergänzungen folgen separat.
 
 12.09.2026: Gemessene Drag-and-drop-Logik in fünf Ansichten; Browser-Maus/Touch geprüft, native Geräteperformance und sämtliche Kalender-Dropvarianten offen. Schulterfilter und körpergewichtsgeeignete Heatmapzählung korrigiert. Coach mit echtem HTTP-Pfad ohne Ersatzantwort. Lokal fehlen OpenRouter-Schlüssel/Modell; für iPhone zusätzlich HTTPS-Backend. Öffentliche Auth/Prozesslimits implementiert, verteilte Quoten und echte Backendabnahme fehlen.

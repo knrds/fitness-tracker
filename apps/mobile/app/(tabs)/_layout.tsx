@@ -1,3 +1,5 @@
+import { TabIcon } from '../../src/components/TabIcon';
+import { useReducedMotion } from 'react-native-reanimated';
 import React from 'react';
 import { Tabs, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,54 +10,16 @@ import { MinimizedWorkoutBar } from '../../src/components/workout/MinimizedWorko
 
 export default function TabLayout() {
   const theme = useTheme();
+  const reducedMotion = useReducedMotion();
   const pathname = usePathname();
   const isHomeFocused = pathname === '/';
-
-  // Animated value for pulsing Home button glow
-  const glowAnim = React.useRef(new Animated.Value(0)).current;
-
-  React.useEffect(() => {
-    const glowLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: false,
-        }),
-        Animated.timing(glowAnim, {
-          toValue: 0,
-          duration: 1500,
-          useNativeDriver: false,
-        }),
-      ]),
-    );
-    glowLoop.start();
-
-    return () => {
-      glowLoop.stop();
-    };
-  }, [glowAnim]);
-
-  const animatedShadowRadius = glowAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [6, 14],
-  });
-
-  const animatedShadowOpacity = glowAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.4, 0.9],
-  });
-
-  const animatedElevation = glowAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [8, 14],
-  });
 
   return (
     <View style={{ flex: 1 }}>
       <Tabs
         screenOptions={{
           headerShown: false,
+          animation: reducedMotion ? 'none' : 'fade',
           tabBarActiveTintColor: theme.colors.primary,
           tabBarInactiveTintColor: theme.colors.muted,
           tabBarStyle: {
@@ -74,7 +38,11 @@ export default function TabLayout() {
             title: 'History',
             tabBarLabel: 'History',
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'analytics' : 'analytics-outline'} size={22} color={color} />
+              <TabIcon
+                focused={focused}
+                name={focused ? 'analytics' : 'analytics-outline'}
+                color={color}
+              />
             ),
           }}
         />
@@ -84,7 +52,7 @@ export default function TabLayout() {
             title: 'Plans',
             tabBarLabel: 'Plans',
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'barbell' : 'barbell-outline'} size={22} color={color} />
+              <Ionicons name={focused ? 'barbell' : 'barbell-outline'} color={color} />
             ),
           }}
         />
@@ -97,6 +65,10 @@ export default function TabLayout() {
               const focused = isHomeFocused;
               return (
                 <Pressable
+                  accessibilityRole="tab"
+                  accessibilityLabel="Home"
+                  accessibilityState={{ selected: focused }}
+                  aria-selected={focused}
                   onPress={props.onPress}
                   onLongPress={props.onLongPress}
                   style={[props.style, styles.centerTabContainer]}
@@ -118,9 +90,9 @@ export default function TabLayout() {
                           : {
                               shadowColor: theme.colors.primary,
                               shadowOffset: { width: 0, height: 0 },
-                              shadowOpacity: animatedShadowOpacity,
-                              shadowRadius: animatedShadowRadius,
-                              elevation: animatedElevation,
+                              shadowOpacity: 0.35,
+                              shadowRadius: 8,
+                              elevation: 8,
                             }),
                     ]}
                   >
@@ -161,7 +133,7 @@ export default function TabLayout() {
             title: 'Body',
             tabBarLabel: 'Body',
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'body' : 'body-outline'} size={22} color={color} />
+              <Ionicons name={focused ? 'body' : 'body-outline'} color={color} />
             ),
           }}
         />

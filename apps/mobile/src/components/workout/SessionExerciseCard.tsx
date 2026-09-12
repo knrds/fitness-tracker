@@ -1399,6 +1399,10 @@ const SetRow = ({
                 },
               ]}
               onPress={onComplete}
+              accessibilityRole="checkbox"
+              accessibilityLabel={`Satz ${workingSetNumber} abschließen`}
+              accessibilityState={{ checked: isDone }}
+              aria-checked={isDone}
             >
               <Ionicons
                 name="checkmark"

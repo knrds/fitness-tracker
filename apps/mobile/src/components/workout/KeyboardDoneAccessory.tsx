@@ -26,8 +26,14 @@ export const KeyboardDoneAccessory = () => {
         ]}
       >
         <View style={styles.flexSpacer} />
-        <Pressable onPress={() => Keyboard.dismiss()} style={styles.doneButton} hitSlop={10}>
-          <Text style={[styles.doneText, { color: theme.colors.primary }]}>Done</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Eingabe fertig"
+          onPress={() => Keyboard.dismiss()}
+          style={styles.doneButton}
+          hitSlop={10}
+        >
+          <Text style={[styles.doneText, { color: theme.colors.primary }]}>Fertig</Text>
         </Pressable>
       </View>
     </InputAccessoryView>

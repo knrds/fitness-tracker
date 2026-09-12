@@ -1021,6 +1021,8 @@ const styles = StyleSheet.create({
   },
   quickInput: {
     flex: 1,
+    minWidth: 0,
+    width: 0,
     borderWidth: 1,
     borderRadius: 10,
     height: 44,

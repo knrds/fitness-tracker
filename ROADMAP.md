@@ -1,5 +1,7 @@
 # Roadmap
 
+13.09.2026: Neueste Nutzerliste abgeschlossen: zurückhaltende Koffeinnotiz, Quick-Entry-Overflow, Desktop-Rahmen, Heatmap-Hintergrund, Glas-/Wasseranimation, Bild- und Sprachcoach, validierte Plananlage und aktuelle Quellenabfrage. 246 Tests und Exporte; Geräte-/Cloud-Gates bleiben offen. Größerer UI-/Planeditor-Umbau ist vom Nutzer für den nächsten Schritt vorgesehen. Phase 4b.2 ist weiterhin nicht als erledigt markiert.
+
 12.09.2026 – Nutzerergänzungen implementiert: Navigation/Scroll-Fokus, Suchnormalisierung, Coach-Themenbegrenzung, Kreis-Timer, Abschlussdialoge, Achievement-Status und Vergabekorrektur, anatomische Karten, Body-/Profil-/XP-/Trinkanzeige und Wochenbearbeitung. 237 Tests sowie Web-/Hermes-Exporte erfolgreich. Nächste Kernarbeit bleibt Phase 4b.2; native Geräte-/Account-/Backend-Release-Gates sind weiterhin offen.
 
 Weiterer Zwischenstand 12.09.: Workout-Vereinfachung, ruhiger Timer, Dezimaleingabe, sichere Coach-Diagnose/Retries und reale DeepSeek-Antwort implementiert; 230 Tests. Neue Nutzerliste für Navigation, Suche, Achievements, Abschlussübersicht, menschliche Heatmap und weitere UI-Verbesserungen hat zunächst Vorrang vor Phase 4b.2.

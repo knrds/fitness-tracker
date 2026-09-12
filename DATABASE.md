@@ -1,5 +1,7 @@
 # Lokale Datenbank und Migration
 
+13.09.2026: Additive optionale ChatMessage-Felder plan, savedTemplateIds und sources im bestehenden validierten Dokument; alte Nachrichten ohne diese Felder bleiben gültig, daher keine SQL-Schemaversion geändert. Plan enthält nur referenzierte Übungs-UUIDs und begrenzte Satz-/Wiederholungs-/RIR-/Pausenvorgaben. saveCoachPlan schreibt neue Programme/Templates, Outbox und die idempotente Chatmarkierung in einer nativen SQLite-Transaktion und rollt Speicherprojektionen bei Fehlern zurück. Keine Überschreibung bestehender Trainingsdaten oder automatische Programmaktivierung.
+
 expo-sqlite ~16.0.10, Expo SDK 54; native Datei training.sqlite. PRAGMA user_version = 2, WAL, synchronous=FULL, busy_timeout=3000, foreign_keys=ON. Neuere Versionen werden verweigert.
 
 | Tabelle | Schlüssel / Beziehungen | Inhalt |

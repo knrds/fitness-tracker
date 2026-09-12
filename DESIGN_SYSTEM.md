@@ -1,5 +1,7 @@
 # Volt Design System
 
+13.09.2026: Gemeinsamer Desktop-Rahmen 1040 px; Quick-Entry-Felder dürfen unter ihre intrinsische Webbreite schrumpfen. Heatmap mit radialem Hintergrund und sichtbaren neutralen Konturen. Trinkgefäß nutzt zwei Wellenflächen, feste Glasform und kurzes abklingendes Nachschwingen statt Dauerbewegung. Coach zeigt strukturierte Trainingstage und aufklappbare Quellen. Vollständiger Before-/After-Vergleich in IMPLEMENTATION_STATUS.md.
+
 Neue gemeinsame Elemente: LevelProgress/LevelEmblem (Higgsfield-Sprite, 450-ms-Füllung), AnatomyFigure (MIT-Pfade mit lokalen Muskelgruppen), MeasurementMap und WaterVessel. Tab-Icons bewegen sich 2 px mit 180 ms; Modal-/Chartbewegungen bleiben kurz und ohne Feder. Fokus-Scroll respektiert Reduce Motion. Mehrere iOS-/Web-Ziele erhalten explizite Zugänglichkeitsnamen. Anatomie-Lizenz: apps/mobile/src/components/anatomy/LICENSE. Body-Fat-Information erklärt die Zusammensetzung anhand eines Rechenbeispiels und gibt keine pauschalen Gesundheitsgrenzen vor; Quelle: https://www.hopkinsmedicine.org/heart-vascular-institute/cardiology/cardiac-rehabilitation/weight-loss-services
 
 Bestehende Identität: Hintergrund #0B0B0F, Surface #1A1C23, Primary #90D5FF, Text #F4F5F7, Muted #8A8D9F, Border #2A2B31, Accent #FF3366. Space Grotesk für Überschriften/Zahlen; Manrope für Text. Spacing 4/8/16/24/32/48; Radien 8/12/16/full. packages/ui bleibt Quelle.

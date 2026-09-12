@@ -1,6 +1,8 @@
 # Security und Privacy
 
-Client-Providerkey-Pfad entfernt. Keine Provider-/Service-Role-Secrets im Client. EXPO_PUBLIC_ ist öffentlich. Der vorhandene Server-Coach ist weiterhin nicht ausreichend authentifiziert/begrenzt; nicht öffentlich freigeben. Supabase URL/Anon-Key sind öffentliche Konfiguration, keine Autorisierung.
+13.09.2026: Medien werden nach bewusster Auswahl/Aufnahme über den bestehenden Server und OpenRouter verarbeitet. Bilder nur als begrenzte data-URLs, keine Serverabrufe beliebiger Bild-URLs; Rohbilder nicht im Chat persistiert. Eigene temporäre Audiodateien werden freigegeben. Literaturabfrage verwendet feste Suchbegriffe ohne Profil-/Gesundheitsdaten. Modellantworten dürfen keine beliebigen Aktionen ausführen: ausschließlich validierte Planstruktur, Vorschau und expliziter lokaler Speicherknopf, Kontogeneration und SQLite-Transaktion.
+
+Client-Providerkey-Pfad entfernt. Keine Provider-/Service-Role-Secrets im Client. EXPO_PUBLIC_ ist öffentlich. Der öffentliche Coach-Handler prüft Supabase-Sessions und begrenzt Requests im Prozess; verteilte Quoten, Deployment-Härtung und reale Auth-Abnahme bleiben vor öffentlicher Freigabe offen. Supabase URL/Anon-Key sind öffentliche Konfiguration, keine Autorisierung.
 
 Native lokale Persistenz verwendet gebundene SQL-Werte, validierte Zeilen/Dokumente, Foreign Keys, Benutzerpartitionen und atomaren Workout-Abschluss. Fehlerdiagnosen des neuen Speichers enthalten nur Speichernamen, keine Fitness-/Gesundheitsdaten. Migration und Backups bleiben lokal. Lokaler Reset berücksichtigt Legacy-Quellen, Backups, Coach und Queue; Account-/Cloud-Daten werden dabei ausdrücklich nicht gelöscht. Kein Tracking neu eingebaut.
 

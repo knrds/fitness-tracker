@@ -590,4 +590,23 @@ export interface ChatMessage {
   role: ChatRole;
   content: string;
   createdAt: Timestamp;
+  plan?: CoachPlan | undefined;
+  savedTemplateIds?: UUID[] | undefined;
+  sources?: Array<{ title: string; url: string; date?: string | undefined }> | undefined;
+}
+
+export interface CoachPlan {
+  name: string;
+  days: Array<{
+    name: string;
+    exercises: Array<{
+      exerciseId: UUID;
+      sets: number;
+      reps: number;
+      repsMax: number;
+      rir: number;
+      restSeconds: number;
+      notes: string;
+    }>;
+  }>;
 }

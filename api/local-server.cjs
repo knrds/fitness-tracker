@@ -37,7 +37,7 @@ async function serve(req, res) {
     let size = 0;
     for await (const chunk of req) {
       size += chunk.length;
-      if (size > 20000) {
+      if (size > 8500000) {
         res.writeHead(413);
         res.end();
         return;

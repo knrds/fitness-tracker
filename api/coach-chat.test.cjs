@@ -33,6 +33,172 @@ const request = () => ({
   headers: { authorization: 'Bearer test-token' },
   body: { messages: [{ role: 'user', content: 'Review my training' }], context: {} },
 });
+test('retries a token-limited response and never publishes a truncated answer', async () => {
+  process.env.OPENROUTER_API_KEY = 'test-key';
+  process.env.OPENROUTER_MODEL = 'test-model';
+  let calls = 0;
+  global.fetch = async (_url, init) => {
+    calls++;
+    const payload = JSON.parse(init.body);
+    assert.deepEqual(payload.reasoning, { enabled: false });
+    return {
+      ok: true,
+      json: async () => ({
+        choices: [
+          {
+            finish_reason: calls === 1 ? 'length' : 'stop',
+            message: { content: calls === 1 ? 'Incomplete' : 'Complete answer' },
+          },
+        ],
+      }),
+    };
+  };
+  const r = res();
+  await handler({ ...request(), localCoachUser: 'loopback-development' }, r);
+  assert.equal(calls, 2);
+  assert.equal(r.body.reply, 'Complete answer');
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ({
+      choices: [{ finish_reason: 'length', message: { content: 'Never publish this' } }],
+    }),
+  });
+  const truncated = res();
+  await handler({ ...request(), localCoachUser: 'loopback-development' }, truncated);
+  assert.equal(truncated.code, 502);
+  assert.equal(truncated.body.code, 'INCOMPLETE_RESPONSE');
+  assert.equal(truncated.body.reply, undefined);
+});
+test('rejects arbitrary attachment URLs before provider access', async () => {
+  global.fetch = () => {
+    throw Error('must not fetch');
+  };
+  const r = res();
+  const req = request();
+  req.body.image = 'http://localhost/private';
+  await handler({ ...req, localCoachUser: 'loopback-development' }, r);
+  assert.equal(r.code, 400);
+});
+test('routes voice transcription through the configured server model', async () => {
+  process.env.OPENROUTER_TRANSCRIPTION_MODEL = 'test-transcriber';
+  global.fetch = async (url, init) => {
+    assert.equal(url, 'https://openrouter.ai/api/v1/audio/transcriptions');
+    assert.equal(JSON.parse(init.body).model, 'test-transcriber');
+    return { ok: true, json: async () => ({ text: 'Vier Trainingstage bitte.' }) };
+  };
+  const req = request();
+  req.body.audio = { data: 'YXVkaW8=', format: 'wav' };
+  const r = res();
+  await handler({ ...req, localCoachUser: 'loopback-development' }, r);
+  assert.equal(r.body.reply, 'Vier Trainingstage bitte.');
+});
+test('plan validation rejects unknown exercises and impossible set prescriptions', () => {
+  const { validPlan } = require('./coach-plans.cjs');
+  const plan = {
+    name: 'Plan',
+    days: [
+      {
+        name: 'Tag',
+        exercises: [
+          {
+            exerciseId: 'known',
+            sets: 3,
+            reps: 8,
+            repsMax: 12,
+            rir: 2,
+            restSeconds: 120,
+            notes: '',
+          },
+        ],
+      },
+    ],
+  };
+  assert.equal(validPlan(plan, [{ id: 'known' }]), true);
+  assert.equal(validPlan(plan, [{ id: 'different' }]), false);
+  plan.days[0].exercises[0].repsMax = 4;
+  assert.equal(validPlan(plan, [{ id: 'known' }]), false);
+});
+test('maps short model exercise keys to real catalog IDs without accepting unknown keys', () => {
+  const { parsePlanReply, planResponseFormat } = require('./coach-plans.cjs');
+  const catalog = [{ id: 'real-id', name: 'Squat' }];
+  const reply = {
+    reply: 'Ready',
+    plan: {
+      name: 'Plan',
+      days: [
+        {
+          name: 'Day',
+          exercises: [
+            {
+              exerciseId: 'e0',
+              sets: 3,
+              reps: 8,
+              repsMax: 12,
+              rir: 2,
+              restSeconds: 120,
+              notes: '',
+            },
+          ],
+        },
+      ],
+    },
+  };
+  assert.equal(
+    parsePlanReply(JSON.stringify(reply), catalog).plan.days[0].exercises[0].exerciseId,
+    'real-id',
+  );
+  reply.plan.days[0].exercises[0].exerciseId = 'e999';
+  assert.equal(parsePlanReply(JSON.stringify(reply), catalog), null);
+  assert.equal(planResponseFormat(catalog).json_schema.strict, true);
+});
+test('repairs an invalid plan once and returns only validated catalog exercises', async () => {
+  process.env.OPENROUTER_API_KEY = 'test-key';
+  process.env.OPENROUTER_MODEL = 'test-model';
+  let providerCalls = 0;
+  const id = '00000000-0000-4000-8000-000000000002';
+  global.fetch = async (url, init) => {
+    if (url.includes('europepmc'))
+      return { ok: true, json: async () => ({ resultList: { result: [] } }) };
+    providerCalls++;
+    const payload = JSON.parse(init.body);
+    assert.equal(payload.response_format.type, 'json_schema');
+    const plan = {
+      name: 'Plan',
+      days: [
+        {
+          name: 'Day A',
+          exercises: [
+            {
+              exerciseId: providerCalls === 1 ? 'e999' : 'e0',
+              sets: 3,
+              reps: 8,
+              repsMax: 12,
+              rir: 2,
+              restSeconds: 120,
+              notes: '',
+            },
+          ],
+        },
+      ],
+    };
+    return {
+      ok: true,
+      json: async () => ({
+        choices: [
+          { finish_reason: 'stop', message: { content: JSON.stringify({ reply: 'Ready', plan }) } },
+        ],
+      }),
+    };
+  };
+  const req = request();
+  req.body.createPlan = true;
+  req.body.context = { exerciseCatalog: [{ id, name: 'Squat' }] };
+  const r = res();
+  await handler({ ...req, localCoachUser: 'loopback-development' }, r);
+  assert.equal(r.code, 200);
+  assert.equal(providerCalls, 2);
+  assert.equal(r.body.plan.days[0].exercises[0].exerciseId, id);
+});
 test('preserves credit errors without exposing raw provider details, including HTTP 200 errors', async () => {
   process.env.OPENROUTER_API_KEY = 'private-test-key';
   process.env.OPENROUTER_MODEL = 'configured-model';

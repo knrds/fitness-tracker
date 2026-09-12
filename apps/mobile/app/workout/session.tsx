@@ -284,7 +284,7 @@ export default function WorkoutSessionScreen() {
   const caffeineWarningLevel = getCaffeineWarningLevel(currentWorkoutMg);
   const caffeineTrollText =
     currentWorkoutMg > 1500
-      ? 'Da hat sich wohl eine Extra-Null eingeschlichen 😉 Bitte Menge und Einheit prüfen.'
+      ? 'Training und weißer Monster sind offenbar ein Lifestyle. Die eingetragene Menge bitte trotzdem kurz prüfen.'
       : null;
   const caffeineWarningText =
     caffeineTrollText ??
@@ -339,7 +339,7 @@ export default function WorkoutSessionScreen() {
           key="standard-header"
           style={[
             styles.standardHeaderContent,
-            { maxWidth: 960, width: '100%', alignSelf: 'center' },
+            { maxWidth: 1040, width: '100%', alignSelf: 'center' },
           ]}
         >
           <View style={styles.headerLeft}>
@@ -454,7 +454,7 @@ export default function WorkoutSessionScreen() {
         style={styles.content}
         contentContainerStyle={[
           styles.contentContainer,
-          { paddingTop: headerHeight + 16, maxWidth: 960, width: '100%', alignSelf: 'center' },
+          { paddingTop: headerHeight + 16, maxWidth: 1040, width: '100%', alignSelf: 'center' },
         ]}
         keyboardDismissMode="none"
         keyboardShouldPersistTaps="always"
@@ -490,8 +490,8 @@ export default function WorkoutSessionScreen() {
                 style={[
                   caffeineTrollText ? styles.caffeineTrollWarning : styles.caffeineWarning,
                   {
-                    color: caffeineTrollText ? '#FFE8E8' : theme.colors.accent,
-                    backgroundColor: caffeineTrollText ? '#B00020' : 'transparent',
+                    color: caffeineTrollText ? theme.colors.muted : theme.colors.accent,
+                    backgroundColor: caffeineTrollText ? theme.colors.surface : 'transparent',
                   },
                 ]}
               >
@@ -739,9 +739,9 @@ const styles = StyleSheet.create({
   caffeineTrollWarning: {
     alignSelf: 'flex-start',
     borderRadius: 10,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 16,
-    lineHeight: 22,
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 12,
+    lineHeight: 18,
     marginTop: 10,
     overflow: 'hidden',
     paddingHorizontal: 12,

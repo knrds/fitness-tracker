@@ -1,5 +1,7 @@
 # Bekannte Probleme und Freigabegrenzen
 
+13.09.2026: Aktuelle Nutzerkorrekturen und multimodaler Coach implementiert und auf dem Host geprüft. Weiter offen: echte Mikrofon-/Tastatur-/Animationsabnahme auf iPhone/Android, native HTTPS-Anbindung, öffentliche Auth-/RLS-/Quotenabnahme und Cloud-Transaktionen. expo-av wird im bestehenden SDK-54-Projekt weiterverwendet; vor dem nächsten SDK-Upgrade auf expo-audio umstellen. Neu direkt deklarierte expo-file-system-Abhängigkeit entspricht Expo 54 und dient ausschließlich dem begrenzten Lesen/Freigeben eigener temporärer Aufnahmen. Provider können trotz Retry ausfallen; fehlerhafte Pläne werden sichtbar abgelehnt.
+
 Aktuell: Die weitere UI-Liste inklusive Kreis-Timer ist implementiert und mit 237 Tests geprüft. Generative Anatomie wurde von Higgsfield blockiert; es wird eine lizenzierte anatomische Vektorkarte verwendet, kein 3D-Scan. Historisch zu früh vergebene Übungs-/Muskel-Abzeichen werden nicht rückwirkend automatisch entzogen. iOS-Zahlenzubehör, Touch-Performance und Screenreader sind noch auf echten Geräten zu prüfen. Die nachfolgenden Hinweise enthalten historische Zwischenstände.
 
 Aktualisierung: Schlüssel/Modell sind inzwischen konfiguriert; echter DeepSeek-HTTP-200-Aufruf bestätigt. Vorheriger 402-Guthabenfehler wird präzise ausgewiesen. Lokaler Browser-Coach abgenommen, iPhone benötigt weiterhin HTTPS-Backend und native Abnahme. Timer nun verankert und sanft animiert; gewünschter Kreisindikator und weitere UI-Ergänzungen folgen separat.

@@ -364,11 +364,44 @@ export type SyncOperationInput = z.input<typeof SyncOperationSchema>;
 
 export const ChatRoleSchema = z.enum(['user', 'assistant', 'system']);
 
+export const CoachPlanSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  days: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(100),
+        exercises: z
+          .array(
+            z
+              .object({
+                exerciseId: UUIDSchema,
+                sets: z.number().int().min(1).max(10),
+                reps: z.number().int().min(1).max(50),
+                repsMax: z.number().int().min(1).max(50),
+                rir: z.number().int().min(0).max(5),
+                restSeconds: z.number().int().min(15).max(600),
+                notes: z.string().max(500),
+              })
+              .refine((exercise) => exercise.repsMax >= exercise.reps),
+          )
+          .min(1)
+          .max(12),
+      }),
+    )
+    .min(1)
+    .max(7),
+});
+
 export const ChatMessageSchema = z.object({
   id: UUIDSchema,
   role: ChatRoleSchema,
   content: z.string(),
   createdAt: TimestampSchema,
+  plan: CoachPlanSchema.optional(),
+  savedTemplateIds: z.array(UUIDSchema).optional(),
+  sources: z
+    .array(z.object({ title: z.string(), url: z.string().url(), date: z.string().optional() }))
+    .optional(),
 });
 
 export type ChatMessageInput = z.input<typeof ChatMessageSchema>;

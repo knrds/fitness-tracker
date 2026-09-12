@@ -29,7 +29,17 @@
       "output": "single",
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-router", "expo-font", "expo-sqlite"],
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-sqlite",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Sprachmemo aufnehmen und für den Coach in Text umwandeln."
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
     }

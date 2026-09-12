@@ -208,7 +208,6 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 16,
     width: '100%',
-    maxWidth: 900,
     alignSelf: 'center',
   },
   heading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

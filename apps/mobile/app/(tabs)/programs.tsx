@@ -573,7 +573,7 @@ export default function ProgramListScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0B0B0F' },
-  list: { padding: 16, paddingBottom: 140, width: '100%', maxWidth: 1000, alignSelf: 'center' },
+  list: { padding: 16, paddingBottom: 140, width: '100%', maxWidth: 1040, alignSelf: 'center' },
   card: {
     backgroundColor: '#1A1C23',
     borderRadius: 16,

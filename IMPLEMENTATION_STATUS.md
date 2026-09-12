@@ -1,4 +1,30 @@
-# Umsetzungsstand vom 12.09.2026
+# Umsetzungsstand vom 13.09.2026
+
+## Nutzerkorrekturen und multimodaler Coach – 13.09.2026
+
+Vorheriger Meilenstein in b38b0e0 gesichert. Aktueller Umfang: UI-Korrekturen sowie echte Bildanalyse, Sprachtranskription und speicherbare Coach-Pläne. Der größere, vom Nutzer für den nächsten Schritt angekündigte UI-Umbau bleibt separat.
+
+| Before | After |
+| --- | --- |
+| Große rote Extra-Null-Notiz | Kleine, zurückhaltende Lifestyle-Notiz zu Training und weißem Monster, ohne Emoji; Mengenprüfung bleibt enthalten (session.tsx) |
+| Body-Fat-Quick-Entry läuft über die Karte | Schrumpfbare gleich breite Felder mit minWidth: 0 und width: 0 (body.tsx); im 390-px-Browser geprüft |
+| Schwacher Körperumriss, flacher Hintergrund | Hellere neutrale Anatomieteile, feinere sichtbare Konturen und radial auslaufendes Licht (AnatomyFigure.tsx) |
+| Unterschiedliche Desktop-Kartenbreiten | Gemeinsamer 1040-px-Rahmen für Tabs; Home, Profil, Programme und Workout ausgerichtet; innere Heatmap-Breitenbegrenzung entfernt |
+| Einfacher rechteckiger Wasserstand | Glasform mit Reflexen, Skala, zwei sanften Wellenflächen und zeitlich begrenztem Nachschwingen; Reduced Motion berücksichtigt (WaterVessel.tsx) |
+| 800 Tokens für jede Antwort, Abbruch unbemerkt | Getrennte Budgets, Reasoning deaktiviert, begrenzter Wiederholungsversuch bei Abbruch, leerer Antwort, vorübergehendem Providerfehler oder ungültigem Plan |
+| Coach kann nur Text beantworten | Bildauswahl mit Vorschau, Server-Vision-Modell und validierter Planstruktur |
+| Keine Spracheingabe | Mikrofon → Aufnahme bis 60 s → echte OpenRouter-Transkription → bearbeitbarer Eingabetext; kein automatisches Senden der Nachricht |
+| Coach fordert manuelles Anlegen | Planvorschau mit allen Tagen, Übungen, Satz-/Wiederholungsbereichen, RIR und Pausen; ein Klick erzeugt Programm und Workout-Templates |
+| Plan könnte doppelt oder teilweise gespeichert werden | Idempotente Speicherung und SQLite-Transaktion einschließlich Outbox und Chatmarkierung; Kontogeneration prüfen, Fehler rollen Projektionen zurück |
+| Generische Studienbehauptungen | Aktuell abgefragte Abstracts via Europe PMC/PubMed, sechs Stunden Cache, Quellenlinks in aufklappbarer Liste; keine Behauptung einer vollständigen Literaturübersicht |
+
+Nachweise: 246 automatisierte Tests (57 Domain, 176 Mobile, 13 API), Typecheck/Lint sowie Web- und iOS-/Android-Hermes-Export. Drei neue Tests verwenden echtes SQLite für Plan-Speicherung, Wiederherstellung, Fehler-Rollback und Kontogrenze.
+
+Reale OpenRouter-Aufrufe: ursprüngliche Vier-Tage-Anfrage liefert HTTP 200 und vier vollständige Tage; Bild eines Test-Trainingsplans liefert drei korrekt zugeordnete Übungen einschließlich Satz-/Wiederholungsbereichen; synthetische WAV-Sprachmemo wird wörtlich transkribiert. Im Browser wurden außerdem tatsächlicher MediaRecorder/Upload/STT mit synthetischer Audioquelle und der bearbeitbare Transkripttext geprüft. Ein Bildtest im längeren Chatverlauf deckte eine ungültige Modellausgabe auf; JSON-Schema, kurze Katalog-IDs und ein validierter Wiederholungsversuch beheben diesen Pfad. Niemals wurde ein ungültiger Plan gespeichert.
+
+Diagnose: Ein Aufruf mit dem alten Budget verbrauchte 788 Tokens, davon 569 fürs Reasoning, bei nur 624 sichtbaren Zeichen. Die zuvor gemeldete pauschale 502 war nicht in jedem Aufruf reproduzierbar; leere Reasoning-Antworten, abgeschnittene Ausgaben und vorübergehende Providerfehler werden nun getrennt behandelt. Providerverfügbarkeit/Guthaben bleiben externe Abhängigkeiten.
+
+Grenzen: Kein echter iPhone-/Android-Mikrofon- oder Performance-Test; native Exporte sind keine Gerätebuilds. Lokaler Server bleibt Loopback; für native Nutzung fehlt weiterhin ein bereitgestelltes HTTPS-Backend. Native Speichertransaktion ist getestet, Web-KV bietet keine gleichwertige Mehrfachspeicher-Transaktion. Keine öffentlichen Accounts/RLS oder Cloud-Transaktionen abgenommen. Bilder werden nur für den aktuellen Aufruf und einen möglichen Retry im Arbeitsspeicher gehalten; Audio wird nicht im Chat gespeichert. Fremder Ordner inspo bleibt unverändert und außerhalb der Commits.
 
 ## Aktueller Zwischenstand: Navigation, Körperkarte und Bedienung
 

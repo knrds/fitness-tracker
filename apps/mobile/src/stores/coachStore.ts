@@ -9,7 +9,7 @@ import { useProfileStore } from './profileStore';
 import { useBodyMetricStore } from './bodyMetricStore';
 import { useExerciseStore } from './exerciseStore';
 import { useHistoryStore } from './historyStore';
-import { streamCoachResponse, checkConnectivity } from '../utils/coachApi';
+import { streamCoachResponse, checkConnectivity, CoachOptions } from '../utils/coachApi';
 import { getStorageScope, isScopeCurrent } from '../data/storageScope';
 
 // ---------------------------------------------------------------------------
@@ -25,7 +25,8 @@ interface CoachState extends CoachPersistState {
   isSending: boolean;
   isOnline: boolean;
   error: string | null;
-  sendMessage: (content: string, retryId?: string) => Promise<void>;
+  pendingImage: string | undefined;
+  sendMessage: (content: string, retryId?: string, options?: CoachOptions) => Promise<void>;
   retryLastMessage: () => Promise<void>;
   clearChatHistory: () => void;
   updateOnlineStatus: () => Promise<void>;
@@ -53,11 +54,12 @@ export const useCoachStore = create<CoachState>()(
   persist(
     (set, get) => ({
       messages: [],
+      pendingImage: undefined,
       isSending: false,
       isOnline: true,
       error: null,
 
-      sendMessage: async (content: string, retryId?: string) => {
+      sendMessage: async (content: string, retryId?: string, options: CoachOptions = {}) => {
         const scope = getStorageScope();
         if (!content.trim() || get().isSending || !isScopeCurrent(scope)) return;
         const lastMessage = get().messages.at(-1);
@@ -66,7 +68,7 @@ export const useCoachStore = create<CoachState>()(
             ? lastMessage
             : undefined;
         if (retryId && !retryMessage) return;
-        set({ isSending: true });
+        set({ isSending: true, pendingImage: retryId ? get().pendingImage : options.image });
 
         // Check connection
         const online = await checkConnectivity().catch(() => false);
@@ -145,6 +147,9 @@ export const useCoachStore = create<CoachState>()(
             });
 
           const context = {
+            exerciseCatalog: useExerciseStore
+              .getState()
+              .exercises.map(({ id, name }) => ({ id, name })),
             profile: {
               displayName: profile.displayName || 'Athlete',
               preferredUnits: profile.preferredUnits,
@@ -164,7 +169,18 @@ export const useCoachStore = create<CoachState>()(
           // 4. Stream response
           // slice(0, -1) to send message history excluding the placeholder we just added
           const currentHistory = get().messages.slice(0, -1);
-          const responseStream = streamCoachResponse(currentHistory, context);
+          const responseStream = streamCoachResponse(currentHistory, context, {
+            ...options,
+            image: get().pendingImage,
+            onResult: (result) => {
+              if (!isScopeCurrent(scope)) return;
+              set((state) => ({
+                messages: state.messages.map((message) =>
+                  message.id === assistantMsgId ? { ...message, ...result } : message,
+                ),
+              }));
+            },
+          });
 
           for await (const chunk of responseStream) {
             if (!isScopeCurrent(scope)) return;
@@ -178,6 +194,7 @@ export const useCoachStore = create<CoachState>()(
               return { messages: updatedMessages };
             });
           }
+          set({ pendingImage: undefined });
         } catch (err: unknown) {
           if (!isScopeCurrent(scope)) return;
           const errMsg = err instanceof Error ? err.message : 'Failed to get a coach response.';
@@ -213,6 +230,7 @@ export const useCoachStore = create<CoachState>()(
       name: 'volt-coach-store',
       storage: createHydratedStorage('volt-coach-store', CoachPersistSchema, defaultPersistedState),
       version: 1,
+      partialize: (state) => ({ messages: state.messages }),
       migrate: (persistedState) => {
         const parsed = CoachPersistSchema.safeParse(persistedState);
         return parsed.success ? parsed.data : defaultPersistedState;

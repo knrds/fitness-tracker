@@ -1,5 +1,5 @@
 import React, { useId } from 'react';
-import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Svg, { Path, Defs, LinearGradient, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { MuscleGroup } from '@fitness-tracker/domain';
 import { bodyFront } from './bodyFront';
 import { bodyBack } from './bodyBack';
@@ -40,10 +40,22 @@ export function AnatomyFigure({
     >
       <Defs>
         <LinearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-          <Stop offset="0" stopColor="#526478" />
-          <Stop offset="1" stopColor="#293641" />
+          <Stop offset="0" stopColor="#899CAB" />
+          <Stop offset="0.5" stopColor="#63798C" />
+          <Stop offset="1" stopColor="#45576A" />
         </LinearGradient>
+        <RadialGradient id={`${gradientId}halo`} cx="50%" cy="42%" rx="52%" ry="60%">
+          <Stop offset="0" stopColor="#5DA6CE" stopOpacity="0.2" />
+          <Stop offset="1" stopColor="#5DA6CE" stopOpacity="0" />
+        </RadialGradient>
       </Defs>
+      <Rect
+        x={side === 'front' ? 25 : 749}
+        y={80}
+        width={675}
+        height={1300}
+        fill={`url(#${gradientId}halo)`}
+      />
       {(side === 'front' ? bodyFront : bodyBack).map((part) => {
         const muscle =
           part.slug === 'deltoids'
@@ -60,8 +72,9 @@ export function AnatomyFigure({
             key={`${part.slug}-${index}`}
             d={path}
             fill={muscle ? color(muscle) : `url(#${gradientId})`}
-            stroke="#14212C"
-            strokeWidth={2}
+            stroke="#9BB1C3"
+            strokeOpacity={0.45}
+            strokeWidth={2.4}
             {...(muscle && onSelect ? { onPress: () => onSelect(muscle) } : {})}
           />
         ));

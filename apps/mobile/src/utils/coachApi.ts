@@ -1,5 +1,12 @@
 import { Platform } from 'react-native';
-import { ChatMessage, ExperienceLevel, FitnessGoal, UnitSystem } from '@fitness-tracker/domain';
+import {
+  ChatMessage,
+  CoachPlan,
+  CoachPlanSchema,
+  ExperienceLevel,
+  FitnessGoal,
+  UnitSystem,
+} from '@fitness-tracker/domain';
 import { supabase, isSupabaseConfigured } from './supabase';
 
 const endpoint =
@@ -16,6 +23,7 @@ export async function checkConnectivity(): Promise<boolean> {
 }
 
 export interface CoachContext {
+  exerciseCatalog?: Array<{ id: string; name: string }>;
   profile: {
     displayName: string;
     experienceLevel?: ExperienceLevel;
@@ -44,9 +52,17 @@ export interface CoachContext {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+export interface CoachOptions {
+  image?: string | undefined;
+  audio?: { data: string; format: string };
+  createPlan?: boolean;
+  onResult?: (result: { plan?: CoachPlan | undefined; sources?: ChatMessage['sources'] }) => void;
+}
+
 export async function* streamCoachResponse(
   messages: ChatMessage[],
   context: CoachContext,
+  options: CoachOptions = {},
 ): AsyncGenerator<string, void, unknown> {
   if (!endpoint)
     throw new Error(
@@ -73,20 +89,37 @@ export async function* streamCoachResponse(
     }
   }
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(() => controller.abort(), 75000);
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers,
       signal: controller.signal,
       body: JSON.stringify({
-        messages: messages.slice(-10).map(({ role, content }) => ({ role, content })),
+        messages: messages.slice(-10).map(({ role, content, plan, savedTemplateIds }) => ({
+          role,
+          content: plan
+            ? content +
+              '\nPlan data: ' +
+              JSON.stringify(plan) +
+              '\nSaved in app: ' +
+              Boolean(savedTemplateIds?.length)
+            : content,
+        })),
         context,
+        ...(options.image ? { image: options.image } : {}),
+        ...(options.audio ? { audio: options.audio } : {}),
+        ...(options.createPlan ? { createPlan: true } : {}),
       }),
     });
     if (!response.ok) {
       const data: unknown = await response.json().catch(() => null);
       const providerErrors: Record<string, string> = {
+        INCOMPLETE_RESPONSE:
+          'Der Anbieter konnte die Antwort nicht vollständig erzeugen. Bitte erneut senden; es wurde kein unvollständiger Plan gespeichert.',
+        INVALID_PLAN:
+          'Der Plan war nicht vollständig oder enthielt unbekannte Übungen. Bitte erneut erstellen lassen.',
+        EMPTY_TRANSCRIPT: 'Keine Sprache erkannt. Bitte noch einmal aufnehmen.',
         PROVIDER_CREDITS:
           'Das OpenRouter-Guthaben reicht nicht aus. Bitte Guthaben oder das Limit des API-Schlüssels prüfen und danach erneut senden.',
         PROVIDER_AUTH:
@@ -124,6 +157,18 @@ export async function* streamCoachResponse(
     if (!isRecord(data) || typeof data.reply !== 'string' || !data.reply.trim()) {
       throw new Error('Das Coach-Backend hat keine Antwort geliefert.');
     }
+    const plan = data.plan === undefined ? undefined : CoachPlanSchema.parse(data.plan);
+    const sources = Array.isArray(data.sources)
+      ? data.sources.filter(
+          (source): source is { title: string; url: string; date?: string } =>
+            isRecord(source) &&
+            typeof source.title === 'string' &&
+            typeof source.url === 'string' &&
+            /^https:\/\/pubmed\.ncbi\.nlm\.nih\.gov\/\d+\/$/.test(source.url) &&
+            (source.date === undefined || typeof source.date === 'string'),
+        )
+      : undefined;
+    options.onResult?.({ plan, sources });
     yield data.reply.trim();
   } catch (error) {
     if (controller.signal.aborted)

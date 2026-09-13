@@ -317,3 +317,26 @@ test('local server can use a provider key without Supabase but a client header c
   assert.equal(denied.code, 401);
   assert.equal(calls, 1);
 });
+test('allows prototype access without Supabase when ALLOW_PROTOTYPE_COACH is true', async () => {
+  delete process.env.SUPABASE_URL;
+  delete process.env.SUPABASE_ANON_KEY;
+  process.env.ALLOW_PROTOTYPE_COACH = 'true';
+  process.env.OPENROUTER_API_KEY = 'test-key';
+  process.env.OPENROUTER_MODEL = 'test-model';
+  let calls = 0;
+  global.fetch = async () => {
+    calls++;
+    return {
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: 'Prototype response' } }] }),
+    };
+  };
+  const protoReq = { ...request(), headers: {} };
+  const r = res();
+  await handler(protoReq, r);
+  assert.equal(r.code, 200);
+  assert.equal(r.body.reply, 'Prototype response');
+  assert.equal(calls, 1);
+  delete process.env.ALLOW_PROTOTYPE_COACH;
+});
+

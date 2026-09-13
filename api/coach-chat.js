@@ -26,8 +26,13 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const authorization = req.headers.authorization;
+  const isPrototype = process.env.ALLOW_PROTOTYPE_COACH === 'true';
   const localUser =
-    req.localCoachUser === 'loopback-development' ? { id: 'loopback-development' } : null;
+    req.localCoachUser === 'loopback-development'
+      ? { id: 'loopback-development' }
+      : isPrototype
+        ? { id: 'prototype-' + (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'guest') }
+        : null;
   if (!localUser && (typeof authorization !== 'string' || !/^Bearer \S+$/.test(authorization)))
     return res.status(401).json({ error: 'Sign in required' });
   const { SUPABASE_URL, SUPABASE_ANON_KEY, OPENROUTER_API_KEY, OPENROUTER_MODEL } = process.env;

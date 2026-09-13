@@ -394,7 +394,7 @@ export default function BodyTrackingScreen() {
         >
           Body
         </Text>
-        {activeBodyTab === 'metrics' && (
+        {activeBodyTab === 'metrics' ? (
           <Pressable
             style={[styles.addBtn, { backgroundColor: theme.colors.primary }]}
             onPress={() => setModalVisible(true)}
@@ -402,6 +402,8 @@ export default function BodyTrackingScreen() {
           >
             <Ionicons name="add" size={24} color={theme.colors.background} />
           </Pressable>
+        ) : (
+          <View style={styles.addBtnPlaceholder} />
         )}
       </View>
 
@@ -967,6 +969,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingBottom: 16,
+    minHeight: 54,
   },
   headerTitle: {},
   addBtn: {
@@ -975,6 +978,10 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  addBtnPlaceholder: {
+    width: 38,
+    height: 38,
   },
   bodyTabs: {
     flexDirection: 'row',

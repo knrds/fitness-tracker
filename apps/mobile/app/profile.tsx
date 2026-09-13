@@ -749,6 +749,47 @@ export default function ProfileScreen() {
             </Pressable>
           )}
         </View>
+
+        <View style={styles.sectionCard}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <Ionicons name="document-text-outline" size={16} color={theme.colors.primary} />
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>RECHTLICHES &amp; DATENSCHUTZ</Text>
+          </View>
+          <View style={{ gap: 10 }}>
+            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+              <Ionicons name="shield-outline" size={18} color={theme.colors.muted} style={{ marginTop: 2 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: 'SpaceGrotesk_600SemiBold', fontSize: 13, color: theme.colors.text }}>
+                  DSGVO &amp; Lokale Datenhoheit
+                </Text>
+                <Text style={{ fontSize: 12, color: theme.colors.muted, lineHeight: 18, marginTop: 2 }}>
+                  Deine Trainings-, Körper- und Profildaten verbleiben offline-first auf deinem Gerät. Eine Übertragung an externe Server erfolgt nur bei explizit aktiviertem Cloud-Sync oder bei Nutzung des KI-Coaches.
+                </Text>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+              <Ionicons name="medkit-outline" size={18} color={theme.colors.muted} style={{ marginTop: 2 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: 'SpaceGrotesk_600SemiBold', fontSize: 13, color: theme.colors.text }}>
+                  Medizinischer Haftungsausschluss
+                </Text>
+                <Text style={{ fontSize: 12, color: theme.colors.muted, lineHeight: 18, marginTop: 2 }}>
+                  VOLT und die Empfehlungen des KI-Coaches dienen ausschließlich sportlicher Orientierung und ersetzen keine ärztliche, sportmedizinische oder physiotherapeutische Diagnose und Beratung. Training erfolgt stets auf eigene Verantwortung.
+                </Text>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTopWidth: 1, borderTopColor: theme.colors.border }}>
+              <Text style={{ fontSize: 11, color: theme.colors.muted }}>
+                VOLT Fitness Tracker
+              </Text>
+              <Text style={{ fontFamily: 'SpaceGrotesk_700Bold', fontSize: 11, color: theme.colors.primary }}>
+                v0.1.0 Beta
+              </Text>
+            </View>
+          </View>
+        </View>
       </ScrollView>
 
       {/* Exercise Selection Modals */}

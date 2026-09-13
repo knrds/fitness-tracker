@@ -13,7 +13,7 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Dimensions,
+  useWindowDimensions,
   Animated,
   Platform,
   TextInput,
@@ -45,6 +45,7 @@ export default function BodyTrackingScreen() {
   const reducedMotion = useReducedMotion();
   const scrollRef = useFocusScroll();
   const theme = useTheme();
+  const { width: screenWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ tab?: BodyTab }>();
   const { metrics, addMetric, getMetricHistory, getLatestMetric } = useBodyMetricStore();
@@ -232,7 +233,6 @@ export default function BodyTrackingScreen() {
   };
 
   const renderChart = () => {
-    const screenWidth = Dimensions.get('window').width;
     const history = getMetricHistory(activeChartTab);
 
     if (history.length < 2) {
@@ -278,7 +278,7 @@ export default function BodyTrackingScreen() {
       ],
     };
 
-    const chartWidth = Math.max(260, Math.min(screenWidth - 112, 600));
+    const chartWidth = Math.max(180, Math.min(screenWidth - 112, 600));
 
     return (
       <Animated.View
@@ -286,7 +286,7 @@ export default function BodyTrackingScreen() {
           styles.chartContainer,
           {
             backgroundColor: theme.colors.surface,
-            borderColor: theme.colors.muted,
+            borderColor: theme.colors.border,
             opacity: chartFadeAnim,
             transform: [{ translateY: chartSlideAnim }],
           },

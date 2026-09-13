@@ -1,5 +1,7 @@
 # Bekannte Probleme und Freigabegrenzen
 
+13.09.2026 – UI-Rework: Alle Bildschirmfamilien auf gemeinsame Glacier-/Amber-Tokens umgestellt; animierte Navigation/Segmente/Disclosure, responsive Workout- und Template-Felder, Programmlisten, Profil/Auth und Diagramme im Browser geprüft. Echter Coach trennt einzelne Templates von expliziten Programmen; „Wochenprogramm“/„Split“ werden jetzt ebenfalls als strukturierte Erstellung erkannt. Aktuelle Details und Prüfnachweise: UI_REWORK.md, DESIGN.md, IMPLEMENTATION_CHECKLIST.md. Die folgenden älteren Zwischenstände sind keine aktuelle UI-Aufgabenliste.
+
 13.09.2026: Aktuelle Nutzerkorrekturen und multimodaler Coach implementiert und auf dem Host geprüft. Weiter offen: echte Mikrofon-/Tastatur-/Animationsabnahme auf iPhone/Android, native HTTPS-Anbindung, öffentliche Auth-/RLS-/Quotenabnahme und Cloud-Transaktionen. expo-av wird im bestehenden SDK-54-Projekt weiterverwendet; vor dem nächsten SDK-Upgrade auf expo-audio umstellen. Neu direkt deklarierte expo-file-system-Abhängigkeit entspricht Expo 54 und dient ausschließlich dem begrenzten Lesen/Freigeben eigener temporärer Aufnahmen. Provider können trotz Retry ausfallen; fehlerhafte Pläne werden sichtbar abgelehnt.
 
 Aktuell: Die weitere UI-Liste inklusive Kreis-Timer ist implementiert und mit 237 Tests geprüft. Generative Anatomie wurde von Higgsfield blockiert; es wird eine lizenzierte anatomische Vektorkarte verwendet, kein 3D-Scan. Historisch zu früh vergebene Übungs-/Muskel-Abzeichen werden nicht rückwirkend automatisch entzogen. iOS-Zahlenzubehör, Touch-Performance und Screenreader sind noch auf echten Geräten zu prüfen. Die nachfolgenden Hinweise enthalten historische Zwischenstände.
@@ -26,7 +28,7 @@ Keine Releasefreigabe. Der historische Audit B01–B23 bleibt in docs/AUDIT_2026
 ## Weiterhin kritisch
 B04 historische Eigentümerzuordnung/Abnahme der Benutzergrenzen, B06 Coach-Auth/Limits, B07 Remote-Transaktion, B09 NULL-Mapping, B10 Pull-Konflikte/Fehler/Tombstones, B12 Auth-Callbacks, B13 globale Default-IDs/Seed. Keiner dieser Punkte wurde durch den lokalen SQLite-Vertikalschnitt als gelöst erklärt.
 
-Aktuell 67 Dependency-Befunde: 0 critical, 47 high, 18 moderate, 2 low. Exposition pro Abhängigkeit weiter priorisieren; keine pauschale Unbedenklichkeit. Auth-Tokens bleiben im bestehenden Speicher. Kein SQLCipher/OS-Protection-Gerätenachweis. Export ist unvollständig, Reset noch kein atomarer Gesamtlöschbefehl.
+Historischer Dependency-Audit: 67 Befunde (0 critical, 47 high, 18 moderate, 2 low); keine neue Dependency-Freigabe durch den UI-Umbau. Auth-Tokens bleiben im bestehenden Speicher. Kein SQLCipher/OS-Protection-Gerätenachweis. Export-Schema 2 umfasst die lokalen Datenbereiche einschließlich Plänen, Coach und aktuellem Workout; ein Restore-/Import-Vertrag fehlt weiterhin. Native Reset-Store-Writes sind atomar, die vorherige Backup-Löschung und Web-KV-Writes nicht.
 
 Performance: granulare native Session-/Übungs-/Satz-/Queue-Zeilen, aber weiterhin große JS-Store-Projektionen und Subscriptions. Lokale Accountpartitionen sind umgesetzt; reale Geräte-/Backend-Abnahme bleibt offen. Geräte-Kill/Low-Space/Low-Memory, VoiceOver/TalkBack, Tastaturen und Cloud-RLS sind noch nicht abgenommen.
 

@@ -133,39 +133,51 @@ export default function ProgramListScreen() {
         <VoltBackdrop />
         <View style={styles.activeProgramHeader}>
           <View style={styles.activeInfoCol}>
-            <Text style={styles.activeBadge}>ACTIVE PROGRAM</Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: 12,
+                marginBottom: 8,
+              }}
+            >
+              <Text style={styles.activeBadge}>ACTIVE PROGRAM</Text>{' '}
+              <Pressable
+                accessibilityRole="button"
+                style={styles.deactivateBtn}
+                onPress={() => {
+                  if (Platform.OS === 'web') {
+                    const confirmFn = (globalThis as { confirm?: (msg: string) => boolean })
+                      .confirm;
+                    if (confirmFn?.('Are you sure you want to deactivate this program?')) {
+                      setActiveProgram(null);
+                    }
+                    return;
+                  }
+                  Alert.alert(
+                    'Deactivate Program',
+                    'Are you sure you want to deactivate this program?',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Deactivate',
+                        style: 'destructive',
+                        onPress: () => setActiveProgram(null),
+                      },
+                    ],
+                  );
+                }}
+              >
+                <Text style={styles.deactivateBtnText}>Deactivate</Text>
+              </Pressable>
+            </View>
             <Text style={styles.activeTitle}>{activeProgram.name}</Text>
             {activeProgram.description ? (
               <Text style={styles.activeDesc}>{activeProgram.description}</Text>
             ) : null}
             <Text style={styles.activeDuration}>Duration: {activeProgram.durationWeeks} Weeks</Text>
           </View>
-          <Pressable
-            style={styles.deactivateBtn}
-            onPress={() => {
-              if (Platform.OS === 'web') {
-                const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-                if (confirmFn?.('Are you sure you want to deactivate this program?')) {
-                  setActiveProgram(null);
-                }
-                return;
-              }
-              Alert.alert(
-                'Deactivate Program',
-                'Are you sure you want to deactivate this program?',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Deactivate',
-                    style: 'destructive',
-                    onPress: () => setActiveProgram(null),
-                  },
-                ],
-              );
-            }}
-          >
-            <Text style={styles.deactivateBtnText}>Deactivate</Text>
-          </Pressable>
         </View>
 
         {/* Week Selector Tabs */}

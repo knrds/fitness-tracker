@@ -1,4 +1,9 @@
-const { planInstruction, planResponseFormat, parsePlanReply } = require('./coach-plans.cjs');
+const {
+  planInstruction,
+  planResponseFormat,
+  parsePlanReply,
+  wantsStructuredPlan,
+} = require('./coach-plans.cjs');
 const { getResearch } = require('./coach-research.cjs');
 const limits = new Map();
 const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -85,11 +90,7 @@ module.exports = async function handler(req, res) {
         .slice(0, 1000)
     : [];
   const lastText = body.messages.at(-1).content;
-  const wantsPlan =
-    body.createPlan === true ||
-    /(?:erstell|mach|bau|create|build|design|generate).{0,100}(?:plan|workout|template)|(?:plan|workout|template).{0,80}(?:erstell|anleg|create|speicher)/i.test(
-      lastText,
-    );
+  const wantsPlan = body.createPlan === true || wantsStructuredPlan(lastText);
   const planMode = wantsPlan && catalog.length > 0 && !audio;
   const model = audio
     ? process.env.OPENROUTER_TRANSCRIPTION_MODEL || 'openai/whisper-large-v3'

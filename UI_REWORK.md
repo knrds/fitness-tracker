@@ -38,3 +38,13 @@ Semantic Glacier/Amber themes now cover controls, navigation, screens, charts, a
 | Profile/auth | Long undifferentiated settings and mixed form geometry | Grouped settings, appearance selection, bounded auth forms and safe-area spacing |
 
 Browser review covers all five main tabs at 390/1440, workout and summary at 320, expanded timer, active program/editor, and measurement modal. The last verified core check run passed 252 tests, typecheck and lint. Final detail QA and exports remain tracked separately until finished.
+
+## Final detail review
+
+The real Coach follow-up exposed a missing German `Wochenprogramm`/`Split` creation intent. The server now recognizes these requests and invokes its validated structured-plan path; a regression covers German/English program creation and excludes informational questions. Real provider results: one standalone workout saved one template and no program; the explicit two-week/two-day split saved two templates plus one program with four scheduled entries. No fake API response was used.
+
+At 320 px the template editor's native web-input minimum widths overflowed its card. Explicit shrink bounds, readable numeric fields and a separate full-width exercise title fix this. Exercise favorite presses no longer bubble into detail navigation. Body charts now respond to viewport changes and fit the narrow card. Achievements include completion dates and readable unearned repeatable states. Auth footers retain spacing when wrapping.
+
+Visual artifacts are in the task's `outputs/screenshots` directory. Synthetic chart sessions exist only in the isolated Playwright browser profile, not in source/default app data. Physical keyboard, touch performance, native screenreader and Dynamic Type verification remain device gates; iOS/Android Hermes exports are not device builds.
+
+Final checks: 57 domain + 182 mobile + 14 API tests passed; typecheck and lint passed; web, iOS and Android exports completed. The final 320 px editor/search smoke passed after correcting input shrink bounds. Reduced-motion auth/navigation review covered all five auth routes. No new dependencies were introduced by this UI pass.

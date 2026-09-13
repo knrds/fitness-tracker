@@ -2,6 +2,13 @@ const isRecord = (value) => value !== null && typeof value === 'object' && !Arra
 const text = (value, max) =>
   typeof value === 'string' && value.trim().length > 0 && value.length <= max;
 const integer = (value, min, max) => Number.isInteger(value) && value >= min && value <= max;
+function wantsStructuredPlan(value) {
+  if (typeof value !== 'string') return false;
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  return /(?:erstell|mach|bau|generier|anleg|create|build|design|generate).{0,160}(?:plan|programm?|split|workout|template)|(?:plan|programm?|split|workout|template).{0,100}(?:erstell|anleg|create|speicher|zusammenstell)/i.test(
+    normalized,
+  );
+}
 function validPlan(plan, catalog) {
   return (
     isRecord(plan) &&
@@ -97,6 +104,7 @@ function parsePlanReply(content, catalog) {
   }
 }
 module.exports = {
+  wantsStructuredPlan,
   validPlan,
   planInstruction:
     planInstruction +

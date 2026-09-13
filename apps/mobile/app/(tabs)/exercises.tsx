@@ -25,7 +25,6 @@ const MUSCLE_FILTERS = [
   { id: 'warmup', label: 'Warmup' },
   { id: 'warmup_cardio', label: 'Warmup Cardio' },
   { id: 'strength', label: 'Strength' },
-  { id: 'favorites', label: '★ Favorites' },
   { id: MuscleGroup.Chest, label: 'Chest' },
   { id: MuscleGroup.UpperBack, label: 'Back' }, // We'll map 'Back' to upper back for the filter
   { id: MuscleGroup.Quads, label: 'Legs' },
@@ -303,7 +302,7 @@ export default function ExercisesScreen({ embedded = false }: ExercisesScreenPro
                 key={opt.id}
                 style={[
                   styles.sortOption,
-                  sortBy === opt.id && { backgroundColor: 'rgba(144, 213, 255, 0.1)' },
+                  sortBy === opt.id && { backgroundColor: theme.colors.primarySubtle },
                 ]}
                 onPress={() => {
                   setSortBy(opt.id);

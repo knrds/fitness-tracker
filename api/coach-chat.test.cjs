@@ -33,6 +33,23 @@ const request = () => ({
   headers: { authorization: 'Bearer test-token' },
   body: { messages: [{ role: 'user', content: 'Review my training' }], context: {} },
 });
+test('recognizes German weekly programs and split creation as structured actions', () => {
+  const { wantsStructuredPlan } = require('./coach-plans.cjs');
+  for (const prompt of [
+    'Erstelle jetzt ausdrücklich ein Wochenprogramm über zwei Wochen: ein Oberkörper-Unterkörper-Split mit zwei Trainingstagen pro Woche.',
+    'Mach mir einen OK/UK Split',
+    'Bitte ein Programm erstellen',
+    'Build a weekly program',
+    'Erstelle\n\n  ein einzelnes Workout als Template',
+  ])
+    assert.equal(wantsStructuredPlan(prompt), true, prompt);
+  for (const prompt of [
+    'Was ist ein OK/UK Split?',
+    'Wie war mein letztes Workout?',
+    'Was ist meine beste Kniebeuge?',
+  ])
+    assert.equal(wantsStructuredPlan(prompt), false, prompt);
+});
 test('retries a token-limited response and never publishes a truncated answer', async () => {
   process.env.OPENROUTER_API_KEY = 'test-key';
   process.env.OPENROUTER_MODEL = 'test-model';

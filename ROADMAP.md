@@ -27,3 +27,6 @@ Weiterer Zwischenstand 12.09.: Workout-Vereinfachung, ruhiger Timer, Dezimaleing
 - [ ] Phase 10: Release-Gates, TestFlight und Android interne Tests.
 
 Stabiler Entwicklungszwischenstand: Phase 1 + 2a + 3a + Code/Hosttests von 3b sowie Phase 4a und 4b.1; 211 Tests. Nächste lokale Kernarbeit: Phase 4b.2 (granulare Übungs-/Vorlagen-Repositories). Geräte-/Account-Gates bleiben offen. Kein Hermes-Export wird als nativer Gerätebuild ausgegeben.
+# UI-Meilenstein 13.09.2026
+
+Der aktuelle vollständige UI-Pass ist in `UI_REWORK.md` und `IMPLEMENTATION_CHECKLIST.md` dokumentiert. Er umfasst beide Farbsysteme, gemeinsame Controls/Motion, alle Bildschirmfamilien sowie reale Coach-Template-/Programmtests. Die historische Rebuild-Roadmap unten enthält weiterhin Geräte-/Cloud-Gates und spätere Datenarchitekturarbeit; der UI-Pass ist keine Releasefreigabe.

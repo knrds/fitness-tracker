@@ -18,6 +18,8 @@ export const ExerciseRow = ({ exercise, isFavorite, onToggleFavorite }: Props) =
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={exercise.name}
       style={styles.container}
       onPress={() => router.push(`/exercise/${exercise.id}` as Href)}
     >
@@ -32,20 +34,25 @@ export const ExerciseRow = ({ exercise, isFavorite, onToggleFavorite }: Props) =
       <View style={styles.infoContainer}>
         <Text
           style={[styles.title, { color: theme.colors.text, ...theme.typography.body }]}
-          numberOfLines={1}
+          numberOfLines={2}
         >
           {exercise.name}
         </Text>
         <View style={styles.badges}>
           {exercise.primaryMuscles.slice(0, 2).map((m) => (
-            <Badge key={m} label={m.replace('_', ' ')} style={{ marginRight: 4, height: 20 }} />
+            <Badge key={m} label={m.replace('_', ' ')} style={{ marginRight: 4 }} />
           ))}
         </View>
       </View>
 
       {onToggleFavorite && (
         <Pressable
-          onPress={() => onToggleFavorite(exercise.id)}
+          accessibilityRole="button"
+          accessibilityLabel={`${exercise.name} ${isFavorite ? 'aus Favoriten entfernen' : 'zu Favoriten hinzufügen'}`}
+          onPress={(event) => {
+            event.stopPropagation();
+            onToggleFavorite(exercise.id);
+          }}
           hitSlop={10}
           style={styles.favoriteBtn}
         >
@@ -62,7 +69,8 @@ export const ExerciseRow = ({ exercise, isFavorite, onToggleFavorite }: Props) =
 
 const styles = StyleSheet.create({
   container: {
-    height: 72,
+    minHeight: 72,
+    paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
@@ -82,6 +90,7 @@ const styles = StyleSheet.create({
   },
   infoContainer: {
     flex: 1,
+    minWidth: 0,
     justifyContent: 'center',
   },
   title: {
@@ -89,8 +98,14 @@ const styles = StyleSheet.create({
   },
   badges: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
   },
   favoriteBtn: {
+    minHeight: 44,
+    minWidth: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 8,
   },
 });

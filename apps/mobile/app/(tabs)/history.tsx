@@ -1054,14 +1054,17 @@ function ProgressView() {
           styles.chartContainer,
           {
             backgroundColor: theme.colors.surface,
-            borderColor: theme.colors.muted,
+            borderColor: theme.colors.border,
             opacity: chartFadeAnim,
             transform: [{ translateY: chartSlideAnim }],
           },
         ]}
       >
         <Text
-          style={[styles.chartTitle, { color: theme.colors.text, ...theme.typography.heading }]}
+          style={[
+            styles.chartTitle,
+            { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
+          ]}
         >
           Max Weight History · letzte 24 Trainings
         </Text>
@@ -1453,7 +1456,7 @@ function AchievementsView() {
             key={ach.id}
             style={[
               styles.achCard,
-              earned ? { borderColor: theme.colors.warning, borderWidth: 1 } : { opacity: 0.6 },
+              earned && { borderColor: theme.colors.warning, borderWidth: 1 },
             ]}
             padding="md"
           >
@@ -1541,6 +1544,14 @@ function AchievementsView() {
                     </Text>
                     <Text style={{ color: theme.colors.primary, fontSize: 12 }}>✓ Absolviert</Text>
                   </View>
+                  <Text
+                    style={[
+                      theme.typography.caption,
+                      { color: theme.colors.muted, marginBottom: 6 },
+                    ]}
+                  >
+                    {new Date(unlockedAchievements[ach.id]!).toLocaleDateString()}
+                  </Text>
                   <Text
                     style={[
                       styles.achDesc,

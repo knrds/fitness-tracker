@@ -196,8 +196,24 @@ export default function WorkoutTemplateBuilderScreen() {
               style={[sorter.getRowStyle(te.id)]}
             >
               <Card padding="md" style={styles.exerciseCard}>
+                <Text
+                  style={[
+                    styles.exName,
+                    { color: theme.colors.text, ...theme.typography.heading, fontSize: 18 },
+                  ]}
+                >
+                  {index + 1}. {ex?.name || 'Unknown'}
+                </Text>
                 <View style={styles.exHeader}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 8,
+                      flex: 1,
+                      minWidth: 0,
+                    }}
+                  >
                     <View
                       style={[
                         styles.dragHandle,
@@ -251,16 +267,19 @@ export default function WorkoutTemplateBuilderScreen() {
                         <Ionicons name="chevron-down" size={20} color={theme.colors.primary} />
                       </Pressable>
                     )}
-                    <Text
-                      style={[
-                        styles.exName,
-                        { color: theme.colors.text, ...theme.typography.heading, fontSize: 18 },
-                      ]}
-                    >
-                      {index + 1}. {ex?.name || 'Unknown'}
-                    </Text>
                   </View>
-                  <Pressable onPress={() => removeExercise(te.id)} hitSlop={10}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${ex?.name || 'Übung'} entfernen`}
+                    style={{
+                      minWidth: 44,
+                      minHeight: 44,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    onPress={() => removeExercise(te.id)}
+                    hitSlop={10}
+                  >
                     <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
                   </Pressable>
                 </View>
@@ -329,9 +348,10 @@ export default function WorkoutTemplateBuilderScreen() {
                                   borderColor: 'transparent',
                                 },
                               ]}
+                              accessibilityLabel={`${ex?.name} Zielgewicht Satz ${setNum}`}
                               value={te.targetWeight ? te.targetWeight.toString() : ''}
                               onChangeText={(t) => {
-                                let val = parseFloat(t) || 0;
+                                let val = parseFloat(t.replace(',', '.')) || 0;
                                 if (val > 9999) val = 9999;
                                 updateTemplateExercise(te.id, { targetWeight: val });
                               }}
@@ -354,6 +374,7 @@ export default function WorkoutTemplateBuilderScreen() {
                                   borderColor: 'transparent',
                                 },
                               ]}
+                              accessibilityLabel={`${ex?.name} Wiederholungen Satz ${setNum}`}
                               value={te.targetReps ? te.targetReps.toString() : ''}
                               onChangeText={(t) => {
                                 let val = parseInt(t, 10) || 0;
@@ -379,9 +400,10 @@ export default function WorkoutTemplateBuilderScreen() {
                                   borderColor: 'transparent',
                                 },
                               ]}
+                              accessibilityLabel={`${ex?.name} RPE Satz ${setNum}`}
                               value={te.targetRpe ? te.targetRpe.toString() : ''}
                               onChangeText={(t) => {
-                                let val = parseFloat(t) || 0;
+                                let val = parseFloat(t.replace(',', '.')) || 0;
                                 if (val > 10) val = 10;
                                 updateTemplateExercise(te.id, { targetRpe: val });
                               }}
@@ -530,7 +552,7 @@ const createStyles = (theme: Theme) =>
       marginBottom: 16,
       alignItems: 'center',
     },
-    exName: { fontSize: 16, fontFamily: 'SpaceGrotesk_700Bold' },
+    exName: { minWidth: 0, marginBottom: 8, fontSize: 16, fontFamily: 'SpaceGrotesk_700Bold' },
 
     tableHeaderRow: {
       flexDirection: 'row',
@@ -549,11 +571,11 @@ const createStyles = (theme: Theme) =>
       fontFamily: 'SpaceGrotesk_700Bold',
       fontSize: 15,
     },
-    inputCol: { flex: 1, textAlign: 'center' },
+    inputCol: { flex: 1, minWidth: 0, textAlign: 'center' },
     actionColHeader: { width: 34, marginLeft: 4 },
     deleteSetBtn: {
       width: 34,
-      height: 42,
+      minHeight: 44,
       borderRadius: 8,
       borderWidth: 1,
       justifyContent: 'center',
@@ -574,15 +596,16 @@ const createStyles = (theme: Theme) =>
     },
     inputField: {
       borderRadius: 8,
-      marginHorizontal: 4,
+      marginHorizontal: 2,
       paddingVertical: 10,
-      paddingHorizontal: 8,
+      paddingHorizontal: 4,
       fontSize: 16,
       textAlign: 'center',
       fontWeight: '500',
       borderWidth: 1,
       borderColor: 'transparent',
-      height: 42,
+      minHeight: 44,
+      minWidth: 0,
     },
     addSetRow: {
       flexDirection: 'row',

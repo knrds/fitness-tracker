@@ -24,9 +24,9 @@ export function AppearanceSettings() {
               onPress={() => setProfile({ colorway: option.id })}
               style={({ pressed }) => ({
                 flex: 1,
-                minWidth: 125,
-                padding: 16,
-                gap: 12,
+                minWidth: 145,
+                padding: 14,
+                gap: 10,
                 borderWidth: 1,
                 borderRadius: theme.radius.md,
                 backgroundColor: theme.colors.surface,
@@ -36,20 +36,22 @@ export function AppearanceSettings() {
             >
               <View
                 style={{
-                  height: 38,
+                  height: 36,
                   borderRadius: 6,
                   backgroundColor: preview.colors.background,
                   flexDirection: 'row',
-                  gap: 5,
+                  gap: 6,
                   alignItems: 'center',
                   paddingHorizontal: 10,
+                  borderWidth: 1,
+                  borderColor: preview.colors.border,
                 }}
               >
                 {[preview.colors.primary, preview.colors.secondary, preview.colors.tertiary].map(
-                  (color) => (
+                  (color, idx) => (
                     <View
-                      key={color}
-                      style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: color }}
+                      key={idx}
+                      style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: color }}
                     />
                   ),
                 )}
@@ -61,9 +63,22 @@ export function AppearanceSettings() {
                   alignItems: 'center',
                 }}
               >
-                <Text style={[theme.typography.button, { color: theme.colors.text }]}>
-                  {option.name}
-                </Text>
+                <View style={{ flex: 1, marginRight: 6 }}>
+                  <Text
+                    style={[
+                      theme.typography.button,
+                      { color: theme.colors.text, fontSize: 14 },
+                    ]}
+                  >
+                    {option.name}
+                  </Text>
+                  <Text
+                    style={{ fontSize: 10, color: theme.colors.muted, marginTop: 2 }}
+                    numberOfLines={1}
+                  >
+                    {option.description}
+                  </Text>
+                </View>
                 <Ionicons
                   name={selected ? 'checkmark-circle' : 'ellipse-outline'}
                   color={selected ? theme.colors.primary : theme.colors.muted}

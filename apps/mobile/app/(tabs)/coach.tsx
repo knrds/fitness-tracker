@@ -24,7 +24,7 @@ import { CoachPlanCard } from '../../src/components/CoachPlanCard';
 import { CoachSources } from '../../src/components/CoachSources';
 import { useCoachRecorder } from '../../src/hooks/useCoachRecorder';
 import { getStorageScope, isScopeCurrent } from '../../src/data/storageScope';
-import { useFocusScroll } from '../../src/hooks/useFocusScroll';
+import { useFocusEffect } from 'expo-router';
 
 const SUGGESTIONS = [
   'Review recent progress',
@@ -69,7 +69,16 @@ export default function CoachScreen() {
     }
   };
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
-  useFocusScroll(flatListRef);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (messages.length === 0) return undefined;
+      const frame = requestAnimationFrame(() => {
+        flatListRef.current?.scrollToEnd({ animated: false });
+      });
+      return () => cancelAnimationFrame(frame);
+    }, [messages.length]),
+  );
 
   useEffect(() => {
     if (messages.length === 0) return undefined;

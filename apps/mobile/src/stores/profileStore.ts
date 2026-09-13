@@ -27,6 +27,7 @@ import { useHydrationStore } from './hydrationStore';
 import { createHydratedStorage, clearStorageBackups } from './storage';
 import { useCoachStore } from './coachStore';
 import { useSyncStore } from './syncStore';
+import { Colorway } from '@fitness-tracker/ui';
 import { runStorageTransaction } from '../data/storageTransaction';
 import { workoutPersistedSchema } from '../data/persistedContracts';
 
@@ -40,7 +41,7 @@ function snapshotStore<T extends object>(store: {
 
 export interface Profile {
   displayName: string;
-  colorway?: 'glacier' | 'amber';
+  colorway?: Colorway;
   fitnessGoal?: FitnessGoal;
   experienceLevel?: ExperienceLevel;
   preferredUnits: UnitSystem;
@@ -91,7 +92,9 @@ const defaultProfile: Profile = {
 
 const profileStateSchema = z.object({
   displayName: z.string(),
-  colorway: z.enum(['glacier', 'amber']).optional(),
+  colorway: z
+    .enum(['glacier', 'amber', 'arctic', 'avionics', 'telemetry', 'titanium', 'ember', 'verde'])
+    .optional(),
   fitnessGoal: FitnessGoalSchema.optional(),
   experienceLevel: ExperienceLevelSchema.optional(),
   preferredUnits: UnitSystemSchema,

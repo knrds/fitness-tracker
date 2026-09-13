@@ -1,4 +1,4 @@
-import { Theme, useThemeStyles } from '@fitness-tracker/ui';
+import { Theme, useThemeStyles, useTheme, withAlpha } from '@fitness-tracker/ui';
 import { KeyboardDoneAccessory } from '../../src/components/workout/KeyboardDoneAccessory';
 import { templateExercisesFromSession } from '@fitness-tracker/domain';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
@@ -29,7 +29,6 @@ import {
   ProgramWorkout,
   Program,
 } from '@fitness-tracker/domain';
-import { useTheme } from '@fitness-tracker/ui';
 
 export default function ProgramBuilderScreen() {
   const router = useRouter();
@@ -280,8 +279,8 @@ export default function ProgramBuilderScreen() {
   };
 
   const getDayName = (day: number) => {
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    return days[day - 1];
+    const days = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+    return days[day - 1] ?? `Tag ${day}`;
   };
 
   const removeWorkout = (workoutId: string) => {
@@ -296,10 +295,19 @@ export default function ProgramBuilderScreen() {
         options={{
           title: 'Programm bearbeiten',
           headerShown: true,
+          headerTitleAlign: 'center',
+          headerStyle: { backgroundColor: theme.colors.background },
+          headerShadowVisible: false,
+          headerTitleStyle: {
+            fontFamily: 'SpaceGrotesk_700Bold',
+            fontSize: 16,
+            color: theme.colors.text,
+          },
           headerLeft: () => (
             <Pressable
               accessibilityRole="button"
               onPress={handleCancel}
+              hitSlop={8}
               style={{
                 paddingHorizontal: 12,
                 paddingVertical: 6,
@@ -327,6 +335,7 @@ export default function ProgramBuilderScreen() {
             <Pressable
               accessibilityRole="button"
               onPress={handleSave}
+              hitSlop={8}
               style={{
                 paddingHorizontal: 14,
                 paddingVertical: 6,
@@ -414,7 +423,7 @@ export default function ProgramBuilderScreen() {
         <Text style={styles.sectionTitle}>Weekly Schedule</Text>
 
         {/* Week Selector Tabs */}
-        <View style={{ flexDirection: 'row', gap: 12, marginVertical: 12, flexWrap: 'wrap' }}>
+        <View style={{ flexDirection: 'row', gap: 10, marginVertical: 12, flexWrap: 'wrap' }}>
           <Pressable
             accessibilityRole="button"
             disabled={activeProgram.durationWeeks >= 104}
@@ -425,13 +434,28 @@ export default function ProgramBuilderScreen() {
               setSelectedWeek(next);
             }}
             style={{
-              minHeight: 44,
-              padding: 12,
-              borderRadius: 12,
-              backgroundColor: theme.colors.surface,
+              minHeight: 38,
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 10,
+              backgroundColor: theme.colors.surfaceElevated,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
             }}
           >
-            <Text style={{ color: theme.colors.primary }}>+ Leere Woche</Text>
+            <Ionicons name="add" size={16} color={theme.colors.primary} />
+            <Text
+              style={{
+                color: theme.colors.text,
+                fontFamily: 'SpaceGrotesk_600SemiBold',
+                fontSize: 13,
+              }}
+            >
+              Leere Woche
+            </Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
@@ -450,17 +474,32 @@ export default function ProgramBuilderScreen() {
               setSelectedWeek(next);
             }}
             style={{
-              minHeight: 44,
-              padding: 12,
-              borderRadius: 12,
-              backgroundColor: theme.colors.surface,
+              minHeight: 38,
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 10,
+              backgroundColor: theme.colors.surfaceElevated,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
             }}
           >
-            <Text style={{ color: theme.colors.primary }}>Woche {selectedWeek} duplizieren</Text>
+            <Ionicons name="copy-outline" size={14} color={theme.colors.primary} />
+            <Text
+              style={{
+                color: theme.colors.text,
+                fontFamily: 'SpaceGrotesk_600SemiBold',
+                fontSize: 13,
+              }}
+            >
+              Woche {selectedWeek} duplizieren
+            </Text>
           </Pressable>
         </View>
-        <Text style={{ color: theme.colors.muted, fontSize: 12, marginBottom: 8 }}>
-          Neue Wochen werden angehängt. Änderungen werden mit Save gespeichert.
+        <Text style={{ color: theme.colors.muted, fontSize: 11, marginBottom: 8 }}>
+          Neue Wochen werden angehängt. Änderungen werden mit Speichern gesichert.
         </Text>
         <ScrollView
           ref={weekTabsRef}
@@ -481,9 +520,9 @@ export default function ProgramBuilderScreen() {
                 accessibilityState={{ selected: isSelected }}
                 style={[
                   styles.weekTab,
-                  isSelected && {
-                    backgroundColor: theme.colors.primary,
-                    borderColor: theme.colors.primary,
+                  {
+                    backgroundColor: isSelected ? theme.colors.primary : theme.colors.surface,
+                    borderColor: isSelected ? theme.colors.primary : theme.colors.border,
                   },
                 ]}
                 onPress={() => setSelectedWeek(w)}
@@ -491,13 +530,13 @@ export default function ProgramBuilderScreen() {
                 <Text
                   style={[
                     styles.weekTabText,
-                    isSelected && {
-                      color: theme.colors.background,
-                      fontFamily: 'SpaceGrotesk_700Bold',
+                    {
+                      color: isSelected ? theme.colors.background : theme.colors.muted,
+                      fontFamily: isSelected ? 'SpaceGrotesk_700Bold' : 'SpaceGrotesk_600SemiBold',
                     },
                   ]}
                 >
-                  Week {w}
+                  Woche {w}
                 </Text>
               </Pressable>
             );
@@ -532,10 +571,37 @@ export default function ProgramBuilderScreen() {
                 }
               }}
             >
-              <Text style={styles.dayName}>{getDayName(day)}</Text>
+              <View style={styles.dayHeaderRow}>
+                <Text style={styles.dayName}>{getDayName(day)}</Text>
+                <View
+                  style={[
+                    styles.dayStatusBadge,
+                    {
+                      backgroundColor:
+                        dayWorkouts.length > 0
+                          ? withAlpha(theme.colors.primary, 0.12)
+                          : theme.colors.surfaceElevated,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.dayStatusText,
+                      {
+                        color: dayWorkouts.length > 0 ? theme.colors.primary : theme.colors.muted,
+                      },
+                    ]}
+                  >
+                    {dayWorkouts.length > 0
+                      ? `${dayWorkouts.length} ${dayWorkouts.length === 1 ? 'Workout' : 'Workouts'}`
+                      : 'Ruhetag'}
+                  </Text>
+                </View>
+              </View>
 
               {dayWorkouts.map((w: ProgramWorkout) => {
                 const template = templates.find((t) => t.id === w.templateId);
+                const exerciseCount = template?.exercises.length ?? 0;
 
                 return (
                   <Animated.View
@@ -558,60 +624,110 @@ export default function ProgramBuilderScreen() {
                       sorter.getRowStyle(w.id),
                     ]}
                   >
-                    <View
-                      style={[
-                        styles.dragHandle,
-                        sorter.handleStyle,
-                        {
-                          minWidth: 44,
-                          minHeight: 44,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        },
-                      ]}
-                      {...sorter.getHandleProps(w.id)}
-                    >
-                      <Ionicons name="reorder-two" size={24} color={theme.colors.primary} />
-                    </View>
-                    <Text
-                      style={[
-                        styles.workoutName,
-                        { color: theme.colors.text, flex: 1, marginLeft: 8 },
-                      ]}
-                    >
-                      {template?.name || 'Unknown Template'}
-                    </Text>
-                    <View style={styles.workoutActions}>
-                      <Pressable
-                        style={styles.workoutAction}
-                        onPress={() => handleStartTemplate(template, activeProgram.id)}
-                        hitSlop={8}
+                    <View style={styles.workoutTopRow}>
+                      <View
+                        style={[
+                          styles.dragHandle,
+                          sorter.handleStyle,
+                          {
+                            minWidth: 32,
+                            minHeight: 36,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          },
+                        ]}
+                        {...sorter.getHandleProps(w.id)}
                       >
-                        <Text style={[styles.startText, { color: theme.colors.primary }]}>
+                        <Ionicons name="reorder-two" size={22} color={theme.colors.muted} />
+                      </View>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text
+                          numberOfLines={1}
+                          style={[styles.workoutName, { color: theme.colors.text }]}
+                        >
+                          {template?.name || 'Unbekanntes Workout'}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: theme.colors.muted, marginTop: 1 }}>
+                          {exerciseCount} {exerciseCount === 1 ? 'Übung' : 'Übungen'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.workoutActionsRow}>
+                      <Pressable
+                        style={[
+                          styles.actionPill,
+                          {
+                            backgroundColor: theme.colors.primarySubtle,
+                            borderColor: theme.colors.primary,
+                          },
+                        ]}
+                        onPress={() => handleStartTemplate(template, activeProgram.id)}
+                        hitSlop={6}
+                      >
+                        <Ionicons name="play" size={12} color={theme.colors.primary} />
+                        <Text
+                          style={[
+                            styles.actionPillText,
+                            {
+                              color: theme.colors.primary,
+                              fontFamily: 'SpaceGrotesk_700Bold',
+                            },
+                          ]}
+                        >
                           Start
                         </Text>
                       </Pressable>
+
                       <Pressable
-                        style={styles.workoutAction}
+                        style={[
+                          styles.actionPill,
+                          {
+                            backgroundColor: theme.colors.surfaceElevated,
+                            borderColor: theme.colors.border,
+                          },
+                        ]}
                         onPress={() =>
                           router.push(
                             `/programs/template-builder?programId=${activeProgram.id}&templateId=${template?.id}&dayOfWeek=${day}&week=${selectedWeek}`,
                           )
                         }
-                        hitSlop={8}
+                        hitSlop={6}
                       >
-                        <Text style={[styles.editText, { color: theme.colors.text }]}>Edit</Text>
-                      </Pressable>
-                      <Pressable
-                        style={styles.workoutAction}
-                        onPress={() => setRescheduleWorkout(w)}
-                      >
-                        <Text style={[styles.editText, { color: theme.colors.primary }]}>Move</Text>
-                      </Pressable>
-                      <Pressable style={styles.workoutAction} onPress={() => removeWorkout(w.id)}>
-                        <Text style={[styles.removeText, { color: theme.colors.accent }]}>
-                          Remove
+                        <Ionicons name="create-outline" size={13} color={theme.colors.text} />
+                        <Text style={[styles.actionPillText, { color: theme.colors.text }]}>
+                          Bearbeiten
                         </Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={[
+                          styles.actionPill,
+                          {
+                            backgroundColor: theme.colors.surfaceElevated,
+                            borderColor: theme.colors.border,
+                          },
+                        ]}
+                        onPress={() => setRescheduleWorkout(w)}
+                        hitSlop={6}
+                      >
+                        <Ionicons
+                          name="swap-horizontal-outline"
+                          size={13}
+                          color={theme.colors.muted}
+                        />
+                        <Text style={[styles.actionPillText, { color: theme.colors.muted }]}>
+                          Verschieben
+                        </Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={styles.deletePill}
+                        onPress={() => removeWorkout(w.id)}
+                        hitSlop={6}
+                        accessibilityLabel="Workout entfernen"
+                      >
+                        <Ionicons name="trash-outline" size={14} color={theme.colors.error} />
                       </Pressable>
                     </View>
                   </Animated.View>
@@ -619,13 +735,29 @@ export default function ProgramBuilderScreen() {
               })}
 
               <Pressable
-                style={styles.addWorkoutBtn}
+                style={[
+                  styles.addWorkoutBtn,
+                  {
+                    backgroundColor:
+                      dayWorkouts.length === 0 ? theme.colors.surfaceElevated : 'transparent',
+                    borderColor: theme.colors.border,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                  },
+                ]}
                 onPress={() => {
                   setActiveDay(day);
                   setModalMode('options');
                 }}
               >
-                <Text style={styles.addWorkoutText}>+ Add Workout</Text>
+                <Ionicons name="add" size={16} color={theme.colors.primary} />
+                <Text style={[styles.addWorkoutText, { color: theme.colors.text }]}>
+                  {dayWorkouts.length === 0
+                    ? 'Workout hinzufügen'
+                    : 'Weiteres Workout hinzufügen'}
+                </Text>
               </Pressable>
             </View>
           );
@@ -998,42 +1130,77 @@ const createStyles = (theme: Theme) =>
       borderColor: theme.colors.border,
       overflow: 'visible',
     },
+    dayHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
     dayName: {
       fontSize: 16,
       fontFamily: 'SpaceGrotesk_700Bold',
       color: theme.colors.text,
-      marginBottom: 8,
+    },
+    dayStatusBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+    },
+    dayStatusText: {
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      fontSize: 11,
+      letterSpacing: 0.3,
     },
     workoutRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-      alignItems: 'center',
       backgroundColor: theme.colors.background,
       padding: 12,
-      borderRadius: 8,
+      borderRadius: 10,
       marginBottom: 8,
       borderWidth: 1,
       borderColor: theme.colors.border,
+      gap: 10,
     },
-    workoutName: { fontSize: 16, fontFamily: 'SpaceGrotesk_600SemiBold', color: theme.colors.text },
-    workoutActions: {
+    workoutTopRow: {
       flexDirection: 'row',
-      width: '100%',
-      justifyContent: 'space-between',
-      marginTop: 8,
-      gap: 4,
+      alignItems: 'center',
+      gap: 8,
     },
-    workoutAction: {
-      minHeight: 44,
-      minWidth: 44,
+    workoutName: {
+      fontSize: 15,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      color: theme.colors.text,
+    },
+    workoutActionsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      flexWrap: 'wrap',
+    },
+    actionPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 8,
+      borderWidth: 1,
+      minHeight: 32,
+    },
+    actionPillText: {
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      fontSize: 12,
+    },
+    deletePill: {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      backgroundColor: withAlpha(theme.colors.error, 0.1),
+      borderWidth: 1,
+      borderColor: withAlpha(theme.colors.error, 0.25),
       alignItems: 'center',
       justifyContent: 'center',
-      paddingHorizontal: 4,
+      marginLeft: 'auto',
     },
-    editText: { color: theme.colors.primary, fontFamily: 'SpaceGrotesk_700Bold' },
-    removeText: { color: theme.colors.error, fontFamily: 'SpaceGrotesk_700Bold' },
-    startText: { color: theme.colors.primary, fontFamily: 'SpaceGrotesk_700Bold' },
     dragHandle: {
       paddingHorizontal: 4,
       paddingVertical: 4,
@@ -1042,16 +1209,18 @@ const createStyles = (theme: Theme) =>
       marginRight: 4,
     },
     addWorkoutBtn: {
-      minHeight: 44,
-      padding: 12,
+      minHeight: 40,
+      padding: 10,
       alignItems: 'center',
       borderRadius: 8,
       borderWidth: 1,
       borderColor: theme.colors.border,
-      borderStyle: 'dashed',
       marginTop: 4,
     },
-    addWorkoutText: { color: theme.colors.muted, fontFamily: 'SpaceGrotesk_700Bold' },
+    addWorkoutText: {
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      fontSize: 13,
+    },
 
     modalOverlay: {
       flex: 1,

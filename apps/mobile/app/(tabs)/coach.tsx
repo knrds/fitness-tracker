@@ -115,7 +115,7 @@ export default function CoachScreen() {
           {
             backgroundColor: theme.colors.background,
             paddingTop: Math.max(insets.top, 16),
-            paddingBottom: hasWorkoutBar ? 80 : 0,
+            paddingBottom: hasWorkoutBar ? 80 : 12,
             maxWidth: 800,
             width: '100%',
             alignSelf: 'center',

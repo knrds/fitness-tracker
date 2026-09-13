@@ -58,34 +58,34 @@ export function SiriWaveform({ active, width = 300, height = 90 }: SiriWaveformP
 
       ctx.clearRect(0, 0, w, h);
 
-      // 3 overlapping harmonic waves with spectral chromatic offsets, subtle amplitudes
+      // 3 overlapping harmonic waves with spectral chromatic offsets, soft amplitudes
       const waves = [
         {
           color: theme.colors.primary,
-          alpha: 0.75,
-          freq: 0.022,
-          speed: 1.6,
-          amp: mid * 0.35,
+          alpha: 0.8,
+          freq: 0.024,
+          speed: 1.5,
+          amp: mid * 0.4,
           phaseOffset: 0,
-          lineWidth: 2,
+          lineWidth: 1.5,
         },
         {
           color: theme.colors.secondary || '#38BDF8',
-          alpha: 0.6,
-          freq: 0.028,
-          speed: -1.9,
-          amp: mid * 0.28,
+          alpha: 0.65,
+          freq: 0.03,
+          speed: -1.7,
+          amp: mid * 0.32,
           phaseOffset: 1.2,
-          lineWidth: 1.6,
+          lineWidth: 1.2,
         },
         {
           color: '#C084FC',
-          alpha: 0.45,
-          freq: 0.018,
-          speed: 1.3,
-          amp: mid * 0.22,
+          alpha: 0.5,
+          freq: 0.02,
+          speed: 1.2,
+          amp: mid * 0.25,
           phaseOffset: 2.5,
-          lineWidth: 1.4,
+          lineWidth: 1.0,
         },
       ];
 
@@ -103,7 +103,7 @@ export function SiriWaveform({ active, width = 300, height = 90 }: SiriWaveformP
         ctx.lineWidth = wave.lineWidth;
         ctx.lineCap = 'round';
         ctx.shadowColor = wave.color;
-        ctx.shadowBlur = 4;
+        ctx.shadowBlur = 2;
 
         for (let x = 0; x <= w; x += 3) {
           // Bell curve envelope: 0 at edges, 1 at center
@@ -199,17 +199,17 @@ export function SiriWaveform({ active, width = 300, height = 90 }: SiriWaveformP
           </LinearGradient>
         </Defs>
         <Path
-          d={generatePath(2.2, 1.6, mid * 0.35, 0)}
+          d={generatePath(2.2, 1.6, mid * 0.4, 0)}
           fill="none"
           stroke="url(#waveGradPrimary)"
-          strokeWidth={2}
+          strokeWidth={1.5}
           strokeLinecap="round"
         />
         <Path
-          d={generatePath(2.8, -1.8, mid * 0.28, 1.5)}
+          d={generatePath(2.8, -1.8, mid * 0.32, 1.5)}
           fill="none"
           stroke="url(#waveGradSecondary)"
-          strokeWidth={1.6}
+          strokeWidth={1.2}
           strokeLinecap="round"
         />
       </Svg>

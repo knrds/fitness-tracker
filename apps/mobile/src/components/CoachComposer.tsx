@@ -89,69 +89,58 @@ export function CoachComposer(props: Props) {
         ]}
       >
         {props.recording ? (
-          <View style={styles.recordingOverlay}>
-            <View style={styles.recordingHeader}>
-              <View style={styles.recordingLiveIndicator}>
-                <View style={[styles.redDot, { backgroundColor: theme.colors.error }]} />
-                <Text style={[styles.recordingTimer, { color: theme.colors.text }]}>
-                  {String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:
-                  {String(recordingSeconds % 60).padStart(2, '0')}
-                </Text>
-              </View>
-              <Text style={[styles.recordingStatusText, { color: theme.colors.primary }]}>
-                Zuhören…
+          <View style={styles.recordingPillRow}>
+            <View style={styles.recordingLiveIndicator}>
+              <View style={[styles.redDot, { backgroundColor: theme.colors.error }]} />
+              <Text style={[styles.recordingTimer, { color: theme.colors.text }]}>
+                {String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:
+                {String(recordingSeconds % 60).padStart(2, '0')}
               </Text>
             </View>
 
-            <View style={styles.waveContainer}>
+            <View style={styles.compactWaveContainer}>
               <SiriWaveform
                 active={props.recording}
-                width={Platform.OS === 'web' ? 340 : 270}
-                height={64}
+                width={Platform.OS === 'web' ? 180 : 130}
+                height={28}
               />
             </View>
 
-            <View style={styles.recordingActions}>
+            <View style={styles.recordingActionButtons}>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Aufnahme abbrechen"
                 onPress={props.onCancelRecording}
+                hitSlop={6}
                 style={[
-                  styles.recordCancelBtn,
+                  styles.circleIconBtn,
                   {
                     backgroundColor: theme.colors.surfaceElevated,
                     borderColor: theme.colors.border,
+                    borderWidth: 1,
                   },
                 ]}
               >
                 <Ionicons name="close" size={16} color={theme.colors.muted} />
-                <Text
-                  style={{
-                    color: theme.colors.muted,
-                    fontFamily: 'SpaceGrotesk_600SemiBold',
-                    fontSize: 13,
-                  }}
-                >
-                  Abbrechen
-                </Text>
               </Pressable>
 
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Aufnahme beenden und transkribieren"
                 onPress={props.onToggleRecording}
-                style={[styles.recordFinishBtn, { backgroundColor: theme.colors.primary }]}
+                hitSlop={6}
+                style={[
+                  styles.circleActionBtn,
+                  {
+                    backgroundColor: theme.colors.primary,
+                  },
+                ]}
               >
-                <Ionicons name="checkmark" size={16} color={theme.colors.background} />
-                <Text
-                  style={{
-                    color: theme.colors.background,
-                    fontFamily: 'SpaceGrotesk_700Bold',
-                    fontSize: 13,
-                  }}
-                >
-                  Fertig
-                </Text>
+                <Ionicons
+                  name="checkmark"
+                  size={18}
+                  color={theme.colors.onPrimary || theme.colors.background}
+                />
               </Pressable>
             </View>
           </View>
@@ -583,16 +572,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 12,
   },
-  recordingOverlay: {
-    padding: 12,
-    gap: 10,
-    alignItems: 'center',
-  },
-  recordingHeader: {
+  recordingPillRow: {
     flexDirection: 'row',
-    width: '100%',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 52,
+    paddingHorizontal: 14,
+    gap: 8,
   },
   recordingLiveIndicator: {
     flexDirection: 'row',
@@ -600,51 +586,25 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   redDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
   recordingTimer: {
     fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 14,
+    fontSize: 13,
     fontVariant: ['tabular-nums'],
   },
-  recordingStatusText: {
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 12,
-    letterSpacing: 0.5,
-  },
-  waveContainer: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 2,
-  },
-  recordingActions: {
-    flexDirection: 'row',
-    width: '100%',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 2,
-  },
-  recordCancelBtn: {
+  compactWaveContainer: {
     flex: 1,
-    height: 38,
-    borderRadius: 10,
-    borderWidth: 1,
-    flexDirection: 'row',
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    overflow: 'hidden',
   },
-  recordFinishBtn: {
-    flex: 1,
-    height: 38,
-    borderRadius: 10,
+  recordingActionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 6,
   },
 });

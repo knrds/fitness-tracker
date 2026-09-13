@@ -1,4 +1,4 @@
-import { Theme, useThemeStyles, useTheme } from '@fitness-tracker/ui';
+import { Theme, useThemeStyles, useTheme, withAlpha } from '@fitness-tracker/ui';
 import { parseDecimalInput } from '../src/utils/decimalInput';
 import { LevelProgress } from '../src/components/LevelProgress';
 import { AppearanceSettings } from '../src/components/AppearanceSettings';
@@ -6,6 +6,17 @@ import { useAchievementStore } from '../src/stores/achievementStore';
 import { getStorageScope, isScopeCurrent } from '../src/data/storageScope';
 import { scopedAlert as Alert } from '../src/utils/scopedAlert';
 import React, { useState } from 'react';
+
+const GOAL_OPTIONS: {
+  id: FitnessGoal;
+  label: string;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+}[] = [
+  { id: 'build_muscle', label: 'Build Muscle', icon: 'barbell-outline' },
+  { id: 'gain_strength', label: 'Gain Strength', icon: 'flash-outline' },
+  { id: 'lose_fat', label: 'Lose Fat', icon: 'flame-outline' },
+  { id: 'general_fitness', label: 'General Fitness', icon: 'heart-outline' },
+];
 import {
   View,
   Text,
@@ -258,12 +269,6 @@ export default function ProfileScreen() {
     }
   };
 
-  const formatGoal = (g: FitnessGoal) => {
-    return g
-      .split('_')
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(' ');
-  };
 
   const handlePickImage = async () => {
     const scope = getStorageScope();
@@ -357,39 +362,48 @@ export default function ProfileScreen() {
             <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>TRAINING &amp; PHYSIQUE</Text>
           </View>
           <Text style={styles.inputLabel}>Training Goal</Text>
-          <View style={styles.chipRow}>
-            {(
-              ['build_muscle', 'gain_strength', 'lose_fat', 'general_fitness'] as FitnessGoal[]
-            ).map((g) => (
-              <Pressable
-                key={g}
-                style={[styles.chip, goal === g && styles.chipActive]}
-                onPress={() => setGoal(goal === g ? '' : g)}
-              >
-                <Text style={[styles.chipText, goal === g && styles.chipTextActive]}>
-                  {formatGoal(g)}
-                </Text>
-              </Pressable>
-            ))}
+          <View style={styles.goalsGrid}>
+            {GOAL_OPTIONS.map((g) => {
+              const isSelected = goal === g.id;
+              return (
+                <Pressable
+                  key={g.id}
+                  style={[styles.goalCard, isSelected && styles.goalCardActive]}
+                  onPress={() => setGoal(isSelected ? '' : g.id)}
+                >
+                  <Ionicons
+                    name={g.icon}
+                    size={16}
+                    color={isSelected ? theme.colors.primary : theme.colors.muted}
+                  />
+                  <Text style={[styles.goalCardText, isSelected && styles.goalCardTextActive]}>
+                    {g.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
 
           <Text style={styles.inputLabel}>Lifting Experience</Text>
-          <View style={styles.chipRow}>
-            {(['beginner', 'intermediate', 'advanced'] as ExperienceLevel[]).map((l) => (
-              <Pressable
-                key={l}
-                style={[styles.chip, level === l && styles.chipActive]}
-                onPress={() => setLevel(level === l ? '' : l)}
-              >
-                <Text style={[styles.chipText, level === l && styles.chipTextActive]}>
-                  {l.charAt(0).toUpperCase() + l.slice(1)}
-                </Text>
-              </Pressable>
-            ))}
+          <View style={styles.segmentedRow}>
+            {(['beginner', 'intermediate', 'advanced'] as ExperienceLevel[]).map((l) => {
+              const isSelected = level === l;
+              return (
+                <Pressable
+                  key={l}
+                  style={[styles.segmentedTab, isSelected && styles.segmentedTabActive]}
+                  onPress={() => setLevel(isSelected ? '' : l)}
+                >
+                  <Text style={[styles.segmentedTabText, isSelected && styles.segmentedTabTextActive]}>
+                    {l.charAt(0).toUpperCase() + l.slice(1)}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
 
           <Text style={styles.inputLabel}>Biological Sex</Text>
-          <View style={styles.chipRow}>
+          <View style={styles.sexGrid}>
             {(
               [
                 { value: 'male', label: 'Male' },
@@ -397,17 +411,20 @@ export default function ProfileScreen() {
                 { value: 'other', label: 'Other' },
                 { value: 'prefer_not_to_say', label: 'Prefer not to say' },
               ] as { value: BiologicalSex; label: string }[]
-            ).map((s) => (
-              <Pressable
-                key={s.value}
-                style={[styles.chip, sex === s.value && styles.chipActive]}
-                onPress={() => setSex(sex === s.value ? '' : s.value)}
-              >
-                <Text style={[styles.chipText, sex === s.value && styles.chipTextActive]}>
-                  {s.label}
-                </Text>
-              </Pressable>
-            ))}
+            ).map((s) => {
+              const isSelected = sex === s.value;
+              return (
+                <Pressable
+                  key={s.value}
+                  style={[styles.sexCard, isSelected && styles.sexCardActive]}
+                  onPress={() => setSex(isSelected ? '' : s.value)}
+                >
+                  <Text style={[styles.sexCardText, isSelected && styles.sexCardTextActive]}>
+                    {s.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
 
           <View style={styles.inputGrid}>
@@ -851,6 +868,101 @@ const createStyles = (theme: Theme) =>
       fontFamily: 'Manrope_500Medium',
       color: theme.colors.text,
     },
+    goalsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 4,
+      marginBottom: 6,
+    },
+    goalCard: {
+      flexBasis: '48%',
+      flexGrow: 1,
+      height: 42,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      paddingHorizontal: 10,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surfaceElevated,
+    },
+    goalCardActive: {
+      borderColor: theme.colors.primary,
+      backgroundColor: withAlpha(theme.colors.primary, 0.14),
+    },
+    goalCardText: {
+      color: theme.colors.muted,
+      fontSize: 12.5,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+    },
+    goalCardTextActive: {
+      color: theme.colors.primary,
+      fontFamily: 'SpaceGrotesk_700Bold',
+    },
+    segmentedRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginTop: 4,
+      marginBottom: 6,
+    },
+    segmentedTab: {
+      flex: 1,
+      height: 38,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surfaceElevated,
+    },
+    segmentedTabActive: {
+      borderColor: theme.colors.primary,
+      backgroundColor: withAlpha(theme.colors.primary, 0.14),
+    },
+    segmentedTabText: {
+      color: theme.colors.muted,
+      fontSize: 12,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+    },
+    segmentedTabTextActive: {
+      color: theme.colors.primary,
+      fontFamily: 'SpaceGrotesk_700Bold',
+    },
+    sexGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 4,
+      marginBottom: 6,
+    },
+    sexCard: {
+      flexBasis: '48%',
+      flexGrow: 1,
+      height: 38,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surfaceElevated,
+      paddingHorizontal: 8,
+    },
+    sexCardActive: {
+      borderColor: theme.colors.primary,
+      backgroundColor: withAlpha(theme.colors.primary, 0.14),
+    },
+    sexCardText: {
+      color: theme.colors.muted,
+      fontSize: 12,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+    },
+    sexCardTextActive: {
+      color: theme.colors.primary,
+      fontFamily: 'SpaceGrotesk_700Bold',
+    },
     chipRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -858,22 +970,27 @@ const createStyles = (theme: Theme) =>
       marginTop: 4,
     },
     chip: {
-      minHeight: 44,
-      backgroundColor: theme.colors.border,
+      height: 34,
       paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 16,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surfaceElevated,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     chipActive: {
-      backgroundColor: theme.colors.primary,
+      borderColor: theme.colors.primary,
+      backgroundColor: withAlpha(theme.colors.primary, 0.14),
     },
     chipText: {
       color: theme.colors.muted,
-      fontSize: 13,
+      fontSize: 12,
       fontFamily: 'SpaceGrotesk_600SemiBold',
     },
     chipTextActive: {
-      color: theme.colors.background,
+      color: theme.colors.primary,
+      fontFamily: 'SpaceGrotesk_700Bold',
     },
     saveBtn: {
       backgroundColor: theme.colors.primary,

@@ -37,22 +37,27 @@ export function TabIcon({
   const style = useAnimatedStyle(() => ({
     transform: [
       { translateY: isHome ? -2 * selection.value : -1 * selection.value },
-      { scale: 1 + (isHome ? 0.06 : 0.04) * selection.value },
+      { scale: 1 + (isHome ? 0.08 : 0.04) * selection.value },
     ],
     backgroundColor: isHome
-      ? theme.colors.primary
+      ? interpolateColor(
+          selection.value,
+          [0, 1],
+          ['transparent', theme.colors.primary],
+        )
       : interpolateColor(
           selection.value,
           [0, 1],
-          [withAlpha(theme.colors.primary, 0), withAlpha(theme.colors.primary, 0.12)],
+          ['transparent', withAlpha(theme.colors.primary, 0.12)],
         ),
     borderColor: isHome
-      ? withAlpha(theme.colors.onPrimary, 0.3)
-      : interpolateColor(
+      ? interpolateColor(
           selection.value,
           [0, 1],
-          ['transparent', withAlpha(theme.colors.primary, 0.3)],
-        ),
+          ['transparent', withAlpha(theme.colors.onPrimary || '#FFFFFF', 0.35)],
+        )
+      : 'transparent',
+    shadowOpacity: isHome ? 0.65 * selection.value : 0,
   }));
 
   if (isHome) {
@@ -70,17 +75,16 @@ export function TabIcon({
             justifyContent: 'center',
             borderWidth: 1,
             shadowColor: theme.colors.primary,
-            shadowOffset: { width: 0, height: 0 },
-            shadowOpacity: 0.65,
-            shadowRadius: 12,
-            elevation: 8,
+            shadowOffset: { width: 0, height: 2 },
+            shadowRadius: 10,
+            elevation: focused ? 8 : 0,
           },
           style,
         ]}
       >
         <Ionicons
           name="flash"
-          color={theme.colors.onPrimary || theme.colors.background}
+          color={focused ? (theme.colors.onPrimary || theme.colors.background) : theme.colors.muted}
           size={24}
         />
       </Animated.View>
@@ -99,7 +103,6 @@ export function TabIcon({
           borderRadius: 14,
           alignItems: 'center',
           justifyContent: 'center',
-          borderWidth: 1,
         },
         style,
       ]}

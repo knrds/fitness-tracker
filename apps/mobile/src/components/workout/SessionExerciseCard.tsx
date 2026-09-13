@@ -357,14 +357,17 @@ export const SessionExerciseCard = ({
     >
       {sessionExercise.supersetGroup && (
         <View style={styles.supersetHeader}>
-          <Text
-            style={[
-              styles.supersetBadge,
-              { color: theme.colors.primary, ...theme.typography.caption },
-            ]}
-          >
-            🔗 SUPERSET
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Ionicons name="link-outline" size={12} color={theme.colors.primary} />
+            <Text
+              style={[
+                styles.supersetBadge,
+                { color: theme.colors.primary, ...theme.typography.caption },
+              ]}
+            >
+              SUPERSET
+            </Text>
+          </View>
         </View>
       )}
       <View style={styles.titleRow}>

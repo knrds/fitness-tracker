@@ -434,7 +434,12 @@ export const WorkoutCompleteModal = () => {
                 { backgroundColor: theme.colors.background, borderColor: theme.colors.border },
               ]}
             >
-              <Text style={[styles.factTitle, { color: theme.colors.primary }]}>💡 FUN FACT</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <Ionicons name="analytics-outline" size={14} color={theme.colors.primary} />
+                <Text style={[styles.factTitle, { color: theme.colors.primary, marginBottom: 0 }]}>
+                  SESSION TELEMETRY
+                </Text>
+              </View>
               <Text style={[styles.factText, { color: theme.colors.text }]}>{workoutFact}</Text>
               {caffeineFact && (
                 <Text

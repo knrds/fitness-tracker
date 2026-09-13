@@ -395,13 +395,13 @@ export function VoltDashboard({
         </>
       )}
       {/* Analytics — after templates */}
-      {caption('WEEKLY LOAD DISTRIBUTION (TIPPEN FÜR FUN-FACTS)')}
+      {caption('WEEKLY LOAD DISTRIBUTION')}
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {([
-          ['VOLUME', `${(volume / 1000).toFixed(1)} t`, 'Recorded load', 'volume'],
-          ['SETS', `${setCount}`, 'Completed', 'sets'],
-          ['AVG RPE', averageRpe === null ? '—' : averageRpe.toFixed(1), 'Logged effort', 'rpe'],
-        ] as const).map(([name, value, detail, key]) => {
+          ['VOLUME', `${(volume / 1000).toFixed(1)} t`, 'Recorded load', 'volume', 'trending-up-outline'],
+          ['SETS', `${setCount}`, 'Completed', 'sets', 'checkmark-circle-outline'],
+          ['AVG RPE', averageRpe === null ? '—' : averageRpe.toFixed(1), 'Logged effort', 'rpe', 'speedometer-outline'],
+        ] as const).map(([name, value, detail, key, icon]) => {
           const isSelected = activeStatFact === key;
           return (
             <Card
@@ -423,8 +423,8 @@ export function VoltDashboard({
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 {caption(name)}
                 <Ionicons
-                  name={isSelected ? 'sparkles' : 'information-circle-outline'}
-                  size={12}
+                  name={icon}
+                  size={14}
                   color={isSelected ? c.primary : c.muted}
                 />
               </View>
@@ -460,9 +460,9 @@ export function VoltDashboard({
               <Ionicons
                 name={
                   activeStatFact === 'volume'
-                    ? 'barbell-outline'
+                    ? 'trending-up-outline'
                     : activeStatFact === 'sets'
-                    ? 'repeat-outline'
+                    ? 'layers-outline'
                     : 'speedometer-outline'
                 }
                 size={14}
@@ -470,33 +470,32 @@ export function VoltDashboard({
               />
               <Text style={[label, { color: c.primary }]}>
                 {activeStatFact === 'volume'
-                  ? 'VOLUMEN-ÄQUIVALENT (TIPPEN FÜR WEITEREN VERGLEICH)'
+                  ? 'VOLUMEN-TELEMETRIE (TIPPEN FÜR WECHSEL)'
                   : activeStatFact === 'sets'
-                  ? 'SATZ-INSIGHT (TIPPEN FÜR MEHR)'
-                  : 'RPE-GUIDE (TIPPEN FÜR MEHR)'}
+                  ? 'SATZ-ANALYSE (TIPPEN FÜR WECHSEL)'
+                  : 'RPE-STEUERUNG (TIPPEN FÜR WECHSEL)'}
               </Text>
             </View>
             <Text style={{ color: c.text, fontSize: 13, fontFamily: 'Manrope_600SemiBold', lineHeight: 19 }}>
               {activeStatFact === 'volume'
                 ? [
-                    `Dieses Wochenvolumen (${(volume / 1000).toFixed(1)} t) entspricht ca. ${(volume / 5000).toFixed(1)} Afrikanischen Elefanten 🐘`,
-                    `Du hast das Gewicht von ${(volume / 450).toFixed(0)} Steinway-Konzertflügeln gestemmt 🎹`,
-                    `Entspricht dem Gewicht von ${(volume / 1200).toFixed(1)} Kleinwagen 🚗`,
-                    `Bewegtes Gewicht entspricht ca. ${(volume / 8000).toFixed(1)} Tyrannosaurus Rex 🦖`,
-                  ][statFactIndex % 4]
+                    `Wochenvolumen: ${(volume / 1000).toFixed(1)} t kumulierte Last. Entspricht rund ${Math.round(volume / 20)} bewegten 20-kg-Hantelscheiben.`,
+                    `Gesamte Tonnage entspricht ${((volume / 1000) / 1.2).toFixed(1)} Kleinwagen an bewegter Eisenmasse in dieser Trainingswoche.`,
+                    `Entspricht der kumulierten Zuglast von rund ${Math.round(volume / 200)} Standard-Kabelzug-Gewichtsblöcken.`,
+                  ][statFactIndex % 3]
                 : activeStatFact === 'sets'
                 ? [
-                    `Geschätzte Gesamtzeit unter Muskelspannung (TUT): ~${Math.round(setCount * 45 / 60)} Minuten ⏱️`,
-                    `${setCount >= 16 ? 'Top-Volumen für optimalen Muskelwachstumsreiz! 🔥' : 'Fokussiertes, sauberes Volumen. Kontinuität schlägt Hype! ⚡'}`,
+                    `Geschätzte Zeit unter Muskelspannung (TUT): ~${Math.round(setCount * 45 / 60)} Minuten bei 45s pro Satz.`,
+                    `${setCount >= 16 ? 'Hypertrophie-Optimum: Effektives Satzvolumen für maximalen mechanischen Reiz.' : 'Fokussiertes Satzvolumen: Hohe Bewegungsqualität und zielgerichtete Reizdichte.'}`,
                   ][statFactIndex % 2]
                 : averageRpe !== null
                 ? [
                     averageRpe >= 8.5
-                      ? `Durchschnittliches RPE ${averageRpe.toFixed(1)}: Hohe ZNS-Auslastung (~1 Rep im Tank). Auf ausreichende Regeneration achten!`
+                      ? `Durchschnittliches RPE ${averageRpe.toFixed(1)}: Hohe ZNS-Auslastung (~1 Rep im Tank). Ausreichende Regeneration zwischen den Einheiten einplanen.`
                       : averageRpe >= 7
-                      ? `Durchschnittliches RPE ${averageRpe.toFixed(1)}: Perfekter Reizbereich (2–3 RIR). Optimaler Muskelaufbau ohne Überlastung.`
-                      : `Durchschnittliches RPE ${averageRpe.toFixed(1)}: Moderater Belastungsbereich. Ideal für Bewegungsqualität und Erholung.`,
-                    'RPE = Rate of Perceived Exertion. 10 = Max, 9 = 1 Wdh. im Tank, 8 = 2 Wdh. im Tank.',
+                      ? `Durchschnittliches RPE ${averageRpe.toFixed(1)}: Optimaler Hypertrophiebereich (2–3 RIR). Hoher Wachstumsreiz bei kontrollierter Ermüdung.`
+                      : `Durchschnittliches RPE ${averageRpe.toFixed(1)}: Moderater Belastungsbereich. Ideal für Technikfokus, Kraftaufbau und Deloads.`,
+                    'RPE (Rate of Perceived Exertion): 10 = Maximales Limit, 9 = 1 Wiederholung in Reserve, 8 = 2 Wiederholungen in Reserve.',
                   ][statFactIndex % 2]
                 : 'Trage bei deinen Sätzen RPE ein, um deine Anstrengung präzise zu steuern.'}
             </Text>
@@ -511,7 +510,7 @@ export function VoltDashboard({
               justifyContent: 'center',
             }}
           >
-            <Ionicons name="shuffle" size={16} color={c.primary} />
+            <Ionicons name="swap-horizontal-outline" size={16} color={c.primary} />
           </View>
         </Pressable>
       )}

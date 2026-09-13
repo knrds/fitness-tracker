@@ -116,38 +116,38 @@ function HistoryView() {
     const displayVol = isImperial ? Math.round(volumeKg * 2.20462) : Math.round(volumeKg);
     const unit = isImperial ? 'lbs' : 'kg';
 
-    if (volumeKg <= 0) return `You completed a session!`;
+    if (volumeKg <= 0) return 'Session completed. Work logged in telemetry.';
 
     if (volumeKg < 100) {
-      const p = (displayVol / (isImperial ? 22 : 10)).toFixed(1).replace(/\.0$/, '');
-      return `You lifted ${displayVol} ${unit}! That's equivalent to the weight of ${p} adult house cats. 🐱`;
+      const plates = (displayVol / (isImperial ? 5.5 : 2.5)).toFixed(0);
+      return `Logged ${displayVol} ${unit} total work. Equivalent to warm-up handling across ${plates} calibrated fractional plates.`;
     }
     if (volumeKg < 300) {
-      const p = (displayVol / (isImperial ? 110 : 50)).toFixed(1).replace(/\.0$/, '');
-      return `You lifted ${displayVol} ${unit}! That's about the weight of ${p} heavy punching bags. 🥊`;
+      const plates = (displayVol / (isImperial ? 44 : 20)).toFixed(0);
+      return `Moved ${displayVol} ${unit} tonnage. Equivalent to loading ${plates} standard 20 kg competition plates.`;
     }
     if (volumeKg < 800) {
-      const pStr = (displayVol / (isImperial ? 330 : 150)).toFixed(1).replace(/\.0$/, '');
-      return `You lifted ${displayVol} ${unit}! That's equivalent to the weight of ${pStr} classic Vespa scooters. 🛵`;
+      const benches = (displayVol / (isImperial ? 100 : 45)).toFixed(1).replace(/\.0$/, '');
+      return `${displayVol} ${unit} cumulative load. Equivalent to the iron mass of ${benches} adjustable training benches.`;
     }
     if (volumeKg < 1500) {
-      const pStr = (displayVol / (isImperial ? 1100 : 500)).toFixed(1).replace(/\.0$/, '');
-      return `You lifted ${displayVol} ${unit}! That's about the weight of ${pStr} grand pianos. 🎹`;
+      const plates = (displayVol / (isImperial ? 44 : 20)).toFixed(0);
+      return `${displayVol} ${unit} moved. Equivalent to cycling through ${plates} standard 20 kg barbell plates.`;
     }
     if (volumeKg < 3000) {
-      const pStr = (displayVol / (isImperial ? 2200 : 1000)).toFixed(1).replace(/\.0$/, '');
-      return `You lifted ${displayVol} ${unit}! That's equivalent to the weight of ${pStr} saltwater crocodiles. 🐊`;
+      const stacks = (displayVol / (isImperial ? 440 : 200)).toFixed(1).replace(/\.0$/, '');
+      return `${displayVol} ${unit} total workload. Equivalent to ${stacks} heavy selectorized cable stacks.`;
     }
     if (volumeKg < 6000) {
-      const pStr = (displayVol / (isImperial ? 4400 : 2000)).toFixed(1).replace(/\.0$/, '');
-      return `You lifted ${displayVol} ${unit}! That's about the weight of ${pStr} hippopotamuses. 🦛`;
+      const racks = (displayVol / (isImperial ? 990 : 450)).toFixed(1).replace(/\.0$/, '');
+      return `${displayVol} ${unit} iron tonnage. Equivalent to ${racks} fully loaded power racks.`;
     }
     if (volumeKg < 12000) {
-      const pStr = (displayVol / (isImperial ? 11000 : 5000)).toFixed(1).replace(/\.0$/, '');
-      return `You lifted ${displayVol} ${unit}! That's equivalent to the weight of ${pStr} fully grown African elephants. 🐘`;
+      const cars = (displayVol / (isImperial ? 3300 : 1500)).toFixed(1).replace(/\.0$/, '');
+      return `${displayVol} ${unit} moved. Session volume matches the mass of ${cars} compact vehicles in mechanical work.`;
     }
-    const pStr = (displayVol / (isImperial ? 26400 : 12000)).toFixed(1).replace(/\.0$/, '');
-    return `You lifted ${displayVol} ${unit}! That's about the weight of ${pStr} double-decker buses! 🚌 Absolutely massive!`;
+    const trucks = (displayVol / (isImperial ? 22000 : 10000)).toFixed(1).replace(/\.0$/, '');
+    return `${displayVol} ${unit} tonnage. Elite high-volume session equivalent to moving ${trucks} transport trucks of load.`;
   };
 
   const formatDate = (date: Date) => {
@@ -674,9 +674,12 @@ function HistoryView() {
                     { backgroundColor: theme.colors.background, borderColor: theme.colors.border },
                   ]}
                 >
-                  <Text style={[styles.modalFactTitle, { color: theme.colors.primary }]}>
-                    💡 FUN FACT
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    <Ionicons name="analytics-outline" size={13} color={theme.colors.primary} />
+                    <Text style={[styles.modalFactTitle, { color: theme.colors.primary, marginBottom: 0 }]}>
+                      SESSION TELEMETRY
+                    </Text>
+                  </View>
                   <Text
                     numberOfLines={2}
                     style={[styles.modalFactText, { color: theme.colors.text }]}
@@ -1127,9 +1130,12 @@ function ProgressView() {
             </Pressable>
           </View>
         ) : (
-          <Text style={[styles.chartTipText, { color: theme.colors.muted }]}>
-            💡 Slide your finger across the chart to view Max Weight, Vol & e1RM
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2 }}>
+            <Ionicons name="information-circle-outline" size={13} color={theme.colors.muted} />
+            <Text style={[styles.chartTipText, { color: theme.colors.muted }]}>
+              Slide across chart to view Max Weight, Vol & e1RM
+            </Text>
+          </View>
         )}
 
         <View

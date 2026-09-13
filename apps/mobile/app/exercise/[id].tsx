@@ -154,7 +154,7 @@ export default function ExerciseDetailScreen() {
           </Pressable>
         ) : (
           <View style={styles.imagePlaceholder}>
-            <Text style={styles.placeholderIcon}>💪</Text>
+            <Ionicons name="barbell-outline" size={44} color={theme.colors.muted} style={{ marginBottom: 8 }} />
             <Text style={styles.placeholderText}>No Exercise Image Available</Text>
           </View>
         )}

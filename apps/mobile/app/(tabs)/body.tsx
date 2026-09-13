@@ -325,9 +325,12 @@ export default function BodyTrackingScreen() {
             </Pressable>
           </View>
         ) : (
-          <Text style={[styles.chartTipText, { color: theme.colors.muted }]}>
-            💡 Tap any point on the chart to see details
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2 }}>
+            <Ionicons name="information-circle-outline" size={13} color={theme.colors.muted} />
+            <Text style={[styles.chartTipText, { color: theme.colors.muted }]}>
+              Tap any point on the chart to inspect details
+            </Text>
+          </View>
         )}
 
         <LineChart

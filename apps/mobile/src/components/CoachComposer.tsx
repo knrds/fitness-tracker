@@ -296,7 +296,7 @@ export function CoachComposer(props: Props) {
                     },
                   ]}
                 >
-                  <Ionicons name="sparkles" size={12} color={theme.colors.primary} />
+                  <Ionicons name="hardware-chip-outline" size={12} color={theme.colors.primary} />
                   <Text style={[styles.metaChipText, { color: theme.colors.text }]}>
                     Volt Coach
                   </Text>

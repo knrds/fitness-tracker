@@ -199,6 +199,8 @@ export interface Exercise {
   isUnilateral?: boolean;
   /** Optional image URL showing how to perform it. */
   imageUrl?: string;
+  /** Optional animated GIF URL demonstrating full technique. */
+  gifUrl?: string;
   /** Suggested experience level for this exercise. */
   experienceLevel?: ExperienceLevel;
   createdAt: Timestamp;

@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@fitness-tracker/ui';
 import { useWorkoutStore } from '../../stores/workoutStore';
 import Svg, { Circle } from 'react-native-svg';
+import { triggerRestTimerAlarm } from '../../utils/timerAudio';
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export const RestTimer = () => {
@@ -26,6 +27,14 @@ export const RestTimer = () => {
   const [input, setInput] = useState('');
   const reducedMotion = useReducedMotion();
   const expansion = useSharedValue(0);
+  const hasFiredAlarm = React.useRef(false);
+
+  useEffect(() => {
+    if (restTimer.isRunning) {
+      hasFiredAlarm.current = false;
+    }
+  }, [restTimer.isRunning, restTimer.endsAt]);
+
   useEffect(() => {
     expansion.value = withTiming(expanded ? 1 : 0, {
       duration: reducedMotion ? 0 : 220,
@@ -41,7 +50,12 @@ export const RestTimer = () => {
   useEffect(() => {
     const update = () => {
       if (restTimer.isRunning && restTimer.endsAt) {
-        setRemaining(Math.max(0, Math.ceil((restTimer.endsAt.getTime() - Date.now()) / 1000)));
+        const left = Math.max(0, Math.ceil((restTimer.endsAt.getTime() - Date.now()) / 1000));
+        setRemaining(left);
+        if (left === 0 && !hasFiredAlarm.current) {
+          hasFiredAlarm.current = true;
+          void triggerRestTimerAlarm();
+        }
         tickRestTimer();
       } else setRemaining(restTimer.durationSeconds);
     };

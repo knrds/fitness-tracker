@@ -31,13 +31,13 @@ export default function ExerciseDetailScreen() {
   const [imageLoading, setImageLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
 
   const exercise = exercises.find((e) => e.id === id);
 
   useEffect(() => {
-    if (!exercise?.imageUrl || !isPlaying) {
+    if (!exercise?.imageUrl || !isPlaying || exercise?.gifUrl) {
       setCurrentImageIndex(0);
       return;
     }
@@ -48,9 +48,10 @@ export default function ExerciseDetailScreen() {
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [exercise?.imageUrl, isPlaying]);
+  }, [exercise?.imageUrl, exercise?.gifUrl, isPlaying]);
 
   const getDisplayedImageUri = () => {
+    if (exercise?.gifUrl) return exercise.gifUrl;
     if (!exercise?.imageUrl) return null;
     if (currentImageIndex === 1 && exercise.imageUrl.endsWith('0.jpg')) {
       return exercise.imageUrl.replace('/0.jpg', '/1.jpg');
@@ -133,7 +134,7 @@ export default function ExerciseDetailScreen() {
             <Image
               source={getDisplayedImageUri()}
               style={styles.image}
-              contentFit="cover"
+              contentFit="contain"
               onLoadStart={() => setImageLoading(true)}
               onLoadEnd={() => {
                 setImageLoading(false);
@@ -149,7 +150,9 @@ export default function ExerciseDetailScreen() {
               <Ionicons name="expand" size={18} color={theme.colors.text} />
             </View>
             <View style={styles.playOverlay}>
-              <Text style={styles.playOverlayText}>▶ Tap to enlarge &amp; play</Text>
+              <Text style={styles.playOverlayText}>
+                {exercise?.gifUrl ? '● 3D GIF' : isPlaying ? '● Animiert' : '▶ Abspielen'}
+              </Text>
             </View>
           </Pressable>
         ) : (

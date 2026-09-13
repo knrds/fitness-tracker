@@ -18,15 +18,17 @@ export const ExerciseCard = ({ exercise, isFavorite, onToggleFavorite }: Props) 
   const styles = useThemeStyles(createStyles);
   const [loading, setLoading] = useState(true);
 
+  const previewUri = exercise.gifUrl || exercise.imageUrl;
+
   return (
     <Link href={`/exercise/${exercise.id}` as Href} asChild>
       <Pressable style={styles.card} testID="exercise-card">
-        {exercise.imageUrl ? (
+        {previewUri ? (
           <View style={styles.imageContainer}>
             <Image
-              source={{ uri: exercise.imageUrl }}
+              source={{ uri: previewUri }}
               style={styles.image}
-              contentFit="cover"
+              contentFit="contain"
               onLoadStart={() => setLoading(true)}
               onLoadEnd={() => setLoading(false)}
             />
@@ -35,6 +37,11 @@ export const ExerciseCard = ({ exercise, isFavorite, onToggleFavorite }: Props) 
                 <ActivityIndicator size="small" color={theme.colors.primary} />
               </View>
             )}
+            {exercise.gifUrl ? (
+              <View style={styles.gifBadge}>
+                <Text style={styles.gifBadgeText}>GIF</Text>
+              </View>
+            ) : null}
           </View>
         ) : (
           <View style={styles.placeholderContainer}>
@@ -118,6 +125,21 @@ const createStyles = (theme: Theme) =>
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: theme.colors.surfaceElevated,
+    },
+    gifBadge: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      backgroundColor: theme.colors.overlay,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 6,
+    },
+    gifBadgeText: {
+      color: theme.colors.text,
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 0.5,
     },
     placeholderContainer: {
       width: '100%',

@@ -344,6 +344,27 @@ export const SessionExerciseCard = ({
     return { maxWeight, avgWeight, lifetimeVolume };
   }, [historySessions, sessionExercise.exerciseId]);
 
+  const historicalBest = React.useMemo(() => {
+    let bestWeight = 0;
+    let bestE1RM = 0;
+
+    historySessions.forEach((s) => {
+      s.exercises.forEach((ex) => {
+        if (ex.exerciseId === sessionExercise.exerciseId) {
+          ex.sets.forEach((set) => {
+            if (set.completed && set.type !== 'warmup' && set.weight && set.reps) {
+              if (set.weight > bestWeight) bestWeight = set.weight;
+              const e1rm = estimateOneRepMax(set.weight, set.reps, set.rpe, set.rir, exercise.name);
+              if (e1rm > bestE1RM) bestE1RM = e1rm;
+            }
+          });
+        }
+      });
+    });
+
+    return { bestWeight, bestE1RM };
+  }, [historySessions, sessionExercise.exerciseId, exercise.name]);
+
   return (
     <Card
       style={[
@@ -576,6 +597,15 @@ export const SessionExerciseCard = ({
                 displayIndex = workingSetCount;
               }
 
+              const setWeightKg = set.weight || 0;
+              const setReps = set.reps || 0;
+              const setE1RM = estimateOneRepMax(setWeightKg, setReps, set.rpe, set.rir, exercise.name);
+              const isSetPR =
+                set.completed &&
+                set.type !== 'warmup' &&
+                historicalBest.bestE1RM > 0 &&
+                (setE1RM > historicalBest.bestE1RM || setWeightKg > historicalBest.bestWeight);
+
               return (
                 <SetRow
                   key={set.id}
@@ -592,10 +622,22 @@ export const SessionExerciseCard = ({
                   compact={compact}
                   showRpe={showRpe}
                   showRir={showRir}
+                  isPR={isSetPR}
                   onUpdate={(updates) => updateSet(sessionExercise.id, set.id, updates)}
                   onComplete={() => {
+                    const willComplete = !set.completed;
                     completeSet(sessionExercise.id, set.id);
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+                    if (willComplete) {
+                      const willBePR =
+                        set.type !== 'warmup' &&
+                        historicalBest.bestE1RM > 0 &&
+                        (setE1RM > historicalBest.bestE1RM || setWeightKg > historicalBest.bestWeight);
+                      if (willBePR) {
+                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+                      } else {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+                      }
+                    }
                   }}
                   onDelete={() => removeSet(sessionExercise.id, set.id)}
                   prevSet={prevSet}
@@ -1056,6 +1098,7 @@ interface SetRowProps {
   isCardio: boolean;
   showRpe: boolean;
   showRir: boolean;
+  isPR?: boolean;
   onUpdate: (updates: Partial<ExerciseSet>) => void;
   onComplete: () => void;
   onDelete: () => void;
@@ -1074,6 +1117,7 @@ const SetRow = ({
   isCardio,
   showRpe,
   showRir,
+  isPR = false,
   onUpdate,
   onComplete,
   onDelete,
@@ -1213,6 +1257,17 @@ const SetRow = ({
     }
     return set.weight.toString();
   };
+
+  const ghostWeight =
+    lastPerformanceSet?.weight != null && lastPerformanceSet.weight > 0
+      ? (isImperial ? lastPerformanceSet.weight * 2.20462 : lastPerformanceSet.weight)
+          .toFixed(1)
+          .replace(/\.0$/, '')
+      : undefined;
+  const ghostReps =
+    lastPerformanceSet?.reps != null && lastPerformanceSet.reps > 0
+      ? String(lastPerformanceSet.reps)
+      : undefined;
 
   const handleWeightChange = (text: string) => {
     const normalized = text.replace(',', '.');
@@ -1441,7 +1496,12 @@ const SetRow = ({
               },
             ]}
           >
-            <Pressable onPress={cycleSetType} style={[styles.setCol, styles.centerAlign]}>
+            <Pressable onPress={cycleSetType} style={[styles.setCol, styles.centerAlign, { position: 'relative' }]}>
+              {isPR && isDone && (
+                <View style={styles.prBadge}>
+                  <Text style={styles.prBadgeText}>PR</Text>
+                </View>
+              )}
               {getSetTypeBadge()}
             </Pressable>
             <TextInput
@@ -1458,7 +1518,7 @@ const SetRow = ({
               onFocus={() => setEditingWeight(true)}
               onBlur={() => setEditingWeight(false)}
               onChangeText={handleWeightChange}
-              placeholder="-"
+              placeholder={ghostWeight ?? '-'}
               placeholderTextColor={theme.colors.muted}
               selectTextOnFocus={true}
               inputAccessoryViewID="keyboardDoneAccessory"
@@ -1504,7 +1564,7 @@ const SetRow = ({
                   if (reps > 999) reps = 999;
                   onUpdate({ reps });
                 }}
-                placeholder="-"
+                placeholder={ghostReps ?? '-'}
                 placeholderTextColor={theme.colors.muted}
                 selectTextOnFocus={true}
                 inputAccessoryViewID="keyboardDoneAccessory"
@@ -1516,9 +1576,17 @@ const SetRow = ({
                 styles.doneBtn,
                 styles.doneCol,
                 {
-                  backgroundColor: isDone ? theme.colors.primary : theme.colors.background,
+                  backgroundColor: isDone
+                    ? isPR
+                      ? '#EAB308'
+                      : theme.colors.primary
+                    : theme.colors.background,
                   borderWidth: 1,
-                  borderColor: isDone ? theme.colors.primary : theme.colors.border,
+                  borderColor: isDone
+                    ? isPR
+                      ? '#FACC15'
+                      : theme.colors.primary
+                    : theme.colors.border,
                 },
               ]}
               onPress={onComplete}
@@ -1528,9 +1596,9 @@ const SetRow = ({
               aria-checked={isDone}
             >
               <Ionicons
-                name="checkmark"
-                size={20}
-                color={isDone ? theme.colors.background : theme.colors.muted}
+                name={isPR && isDone ? 'trophy' : 'checkmark'}
+                size={isPR && isDone ? 18 : 20}
+                color={isDone ? (isPR ? '#000000' : theme.colors.background) : theme.colors.muted}
               />
             </Pressable>
             <Pressable
@@ -1710,6 +1778,22 @@ const createStyles = (theme: Theme) =>
       textAlign: 'center',
       lineHeight: 22,
       overflow: 'hidden',
+    },
+    prBadge: {
+      position: 'absolute',
+      top: -6,
+      left: -2,
+      backgroundColor: '#EAB308',
+      paddingHorizontal: 4,
+      paddingVertical: 1,
+      borderRadius: 4,
+      zIndex: 10,
+    },
+    prBadgeText: {
+      color: '#000000',
+      fontSize: 8,
+      fontWeight: '900',
+      letterSpacing: 0.5,
     },
     input: {
       borderRadius: 8,

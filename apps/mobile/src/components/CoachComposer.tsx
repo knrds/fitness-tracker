@@ -19,7 +19,7 @@ interface Props {
   image?: string | undefined;
   onRemoveImage: () => void;
   onPickImage: () => void;
-  onSend: () => void;
+  onSend: (text: string, mode: 'fast' | 'plan') => void;
   sending: boolean;
   recording: boolean;
   transcribing: boolean;
@@ -264,7 +264,7 @@ export function CoachComposer(props: Props) {
               returnKeyType="send"
               blurOnSubmit={false}
               onSubmitEditing={() => {
-                if (canSend) props.onSend();
+                if (canSend) props.onSend(props.value, mode);
               }}
               {...(Platform.OS === 'web'
                 ? {
@@ -276,7 +276,7 @@ export function CoachComposer(props: Props) {
                     }) => {
                       if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
                         event.preventDefault();
-                        if (canSend) props.onSend();
+                        if (canSend) props.onSend(props.value, mode);
                       }
                     },
                   }
@@ -391,7 +391,7 @@ export function CoachComposer(props: Props) {
                     accessibilityLabel="Send coach message"
                     accessibilityState={{ disabled: !canSend }}
                     disabled={!canSend}
-                    onPress={props.onSend}
+                    onPress={() => props.onSend(props.value, mode)}
                     hitSlop={6}
                     style={[
                       styles.circleActionBtn,

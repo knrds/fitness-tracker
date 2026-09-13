@@ -90,13 +90,19 @@ module.exports = async function handler(req, res) {
         .slice(0, 1000)
     : [];
   const lastText = body.messages.at(-1).content;
-  const wantsPlan = body.createPlan === true || wantsStructuredPlan(lastText);
+  const isExplicitFast = body.mode === 'fast';
+  const wantsPlan =
+    !isExplicitFast &&
+    (body.createPlan === true || body.mode === 'plan' || wantsStructuredPlan(lastText));
   const planMode = wantsPlan && catalog.length > 0 && !audio;
+  const fastModel = process.env.OPENROUTER_FAST_MODEL || 'meta-llama/llama-3.3-70b-instruct';
   const model = audio
     ? process.env.OPENROUTER_TRANSCRIPTION_MODEL || 'openai/whisper-large-v3-turbo'
     : image
       ? process.env.OPENROUTER_VISION_MODEL || 'google/gemini-2.5-flash'
-      : OPENROUTER_MODEL;
+      : isExplicitFast
+        ? fastModel
+        : OPENROUTER_MODEL;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 65000);
   try {

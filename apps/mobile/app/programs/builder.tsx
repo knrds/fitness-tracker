@@ -253,6 +253,64 @@ export default function ProgramBuilderScreen() {
     });
   };
 
+  const handleDeleteWeek = (weekToDelete: number) => {
+    if (!activeProgram || activeProgram.durationWeeks <= 1) {
+      Alert.alert('Hinweis', 'Ein Programm muss mindestens eine Woche enthalten.');
+      return;
+    }
+
+    const workoutsInWeek = activeProgram.workouts.filter((w) => w.week === weekToDelete);
+    const executeDelete = () => {
+      const remainingWorkouts = activeProgram.workouts
+        .filter((w) => w.week !== weekToDelete)
+        .map((w) => (w.week > weekToDelete ? { ...w, week: w.week - 1 } : w));
+
+      const nextDuration = activeProgram.durationWeeks - 1;
+      const nextSelected =
+        selectedWeek === weekToDelete
+          ? Math.max(1, Math.min(weekToDelete, nextDuration))
+          : selectedWeek > weekToDelete
+          ? selectedWeek - 1
+          : selectedWeek;
+
+      setLocalProgram({
+        ...activeProgram,
+        durationWeeks: nextDuration,
+        workouts: remainingWorkouts,
+      });
+      setSelectedWeek(nextSelected);
+    };
+
+    if (workoutsInWeek.length > 0) {
+      if (Platform.OS === 'web') {
+        const confirmFn =
+          typeof globalThis !== 'undefined'
+            ? (globalThis as { confirm?: (msg: string) => boolean }).confirm
+            : undefined;
+        if (confirmFn) {
+          if (
+            confirmFn(
+              `Woche ${weekToDelete} mit ${workoutsInWeek.length} Einheiten wirklich löschen?`,
+            )
+          ) {
+            executeDelete();
+          }
+          return;
+        }
+      }
+      Alert.alert(
+        `Woche ${weekToDelete} löschen`,
+        `Möchtest du Woche ${weekToDelete} und alle darin enthaltenen ${workoutsInWeek.length} Einheiten wirklich entfernen?`,
+        [
+          { text: 'Abbrechen', style: 'cancel' },
+          { text: 'Löschen', style: 'destructive', onPress: executeDelete },
+        ],
+      );
+    } else {
+      executeDelete();
+    }
+  };
+
   const handleMoveWorkoutToDay = (workout: ProgramWorkout, targetDay: number) => {
     if (!activeProgram) return;
 
@@ -503,6 +561,36 @@ export default function ProgramBuilderScreen() {
               Woche {selectedWeek} duplizieren
             </Text>
           </Pressable>
+          {activeProgram.durationWeeks > 1 && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Woche ${selectedWeek} löschen`}
+              onPress={() => handleDeleteWeek(selectedWeek)}
+              style={{
+                minHeight: 38,
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: 10,
+                backgroundColor: withAlpha(theme.colors.error, 0.1),
+                borderWidth: 1,
+                borderColor: withAlpha(theme.colors.error, 0.35),
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <Ionicons name="trash-outline" size={14} color={theme.colors.error} />
+              <Text
+                style={{
+                  color: theme.colors.error,
+                  fontFamily: 'SpaceGrotesk_600SemiBold',
+                  fontSize: 13,
+                }}
+              >
+                Woche {selectedWeek} löschen
+              </Text>
+            </Pressable>
+          )}
         </View>
         <Text style={{ color: theme.colors.muted, fontSize: 11, marginBottom: 8 }}>
           Neue Wochen werden angehängt. Änderungen werden mit Speichern gesichert.
@@ -529,6 +617,9 @@ export default function ProgramBuilderScreen() {
                   {
                     backgroundColor: isSelected ? theme.colors.primary : theme.colors.surface,
                     borderColor: isSelected ? theme.colors.primary : theme.colors.border,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
                   },
                 ]}
                 onPress={() => setSelectedWeek(w)}
@@ -544,6 +635,23 @@ export default function ProgramBuilderScreen() {
                 >
                   Woche {w}
                 </Text>
+                {isSelected && activeProgram.durationWeeks > 1 && (
+                  <Pressable
+                    hitSlop={8}
+                    accessibilityLabel={`Woche ${w} löschen`}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleDeleteWeek(w);
+                    }}
+                    style={{
+                      padding: 2,
+                      borderRadius: 4,
+                      backgroundColor: withAlpha(theme.colors.background, 0.25),
+                    }}
+                  >
+                    <Ionicons name="close" size={12} color={theme.colors.background} />
+                  </Pressable>
+                )}
               </Pressable>
             );
           })}

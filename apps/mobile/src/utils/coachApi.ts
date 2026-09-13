@@ -55,6 +55,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 export interface CoachOptions {
   image?: string | undefined;
   audio?: { data: string; format: string };
+  mode?: 'fast' | 'plan' | undefined;
   createPlan?: boolean;
   onResult?: (result: { plan?: CoachPlan | undefined; sources?: ChatMessage['sources'] }) => void;
 }
@@ -109,7 +110,8 @@ export async function* streamCoachResponse(
         context,
         ...(options.image ? { image: options.image } : {}),
         ...(options.audio ? { audio: options.audio } : {}),
-        ...(options.createPlan ? { createPlan: true } : {}),
+        ...(options.mode ? { mode: options.mode } : {}),
+        ...(options.createPlan || options.mode === 'plan' ? { createPlan: true } : {}),
       }),
     });
     if (!response.ok) {

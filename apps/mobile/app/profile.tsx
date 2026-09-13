@@ -336,7 +336,10 @@ export default function ProfileScreen() {
 
         {/* Profile Card Info */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Profile</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <Ionicons name="person-outline" size={16} color={theme.colors.primary} />
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>ATHLETE IDENTITY</Text>
+          </View>
           <Text style={styles.inputLabel}>Display Name</Text>
           <TextInput
             style={styles.input}
@@ -349,7 +352,10 @@ export default function ProfileScreen() {
           />
         </View>
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Training</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <Ionicons name="fitness-outline" size={16} color={theme.colors.primary} />
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>TRAINING &amp; PHYSIQUE</Text>
+          </View>
           <Text style={styles.inputLabel}>Training Goal</Text>
           <View style={styles.chipRow}>
             {(
@@ -686,7 +692,10 @@ export default function ProfileScreen() {
         </View>
         <AppearanceSettings />
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Data</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <Ionicons name="server-outline" size={16} color={theme.colors.primary} />
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>DATA &amp; EXPORT</Text>
+          </View>
           <Pressable style={styles.settingsRow} onPress={handleExport}>
             <View style={styles.settingsRowLeft}>
               <Ionicons name="download-outline" size={22} color={theme.colors.muted} />
@@ -704,7 +713,10 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Account</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <Ionicons name="shield-checkmark-outline" size={16} color={theme.colors.primary} />
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>ACCOUNT &amp; SYNC</Text>
+          </View>
           {!isAuthConfigured && (
             <Text style={{ color: theme.colors.muted, lineHeight: 22 }}>
               Local profile · Your training is stored on this device.

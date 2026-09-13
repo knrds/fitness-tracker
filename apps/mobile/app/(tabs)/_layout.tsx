@@ -1,55 +1,24 @@
+import { AnimatedTabBar } from '../../src/components/AnimatedTabBar';
 import { TabIcon } from '../../src/components/TabIcon';
 import { useReducedMotion } from 'react-native-reanimated';
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { useTheme, withAlpha } from '@fitness-tracker/ui';
+import { useTheme } from '@fitness-tracker/ui';
 import { View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MinimizedWorkoutBar } from '../../src/components/workout/MinimizedWorkoutBar';
 
 export default function TabLayout() {
   const theme = useTheme();
   const reducedMotion = useReducedMotion();
-  const insets = useSafeAreaInsets();
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <View style={{ flex: 1, width: '100%', maxWidth: 1040, alignSelf: 'center' }}>
         <Tabs
+          tabBar={(props) => <AnimatedTabBar {...props} />}
           screenOptions={{
             headerShown: false,
             animation: reducedMotion ? 'none' : 'shift',
-            tabBarActiveTintColor: theme.colors.primary,
-            tabBarInactiveTintColor: theme.colors.muted,
-            tabBarLabelStyle: {
-              fontFamily: 'SpaceGrotesk_700Bold',
-              fontSize: 9,
-              letterSpacing: 0.5,
-              textTransform: 'uppercase',
-              marginTop: 1,
-              lineHeight: 12,
-              flexShrink: 0,
-            },
-            tabBarIconStyle: { height: 32, justifyContent: 'center', alignItems: 'center' },
-            tabBarItemStyle: { height: 52, padding: 0, justifyContent: 'center', alignItems: 'center' },
-            tabBarLabelPosition: 'below-icon',
-            tabBarStyle: {
-              backgroundColor: theme.colors.surfaceElevated,
-              borderTopWidth: 0,
-              marginHorizontal: 16,
-              marginBottom: Math.max(insets.bottom, 12),
-              borderWidth: 1,
-              borderColor: withAlpha(theme.colors.primary, 0.25),
-              borderRadius: 36,
-              height: 64,
-              paddingTop: 6,
-              paddingBottom: 6,
-              shadowColor: theme.colors.primary,
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.22,
-              shadowRadius: 16,
-              elevation: 10,
-            },
           }}
         >
           <Tabs.Screen

@@ -13,7 +13,7 @@ export type Colorway =
 export const colorways: { id: Colorway; name: string; description: string }[] = [
   { id: 'glacier', name: 'Glacier', description: 'Cyan · kühles Graphit' },
   { id: 'amber', name: 'Amber', description: 'Bernstein · warmes Graphit' },
-  { id: 'arctic', name: 'Arctic Lab', description: 'Ice Cyan · Deep Cobalt · Performance Lab' },
+  { id: 'arctic', name: 'Arctic Lab (Light)', description: 'Clean White · Ocean Cyan · Precision Light Mode' },
   { id: 'avionics', name: 'Avionics', description: 'Electric Lime · Zinc · Monolith Void' },
   { id: 'telemetry', name: 'Telemetry', description: 'Electric Chartreuse · Mint · Midnight Navy' },
   { id: 'titanium', name: 'Titanium', description: 'Champagne Gold · Warm Charcoal · Luxury' },
@@ -70,15 +70,15 @@ const palettes: Record<
     border: '#3D3428',
   },
   arctic: {
-    background: '#0B132B',
-    surface: '#131B2E',
-    surfaceElevated: '#1C2740',
+    background: '#F8FAFC',
+    surface: '#FFFFFF',
+    surfaceElevated: '#F1F5F9',
     primary: '#0284C7',
-    secondary: '#1D4ED8',
+    secondary: '#0EA5E9',
     tertiary: '#38BDF8',
-    text: '#F8FAFC',
-    muted: '#94A3B8',
-    border: '#283856',
+    text: '#0F172A',
+    muted: '#64748B',
+    border: '#E2E8F0',
   },
   avionics: {
     background: '#0A0A0A',
@@ -158,14 +158,15 @@ export const typography: Record<string, TextStyle> = {
 };
 export function createTheme(colorway: Colorway) {
   const palette = palettes[colorway];
+  const isDark = colorway !== 'arctic';
   const colors = {
     ...palette,
     textPrimary: palette.text,
     textSecondary: palette.muted,
     textMuted: withAlpha(palette.muted, 0.82),
-    onPrimary: palette.background,
+    onPrimary: colorway === 'arctic' ? '#FFFFFF' : palette.background,
     borderActive: withAlpha(palette.primary, 0.5),
-    primarySubtle: withAlpha(palette.primary, 0.1),
+    primarySubtle: withAlpha(palette.primary, colorway === 'arctic' ? 0.12 : 0.1),
     success: '#57DFAB',
     warning: '#FFC266',
     error: '#FF6686',
@@ -173,12 +174,13 @@ export function createTheme(colorway: Colorway) {
     // Existing destructive usages retain their semantics; new code uses error.
     accent: '#FF6686',
     transparent: 'transparent',
-    overlay: 'rgba(0, 0, 0, 0.72)',
+    overlay: colorway === 'arctic' ? 'rgba(15, 23, 42, 0.65)' : 'rgba(0, 0, 0, 0.72)',
     shadow: '#000000',
     white: '#FFFFFF',
   };
   return {
     colorway,
+    isDark,
     colors,
     spacing,
     radius,

@@ -92,13 +92,14 @@ export default function CoachScreen() {
     };
   }, [messages.length, isSending]);
 
-  const handleSend = async (text: string) => {
+  const handleSend = async (text: string, mode: 'fast' | 'plan' = 'fast') => {
     if (isSending || recorder.busy || recorder.recording || (!text.trim() && !image)) return;
     setInputText('');
     const attachment = image;
     setImage(undefined);
     await sendMessage(text.trim() || 'Analysiere diesen Trainingsplan.', undefined, {
       image: attachment,
+      mode,
     });
   };
 
@@ -293,7 +294,7 @@ export default function CoachScreen() {
             image={image}
             onRemoveImage={() => setImage(undefined)}
             onPickImage={() => void pickImage()}
-            onSend={() => void handleSend(inputText)}
+            onSend={(text, mode) => void handleSend(text, mode)}
             sending={isSending}
             recording={recorder.recording}
             transcribing={recorder.busy}

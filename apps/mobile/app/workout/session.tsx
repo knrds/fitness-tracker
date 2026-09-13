@@ -1,3 +1,4 @@
+import { Theme, useThemeStyles, AnimatedDisclosure } from '@fitness-tracker/ui';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
 import { getStorageScope, isScopeCurrent } from '../../src/data/storageScope';
 import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
@@ -13,7 +14,6 @@ import {
   Animated,
   NativeSyntheticEvent,
   NativeScrollEvent,
-  useWindowDimensions,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Crypto from 'expo-crypto';
@@ -40,9 +40,9 @@ import { useTheme, useDialog, Button, Card } from '@fitness-tracker/ui';
 export default function WorkoutSessionScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
   const { showConfirm } = useDialog();
   const insets = useSafeAreaInsets();
-  const { width: viewportWidth } = useWindowDimensions();
   const {
     status,
     name,
@@ -66,9 +66,9 @@ export default function WorkoutSessionScreen() {
   const [isFinishing, setIsFinishing] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [customCaffeineMg, setCustomCaffeineMg] = useState('');
+  const [caffeineExpanded, setCaffeineExpanded] = useState(false);
 
   const sorter = useMeasuredReorder(exercises, reorderExercises);
-  const { restTimer } = useWorkoutStore();
   const {
     isEnabled: caffeineEnabled,
     currentWorkoutMg,
@@ -76,24 +76,6 @@ export default function WorkoutSessionScreen() {
     addCustomAmount,
     setCurrentWorkoutMg,
   } = useCaffeineStore();
-  const [restRemaining, setRestRemaining] = useState(0);
-
-  useEffect(() => {
-    let timer: ReturnType<typeof setInterval> | undefined;
-    const endsAt = restTimer.endsAt;
-    if (restTimer.isRunning && endsAt) {
-      const update = () => {
-        const endsAtTime = endsAt instanceof Date ? endsAt.getTime() : new Date(endsAt).getTime();
-        const rem = Math.max(0, Math.ceil((endsAtTime - Date.now()) / 1000));
-        setRestRemaining(rem);
-      };
-      update();
-      timer = setInterval(update, 500);
-    }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [restTimer.isRunning, restTimer.endsAt]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     sorter.onScroll(event);
@@ -301,9 +283,7 @@ export default function WorkoutSessionScreen() {
     setCustomCaffeineMg('');
   };
 
-  const isMobileWeb = Platform.OS === 'web' && viewportWidth <= 480;
-  const needsGenerousTopInset = isIOS || isMobileWeb;
-  const topSafeArea = needsGenerousTopInset ? Math.max(insets.top, 48) : Math.max(insets.top, 12);
+  const topSafeArea = Math.max(insets.top, 12);
   const headerBodyHeight = 68;
   const headerHeight = topSafeArea + headerBodyHeight;
 
@@ -364,8 +344,8 @@ export default function WorkoutSessionScreen() {
               <Text
                 numberOfLines={1}
                 style={[
-                  styles.standardTitle,
                   theme.typography.heading,
+                  styles.standardTitle,
                   { color: theme.colors.text },
                 ]}
               >
@@ -382,37 +362,6 @@ export default function WorkoutSessionScreen() {
                 >
                   {formatElapsed(elapsed)}
                 </Text>
-                {restTimer.isRunning && (
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      backgroundColor: 'rgba(74, 222, 128, 0.15)',
-                      borderColor: '#4ade80',
-                      borderWidth: 1,
-                      borderRadius: 6,
-                      paddingHorizontal: 6,
-                      paddingVertical: 2,
-                      marginLeft: 8,
-                    }}
-                  >
-                    <Ionicons
-                      name="timer-outline"
-                      size={14}
-                      color="#4ade80"
-                      style={{ marginRight: 3 }}
-                    />
-                    <Text
-                      style={{
-                        color: '#4ade80',
-                        fontFamily: 'SpaceGrotesk_700Bold',
-                        fontSize: 12,
-                      }}
-                    >
-                      Rest: {formatElapsed(restRemaining)}
-                    </Text>
-                  </View>
-                )}
               </View>
             </View>
           </View>
@@ -420,7 +369,7 @@ export default function WorkoutSessionScreen() {
             title="FINISH"
             variant="primary"
             onPress={handleFinish}
-            style={{ height: 40, paddingHorizontal: 16 }}
+            style={{ minHeight: 48, paddingHorizontal: 12 }}
           />
         </View>
 
@@ -464,7 +413,13 @@ export default function WorkoutSessionScreen() {
       >
         {caffeineEnabled && (
           <Card padding="md" style={styles.caffeineCard}>
-            <View style={styles.caffeineHeader}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Koffein eintragen"
+              accessibilityState={{ expanded: caffeineExpanded }}
+              onPress={() => setCaffeineExpanded((value) => !value)}
+              style={[styles.caffeineHeader, { minHeight: 44, marginBottom: 0 }]}
+            >
               <View style={styles.caffeineTitleRow}>
                 <Ionicons name="flash-outline" size={16} color={theme.colors.primary} />
                 <Text style={[styles.caffeineTitle, { color: theme.colors.text }]}>Caffeine</Text>
@@ -477,14 +432,19 @@ export default function WorkoutSessionScreen() {
                       caffeineWarningLevel === 'normal'
                         ? theme.colors.primary
                         : caffeineWarningLevel === 'high'
-                          ? '#FFB020'
+                          ? theme.colors.warning
                           : theme.colors.accent,
                   },
                 ]}
               >
                 {currentWorkoutMg} mg
               </Text>
-            </View>
+              <Ionicons
+                name={caffeineExpanded ? 'chevron-up' : 'chevron-down'}
+                size={18}
+                color={theme.colors.muted}
+              />
+            </Pressable>
             {caffeineWarningText && (
               <Text
                 style={[
@@ -498,62 +458,64 @@ export default function WorkoutSessionScreen() {
                 {caffeineWarningText}
               </Text>
             )}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.caffeinePresetRow}
-            >
-              {CAFFEINE_PRESETS.map((preset) => (
+            <AnimatedDisclosure expanded={caffeineExpanded}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.caffeinePresetRow}
+              >
+                {CAFFEINE_PRESETS.map((preset) => (
+                  <Pressable
+                    key={preset.id}
+                    style={[styles.caffeineChip, { borderColor: theme.colors.border }]}
+                    onPress={() => addPreset(preset.id)}
+                  >
+                    <Text style={[styles.caffeineChipName, { color: theme.colors.text }]}>
+                      {preset.name}
+                    </Text>
+                    <Text style={[styles.caffeineChipMeta, { color: theme.colors.muted }]}>
+                      +{preset.caffeineMg} mg
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+              <View style={styles.caffeineCustomRow}>
+                <TextInput
+                  style={[
+                    styles.caffeineInput,
+                    {
+                      color: theme.colors.text,
+                      borderColor: theme.colors.border,
+                      backgroundColor: theme.colors.background,
+                    },
+                  ]}
+                  value={customCaffeineMg}
+                  onChangeText={setCustomCaffeineMg}
+                  placeholder="mg"
+                  placeholderTextColor={theme.colors.muted}
+                  keyboardType="numeric"
+                  inputAccessoryViewID="keyboardDoneAccessory"
+                  returnKeyType="done"
+                  onSubmitEditing={handleAddCustomCaffeine}
+                />
                 <Pressable
-                  key={preset.id}
-                  style={[styles.caffeineChip, { borderColor: theme.colors.border }]}
-                  onPress={() => addPreset(preset.id)}
+                  style={[styles.caffeineSmallButton, { borderColor: theme.colors.border }]}
+                  onPress={handleAddCustomCaffeine}
                 >
-                  <Text style={[styles.caffeineChipName, { color: theme.colors.text }]}>
-                    {preset.name}
-                  </Text>
-                  <Text style={[styles.caffeineChipMeta, { color: theme.colors.muted }]}>
-                    +{preset.caffeineMg} mg
+                  <Text style={[styles.caffeineSmallButtonText, { color: theme.colors.primary }]}>
+                    Add
                   </Text>
                 </Pressable>
-              ))}
-            </ScrollView>
-            <View style={styles.caffeineCustomRow}>
-              <TextInput
-                style={[
-                  styles.caffeineInput,
-                  {
-                    color: theme.colors.text,
-                    borderColor: theme.colors.border,
-                    backgroundColor: theme.colors.background,
-                  },
-                ]}
-                value={customCaffeineMg}
-                onChangeText={setCustomCaffeineMg}
-                placeholder="mg"
-                placeholderTextColor={theme.colors.muted}
-                keyboardType="numeric"
-                inputAccessoryViewID="keyboardDoneAccessory"
-                returnKeyType="done"
-                onSubmitEditing={handleAddCustomCaffeine}
-              />
-              <Pressable
-                style={[styles.caffeineSmallButton, { borderColor: theme.colors.border }]}
-                onPress={handleAddCustomCaffeine}
-              >
-                <Text style={[styles.caffeineSmallButtonText, { color: theme.colors.primary }]}>
-                  Add
-                </Text>
-              </Pressable>
-              <Pressable
-                style={[styles.caffeineSmallButton, { borderColor: theme.colors.border }]}
-                onPress={() => setCurrentWorkoutMg(0)}
-              >
-                <Text style={[styles.caffeineSmallButtonText, { color: theme.colors.muted }]}>
-                  Clear
-                </Text>
-              </Pressable>
-            </View>
+                <Pressable
+                  style={[styles.caffeineSmallButton, { borderColor: theme.colors.border }]}
+                  onPress={() => setCurrentWorkoutMg(0)}
+                >
+                  <Text style={[styles.caffeineSmallButtonText, { color: theme.colors.muted }]}>
+                    Clear
+                  </Text>
+                </Pressable>
+              </View>
+            </AnimatedDisclosure>
           </Card>
         )}
 
@@ -627,250 +589,251 @@ export default function WorkoutSessionScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerContainer: {
-    borderBottomWidth: 1,
-    paddingHorizontal: 24,
-    paddingBottom: 8,
-    justifyContent: 'center',
-    overflow: 'visible',
-  },
-  hudRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    alignSelf: 'stretch',
-    flex: 1,
-    gap: 10,
-    minHeight: 52,
-  },
-  hudStatsGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    minWidth: 0,
-    gap: 14,
-  },
-  hudFinishButton: {
-    height: 34,
-    paddingHorizontal: 12,
-    flexShrink: 0,
-  },
-  standardHeaderContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    alignSelf: 'stretch',
-    flex: 1,
-    minHeight: 52,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    minWidth: 0,
-    paddingRight: 12,
-  },
-  headerTitleGroup: {
-    flex: 1,
-    minWidth: 0,
-  },
-  standardTitle: {
-    fontSize: 18,
-    lineHeight: 22,
-  },
-  standardElapsed: {
-    fontSize: 20,
-    lineHeight: 24,
-  },
-  title: {
-    marginBottom: 2,
-  },
-  timer: {
-    marginTop: 2,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 24,
-    paddingBottom: 100,
-  },
-  caffeineCard: {
-    marginBottom: 16,
-  },
-  caffeineHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  caffeineTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    minWidth: 0,
-    flex: 1,
-  },
-  caffeineTitle: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 14,
-    textTransform: 'uppercase',
-  },
-  caffeineAmount: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 18,
-    fontVariant: ['tabular-nums'],
-  },
-  caffeineWarning: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 12,
-    lineHeight: 16,
-    marginTop: 8,
-  },
-  caffeineTrollWarning: {
-    alignSelf: 'flex-start',
-    borderRadius: 10,
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 10,
-    overflow: 'hidden',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  caffeinePresetRow: {
-    gap: 8,
-    paddingVertical: 12,
-  },
-  caffeineChip: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    minWidth: 104,
-  },
-  caffeineChipName: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 12,
-  },
-  caffeineChipMeta: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 11,
-    marginTop: 2,
-  },
-  caffeineCustomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  caffeineInput: {
-    borderWidth: 1,
-    borderRadius: 10,
-    height: 40,
-    minWidth: 72,
-    paddingHorizontal: 12,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 16,
-    fontVariant: ['tabular-nums'],
-  },
-  caffeineSmallButton: {
-    borderWidth: 1,
-    borderRadius: 10,
-    height: 40,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  caffeineSmallButtonText: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 12,
-    textTransform: 'uppercase',
-  },
-  notesContainer: {
-    marginBottom: 24,
-  },
-  notesInput: {
-    minHeight: 60,
-    textAlignVertical: 'top',
-    fontSize: 16,
-  },
-  hudCol: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  hudText: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: 'SpaceGrotesk_700Bold',
-  },
-  hudDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  islandContainer: {
-    position: 'absolute',
-    top: isIOS ? 48 : 12,
-    alignSelf: 'center',
-    height: 38,
-    zIndex: 999999,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 10,
-    overflow: 'hidden',
-  },
-  islandContent: {
-    flex: 1,
-    paddingHorizontal: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  islandCollapsedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  islandExpandedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  islandLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  islandText: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: 'SpaceGrotesk_700Bold',
-  },
-  islandControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  islandBtn: {
-    backgroundColor: '#1C1E26',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 99,
-  },
-  islandBtnText: {
-    color: '#90D5FF',
-    fontSize: 10,
-    fontFamily: 'SpaceGrotesk_700Bold',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerContainer: {
+      borderBottomWidth: 1,
+      paddingHorizontal: 24,
+      paddingBottom: 8,
+      justifyContent: 'center',
+      overflow: 'visible',
+    },
+    hudRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      alignSelf: 'stretch',
+      flex: 1,
+      gap: 10,
+      minHeight: 52,
+    },
+    hudStatsGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      minWidth: 0,
+      gap: 14,
+    },
+    hudFinishButton: {
+      height: 34,
+      paddingHorizontal: 12,
+      flexShrink: 0,
+    },
+    standardHeaderContent: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      alignSelf: 'stretch',
+      flex: 1,
+      minHeight: 52,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      minWidth: 0,
+      paddingRight: 12,
+    },
+    headerTitleGroup: {
+      flex: 1,
+      minWidth: 0,
+    },
+    standardTitle: {
+      fontSize: 18,
+      lineHeight: 22,
+    },
+    standardElapsed: {
+      fontSize: 20,
+      lineHeight: 24,
+    },
+    title: {
+      marginBottom: 2,
+    },
+    timer: {
+      marginTop: 2,
+    },
+    content: {
+      flex: 1,
+    },
+    contentContainer: {
+      padding: 24,
+      paddingBottom: 100,
+    },
+    caffeineCard: {
+      marginBottom: 16,
+    },
+    caffeineHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    caffeineTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      minWidth: 0,
+      flex: 1,
+    },
+    caffeineTitle: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 14,
+      textTransform: 'uppercase',
+    },
+    caffeineAmount: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 18,
+      fontVariant: ['tabular-nums'],
+    },
+    caffeineWarning: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 12,
+      lineHeight: 16,
+      marginTop: 8,
+    },
+    caffeineTrollWarning: {
+      alignSelf: 'flex-start',
+      borderRadius: 10,
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 12,
+      lineHeight: 18,
+      marginTop: 10,
+      overflow: 'hidden',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    caffeinePresetRow: {
+      gap: 8,
+      paddingVertical: 12,
+    },
+    caffeineChip: {
+      borderWidth: 1,
+      borderRadius: 10,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      minWidth: 104,
+    },
+    caffeineChipName: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 12,
+    },
+    caffeineChipMeta: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 11,
+      marginTop: 2,
+    },
+    caffeineCustomRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    caffeineInput: {
+      borderWidth: 1,
+      borderRadius: 10,
+      height: 40,
+      minWidth: 72,
+      paddingHorizontal: 12,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 16,
+      fontVariant: ['tabular-nums'],
+    },
+    caffeineSmallButton: {
+      borderWidth: 1,
+      borderRadius: 10,
+      height: 40,
+      paddingHorizontal: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    caffeineSmallButtonText: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 12,
+      textTransform: 'uppercase',
+    },
+    notesContainer: {
+      marginBottom: 24,
+    },
+    notesInput: {
+      minHeight: 60,
+      textAlignVertical: 'top',
+      fontSize: 16,
+    },
+    hudCol: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    hudText: {
+      fontSize: 12,
+      lineHeight: 16,
+      fontFamily: 'SpaceGrotesk_700Bold',
+    },
+    hudDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    islandContainer: {
+      position: 'absolute',
+      top: isIOS ? 48 : 12,
+      alignSelf: 'center',
+      height: 38,
+      zIndex: 999999,
+      shadowColor: theme.colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 8,
+      elevation: 10,
+      overflow: 'hidden',
+    },
+    islandContent: {
+      flex: 1,
+      paddingHorizontal: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    islandCollapsedRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    islandExpandedRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      width: '100%',
+    },
+    islandLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    islandText: {
+      fontSize: 12,
+      lineHeight: 16,
+      fontFamily: 'SpaceGrotesk_700Bold',
+    },
+    islandControls: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    islandBtn: {
+      backgroundColor: theme.colors.surfaceElevated,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 99,
+    },
+    islandBtnText: {
+      color: theme.colors.primary,
+      fontSize: 10,
+      fontFamily: 'SpaceGrotesk_700Bold',
+    },
+  });

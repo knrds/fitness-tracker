@@ -1,3 +1,4 @@
+import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import React, { useState, useEffect } from 'react';
 import {
   Modal,
@@ -56,6 +57,7 @@ const POPULAR_EXERCISE_NAMES = [
 
 export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
   const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
   const router = useRouter();
   const { exercises } = useExerciseStore();
   const { sessions } = useHistoryStore();
@@ -178,7 +180,7 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
         style={[
           styles.exerciseRow,
           { borderColor: theme.colors.border },
-          isSelected && { backgroundColor: 'rgba(144, 213, 255, 0.08)' },
+          isSelected && { backgroundColor: theme.colors.primarySubtle },
         ]}
         onPress={() => toggleSelection(ex.id)}
       >
@@ -347,135 +349,136 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 20,
-  },
-  searchContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  searchField: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-  },
-  searchInput: {
-    flex: 1,
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 16,
-  },
-  listContent: {
-    paddingBottom: 40,
-  },
-  exerciseRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  thumbnail: {
-    width: 40,
-    height: 40,
-    borderRadius: 6,
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  actionContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  infoBtn: {
-    padding: 4,
-  },
-  exerciseTextContainer: {
-    flex: 1,
-    paddingRight: 8,
-  },
-  exerciseName: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  exerciseMeta: {
-    fontFamily: 'SpaceGrotesk_400Regular',
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  checkbox: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    borderWidth: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  filterContainer: {
-    paddingVertical: 16,
-  },
-  chipScroll: {
-    paddingHorizontal: 20,
-    gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 9999,
-    borderWidth: 1,
-  },
-  chipText: {
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 12,
-    letterSpacing: 0.5,
-  },
-  sectionHeaderText: {
-    fontFamily: 'SpaceGrotesk_400Regular',
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 8,
-  },
-  addBtnContainer: {
-    padding: 20,
-    borderTopWidth: 1,
-  },
-  addSelectedBtn: {
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addSelectedBtnText: {
-    fontSize: 16,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+    },
+    headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    title: {
+      fontSize: 20,
+    },
+    searchContainer: {
+      paddingHorizontal: 20,
+      paddingTop: 16,
+    },
+    searchField: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      height: 48,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      paddingHorizontal: 14,
+    },
+    searchInput: {
+      flex: 1,
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 16,
+    },
+    listContent: {
+      paddingBottom: 40,
+    },
+    exerciseRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+    },
+    thumbnail: {
+      width: 40,
+      height: 40,
+      borderRadius: 6,
+      marginRight: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+      overflow: 'hidden',
+    },
+    image: {
+      width: '100%',
+      height: '100%',
+    },
+    actionContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    infoBtn: {
+      padding: 4,
+    },
+    exerciseTextContainer: {
+      flex: 1,
+      paddingRight: 8,
+    },
+    exerciseName: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 16,
+      marginBottom: 4,
+    },
+    exerciseMeta: {
+      fontFamily: 'SpaceGrotesk_400Regular',
+      fontSize: 11,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    checkbox: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      borderWidth: 2,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    filterContainer: {
+      paddingVertical: 16,
+    },
+    chipScroll: {
+      paddingHorizontal: 20,
+      gap: 8,
+    },
+    chip: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 9999,
+      borderWidth: 1,
+    },
+    chipText: {
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      fontSize: 12,
+      letterSpacing: 0.5,
+    },
+    sectionHeaderText: {
+      fontFamily: 'SpaceGrotesk_400Regular',
+      fontSize: 12,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      paddingBottom: 8,
+    },
+    addBtnContainer: {
+      padding: 20,
+      borderTopWidth: 1,
+    },
+    addSelectedBtn: {
+      height: 56,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    addSelectedBtnText: {
+      fontSize: 16,
+    },
+  });

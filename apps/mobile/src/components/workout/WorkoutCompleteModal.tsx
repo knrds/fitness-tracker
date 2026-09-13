@@ -1,3 +1,4 @@
+import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import React from 'react';
 import {
   Animated,
@@ -21,7 +22,6 @@ import { useProfileStore } from '../../stores/profileStore';
 import { useWorkoutStore } from '../../stores/workoutStore';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const CONFETTI_COLORS = ['#90D5FF', '#5FBDFF', '#C5E8FF', '#FFFFFF', '#FFD700', '#FF9F43'];
 
 interface ConfettiParticle {
   id: number;
@@ -36,12 +36,16 @@ interface ConfettiParticle {
 }
 
 const SubtleConfetti = () => {
+  const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
+  const CONFETTI_COLORS = theme.chart.series;
   const particles = React.useRef<ConfettiParticle[]>(
-    Array.from({ length: 30 }).map((_, i) => ({
+    Array.from({ length: 16 }).map((_, i) => ({
       id: i,
       x: Math.random() * SCREEN_WIDTH,
       size: Math.random() * 8 + 6,
-      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)] || '#90D5FF',
+      color:
+        CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)] || theme.colors.primary,
       delay: Math.random() * 1200,
       duration: Math.random() * 1500 + 2000,
       animY: new Animated.Value(-20),
@@ -109,6 +113,7 @@ const SubtleConfetti = () => {
 export const WorkoutCompleteModal = () => {
   const reducedMotion = useReducedMotion();
   const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
   const { lastFinishedSession, clearLastFinishedSession } = useWorkoutStore();
   const { profile } = useProfileStore();
   const exerciseDefinitions = useExerciseStore((state) => state.exercises);
@@ -463,99 +468,100 @@ export const WorkoutCompleteModal = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(11, 11, 15, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  confettiParticle: {
-    position: 'absolute',
-  },
-  card: {
-    borderWidth: 1,
-    width: '100%',
-    maxWidth: 600,
-    padding: 20,
-    alignItems: 'center',
-    maxHeight: '88%',
-  },
-  contentScroll: {
-    width: '100%',
-  },
-  contentScrollInner: {
-    alignItems: 'center',
-    paddingBottom: 8,
-  },
-  iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(144, 213, 255, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  title: {
-    fontSize: 22,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 24,
-  },
-  statBox: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statVal: {
-    fontSize: 18,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 11,
-    letterSpacing: 0.5,
-  },
-  factContainer: {
-    width: '100%',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
-  },
-  factTitle: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 11,
-    letterSpacing: 1,
-    marginBottom: 8,
-  },
-  factText: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  factTextSecondary: {
-    marginTop: 10,
-  },
-  button: {
-    height: 52,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: {
-    fontSize: 15,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.colors.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+    },
+    confettiParticle: {
+      position: 'absolute',
+    },
+    card: {
+      borderWidth: 1,
+      width: '100%',
+      maxWidth: 600,
+      padding: 20,
+      alignItems: 'center',
+      maxHeight: '88%',
+    },
+    contentScroll: {
+      width: '100%',
+    },
+    contentScrollInner: {
+      alignItems: 'center',
+      paddingBottom: 8,
+    },
+    iconContainer: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: theme.colors.primarySubtle,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    title: {
+      fontSize: 22,
+      textAlign: 'center',
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 14,
+      textAlign: 'center',
+      marginBottom: 24,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      width: '100%',
+      marginBottom: 24,
+    },
+    statBox: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    statVal: {
+      fontSize: 18,
+      marginBottom: 4,
+    },
+    statLabel: {
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      fontSize: 11,
+      letterSpacing: 0.5,
+    },
+    factContainer: {
+      width: '100%',
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 8,
+    },
+    factTitle: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 11,
+      letterSpacing: 1,
+      marginBottom: 8,
+    },
+    factText: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 13,
+      lineHeight: 18,
+    },
+    factTextSecondary: {
+      marginTop: 10,
+    },
+    button: {
+      height: 52,
+      width: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    buttonText: {
+      fontSize: 15,
+    },
+  });

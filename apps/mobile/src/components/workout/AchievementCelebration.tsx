@@ -1,3 +1,4 @@
+import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { LevelEmblem } from '../LevelProgress';
 import React, { useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
@@ -17,9 +18,8 @@ import * as Haptics from 'expo-haptics';
 import { useAchievementStore } from '../../stores/achievementStore';
 import { useWorkoutStore } from '../../stores/workoutStore';
 
-const GOLD = '#FFB020';
-
 const ConfettiParticle = ({ index }: { index: number }) => {
+  const theme = useTheme();
   const startX = Math.random() * 320 - 160;
   const endX = startX + (Math.random() * 120 - 60);
   const startY = -60;
@@ -50,7 +50,7 @@ const ConfettiParticle = ({ index }: { index: number }) => {
     };
   });
 
-  const colors = ['#90D5FF', '#FFB020', '#C6FF00', '#FF3366', '#3b82f6', '#22c55e'];
+  const colors = theme.chart.series;
   const color = colors[index % colors.length];
 
   return (
@@ -71,7 +71,7 @@ const ConfettiParticle = ({ index }: { index: number }) => {
 const ConfettiRain = () => {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {Array.from({ length: 45 }).map((_, idx) => (
+      {Array.from({ length: 18 }).map((_, idx) => (
         <ConfettiParticle key={idx} index={idx} />
       ))}
     </View>
@@ -83,6 +83,7 @@ export const AchievementCelebration = () => {
   const { newlyUnlocked, levelUpTo, clearCelebrations } = useAchievementStore();
   const { lastFinishedSession } = useWorkoutStore();
   const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
 
   const isVisible = (newlyUnlocked.length > 0 || levelUpTo !== null) && !lastFinishedSession;
 
@@ -120,7 +121,7 @@ export const AchievementCelebration = () => {
                   style={[
                     styles.iconBadge,
                     {
-                      backgroundColor: 'rgba(144, 213, 255, 0.12)',
+                      backgroundColor: theme.colors.primarySubtle,
                       borderColor: theme.colors.primary,
                     },
                   ]}
@@ -160,14 +161,17 @@ export const AchievementCelebration = () => {
                       key={id}
                       style={[
                         styles.achCard,
-                        { backgroundColor: theme.colors.background, borderColor: GOLD },
+                        {
+                          backgroundColor: theme.colors.background,
+                          borderColor: theme.colors.warning,
+                        },
                       ]}
                     >
                       <View style={[styles.achIcon, { backgroundColor: 'rgba(255,176,32,0.12)' }]}>
                         <Ionicons
                           name={ach.icon as React.ComponentProps<typeof Ionicons>['name']}
                           size={28}
-                          color={GOLD}
+                          color={theme.colors.warning}
                         />
                       </View>
                       <View style={styles.achInfo}>
@@ -177,7 +181,9 @@ export const AchievementCelebration = () => {
                         <Text style={[styles.achDesc, { color: theme.colors.muted }]}>
                           {ach.description}
                         </Text>
-                        <Text style={[styles.achReward, { color: GOLD }]}>+{ach.xpReward} XP</Text>
+                        <Text style={[styles.achReward, { color: theme.colors.warning }]}>
+                          +{ach.xpReward} XP
+                        </Text>
                       </View>
                     </View>
                   );
@@ -208,106 +214,107 @@ export const AchievementCelebration = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(11, 11, 15, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  card: {
-    borderWidth: 1,
-    width: '100%',
-    maxWidth: 400,
-    maxHeight: '80%',
-    padding: 24,
-  },
-  scrollContent: {
-    alignItems: 'center',
-  },
-  levelUpContainer: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  iconBadge: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 22,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  levelValue: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 32,
-    letterSpacing: 1,
-    marginBottom: 8,
-  },
-  desc: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 14,
-    textAlign: 'center',
-    paddingHorizontal: 8,
-    lineHeight: 20,
-  },
-  divider: {
-    height: 1,
-    width: '90%',
-    marginVertical: 20,
-  },
-  achievementsContainer: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  achCard: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 12,
-    width: '100%',
-    alignItems: 'center',
-  },
-  achIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  achInfo: {
-    flex: 1,
-  },
-  achName: {
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  achDesc: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 13,
-    marginBottom: 6,
-  },
-  achReward: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 12,
-  },
-  button: {
-    height: 52,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 24,
-  },
-  buttonText: {
-    fontSize: 15,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.colors.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+    },
+    card: {
+      borderWidth: 1,
+      width: '100%',
+      maxWidth: 400,
+      maxHeight: '80%',
+      padding: 24,
+    },
+    scrollContent: {
+      alignItems: 'center',
+    },
+    levelUpContainer: {
+      alignItems: 'center',
+      paddingVertical: 8,
+    },
+    iconBadge: {
+      width: 88,
+      height: 88,
+      borderRadius: 44,
+      borderWidth: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    title: {
+      fontSize: 22,
+      textAlign: 'center',
+      marginBottom: 8,
+    },
+    levelValue: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 32,
+      letterSpacing: 1,
+      marginBottom: 8,
+    },
+    desc: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 14,
+      textAlign: 'center',
+      paddingHorizontal: 8,
+      lineHeight: 20,
+    },
+    divider: {
+      height: 1,
+      width: '90%',
+      marginVertical: 20,
+    },
+    achievementsContainer: {
+      width: '100%',
+      alignItems: 'center',
+    },
+    achCard: {
+      flexDirection: 'row',
+      borderWidth: 1,
+      borderRadius: 16,
+      padding: 16,
+      marginTop: 12,
+      width: '100%',
+      alignItems: 'center',
+    },
+    achIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 16,
+    },
+    achInfo: {
+      flex: 1,
+    },
+    achName: {
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      fontSize: 16,
+      marginBottom: 4,
+    },
+    achDesc: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 13,
+      marginBottom: 6,
+    },
+    achReward: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 12,
+    },
+    button: {
+      height: 52,
+      width: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 24,
+    },
+    buttonText: {
+      fontSize: 15,
+    },
+  });

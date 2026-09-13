@@ -113,12 +113,12 @@ export function MuscleHeatmap({
   const color = (muscle: MuscleGroup) => {
     const count = activity[muscle] || 0;
     return count === 0
-      ? '#344352'
+      ? theme.anatomy.base
       : count / maximum < 0.35
-        ? '#386D89'
+        ? theme.anatomy.heat[1]!
         : count / maximum < 0.7
-          ? '#56A9CA'
-          : '#A2E6FF';
+          ? theme.colors.secondary
+          : theme.colors.tertiary;
   };
   const wide = width > 560;
   return (
@@ -187,7 +187,12 @@ export function MuscleHeatmap({
       </View>
       <View style={styles.legend}>
         <Text style={{ color: theme.colors.muted, fontSize: 11 }}>Weniger</Text>
-        {['#344352', '#386D89', '#56A9CA', '#A2E6FF'].map((fill) => (
+        {[
+          theme.anatomy.base,
+          theme.anatomy.heat[1]!,
+          theme.colors.secondary,
+          theme.colors.tertiary,
+        ].map((fill) => (
           <View
             key={fill}
             style={{ backgroundColor: fill, width: 22, height: 5, borderRadius: 3 }}

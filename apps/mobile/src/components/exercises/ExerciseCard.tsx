@@ -1,3 +1,5 @@
+import { Theme, useTheme, useThemeStyles } from '@fitness-tracker/ui';
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
@@ -12,6 +14,8 @@ interface Props {
 }
 
 export const ExerciseCard = ({ exercise, isFavorite, onToggleFavorite }: Props) => {
+  const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
   const [loading, setLoading] = useState(true);
 
   return (
@@ -28,14 +32,13 @@ export const ExerciseCard = ({ exercise, isFavorite, onToggleFavorite }: Props) 
             />
             {loading && (
               <View style={styles.loaderContainer}>
-                <ActivityIndicator size="small" color="#3b82f6" />
+                <ActivityIndicator size="small" color={theme.colors.primary} />
               </View>
             )}
           </View>
         ) : (
           <View style={styles.placeholderContainer}>
-            <Text style={styles.placeholderIcon}>💪</Text>
-            <Text style={styles.placeholderText}>No Image Available</Text>
+            <Ionicons name="barbell-outline" size={24} color={theme.colors.muted} />
           </View>
         )}
 
@@ -45,7 +48,18 @@ export const ExerciseCard = ({ exercise, isFavorite, onToggleFavorite }: Props) 
           </Text>
           {onToggleFavorite && (
             <Pressable
-              onPress={() => onToggleFavorite(exercise.id)}
+              accessibilityRole="button"
+              accessibilityLabel={isFavorite ? 'Remove favorite' : 'Add favorite'}
+              onPress={(event) => {
+                event?.stopPropagation();
+                onToggleFavorite(exercise.id);
+              }}
+              style={{
+                minWidth: 44,
+                minHeight: 44,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
               hitSlop={10}
               testID="favorite-btn"
             >
@@ -74,92 +88,93 @@ const formatEquipmentName = (eq: string) => {
     .join(' ');
 };
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  imageContainer: {
-    width: '100%',
-    height: 160,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 12,
-    backgroundColor: '#f1f5f9',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  loaderContainer: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f1f5f9',
-  },
-  placeholderContainer: {
-    width: '100%',
-    height: 160,
-    borderRadius: 12,
-    marginBottom: 12,
-    backgroundColor: '#f1f5f9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderStyle: 'dashed',
-  },
-  placeholderIcon: {
-    fontSize: 32,
-    marginBottom: 4,
-  },
-  placeholderText: {
-    fontSize: 12,
-    color: '#94a3b8',
-    fontWeight: '600',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1e293b',
-    flex: 1,
-  },
-  favoriteIcon: {
-    fontSize: 24,
-    color: '#eab308',
-    marginLeft: 12,
-  },
-  badges: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  equipmentBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    marginRight: 6,
-    marginBottom: 6,
-    alignSelf: 'flex-start',
-  },
-  equipmentBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748b',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 12,
+      shadowColor: theme.colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    imageContainer: {
+      width: '100%',
+      height: 64,
+      borderRadius: 12,
+      overflow: 'hidden',
+      marginBottom: 12,
+      backgroundColor: theme.colors.surfaceElevated,
+    },
+    image: {
+      width: '100%',
+      height: '100%',
+    },
+    loaderContainer: {
+      ...StyleSheet.absoluteFillObject,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.surfaceElevated,
+    },
+    placeholderContainer: {
+      width: '100%',
+      height: 64,
+      borderRadius: 12,
+      marginBottom: 12,
+      backgroundColor: theme.colors.surfaceElevated,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderStyle: 'dashed',
+    },
+    placeholderIcon: {
+      fontSize: 32,
+      marginBottom: 4,
+    },
+    placeholderText: {
+      fontSize: 12,
+      color: theme.colors.muted,
+      fontWeight: '600',
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.colors.text,
+      flex: 1,
+    },
+    favoriteIcon: {
+      fontSize: 24,
+      color: theme.colors.warning,
+      marginLeft: 12,
+    },
+    badges: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    },
+    equipmentBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      backgroundColor: theme.colors.background,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      marginRight: 6,
+      marginBottom: 6,
+      alignSelf: 'flex-start',
+    },
+    equipmentBadgeText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.colors.muted,
+    },
+  });

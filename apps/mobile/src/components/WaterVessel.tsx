@@ -1,3 +1,4 @@
+import { useTheme } from '@fitness-tracker/ui';
 import React, { useEffect, useId } from 'react';
 import { View, Text } from 'react-native';
 import Svg, { Path, Defs, LinearGradient, Stop, ClipPath, Line, Ellipse } from 'react-native-svg';
@@ -10,6 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 export function WaterVessel({ progress }: { progress: number }) {
+  const theme = useTheme();
   const reduced = useReducedMotion();
   const id = 'water' + useId().replace(/[^a-zA-Z0-9]/g, '');
   const normalized = Number.isFinite(progress) ? Math.max(0, progress) : 0;
@@ -65,29 +67,29 @@ export function WaterVessel({ progress }: { progress: number }) {
       <Svg width={134} height={166} viewBox="0 0 134 166">
         <Defs>
           <LinearGradient id={id + 'glass'} x1="0%" x2="100%">
-            <Stop offset="0" stopColor="#BDEAFF" stopOpacity="0.13" />
-            <Stop offset="0.5" stopColor="#BDEAFF" stopOpacity="0.02" />
-            <Stop offset="1" stopColor="#BDEAFF" stopOpacity="0.15" />
+            <Stop offset="0" stopColor={theme.hydration.light} stopOpacity="0.13" />
+            <Stop offset="0.5" stopColor={theme.hydration.light} stopOpacity="0.02" />
+            <Stop offset="1" stopColor={theme.hydration.light} stopOpacity="0.15" />
           </LinearGradient>
           <LinearGradient id={id + 'fill'} x1="0%" y1="0%" x2="0%" y2="100%">
-            <Stop offset="0" stopColor="#67C5EC" />
-            <Stop offset="1" stopColor="#246487" />
+            <Stop offset="0" stopColor={theme.hydration.water} />
+            <Stop offset="1" stopColor={theme.hydration.deep} />
           </LinearGradient>
           <ClipPath id={id + 'clip'}>
             <Path d={outline} />
           </ClipPath>
         </Defs>
-        <Ellipse cx={67} cy={156} rx={42} ry={5} fill="#000" opacity={0.15} />
+        <Ellipse cx={67} cy={156} rx={42} ry={5} fill={theme.colors.shadow} opacity={0.15} />
         <Path
           d={outline}
           fill={'url(#' + id + 'glass)'}
-          stroke="#B8DEEE"
+          stroke={theme.hydration.glass}
           strokeOpacity={0.45}
           strokeWidth={1.5}
         />
         <AnimatedPath
           animatedProps={back}
-          fill="#A8E6FF"
+          fill={theme.hydration.light}
           fillOpacity={0.5}
           clipPath={'url(#' + id + 'clip)'}
         />
@@ -98,22 +100,38 @@ export function WaterVessel({ progress }: { progress: number }) {
         />
         <Path
           d="M 24 25 L 30 119"
-          stroke="#EAF8FF"
+          stroke={theme.hydration.reflection}
           strokeOpacity={0.28}
           strokeWidth={3}
           strokeLinecap="round"
         />
         {[42, 66, 90, 114].map((y) => (
-          <Line key={y} x1={100} x2={107} y1={y} y2={y} stroke="#D6F1FC" strokeOpacity={0.4} />
+          <Line
+            key={y}
+            x1={100}
+            x2={107}
+            y1={y}
+            y2={y}
+            stroke={theme.hydration.reflection}
+            strokeOpacity={0.4}
+          />
         ))}
-        <Ellipse cx={67} cy={16} rx={52} ry={7} fill="none" stroke="#B8DEEE" strokeOpacity={0.5} />
+        <Ellipse
+          cx={67}
+          cy={16}
+          rx={52}
+          ry={7}
+          fill="none"
+          stroke={theme.hydration.glass}
+          strokeOpacity={0.5}
+        />
       </Svg>
       <View
         style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' }}
       >
         <View
           style={{
-            backgroundColor: '#0D202DDD',
+            backgroundColor: theme.colors.background,
             borderRadius: 14,
             paddingHorizontal: 12,
             paddingVertical: 7,
@@ -121,7 +139,7 @@ export function WaterVessel({ progress }: { progress: number }) {
         >
           <Text
             style={{
-              color: '#EDF9FF',
+              color: theme.colors.text,
               fontFamily: 'SpaceGrotesk_700Bold',
               fontSize: 23,
               fontVariant: ['tabular-nums'],

@@ -1,5 +1,7 @@
+import { SegmentedControl, AnimatedDisclosure } from '@fitness-tracker/ui';
 import { useReducedMotion } from 'react-native-reanimated';
 import { MeasurementMap } from '../../src/components/MeasurementMap';
+import { VoltBackdrop } from '../../src/components/VoltBackdrop';
 import { WaterVessel } from '../../src/components/WaterVessel';
 import { parseDecimalInput } from '../../src/utils/decimalInput';
 import { useFocusScroll } from '../../src/hooks/useFocusScroll';
@@ -53,6 +55,7 @@ export default function BodyTrackingScreen() {
 
   const [activeChartTab, setActiveChartTab] = useState<'weight' | 'fat'>('weight');
   const [modalVisible, setModalVisible] = useState(false);
+  const [hydrationSettingsExpanded, setHydrationSettingsExpanded] = useState(false);
   const [activeBodyTab, setActiveBodyTab] = useState<BodyTab>(
     params.tab === 'exercises' ? 'exercises' : 'metrics',
   );
@@ -386,7 +389,7 @@ export default function BodyTrackingScreen() {
         <Text
           style={[styles.headerTitle, { color: theme.colors.text, ...theme.typography.heading }]}
         >
-          BODY
+          Body
         </Text>
         {activeBodyTab === 'metrics' && (
           <Pressable
@@ -399,46 +402,15 @@ export default function BodyTrackingScreen() {
         )}
       </View>
 
-      <View
-        style={[
-          styles.bodyTabs,
-          { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+      <SegmentedControl
+        label="Body views"
+        value={activeBodyTab}
+        onChange={setActiveBodyTab}
+        options={[
+          { value: 'metrics', label: 'Metrics' },
+          { value: 'exercises', label: 'Exercises' },
         ]}
-      >
-        {(
-          [
-            { id: 'metrics', label: 'Metrics', icon: 'pulse-outline' },
-            { id: 'exercises', label: 'Exercises', icon: 'library-outline' },
-          ] as const
-        ).map((tab) => {
-          const isActive = activeBodyTab === tab.id;
-          return (
-            <Pressable
-              key={tab.id}
-              style={[
-                styles.bodyTabButton,
-                isActive && { backgroundColor: theme.colors.background },
-              ]}
-              onPress={() => setActiveBodyTab(tab.id)}
-            >
-              <Ionicons
-                name={tab.icon}
-                size={16}
-                color={isActive ? theme.colors.primary : theme.colors.muted}
-              />
-              <Text
-                style={[
-                  styles.bodyTabText,
-                  { color: isActive ? theme.colors.primary : theme.colors.muted },
-                ]}
-              >
-                {tab.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
+      />
       {activeBodyTab === 'metrics' ? (
         <ScrollView
           ref={scrollRef}
@@ -506,7 +478,7 @@ export default function BodyTrackingScreen() {
               { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
             ]}
           >
-            QUICK ENTRY
+            Quick entry
           </Text>
           <Card padding="md" style={styles.quickEntryCard}>
             <View style={styles.quickEntryRow}>
@@ -586,9 +558,10 @@ export default function BodyTrackingScreen() {
               { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
             ]}
           >
-            DRINKING
+            Hydration
           </Text>
           <Card padding="md" style={styles.hydrationCard}>
+            <VoltBackdrop />
             <View style={styles.hydrationHeader}>
               <View>
                 <Text style={[styles.hydrationLabel, { color: theme.colors.muted }]}>TODAY</Text>
@@ -602,31 +575,10 @@ export default function BodyTrackingScreen() {
             </View>
             <WaterVessel progress={hydrationProgress} />
             <View style={styles.hydrationButtons}>
-              <Pressable
-                style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
-                onPress={resetToday}
-              >
-                <Text style={[styles.hydrationButtonText, { color: theme.colors.accent }]}>
-                  Reset
-                </Text>
-              </Pressable>
-              {[
-                { amount: 250, label: '-250 ml' },
-                { amount: 500, label: '-500 ml' },
-                { amount: 1000, label: '-1 L' },
-              ].map((item) => (
-                <Pressable
-                  key={`minus-${item.amount}`}
-                  style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
-                  onPress={() => removeWater(item.amount)}
-                >
-                  <Text style={[styles.hydrationButtonText, { color: theme.colors.muted }]}>
-                    {item.label}
-                  </Text>
-                </Pressable>
-              ))}
               {[250, 500, 1000].map((amount) => (
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${amount} Milliliter Wasser hinzufügen`}
                   key={amount}
                   style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
                   onPress={() => addWater(amount)}
@@ -637,37 +589,85 @@ export default function BodyTrackingScreen() {
                 </Pressable>
               ))}
             </View>
-            <View style={styles.goalRow}>
-              <TextInput
-                style={[
-                  styles.goalInput,
-                  {
-                    color: theme.colors.text,
-                    borderColor: theme.colors.border,
-                    backgroundColor: theme.colors.background,
-                  },
-                ]}
-                value={hydrationGoalInput}
-                onChangeText={setHydrationGoalInput}
-                keyboardType="numeric"
-                placeholder="Goal ml"
-                placeholderTextColor={theme.colors.muted}
-                onSubmitEditing={handleSaveHydrationGoal}
-                returnKeyType="done"
-                inputAccessoryViewID={KEYBOARD_DONE_ID}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Trinkziel und Korrekturen"
+              accessibilityState={{ expanded: hydrationSettingsExpanded }}
+              onPress={() => setHydrationSettingsExpanded((value) => !value)}
+              style={{
+                minHeight: 44,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+              }}
+            >
+              <Text style={{ color: theme.colors.muted }}>Trinkziel & Korrekturen</Text>
+              <Ionicons
+                name={hydrationSettingsExpanded ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color={theme.colors.muted}
               />
-              <Pressable
-                style={[styles.goalButton, { borderColor: theme.colors.border }]}
-                onPress={handleSaveHydrationGoal}
-              >
-                <Text style={[styles.goalButtonText, { color: theme.colors.primary }]}>
-                  Save Goal
-                </Text>
-              </Pressable>
-            </View>
+            </Pressable>
+            <AnimatedDisclosure expanded={hydrationSettingsExpanded}>
+              <View style={styles.hydrationButtons}>
+                {' '}
+                <Pressable
+                  style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
+                  onPress={resetToday}
+                >
+                  <Text style={[styles.hydrationButtonText, { color: theme.colors.accent }]}>
+                    Reset
+                  </Text>
+                </Pressable>
+                {[
+                  { amount: 250, label: '-250 ml' },
+                  { amount: 500, label: '-500 ml' },
+                  { amount: 1000, label: '-1 L' },
+                ].map((item) => (
+                  <Pressable
+                    key={`minus-${item.amount}`}
+                    style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
+                    onPress={() => removeWater(item.amount)}
+                  >
+                    <Text style={[styles.hydrationButtonText, { color: theme.colors.muted }]}>
+                      {item.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <View style={styles.goalRow}>
+                <TextInput
+                  style={[
+                    styles.goalInput,
+                    {
+                      color: theme.colors.text,
+                      borderColor: theme.colors.border,
+                      backgroundColor: theme.colors.background,
+                    },
+                  ]}
+                  value={hydrationGoalInput}
+                  onChangeText={setHydrationGoalInput}
+                  keyboardType="numeric"
+                  placeholder="Goal ml"
+                  placeholderTextColor={theme.colors.muted}
+                  onSubmitEditing={handleSaveHydrationGoal}
+                  returnKeyType="done"
+                  inputAccessoryViewID={KEYBOARD_DONE_ID}
+                />
+                <Pressable
+                  style={[styles.goalButton, { borderColor: theme.colors.border }]}
+                  onPress={handleSaveHydrationGoal}
+                >
+                  <Text style={[styles.goalButtonText, { color: theme.colors.primary }]}>
+                    Save Goal
+                  </Text>
+                </Pressable>
+              </View>
+            </AnimatedDisclosure>
             <View style={[styles.hydrationFactBox, { borderColor: theme.colors.border }]}>
               <Text style={[styles.hydrationFactTitle, { color: theme.colors.primary }]}>
-                💡 FUN FACT
+                Daily note
               </Text>
               <Text style={[styles.hydrationFactText, { color: theme.colors.text }]}>
                 {hydrationFact}
@@ -809,8 +809,8 @@ export default function BodyTrackingScreen() {
                               weightDelta === null
                                 ? theme.colors.muted
                                 : weightDelta <= 0
-                                  ? '#22c55e'
-                                  : '#FFB020',
+                                  ? theme.colors.success
+                                  : theme.colors.warning,
                           },
                         ]}
                       >

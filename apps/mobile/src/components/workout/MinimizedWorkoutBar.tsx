@@ -1,3 +1,4 @@
+import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -8,6 +9,7 @@ import { isIOS } from '../../utils/platform';
 
 export const MinimizedWorkoutBar = () => {
   const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
   const router = useRouter();
   const {
     status,
@@ -40,7 +42,7 @@ export const MinimizedWorkoutBar = () => {
       const endTime = pausedTime || new Date();
       return Math.max(
         0,
-        Math.floor((endTime.getTime() - startedTime.getTime() - accumulatedPauseMs) / 1000)
+        Math.floor((endTime.getTime() - startedTime.getTime() - accumulatedPauseMs) / 1000),
       );
     };
 
@@ -133,11 +135,14 @@ export const MinimizedWorkoutBar = () => {
 
       <View style={styles.rightCol}>
         {restTimer.isRunning && restRemaining > 0 && (
-          <View style={[styles.restBadge, { backgroundColor: 'rgba(74, 222, 128, 0.15)', borderColor: '#4ade80' }]}>
-            <Ionicons name="timer-outline" size={12} color="#4ade80" />
-            <Text style={styles.restText}>
-              Rest: {formatElapsed(restRemaining)}
-            </Text>
+          <View
+            style={[
+              styles.restBadge,
+              { backgroundColor: 'rgba(74, 222, 128, 0.15)', borderColor: theme.colors.success },
+            ]}
+          >
+            <Ionicons name="timer-outline" size={12} color={theme.colors.success} />
+            <Text style={styles.restText}>Rest: {formatElapsed(restRemaining)}</Text>
           </View>
         )}
 
@@ -160,68 +165,69 @@ export const MinimizedWorkoutBar = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  barContainer: {
-    position: 'absolute',
-    left: 12,
-    right: 12,
-    height: 56,
-    borderRadius: 12,
-    borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-    zIndex: 9999,
-  },
-  leftCol: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: 12,
-  },
-  textContainer: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  titleText: {
-    fontSize: 14,
-    fontFamily: 'SpaceGrotesk_700Bold',
-  },
-  durationText: {
-    fontSize: 12,
-    fontFamily: 'Manrope_600SemiBold',
-    marginTop: 1,
-  },
-  rightCol: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  restBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  restText: {
-    color: '#4ade80',
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 11,
-  },
-  actionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    barContainer: {
+      position: 'absolute',
+      left: 12,
+      right: 12,
+      height: 56,
+      borderRadius: 12,
+      borderWidth: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+      elevation: 8,
+      zIndex: 9999,
+    },
+    leftCol: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: 12,
+    },
+    textContainer: {
+      marginLeft: 12,
+      flex: 1,
+    },
+    titleText: {
+      fontSize: 14,
+      fontFamily: 'SpaceGrotesk_700Bold',
+    },
+    durationText: {
+      fontSize: 12,
+      fontFamily: 'Manrope_600SemiBold',
+      marginTop: 1,
+    },
+    rightCol: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    restBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    restText: {
+      color: theme.colors.success,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 11,
+    },
+    actionButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  });

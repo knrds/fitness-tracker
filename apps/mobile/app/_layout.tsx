@@ -13,7 +13,12 @@ import * as SplashScreen from 'expo-splash-screen';
 import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ThemeProvider, useTheme, DialogProvider } from '@fitness-tracker/ui';
+import {
+  ThemeProvider,
+  useTheme,
+  DialogProvider,
+  theme as defaultTheme,
+} from '@fitness-tracker/ui';
 
 import { AchievementCelebration } from '../src/components/workout/AchievementCelebration';
 import { WorkoutCompleteModal } from '../src/components/workout/WorkoutCompleteModal';
@@ -23,6 +28,7 @@ import { useWorkoutStore } from '../src/stores/workoutStore';
 import { getResumeWorkoutDecision } from '../src/utils/resumeWorkoutGuard';
 import { inspectStartupState } from '../src/utils/startup-recovery';
 import { PersistenceGate } from '../src/components/PersistenceGate';
+import { useProfileStore } from '../src/stores/profileStore';
 
 if (Platform.OS !== 'web') {
   SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -240,7 +246,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ThemeProvider>
+        <AppTheme>
           <DialogProvider key={dialogScope}>
             {Platform.OS === 'web' && (
               <style
@@ -272,20 +278,25 @@ export default function RootLayout() {
               <RootNavigator />
             </PersistenceGate>
           </DialogProvider>
-        </ThemeProvider>
+        </AppTheme>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
 
+function AppTheme({ children }: { children: React.ReactNode }) {
+  const colorway = useProfileStore((state) => state.profile.colorway ?? 'glacier');
+  return <ThemeProvider colorway={colorway}>{children}</ThemeProvider>;
+}
+
 const styles = StyleSheet.create({
   bootScreen: {
     flex: 1,
-    backgroundColor: '#0B0B0F',
+    backgroundColor: defaultTheme.colors.background,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(11, 11, 15, 0.85)',
+    backgroundColor: defaultTheme.colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,

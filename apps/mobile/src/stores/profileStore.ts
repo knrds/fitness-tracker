@@ -40,6 +40,7 @@ function snapshotStore<T extends object>(store: {
 
 export interface Profile {
   displayName: string;
+  colorway?: 'glacier' | 'amber';
   fitnessGoal?: FitnessGoal;
   experienceLevel?: ExperienceLevel;
   preferredUnits: UnitSystem;
@@ -90,6 +91,7 @@ const defaultProfile: Profile = {
 
 const profileStateSchema = z.object({
   displayName: z.string(),
+  colorway: z.enum(['glacier', 'amber']).optional(),
   fitnessGoal: FitnessGoalSchema.optional(),
   experienceLevel: ExperienceLevelSchema.optional(),
   preferredUnits: UnitSystemSchema,

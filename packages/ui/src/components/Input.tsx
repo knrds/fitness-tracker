@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, TextInput, TextInputProps, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../ThemeProvider';
 
@@ -19,8 +19,13 @@ export const Input: React.FC<InputProps> = ({
   ...props
 }) => {
   const theme = useTheme();
+  const [focused, setFocused] = useState(false);
 
-  const borderColor = error ? theme.colors.accent : theme.colors.border;
+  const borderColor = error
+    ? theme.colors.error
+    : focused
+      ? theme.colors.borderActive
+      : theme.colors.border;
   const isMultiline = multiline === true;
 
   return (
@@ -45,6 +50,15 @@ export const Input: React.FC<InputProps> = ({
         ]}
         placeholderTextColor={theme.colors.muted}
         {...props}
+        accessibilityLabel={props.accessibilityLabel ?? label}
+        onFocus={(event) => {
+          setFocused(true);
+          props.onFocus?.(event);
+        }}
+        onBlur={(event) => {
+          setFocused(false);
+          props.onBlur?.(event);
+        }}
         multiline={multiline}
         returnKeyType={returnKeyType ?? (isMultiline ? 'default' : 'done')}
         blurOnSubmit={blurOnSubmit ?? !isMultiline}
@@ -75,7 +89,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    height: 56,
+    minHeight: 48,
+    paddingVertical: 12,
+    minWidth: 0,
     borderWidth: 1,
     paddingHorizontal: 16,
   },

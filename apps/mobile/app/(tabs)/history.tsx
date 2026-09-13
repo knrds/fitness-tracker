@@ -1,3 +1,5 @@
+import { SegmentedControl } from '@fitness-tracker/ui';
+import { Theme, useThemeStyles, withAlpha } from '@fitness-tracker/ui';
 import { useReducedMotion } from 'react-native-reanimated';
 import { useFocusScroll } from '../../src/hooks/useFocusScroll';
 import React, { useState } from 'react';
@@ -46,6 +48,7 @@ import { VerticalFadeScroll } from '../../src/components/VerticalFadeScroll';
 export default function HistoryScreen() {
   const [activeTab, setActiveTab] = useState<'history' | 'progress' | 'achievements'>('history');
   const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
   const insets = useSafeAreaInsets();
 
   return (
@@ -59,37 +62,19 @@ export default function HistoryScreen() {
         <Text
           style={[styles.headerTitle, { color: theme.colors.text, ...theme.typography.heading }]}
         >
-          ACTIVITY
+          Activity
         </Text>
       </View>
-      <View style={styles.toggleContainer}>
-        {(['history', 'progress', 'achievements'] as const).map((tab) => (
-          <Pressable
-            key={tab}
-            style={[
-              styles.toggleBtn,
-              activeTab === tab && {
-                borderBottomColor: theme.colors.primary,
-                borderBottomWidth: 2,
-              },
-            ]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text
-              style={[
-                styles.toggleText,
-                {
-                  color: activeTab === tab ? theme.colors.primary : theme.colors.muted,
-                  ...theme.typography.caption,
-                },
-              ]}
-            >
-              {tab.toUpperCase()}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
+      <SegmentedControl
+        label="Activity views"
+        value={activeTab}
+        onChange={setActiveTab}
+        options={[
+          { value: 'history', label: 'History' },
+          { value: 'progress', label: 'Progress' },
+          { value: 'achievements', label: 'Achievements' },
+        ]}
+      />
       {activeTab === 'history' ? (
         <HistoryView />
       ) : activeTab === 'progress' ? (
@@ -105,6 +90,7 @@ function HistoryView() {
   const scrollRef = useFocusScroll<FlatList<WorkoutSession>>();
   const router = useRouter();
   const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
   const insets = useSafeAreaInsets();
   const { exercises: allExercises } = useExerciseStore();
   const profile = useProfileStore((state) => state.profile);
@@ -285,7 +271,7 @@ function HistoryView() {
                     styles.summarySetRow,
                     {
                       backgroundColor:
-                        set.type === 'warmup' ? 'rgba(144, 213, 255, 0.08)' : 'transparent',
+                        set.type === 'warmup' ? theme.colors.primarySubtle : 'transparent',
                     },
                   ]}
                 >
@@ -473,8 +459,9 @@ function HistoryView() {
             styles.consistencyDay,
             { borderColor: isToday ? theme.colors.primary : theme.colors.border },
             count > 0 && {
-              backgroundColor: count > 1 ? '#29506A' : '#1C3547',
-              borderColor: '#518BA8',
+              backgroundColor:
+                count > 1 ? theme.colors.primarySubtle : theme.colors.surfaceElevated,
+              borderColor: theme.colors.borderActive,
             },
           ]}
           disabled={count === 0}
@@ -499,8 +486,7 @@ function HistoryView() {
                 style={[
                   styles.consistencyBlock,
                   {
-                    backgroundColor:
-                      blockIndex < 3 ? theme.colors.primary : 'rgba(144, 213, 255, 0.55)',
+                    backgroundColor: blockIndex < 3 ? theme.colors.primary : theme.colors.secondary,
                   },
                 ]}
               />
@@ -839,6 +825,7 @@ function ProgressView() {
   const reducedMotion = useReducedMotion();
   const scrollRef = useFocusScroll();
   const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
   const insets = useSafeAreaInsets();
   const historyStore = useHistoryStore();
   const { exercises } = useExerciseStore();
@@ -1086,20 +1073,20 @@ function ProgressView() {
               styles.tooltipContainer,
               {
                 backgroundColor: theme.colors.background,
-                borderColor: selectedPoint.isPR ? '#FFB020' : theme.colors.primary,
+                borderColor: selectedPoint.isPR ? theme.colors.warning : theme.colors.primary,
               },
             ]}
           >
             <Ionicons
               name={selectedPoint.isPR ? 'star' : 'stats-chart'}
               size={16}
-              color={selectedPoint.isPR ? '#FFB020' : theme.colors.primary}
+              color={selectedPoint.isPR ? theme.colors.warning : theme.colors.primary}
             />
             <Text style={[styles.tooltipText, { color: theme.colors.text, fontSize: 11 }]}>
               <Text style={{ fontFamily: 'SpaceGrotesk_700Bold' }}>{selectedPoint.date}</Text>: Max:{' '}
               <Text
                 style={{
-                  color: selectedPoint.isPR ? '#FFB020' : theme.colors.primary,
+                  color: selectedPoint.isPR ? theme.colors.warning : theme.colors.primary,
                   fontFamily: 'SpaceGrotesk_700Bold',
                 }}
               >
@@ -1119,7 +1106,7 @@ function ProgressView() {
                 </>
               )}
               {selectedPoint.isPR && (
-                <Text style={{ color: '#FFB020', fontFamily: 'SpaceGrotesk_700Bold' }}>
+                <Text style={{ color: theme.colors.warning, fontFamily: 'SpaceGrotesk_700Bold' }}>
                   {' '}
                   (★ Weight PR)
                 </Text>
@@ -1159,14 +1146,14 @@ function ProgressView() {
             }}
             getDotColor={(dataPoint, dataPointIndex) => {
               const point = history[dataPointIndex];
-              return point?.isWeightPR ? '#FFB020' : theme.colors.primary;
+              return point?.isWeightPR ? theme.colors.warning : theme.colors.primary;
             }}
             chartConfig={{
               backgroundColor: theme.colors.surface,
               backgroundGradientFrom: theme.colors.surface,
               backgroundGradientTo: theme.colors.surface,
               decimalPlaces: 0,
-              color: (opacity = 1) => `rgba(144, 213, 255, ${opacity})`,
+              color: (opacity = 1) => withAlpha(theme.chart.line, opacity),
               labelColor: () => theme.colors.muted,
               propsForDots: { r: '6', strokeWidth: '2.5', stroke: theme.colors.surface },
             }}
@@ -1234,7 +1221,7 @@ function ProgressView() {
               style={[
                 styles.favoriteToggleBtn,
                 {
-                  backgroundColor: showOnlyFavorites ? '#FFB020' : theme.colors.surface,
+                  backgroundColor: showOnlyFavorites ? theme.colors.warning : theme.colors.surface,
                   borderColor: theme.colors.border,
                 },
               ]}
@@ -1415,11 +1402,10 @@ function ProgressView() {
   );
 }
 
-const GOLD = '#FFB020';
-
 function AchievementBadge({ kind }: { kind: 'one_time' | 'repeatable' }) {
   const theme = useTheme();
-  const color = kind === 'repeatable' ? GOLD : theme.colors.muted;
+  const styles = useThemeStyles(createStyles);
+  const color = kind === 'repeatable' ? theme.colors.warning : theme.colors.muted;
   return (
     <View style={[styles.kindBadge, { borderColor: color }]}>
       <Ionicons name={kind === 'repeatable' ? 'repeat' : 'flag-outline'} size={10} color={color} />
@@ -1433,6 +1419,7 @@ function AchievementBadge({ kind }: { kind: 'one_time' | 'repeatable' }) {
 function AchievementsView() {
   const scrollRef = useFocusScroll();
   const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
   const insets = useSafeAreaInsets();
   const { xp, level, unlockedAchievements, repeatCounts } = useAchievementStore();
   const { getProgress } = useAchievementCheck();
@@ -1466,7 +1453,7 @@ function AchievementsView() {
             key={ach.id}
             style={[
               styles.achCard,
-              earned ? { borderColor: GOLD, borderWidth: 1 } : { opacity: 0.6 },
+              earned ? { borderColor: theme.colors.warning, borderWidth: 1 } : { opacity: 0.6 },
             ]}
             padding="md"
           >
@@ -1475,7 +1462,7 @@ function AchievementsView() {
                 <Ionicons
                   name={ach.icon as React.ComponentProps<typeof Ionicons>['name']}
                   size={24}
-                  color={earned ? GOLD : theme.colors.muted}
+                  color={earned ? theme.colors.warning : theme.colors.muted}
                 />
               </View>
               <View style={styles.achInfo}>
@@ -1503,7 +1490,7 @@ function AchievementsView() {
                 accessibilityLabel={`${count} Mal absolviert`}
                 style={[
                   styles.achCount,
-                  { color: earned ? GOLD : theme.colors.muted, fontSize: 12 },
+                  { color: earned ? theme.colors.warning : theme.colors.muted, fontSize: 12 },
                 ]}
               >
                 {count}× absolviert
@@ -1587,7 +1574,7 @@ function AchievementsView() {
           {lockedList.map((ach) => {
             const prog = getProgress(ach.id);
             return (
-              <Card key={ach.id} style={[styles.achCard, { opacity: 0.6 }]} padding="md">
+              <Card key={ach.id} style={styles.achCard} padding="md">
                 <View style={styles.achRow}>
                   <View
                     style={[styles.achIconContainer, { backgroundColor: theme.colors.surface }]}
@@ -1653,543 +1640,544 @@ function AchievementsView() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-  },
-  headerTitle: {},
-  toggleContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 24,
-    marginBottom: 16,
-  },
-  toggleBtn: {
-    marginRight: 24,
-    paddingVertical: 8,
-  },
-  toggleText: {},
-  list: { paddingHorizontal: 24, paddingBottom: 40 },
-  card: {
-    marginBottom: 16,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  title: { flex: 1, marginRight: 8 },
-  date: {},
-  stats: { flexDirection: 'row', gap: 24 },
-  statItem: { alignItems: 'flex-start' },
-  statValue: { marginBottom: 2 },
-  statLabel: {},
-  content: { paddingHorizontal: 24, paddingBottom: 40 },
-  sectionTitle: { marginBottom: 16 },
-  chipScroll: { marginBottom: 24 },
-  chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8 },
-  chipText: {},
-  prHighlight: {
-    alignItems: 'flex-start',
-    marginBottom: 24,
-  },
-  prHighlightLabel: { marginBottom: 8 },
-  prHighlightValue: {},
-  chartContainer: {
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  chartTitle: { alignSelf: 'flex-start', marginBottom: 16 },
-  levelCard: {
-    marginBottom: 32,
-  },
-  levelHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
-  },
-  levelTitle: {
-    flexShrink: 1,
-  },
-  xpText: {
-    flexShrink: 0,
-  },
-  progressBarBg: {
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 12,
-  },
-  progressBarFill: {
-    height: '100%',
-  },
-  xpSub: {},
-  achCard: {
-    marginBottom: 12,
-  },
-  achRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  achIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  achInfo: {
-    flex: 1,
-  },
-  achNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 4,
-  },
-  achName: {
-    marginBottom: 4,
-  },
-  achCount: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 18,
-    marginLeft: 8,
-    fontVariant: ['tabular-nums'],
-  },
-  kindBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    borderWidth: 1,
-    borderRadius: 9999,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  kindBadgeText: {
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 9,
-    letterSpacing: 0.5,
-  },
-  achDesc: {
-    marginBottom: 6,
-  },
-  achProgressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  achProgressBarBg: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  achProgressBarFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  achProgressText: {},
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(11, 11, 15, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalCard: {
-    borderWidth: 1,
-    padding: 24,
-    width: '100%',
-    maxWidth: 380,
-    maxHeight: '88%',
-    borderRadius: 16,
-  },
-  modalTitleBlock: {
-    flex: 1,
-  },
-  modalHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    width: '100%',
-  },
-  modalTitle: {
-    fontSize: 20,
-    flexShrink: 1,
-    marginRight: 12,
-  },
-  modalSummaryStatsRow: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 20,
-    width: '100%',
-  },
-  modalStatItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  modalStatText: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 13,
-  },
-  summaryExerciseList: {
-    maxHeight: 380,
-    flexShrink: 1,
-    width: '100%',
-    marginBottom: 12,
-  },
-  summaryExerciseListContent: {
-    gap: 10,
-    paddingBottom: 2,
-  },
-  summaryExerciseCard: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 10,
-    width: '100%',
-  },
-  summaryExerciseHeader: {
-    marginBottom: 8,
-  },
-  summaryExRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    width: '100%',
-  },
-  summaryExName: {
-    fontSize: 14,
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    flex: 1,
-    marginRight: 12,
-  },
-  summaryExDetails: {
-    fontSize: 11,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    marginTop: 3,
-  },
-  summarySetRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    gap: 10,
-  },
-  summarySetBadge: {
-    width: 34,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 11,
-    fontVariant: ['tabular-nums'],
-  },
-  summarySetText: {
-    flex: 1,
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  summaryEmptySets: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  modalStartBtn: {
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  modalStartBtnText: {
-    fontSize: 15,
-  },
-  tooltipContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 8,
-    marginTop: 8,
-    marginBottom: 4,
-    width: '90%',
-  },
-  tooltipText: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 13,
-    flex: 1,
-  },
-  chartTipText: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 11,
-    marginTop: 6,
-    marginBottom: 4,
-    fontStyle: 'italic',
-    textAlign: 'center',
-  },
-  consistencyCard: {
-    marginTop: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  consistencyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
-  },
-  consistencyTitle: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  consistencyToggle: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  consistencyToggleBtn: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  consistencyToggleText: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 10,
-    letterSpacing: 0.5,
-  },
-  calendarRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
-  },
-  weekdayHeader: {
-    flex: 1,
-    textAlign: 'center',
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 10,
-  },
-  consistencyDayPlaceholder: {
-    flex: 1,
-    minHeight: 68,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    backgroundColor: 'transparent',
-  },
-  consistencyDay: {
-    flex: 1,
-    minHeight: 68,
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 6,
-    alignItems: 'center',
-  },
-  consistencyDayLabel: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 10,
-    marginBottom: 6,
-  },
-  consistencyBlocks: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    gap: 3,
-    minHeight: 28,
-  },
-  consistencyBlock: {
-    width: 18,
-    height: 5,
-    borderRadius: 3,
-  },
-  consistencyCount: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 11,
-    minHeight: 14,
-    marginTop: 4,
-  },
-  consistencyHint: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 11,
-    lineHeight: 15,
-    marginTop: 10,
-  },
-  modalIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(144, 213, 255, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    alignSelf: 'center',
-  },
-  modalSubtitle: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  modalSubtitleSmall: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 13,
-    marginTop: 4,
-  },
-  modalStatsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 16,
-  },
-  modalStatBox: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  modalStatVal: {
-    fontSize: 18,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    marginBottom: 4,
-  },
-  modalStatLabel: {
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 11,
-    letterSpacing: 0.5,
-  },
-  modalFactContainer: {
-    width: '100%',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 10,
-    marginBottom: 12,
-  },
-  modalFactTitle: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 11,
-    letterSpacing: 1,
-    marginBottom: 8,
-  },
-  modalFactText: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  modalCloseBtn: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    zIndex: 10,
-  },
-  daySessionList: {
-    width: '100%',
-    maxHeight: 360,
-  },
-  daySessionListContent: {
-    gap: 10,
-  },
-  daySessionRow: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-  },
-  daySessionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
-  },
-  daySessionTitle: {
-    flex: 1,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 15,
-  },
-  daySessionExercises: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 12,
-    lineHeight: 17,
-    marginBottom: 8,
-  },
-  daySessionMeta: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 12,
-  },
-  searchBarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 16,
-    width: '100%',
-  },
-  searchBar: {
-    flex: 1,
-    height: 44,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 14,
-  },
-  favoriteToggleBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  progressionDetailsCard: {
-    marginTop: 24,
-    marginBottom: 16,
-    width: '100%',
-  },
-  detailsSectionTitle: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 14,
-    letterSpacing: 0.5,
-    marginBottom: 16,
-    textTransform: 'uppercase',
-  },
-  detailsGrid: {
-    flexDirection: 'column',
-    width: '100%',
-  },
-  detailsRow: {
-    flexDirection: 'column',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    width: '100%',
-  },
-  detailsRowSideBySide: {
-    flexDirection: 'row',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    width: '100%',
-  },
-  detailHalf: {
-    flex: 1,
-  },
-  detailLabel: {
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 11,
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  detailVal: {
-    fontFamily: 'Manrope_600SemiBold',
-    fontSize: 14,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: { flex: 1 },
+    header: {
+      paddingHorizontal: 24,
+      paddingBottom: 16,
+    },
+    headerTitle: {},
+    toggleContainer: {
+      flexDirection: 'row',
+      paddingHorizontal: 24,
+      marginBottom: 16,
+    },
+    toggleBtn: {
+      marginRight: 24,
+      paddingVertical: 8,
+    },
+    toggleText: {},
+    list: { paddingHorizontal: 24, paddingBottom: 40 },
+    card: {
+      marginBottom: 16,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 16,
+    },
+    title: { flex: 1, marginRight: 8 },
+    date: {},
+    stats: { flexDirection: 'row', gap: 24 },
+    statItem: { alignItems: 'flex-start' },
+    statValue: { marginBottom: 2 },
+    statLabel: {},
+    content: { paddingHorizontal: 24, paddingBottom: 40 },
+    sectionTitle: { marginBottom: 16 },
+    chipScroll: { marginBottom: 24 },
+    chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8 },
+    chipText: {},
+    prHighlight: {
+      alignItems: 'flex-start',
+      marginBottom: 24,
+    },
+    prHighlightLabel: { marginBottom: 8 },
+    prHighlightValue: {},
+    chartContainer: {
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      alignItems: 'center',
+      overflow: 'hidden',
+    },
+    chartTitle: { alignSelf: 'flex-start', marginBottom: 16 },
+    levelCard: {
+      marginBottom: 32,
+    },
+    levelHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+      gap: 8,
+    },
+    levelTitle: {
+      flexShrink: 1,
+    },
+    xpText: {
+      flexShrink: 0,
+    },
+    progressBarBg: {
+      height: 8,
+      borderRadius: 4,
+      overflow: 'hidden',
+      marginBottom: 12,
+    },
+    progressBarFill: {
+      height: '100%',
+    },
+    xpSub: {},
+    achCard: {
+      marginBottom: 12,
+    },
+    achRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    achIconContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 16,
+    },
+    achInfo: {
+      flex: 1,
+    },
+    achNameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 4,
+    },
+    achName: {
+      marginBottom: 4,
+    },
+    achCount: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 18,
+      marginLeft: 8,
+      fontVariant: ['tabular-nums'],
+    },
+    kindBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      borderWidth: 1,
+      borderRadius: 9999,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    kindBadgeText: {
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      fontSize: 9,
+      letterSpacing: 0.5,
+    },
+    achDesc: {
+      marginBottom: 6,
+    },
+    achProgressRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    achProgressBarBg: {
+      flex: 1,
+      height: 4,
+      borderRadius: 2,
+      overflow: 'hidden',
+    },
+    achProgressBarFill: {
+      height: '100%',
+      borderRadius: 2,
+    },
+    achProgressText: {},
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.colors.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+    },
+    modalCard: {
+      borderWidth: 1,
+      padding: 24,
+      width: '100%',
+      maxWidth: 380,
+      maxHeight: '88%',
+      borderRadius: 16,
+    },
+    modalTitleBlock: {
+      flex: 1,
+    },
+    modalHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+      width: '100%',
+    },
+    modalTitle: {
+      fontSize: 20,
+      flexShrink: 1,
+      marginRight: 12,
+    },
+    modalSummaryStatsRow: {
+      flexDirection: 'row',
+      gap: 16,
+      marginBottom: 20,
+      width: '100%',
+    },
+    modalStatItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    modalStatText: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 13,
+    },
+    summaryExerciseList: {
+      maxHeight: 380,
+      flexShrink: 1,
+      width: '100%',
+      marginBottom: 12,
+    },
+    summaryExerciseListContent: {
+      gap: 10,
+      paddingBottom: 2,
+    },
+    summaryExerciseCard: {
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 10,
+      width: '100%',
+    },
+    summaryExerciseHeader: {
+      marginBottom: 8,
+    },
+    summaryExRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      width: '100%',
+    },
+    summaryExName: {
+      fontSize: 14,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      flex: 1,
+      marginRight: 12,
+    },
+    summaryExDetails: {
+      fontSize: 11,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      marginTop: 3,
+    },
+    summarySetRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      gap: 10,
+    },
+    summarySetBadge: {
+      width: 34,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 11,
+      fontVariant: ['tabular-nums'],
+    },
+    summarySetText: {
+      flex: 1,
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 12,
+      lineHeight: 16,
+    },
+    summaryEmptySets: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 12,
+      lineHeight: 16,
+    },
+    modalStartBtn: {
+      height: 52,
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+    },
+    modalStartBtnText: {
+      fontSize: 15,
+    },
+    tooltipContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      gap: 8,
+      marginTop: 8,
+      marginBottom: 4,
+      width: '90%',
+    },
+    tooltipText: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 13,
+      flex: 1,
+    },
+    chartTipText: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 11,
+      marginTop: 6,
+      marginBottom: 4,
+      fontStyle: 'italic',
+      textAlign: 'center',
+    },
+    consistencyCard: {
+      marginTop: 12,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    consistencyHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 12,
+    },
+    consistencyTitle: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 11,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    consistencyToggle: {
+      flexDirection: 'row',
+      borderWidth: 1,
+      borderRadius: 999,
+      overflow: 'hidden',
+    },
+    consistencyToggleBtn: {
+      minHeight: 44,
+      justifyContent: 'center',
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+    },
+    consistencyToggleText: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 10,
+      letterSpacing: 0.5,
+    },
+    calendarRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginBottom: 8,
+    },
+    weekdayHeader: {
+      flex: 1,
+      textAlign: 'center',
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 10,
+    },
+    consistencyDayPlaceholder: {
+      flex: 1,
+      minHeight: 68,
+      borderWidth: 1,
+      borderColor: 'transparent',
+      backgroundColor: 'transparent',
+    },
+    consistencyDay: {
+      flex: 1,
+      minHeight: 68,
+      borderWidth: 1,
+      borderRadius: 10,
+      padding: 6,
+      alignItems: 'center',
+    },
+    consistencyDayLabel: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 10,
+      marginBottom: 6,
+    },
+    consistencyBlocks: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      gap: 3,
+      minHeight: 28,
+    },
+    consistencyBlock: {
+      width: 18,
+      height: 5,
+      borderRadius: 3,
+    },
+    consistencyCount: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 11,
+      minHeight: 14,
+      marginTop: 4,
+    },
+    consistencyHint: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 11,
+      lineHeight: 15,
+      marginTop: 10,
+    },
+    modalIconContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: theme.colors.primarySubtle,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 16,
+      alignSelf: 'center',
+    },
+    modalSubtitle: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 14,
+      textAlign: 'center',
+      marginBottom: 12,
+    },
+    modalSubtitleSmall: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 13,
+      marginTop: 4,
+    },
+    modalStatsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      width: '100%',
+      marginBottom: 16,
+    },
+    modalStatBox: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    modalStatVal: {
+      fontSize: 18,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      marginBottom: 4,
+    },
+    modalStatLabel: {
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      fontSize: 11,
+      letterSpacing: 0.5,
+    },
+    modalFactContainer: {
+      width: '100%',
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 10,
+      marginBottom: 12,
+    },
+    modalFactTitle: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 11,
+      letterSpacing: 1,
+      marginBottom: 8,
+    },
+    modalFactText: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 13,
+      lineHeight: 18,
+    },
+    modalCloseBtn: {
+      position: 'absolute',
+      top: 16,
+      right: 16,
+      zIndex: 10,
+    },
+    daySessionList: {
+      width: '100%',
+      maxHeight: 360,
+    },
+    daySessionListContent: {
+      gap: 10,
+    },
+    daySessionRow: {
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 12,
+    },
+    daySessionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 6,
+    },
+    daySessionTitle: {
+      flex: 1,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 15,
+    },
+    daySessionExercises: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 12,
+      lineHeight: 17,
+      marginBottom: 8,
+    },
+    daySessionMeta: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 12,
+    },
+    searchBarContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 16,
+      width: '100%',
+    },
+    searchBar: {
+      flex: 1,
+      height: 44,
+      borderRadius: 12,
+      borderWidth: 1,
+      paddingHorizontal: 16,
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 14,
+    },
+    favoriteToggleBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      borderWidth: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    progressionDetailsCard: {
+      marginTop: 24,
+      marginBottom: 16,
+      width: '100%',
+    },
+    detailsSectionTitle: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 14,
+      letterSpacing: 0.5,
+      marginBottom: 16,
+      textTransform: 'uppercase',
+    },
+    detailsGrid: {
+      flexDirection: 'column',
+      width: '100%',
+    },
+    detailsRow: {
+      flexDirection: 'column',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      width: '100%',
+    },
+    detailsRowSideBySide: {
+      flexDirection: 'row',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      width: '100%',
+    },
+    detailHalf: {
+      flex: 1,
+    },
+    detailLabel: {
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      fontSize: 11,
+      textTransform: 'uppercase',
+      marginBottom: 4,
+    },
+    detailVal: {
+      fontFamily: 'Manrope_600SemiBold',
+      fontSize: 14,
+    },
+  });

@@ -48,7 +48,7 @@ export const SyncIndicator: React.FC = () => {
   });
 
   let iconName: keyof typeof Ionicons.glyphMap = 'cloud-done-outline';
-  let iconColor = '#4CD964'; // Vibrant iOS green
+  let iconColor = theme.colors.success; // Vibrant iOS green
 
   if (!isOnline) {
     iconName = 'cloud-offline-outline';
@@ -58,7 +58,7 @@ export const SyncIndicator: React.FC = () => {
     iconColor = theme.colors.primary;
   } else if (syncError) {
     iconName = 'alert-circle-outline';
-    iconColor = '#FFB020'; // Warm warning orange
+    iconColor = theme.colors.warning; // Warm warning orange
   } else if (queue.length > 0) {
     iconName = 'cloud-upload-outline';
     iconColor = theme.colors.primary;

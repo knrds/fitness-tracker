@@ -1,3 +1,4 @@
+import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { scopedAlert as Alert } from '../../utils/scopedAlert';
 import React, { useState, useEffect } from 'react';
 import {
@@ -32,6 +33,7 @@ export const SaveTemplateModal = ({
   onUpdate,
 }: Props) => {
   const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
   const [name, setName] = useState(defaultName);
 
   useEffect(() => {
@@ -181,54 +183,55 @@ export const SaveTemplateModal = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(11, 11, 15, 0.85)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  card: {
-    borderWidth: 1,
-    padding: 24,
-  },
-  title: {
-    fontSize: 20,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 14,
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  label: {
-    fontFamily: 'SpaceGrotesk_400Regular',
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 16,
-    marginBottom: 24,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  btn: {
-    flex: 1,
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnText: {
-    fontSize: 15,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.colors.overlay,
+      justifyContent: 'center',
+      padding: 24,
+    },
+    card: {
+      borderWidth: 1,
+      padding: 24,
+    },
+    title: {
+      fontSize: 20,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 14,
+      marginBottom: 20,
+      lineHeight: 20,
+    },
+    label: {
+      fontFamily: 'SpaceGrotesk_400Regular',
+      fontSize: 12,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      marginBottom: 8,
+    },
+    input: {
+      borderWidth: 1,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 16,
+      marginBottom: 24,
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    btn: {
+      flex: 1,
+      height: 52,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    btnText: {
+      fontSize: 15,
+    },
+  });

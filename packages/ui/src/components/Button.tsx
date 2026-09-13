@@ -14,6 +14,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   Easing,
+  useReducedMotion,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../ThemeProvider';
@@ -38,6 +39,7 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const theme = useTheme();
+  const reducedMotion = useReducedMotion();
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -48,13 +50,19 @@ export const Button: React.FC<ButtonProps> = ({
 
   const handlePressIn = () => {
     if (!disabled && !isLoading) {
-      scale.value = withTiming(0.96, { duration: 100, easing: Easing.out(Easing.quad) });
+      scale.value = withTiming(reducedMotion ? 1 : 0.98, {
+        duration: theme.motion.fast,
+        easing: Easing.out(Easing.quad),
+      });
     }
   };
 
   const handlePressOut = () => {
     if (!disabled && !isLoading) {
-      scale.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.quad) });
+      scale.value = withTiming(1, {
+        duration: reducedMotion ? 0 : theme.motion.fast,
+        easing: Easing.out(Easing.quad),
+      });
     }
   };
 
@@ -82,7 +90,7 @@ export const Button: React.FC<ButtonProps> = ({
       break;
     case 'danger':
       backgroundColor = theme.colors.accent;
-      textColor = '#FFFFFF';
+      textColor = theme.colors.onError;
       break;
     case 'ghost':
       // Text color stays theme.colors.text
@@ -105,6 +113,8 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <AnimatedPressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isDisabled, busy: isLoading }}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       onPress={handlePress}
@@ -125,8 +135,9 @@ export const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    height: 56,
-    paddingHorizontal: 24,
+    minHeight: 48,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',

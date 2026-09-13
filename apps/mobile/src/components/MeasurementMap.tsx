@@ -36,10 +36,10 @@ export function MeasurementMap({ fields, unit }: { fields: Measurement[]; unit: 
           height={290}
           color={(muscle) =>
             field.muscles.includes(muscle)
-              ? '#9ADEFF'
+              ? theme.colors.tertiary
               : fields.some((item) => item.value && item.muscles.includes(muscle))
-                ? '#467E99'
-                : '#344352'
+                ? theme.colors.secondary
+                : theme.anatomy.base
           }
           onSelect={(muscle) => {
             const index = fields.findIndex((item) => item.muscles.includes(muscle));
@@ -59,7 +59,8 @@ export function MeasurementMap({ fields, unit }: { fields: Measurement[]; unit: 
               flexGrow: 1,
               padding: 10,
               borderRadius: 12,
-              backgroundColor: index === selected ? '#223D50' : theme.colors.surface,
+              backgroundColor:
+                index === selected ? theme.colors.primarySubtle : theme.colors.surface,
               borderWidth: 1,
               borderColor: index === selected ? theme.colors.primary : theme.colors.border,
             }}

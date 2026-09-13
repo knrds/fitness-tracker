@@ -1,5 +1,7 @@
+import { Theme, useThemeStyles, useTheme } from '@fitness-tracker/ui';
 import { parseDecimalInput } from '../src/utils/decimalInput';
 import { LevelProgress } from '../src/components/LevelProgress';
+import { AppearanceSettings } from '../src/components/AppearanceSettings';
 import { useAchievementStore } from '../src/stores/achievementStore';
 import { getStorageScope, isScopeCurrent } from '../src/data/storageScope';
 import { scopedAlert as Alert } from '../src/utils/scopedAlert';
@@ -33,6 +35,8 @@ import {
 } from '../src/components/workout/KeyboardDoneAccessory';
 
 export default function ProfileScreen() {
+  const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
   const router = useRouter();
   const achievement = useAchievementStore();
   const insets = useSafeAreaInsets();
@@ -297,7 +301,7 @@ export default function ProfileScreen() {
     <View style={styles.safeArea}>
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
         <Pressable onPress={() => router.back()} hitSlop={15} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#90D5FF" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle}>Profile & Settings</Text>
         <View style={styles.headerRight} />
@@ -324,7 +328,7 @@ export default function ProfileScreen() {
               </View>
             )}
             <View style={styles.avatarEditBadge}>
-              <Ionicons name="camera" size={14} color="#0B0B0F" />
+              <Ionicons name="camera" size={14} color={theme.colors.background} />
             </View>
           </Pressable>
           <Text style={styles.avatarNameText}>{profile.displayName || 'User'}</Text>
@@ -332,18 +336,20 @@ export default function ProfileScreen() {
 
         {/* Profile Card Info */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>User Info</Text>
+          <Text style={styles.sectionTitle}>Profile</Text>
           <Text style={styles.inputLabel}>Display Name</Text>
           <TextInput
             style={styles.input}
             value={name}
             onChangeText={setName}
             placeholder="Name"
-            placeholderTextColor="#8A8D9F"
+            placeholderTextColor={theme.colors.muted}
             inputAccessoryViewID={KEYBOARD_DONE_ID}
             onSubmitEditing={() => Keyboard.dismiss()}
           />
-
+        </View>
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Training</Text>
           <Text style={styles.inputLabel}>Training Goal</Text>
           <View style={styles.chipRow}>
             {(
@@ -408,7 +414,7 @@ export default function ProfileScreen() {
                 value={height}
                 onChangeText={setHeight}
                 placeholder={profile.preferredUnits === 'imperial' ? 'e.g. 70' : 'e.g. 180'}
-                placeholderTextColor="#8A8D9F"
+                placeholderTextColor={theme.colors.muted}
                 keyboardType="numeric"
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
                 onSubmitEditing={() => Keyboard.dismiss()}
@@ -423,7 +429,7 @@ export default function ProfileScreen() {
                 value={weight}
                 onChangeText={setWeight}
                 placeholder={profile.preferredUnits === 'imperial' ? 'e.g. 175' : 'e.g. 80'}
-                placeholderTextColor="#8A8D9F"
+                placeholderTextColor={theme.colors.muted}
                 keyboardType="numeric"
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
                 onSubmitEditing={() => Keyboard.dismiss()}
@@ -443,7 +449,7 @@ export default function ProfileScreen() {
                 value={benchPressMax}
                 onChangeText={setBenchPressMax}
                 placeholder="Bench"
-                placeholderTextColor="#8A8D9F"
+                placeholderTextColor={theme.colors.muted}
                 keyboardType="numeric"
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
                 onSubmitEditing={() => Keyboard.dismiss()}
@@ -456,7 +462,7 @@ export default function ProfileScreen() {
                 value={squatMax}
                 onChangeText={setSquatMax}
                 placeholder="Squat"
-                placeholderTextColor="#8A8D9F"
+                placeholderTextColor={theme.colors.muted}
                 keyboardType="numeric"
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
                 onSubmitEditing={() => Keyboard.dismiss()}
@@ -469,7 +475,7 @@ export default function ProfileScreen() {
                 value={deadliftMax}
                 onChangeText={setDeadliftMax}
                 placeholder="Deadlift"
-                placeholderTextColor="#8A8D9F"
+                placeholderTextColor={theme.colors.muted}
                 keyboardType="numeric"
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
                 onSubmitEditing={() => Keyboard.dismiss()}
@@ -507,18 +513,18 @@ export default function ProfileScreen() {
         </View>
 
         {/* Settings options */}
-        <Text style={styles.listSectionTitle}>Application Settings</Text>
+        <Text style={styles.listSectionTitle}>Preferences</Text>
         <View style={styles.sectionCard}>
           <Pressable style={styles.settingsRow} onPress={handleToggleUnits}>
             <View style={styles.settingsRowLeft}>
-              <Ionicons name="options-outline" size={22} color="#8A8D9F" />
+              <Ionicons name="options-outline" size={22} color={theme.colors.muted} />
               <Text style={styles.settingsLabel}>Measurement Units</Text>
             </View>
             <View style={styles.settingsRowRight}>
               <Text style={styles.settingsValue}>
                 {profile.preferredUnits === 'metric' ? 'Metric (kg/cm)' : 'Imperial (lbs/in)'}
               </Text>
-              <Ionicons name="chevron-forward" size={18} color="#8A8D9F" />
+              <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
             </View>
           </Pressable>
 
@@ -527,7 +533,7 @@ export default function ProfileScreen() {
             onPress={() => setCaffeineEnabled(!caffeineEnabled)}
           >
             <View style={styles.settingsRowLeft}>
-              <Ionicons name="flash-outline" size={22} color="#8A8D9F" />
+              <Ionicons name="flash-outline" size={22} color={theme.colors.muted} />
               <Text style={styles.settingsLabel}>Caffeine Tracker</Text>
             </View>
             <View style={styles.settingsRowRight}>
@@ -557,7 +563,7 @@ export default function ProfileScreen() {
             }
           >
             <View style={styles.settingsRowLeft}>
-              <Ionicons name="alert-circle-outline" size={22} color="#8A8D9F" />
+              <Ionicons name="alert-circle-outline" size={22} color={theme.colors.muted} />
               <Text style={styles.settingsLabel}>Confirm Exercise Deletion</Text>
             </View>
             <View style={styles.settingsRowRight}>
@@ -586,7 +592,7 @@ export default function ProfileScreen() {
 
           <View style={styles.settingsRowVertical}>
             <View style={styles.settingsRowLeft}>
-              <Ionicons name="eye-outline" size={22} color="#8A8D9F" />
+              <Ionicons name="eye-outline" size={22} color={theme.colors.muted} />
               <Text style={styles.settingsLabel}>RPE Column Tracking</Text>
             </View>
             <View style={styles.chipRow}>
@@ -633,7 +639,7 @@ export default function ProfileScreen() {
 
           <View style={styles.settingsRowVertical}>
             <View style={styles.settingsRowLeft}>
-              <Ionicons name="eye-outline" size={22} color="#8A8D9F" />
+              <Ionicons name="eye-outline" size={22} color={theme.colors.muted} />
               <Text style={styles.settingsLabel}>RIR Column Tracking</Text>
             </View>
             <View style={styles.chipRow}>
@@ -677,32 +683,42 @@ export default function ProfileScreen() {
               </View>
             )}
           </View>
-
+        </View>
+        <AppearanceSettings />
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Data</Text>
           <Pressable style={styles.settingsRow} onPress={handleExport}>
             <View style={styles.settingsRowLeft}>
-              <Ionicons name="download-outline" size={22} color="#8A8D9F" />
+              <Ionicons name="download-outline" size={22} color={theme.colors.muted} />
               <Text style={styles.settingsLabel}>Export Data (JSON)</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#8A8D9F" />
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
           </Pressable>
-
-          {isAuthConfigured && (
-            <Pressable style={styles.settingsRow} onPress={handleSignOut}>
-              <View style={styles.settingsRowLeft}>
-                <Ionicons name="log-out-outline" size={22} color="#8A8D9F" />
-                <Text style={styles.settingsLabel}>Sign Out</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#8A8D9F" />
-            </Pressable>
-          )}
 
           <Pressable style={[styles.settingsRow, styles.lastRow]} onPress={handleResetData}>
             <View style={styles.settingsRowLeft}>
-              <Ionicons name="trash-outline" size={22} color="#ef4444" />
-              <Text style={[styles.settingsLabel, styles.dangerText]}>Reset All Data</Text>
+              <Ionicons name="trash-outline" size={22} color={theme.colors.error} />
+              <Text style={[styles.settingsLabel, styles.dangerText]}>Reset local data</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#8A8D9F" />
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
           </Pressable>
+        </View>
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Account</Text>
+          {!isAuthConfigured && (
+            <Text style={{ color: theme.colors.muted, lineHeight: 22 }}>
+              Local profile · Your training is stored on this device.
+            </Text>
+          )}
+          {isAuthConfigured && (
+            <Pressable style={styles.settingsRow} onPress={handleSignOut}>
+              <View style={styles.settingsRowLeft}>
+                <Ionicons name="log-out-outline" size={22} color={theme.colors.muted} />
+                <Text style={styles.settingsLabel}>Sign Out</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
+            </Pressable>
+          )}
         </View>
       </ScrollView>
 
@@ -730,7 +746,7 @@ export default function ProfileScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Backup JSON</Text>
               <Pressable onPress={() => setJsonModalVisible(false)} hitSlop={10}>
-                <Ionicons name="close" size={24} color="#8A8D9F" />
+                <Ionicons name="close" size={24} color={theme.colors.muted} />
               </Pressable>
             </View>
             <ScrollView style={styles.jsonScrollView}>
@@ -746,342 +762,344 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#0B0B0F',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2A2B31',
-    backgroundColor: '#1A1C23',
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#F4F5F7',
-    textTransform: 'uppercase',
-  },
-  headerRight: {
-    width: 44,
-    height: 44,
-  },
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    width: '100%',
-    maxWidth: 1040,
-    alignSelf: 'center',
-    padding: 16,
-    paddingBottom: 40,
-  },
-  sectionCard: {
-    backgroundColor: '#1A1C23',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#90D5FF',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontSize: 13,
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    color: '#8A8D9F',
-    marginBottom: 6,
-    marginTop: 12,
-    textTransform: 'uppercase',
-  },
-  input: {
-    backgroundColor: '#0B0B0F',
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    fontFamily: 'Manrope_500Medium',
-    color: '#F4F5F7',
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 4,
-  },
-  chip: {
-    backgroundColor: '#2A2B31',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-  },
-  chipActive: {
-    backgroundColor: '#90D5FF',
-  },
-  chipText: {
-    color: '#8A8D9F',
-    fontSize: 13,
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-  },
-  chipTextActive: {
-    color: '#0B0B0F',
-  },
-  saveBtn: {
-    backgroundColor: '#90D5FF',
-    padding: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 24,
-  },
-  saveBtnText: {
-    color: '#0B0B0F',
-    fontSize: 15,
-    fontFamily: 'SpaceGrotesk_700Bold',
-  },
-  listSectionTitle: {
-    fontSize: 13,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#8A8D9F',
-    marginBottom: 12,
-    marginTop: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 20,
-  },
-  statCard: {
-    width: '48%',
-    flexGrow: 1,
-    backgroundColor: '#1A1C23',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  statLabel: {
-    fontSize: 11,
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    color: '#8A8D9F',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  statValue: {
-    fontSize: 20,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#F4F5F7',
-  },
-  settingsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2A2B31',
-  },
-  settingsRowVertical: {
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2A2B31',
-    gap: 8,
-  },
-  lastRow: {
-    borderBottomWidth: 0,
-  },
-  settingsRowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  settingsRowRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  settingsLabel: {
-    fontSize: 15,
-    fontFamily: 'Manrope_500Medium',
-    color: '#F4F5F7',
-  },
-  settingsValue: {
-    fontSize: 14,
-    fontFamily: 'Manrope_500Medium',
-    color: '#8A8D9F',
-  },
-  togglePill: {
-    width: 42,
-    height: 24,
-    borderRadius: 12,
-    padding: 3,
-    justifyContent: 'center',
-  },
-  togglePillActive: {
-    backgroundColor: '#90D5FF',
-  },
-  togglePillInactive: {
-    backgroundColor: '#2A2B31',
-  },
-  toggleKnob: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#0B0B0F',
-  },
-  toggleKnobActive: {
-    alignSelf: 'flex-end',
-  },
-  toggleKnobInactive: {
-    alignSelf: 'flex-start',
-  },
-  dangerText: {
-    color: '#ef4444',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(11, 11, 15, 0.8)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#1A1C23',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    height: '75%',
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2A2B31',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#F4F5F7',
-  },
-  jsonScrollView: {
-    padding: 16,
-  },
-  jsonText: {
-    fontFamily: 'monospace',
-    fontSize: 12,
-    color: '#F4F5F7',
-    backgroundColor: '#0B0B0F',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  inputGrid: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  gridField: {
-    flex: 1,
-  },
-  sectionDivider: {
-    fontSize: 14,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#90D5FF',
-    marginTop: 20,
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  selectedExercisesContainer: {
-    marginTop: 6,
-    paddingLeft: 4,
-  },
-  selectBtn: {
-    backgroundColor: '#2A2B31',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  selectBtnText: {
-    color: '#90D5FF',
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 14,
-  },
-  selectedExercisesText: {
-    fontSize: 13,
-    color: '#8A8D9F',
-    marginTop: 6,
-    lineHeight: 18,
-    fontStyle: 'italic',
-  },
-  avatarSection: {
-    alignItems: 'center',
-    marginBottom: 24,
-    paddingTop: 8,
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 12,
-  },
-  avatarImage: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    borderWidth: 3,
-    borderColor: '#90D5FF',
-  },
-  avatarPlaceholder: {
-    backgroundColor: '#1A1C23',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarInitials: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 32,
-    color: '#90D5FF',
-  },
-  avatarEditBadge: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#90D5FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#0B0B0F',
-  },
-  avatarNameText: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 20,
-    color: '#F4F5F7',
-    textTransform: 'uppercase',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingBottom: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.surface,
+    },
+    backBtn: {
+      width: 44,
+      height: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.text,
+    },
+    headerRight: {
+      width: 44,
+      height: 44,
+    },
+    container: {
+      flex: 1,
+    },
+    scrollContent: {
+      width: '100%',
+      maxWidth: 760,
+      alignSelf: 'center',
+      padding: 16,
+      paddingBottom: 40,
+    },
+    sectionCard: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.radius.lg,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      marginBottom: 20,
+    },
+    sectionTitle: {
+      fontSize: 14,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.muted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+      marginBottom: 16,
+    },
+    inputLabel: {
+      fontSize: 13,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      color: theme.colors.muted,
+      marginBottom: 6,
+      marginTop: 12,
+      textTransform: 'uppercase',
+    },
+    input: {
+      minHeight: 44,
+      backgroundColor: theme.colors.background,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 15,
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.text,
+    },
+    chipRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 4,
+    },
+    chip: {
+      minHeight: 44,
+      backgroundColor: theme.colors.border,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 16,
+    },
+    chipActive: {
+      backgroundColor: theme.colors.primary,
+    },
+    chipText: {
+      color: theme.colors.muted,
+      fontSize: 13,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+    },
+    chipTextActive: {
+      color: theme.colors.background,
+    },
+    saveBtn: {
+      backgroundColor: theme.colors.primary,
+      padding: 14,
+      borderRadius: 12,
+      alignItems: 'center',
+      marginTop: 24,
+    },
+    saveBtnText: {
+      color: theme.colors.background,
+      fontSize: 15,
+      fontFamily: 'SpaceGrotesk_700Bold',
+    },
+    listSectionTitle: {
+      fontSize: 13,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.muted,
+      marginBottom: 12,
+      marginTop: 8,
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+      marginBottom: 20,
+    },
+    statCard: {
+      width: '48%',
+      flexGrow: 1,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    statLabel: {
+      fontSize: 11,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      color: theme.colors.muted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 4,
+    },
+    statValue: {
+      fontSize: 20,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.text,
+    },
+    settingsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    settingsRowVertical: {
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      gap: 8,
+    },
+    lastRow: {
+      borderBottomWidth: 0,
+    },
+    settingsRowLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    settingsRowRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    settingsLabel: {
+      fontSize: 15,
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.text,
+    },
+    settingsValue: {
+      fontSize: 14,
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.muted,
+    },
+    togglePill: {
+      width: 42,
+      height: 24,
+      borderRadius: 12,
+      padding: 3,
+      justifyContent: 'center',
+    },
+    togglePillActive: {
+      backgroundColor: theme.colors.primary,
+    },
+    togglePillInactive: {
+      backgroundColor: theme.colors.border,
+    },
+    toggleKnob: {
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: theme.colors.background,
+    },
+    toggleKnobActive: {
+      alignSelf: 'flex-end',
+    },
+    toggleKnobInactive: {
+      alignSelf: 'flex-start',
+    },
+    dangerText: {
+      color: theme.colors.error,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.colors.overlay,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.colors.surface,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      height: '75%',
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.text,
+    },
+    jsonScrollView: {
+      padding: 16,
+    },
+    jsonText: {
+      fontFamily: 'monospace',
+      fontSize: 12,
+      color: theme.colors.text,
+      backgroundColor: theme.colors.background,
+      padding: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    inputGrid: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    gridField: {
+      flex: 1,
+    },
+    sectionDivider: {
+      fontSize: 14,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.primary,
+      marginTop: 20,
+      marginBottom: 6,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    selectedExercisesContainer: {
+      marginTop: 6,
+      paddingLeft: 4,
+    },
+    selectBtn: {
+      backgroundColor: theme.colors.border,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      borderRadius: 8,
+      alignSelf: 'flex-start',
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    selectBtnText: {
+      color: theme.colors.primary,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 14,
+    },
+    selectedExercisesText: {
+      fontSize: 13,
+      color: theme.colors.muted,
+      marginTop: 6,
+      lineHeight: 18,
+      fontStyle: 'italic',
+    },
+    avatarSection: {
+      alignItems: 'center',
+      marginBottom: 24,
+      paddingTop: 8,
+    },
+    avatarContainer: {
+      position: 'relative',
+      marginBottom: 12,
+    },
+    avatarImage: {
+      width: 96,
+      height: 96,
+      borderRadius: 48,
+      borderWidth: 3,
+      borderColor: theme.colors.primary,
+    },
+    avatarPlaceholder: {
+      backgroundColor: theme.colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    avatarInitials: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 32,
+      color: theme.colors.primary,
+    },
+    avatarEditBadge: {
+      position: 'absolute',
+      bottom: 2,
+      right: 2,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: theme.colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: theme.colors.background,
+    },
+    avatarNameText: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 20,
+      color: theme.colors.text,
+      textTransform: 'uppercase',
+    },
+  });

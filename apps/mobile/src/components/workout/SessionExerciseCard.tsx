@@ -1,3 +1,4 @@
+import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { scopedAlert as Alert } from '../../utils/scopedAlert';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
@@ -13,7 +14,6 @@ import {
   ViewProps,
   LayoutChangeEvent,
   ViewStyle,
-  Dimensions,
   useWindowDimensions,
   Animated,
   PanResponder,
@@ -101,7 +101,9 @@ export const SessionExerciseCard = ({
   onSwipeEnd,
 }: Props) => {
   const theme = useTheme();
-  const { height: windowHeight } = useWindowDimensions();
+  const styles = useThemeStyles(createStyles);
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  const compact = windowWidth < 480;
   const router = useRouter();
   const navigateToInstructions = () => {
     router.push(`/exercise/${sessionExercise.exerciseId}`);
@@ -314,9 +316,9 @@ export const SessionExerciseCard = ({
     volumeDeltaPercent === null
       ? theme.colors.muted
       : volumeDeltaPercent > 0
-        ? '#22c55e'
+        ? theme.colors.success
         : volumeDeltaPercent < 0
-          ? '#ef4444'
+          ? theme.colors.error
           : theme.colors.primary;
 
   const stats = React.useMemo(() => {
@@ -532,12 +534,12 @@ export const SessionExerciseCard = ({
             <Text style={[styles.columnHeader, styles.repsCol, { color: theme.colors.muted }]}>
               {isCardio ? 'Min:Sec' : 'Reps'}
             </Text>
-            {showRpe && (
+            {showRpe && !compact && (
               <Text style={[styles.columnHeader, styles.rpeCol, { color: theme.colors.muted }]}>
                 RPE
               </Text>
             )}
-            {showRir && (
+            {showRir && !compact && (
               <Text style={[styles.columnHeader, styles.rirCol, { color: theme.colors.muted }]}>
                 RIR
               </Text>
@@ -569,10 +571,16 @@ export const SessionExerciseCard = ({
                 <SetRow
                   key={set.id}
                   set={set}
+                  isCurrent={
+                    set.id ===
+                    sessionExercises.flatMap((item) => item.sets).find((item) => !item.completed)
+                      ?.id
+                  }
                   workingSetNumber={displayIndex}
                   sessionExerciseId={sessionExercise.id}
                   isImperial={isImperial}
                   isCardio={isCardio}
+                  compact={compact}
                   showRpe={showRpe}
                   showRir={showRir}
                   onUpdate={(updates) => updateSet(sessionExercise.id, set.id, updates)}
@@ -820,8 +828,10 @@ export const SessionExerciseCard = ({
                   confirmDeleteExercise();
                 }}
               >
-                <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                <Text style={[styles.optionText, { color: '#ef4444' }]}>Übung löschen</Text>
+                <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
+                <Text style={[styles.optionText, { color: theme.colors.error }]}>
+                  Übung löschen
+                </Text>
               </Pressable>
             </ScrollView>
             <Pressable
@@ -1028,7 +1038,9 @@ export const SessionExerciseCard = ({
 };
 
 interface SetRowProps {
+  compact: boolean;
   set: ExerciseSet;
+  isCurrent: boolean;
   workingSetNumber: number;
   sessionExerciseId: string;
   isImperial: boolean;
@@ -1045,7 +1057,9 @@ interface SetRowProps {
 }
 
 const SetRow = ({
+  compact,
   set,
+  isCurrent,
   workingSetNumber,
   isImperial,
   isCardio,
@@ -1059,6 +1073,7 @@ const SetRow = ({
   onSwipeEnd,
 }: SetRowProps) => {
   const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
   const isDone = set.completed;
   const swipeX = React.useRef(new Animated.Value(0)).current;
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
@@ -1219,19 +1234,34 @@ const SetRow = ({
     switch (set.type) {
       case 'warmup':
         return (
-          <Text style={[styles.typeBadge, { backgroundColor: '#ffedd5', color: '#ea580c' }]}>
+          <Text
+            style={[
+              styles.typeBadge,
+              { backgroundColor: theme.colors.surfaceElevated, color: theme.setType.warmup },
+            ]}
+          >
             W
           </Text>
         );
       case 'drop':
         return (
-          <Text style={[styles.typeBadge, { backgroundColor: '#f3e8ff', color: '#9333ea' }]}>
+          <Text
+            style={[
+              styles.typeBadge,
+              { backgroundColor: theme.colors.surfaceElevated, color: theme.setType.dropset },
+            ]}
+          >
             D
           </Text>
         );
       case 'failure':
         return (
-          <Text style={[styles.typeBadge, { backgroundColor: '#fee2e2', color: '#dc2626' }]}>
+          <Text
+            style={[
+              styles.typeBadge,
+              { backgroundColor: theme.colors.surfaceElevated, color: theme.setType.failure },
+            ]}
+          >
             F
           </Text>
         );
@@ -1248,12 +1278,79 @@ const SetRow = ({
       }
     : {};
 
+  const effortInputs = (
+    <>
+      {showRpe && (
+        <React.Fragment>
+          {compact && <Text style={{ color: theme.colors.muted }}>RPE</Text>}
+          <TextInput
+            accessibilityLabel={`Satz ${workingSetNumber} RPE`}
+            style={[
+              styles.input,
+              styles.rpeCol,
+              compact && { flexGrow: 0, flexShrink: 0, flexBasis: 56, width: 56 },
+              {
+                color: theme.colors.text,
+                backgroundColor: theme.colors.background,
+                borderColor: theme.colors.border,
+              },
+              isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface },
+            ]}
+            keyboardType="decimal-pad"
+            inputMode="decimal"
+            value={set.rpe ? set.rpe.toString() : ''}
+            onChangeText={(text) => {
+              let rpe = parseFloat(text.replace(',', '.')) || 0;
+              if (rpe > 10) rpe = 10;
+              onUpdate({ rpe });
+            }}
+            placeholder="-"
+            placeholderTextColor={theme.colors.muted}
+            selectTextOnFocus={true}
+            inputAccessoryViewID="keyboardDoneAccessory"
+          />
+        </React.Fragment>
+      )}
+      {showRir && (
+        <React.Fragment>
+          {compact && <Text style={{ color: theme.colors.muted }}>RIR</Text>}
+          <TextInput
+            accessibilityLabel={`Satz ${workingSetNumber} RIR`}
+            style={[
+              styles.input,
+              styles.rirCol,
+              compact && { flexGrow: 0, flexShrink: 0, flexBasis: 56, width: 56 },
+              {
+                color: theme.colors.text,
+                backgroundColor: theme.colors.background,
+                borderColor: theme.colors.border,
+              },
+              isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface },
+            ]}
+            keyboardType="number-pad"
+            inputMode="numeric"
+            value={set.rir !== undefined ? set.rir.toString() : ''}
+            onChangeText={(text) => {
+              let rir = parseInt(text, 10) || 0;
+              if (rir > 10) rir = 10;
+              onUpdate({ rir });
+            }}
+            placeholder="-"
+            placeholderTextColor={theme.colors.muted}
+            selectTextOnFocus={true}
+            inputAccessoryViewID="keyboardDoneAccessory"
+          />
+        </React.Fragment>
+      )}
+    </>
+  );
+
   return (
     <Animated.View onLayout={handleLayout} style={[styles.rowContainer, animatedStyle]}>
       <View style={styles.swipeFrame}>
         {Platform.OS !== 'web' && (
-          <View style={[styles.swipeDeleteBackground, { backgroundColor: '#ef4444' }]}>
-            <Ionicons name="trash-outline" size={18} color="#ffffff" />
+          <View style={[styles.swipeDeleteBackground, { backgroundColor: theme.colors.error }]}>
+            <Ionicons name="trash-outline" size={18} color={theme.colors.onError} />
           </View>
         )}
         <Animated.View
@@ -1264,9 +1361,13 @@ const SetRow = ({
             style={[
               styles.row,
               { backgroundColor: theme.colors.surface },
+              isCurrent && {
+                borderColor: theme.colors.borderActive,
+                backgroundColor: theme.colors.primarySubtle,
+              },
               isDone && {
-                borderColor: theme.colors.primary,
-                backgroundColor: '#1f2836',
+                borderColor: theme.colors.border,
+                backgroundColor: theme.colors.surface,
               },
             ]}
           >
@@ -1282,6 +1383,7 @@ const SetRow = ({
               ]}
               keyboardType="decimal-pad"
               inputMode="decimal"
+              accessibilityLabel={`Satz ${workingSetNumber} Gewicht`}
               value={weightText}
               onFocus={() => setEditingWeight(true)}
               onBlur={() => setEditingWeight(false)}
@@ -1301,6 +1403,7 @@ const SetRow = ({
                 ]}
                 keyboardType="number-pad"
                 inputMode="numeric"
+                accessibilityLabel={`Satz ${workingSetNumber} Dauer`}
                 value={durationStr}
                 onChangeText={handleDurationChange}
                 placeholder="0s"
@@ -1324,6 +1427,7 @@ const SetRow = ({
                 ]}
                 keyboardType="number-pad"
                 inputMode="numeric"
+                accessibilityLabel={`Satz ${workingSetNumber} Wiederholungen`}
                 value={set.reps ? set.reps.toString() : ''}
                 onChangeText={(text) => {
                   let reps = parseInt(text, 10) || 0;
@@ -1336,58 +1440,7 @@ const SetRow = ({
                 inputAccessoryViewID="keyboardDoneAccessory"
               />
             )}
-            {showRpe && (
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.rpeCol,
-                  {
-                    color: theme.colors.text,
-                    backgroundColor: theme.colors.background,
-                    borderColor: theme.colors.border,
-                  },
-                  isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface },
-                ]}
-                keyboardType="decimal-pad"
-                inputMode="decimal"
-                value={set.rpe ? set.rpe.toString() : ''}
-                onChangeText={(text) => {
-                  let rpe = parseFloat(text) || 0;
-                  if (rpe > 10) rpe = 10;
-                  onUpdate({ rpe });
-                }}
-                placeholder="-"
-                placeholderTextColor={theme.colors.muted}
-                selectTextOnFocus={true}
-                inputAccessoryViewID="keyboardDoneAccessory"
-              />
-            )}
-            {showRir && (
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.rirCol,
-                  {
-                    color: theme.colors.text,
-                    backgroundColor: theme.colors.background,
-                    borderColor: theme.colors.border,
-                  },
-                  isDone && { color: theme.colors.muted, backgroundColor: theme.colors.surface },
-                ]}
-                keyboardType="number-pad"
-                inputMode="numeric"
-                value={set.rir !== undefined ? set.rir.toString() : ''}
-                onChangeText={(text) => {
-                  let rir = parseInt(text, 10) || 0;
-                  if (rir > 10) rir = 10;
-                  onUpdate({ rir });
-                }}
-                placeholder="-"
-                placeholderTextColor={theme.colors.muted}
-                selectTextOnFocus={true}
-                inputAccessoryViewID="keyboardDoneAccessory"
-              />
-            )}
+            {!compact && effortInputs}
             <Pressable
               style={[
                 styles.doneBtn,
@@ -1406,7 +1459,7 @@ const SetRow = ({
             >
               <Ionicons
                 name="checkmark"
-                size={isSmallScreen ? 16 : 20}
+                size={20}
                 color={isDone ? theme.colors.background : theme.colors.muted}
               />
             </Pressable>
@@ -1420,10 +1473,24 @@ const SetRow = ({
                 onPress={handleDeleteSet}
                 hitSlop={6}
               >
-                <Ionicons name="close" size={16} color="#ef4444" />
+                <Ionicons name="close" size={16} color={theme.colors.error} />
               </Pressable>
             )}
           </View>
+          {compact && (showRpe || showRir) && (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                gap: 6,
+                paddingTop: 6,
+                paddingBottom: 8,
+              }}
+            >
+              {effortInputs}
+            </View>
+          )}
         </Animated.View>
       </View>
       {lastPerformanceSet && (
@@ -1457,296 +1524,293 @@ const SetRow = ({
   );
 };
 
-const { width: screenWidth } = Dimensions.get('window');
-const isSmallScreen = screenWidth < 375;
-const isMediumScreen = screenWidth < 415;
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    card: {
+      marginBottom: 16,
+    },
+    supersetHeader: {
+      marginBottom: 6,
+    },
+    supersetBadge: {},
+    titleRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 16,
+    },
+    titleCol: {
+      flex: 1,
+      paddingRight: 8,
+    },
+    title: {
+      marginBottom: 2,
+    },
+    prevText: {},
+    headerIcons: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    iconBtn: {
+      minWidth: 44,
+      minHeight: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 4,
+    },
+    deleteExBtn: {
+      padding: 4,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      marginBottom: 8,
+      paddingHorizontal: 4,
+    },
+    columnHeader: {
+      fontSize: 11,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    setCol: { width: 28, textAlign: 'center' },
+    weightCol: { flex: 1.25, textAlign: 'center' },
+    repsCol: { flex: 1.0, textAlign: 'center' },
+    rpeCol: { flex: 0.9, textAlign: 'center' },
+    rirCol: { flex: 0.9, textAlign: 'center' },
+    doneCol: { width: 44, textAlign: 'center' },
+    deleteCol: { width: 28, textAlign: 'center' },
 
-const styles = StyleSheet.create({
-  card: {
-    marginBottom: 16,
-  },
-  supersetHeader: {
-    marginBottom: 6,
-  },
-  supersetBadge: {},
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  titleCol: {
-    flex: 1,
-    paddingRight: 8,
-  },
-  title: {
-    marginBottom: 2,
-  },
-  prevText: {},
-  headerIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  iconBtn: {
-    minWidth: 44,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 4,
-  },
-  deleteExBtn: {
-    padding: 4,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-    paddingHorizontal: 4,
-  },
-  columnHeader: {
-    fontSize: isSmallScreen ? 10 : 12,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  setCol: { width: 28, textAlign: 'center' },
-  weightCol: { flex: 1.25, textAlign: 'center' },
-  repsCol: { flex: 1.0, textAlign: 'center' },
-  rpeCol: { flex: 0.9, textAlign: 'center' },
-  rirCol: { flex: 0.9, textAlign: 'center' },
-  doneCol: { width: 34, textAlign: 'center' },
-  deleteCol: { width: 28, textAlign: 'center' },
-
-  rowContainer: {
-    marginBottom: 6,
-  },
-  swipeFrame: {
-    borderRadius: 10,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  swipeDeleteBackground: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    width: 96,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'transparent',
-    borderRadius: 10,
-    paddingVertical: 4,
-    paddingHorizontal: 2,
-  },
-  cell: {
-    fontSize: isSmallScreen ? 13 : 16,
-    fontWeight: '600',
-  },
-  centerAlign: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  typeBadge: {
-    fontSize: 12,
-    fontWeight: '800',
-    borderRadius: 6,
-    width: 22,
-    height: 22,
-    textAlign: 'center',
-    lineHeight: 22,
-    overflow: 'hidden',
-  },
-  input: {
-    borderRadius: 8,
-    marginHorizontal: isSmallScreen ? 1.5 : isMediumScreen ? 2 : 4,
-    paddingVertical: 6,
-    paddingHorizontal: isSmallScreen ? 2 : isMediumScreen ? 4 : 8,
-    fontSize: 16,
-    textAlign: 'center',
-    fontWeight: '500',
-    borderWidth: 1,
-    borderColor: 'transparent',
-    height: 36,
-    minWidth: 0,
-  },
-  doneBtn: {
-    borderRadius: 8,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  deleteSetBtn: {
-    borderWidth: 1,
-    borderRadius: 8,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 4,
-  },
-  addSetRow: {
-    flexDirection: 'row',
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderTopWidth: 1,
-    marginHorizontal: -16,
-    marginBottom: -16,
-    marginTop: 16,
-    gap: 6,
-  },
-  addSetRowText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  warmupIconCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  warmupIconText: {
-    fontSize: 12,
-    fontWeight: '800',
-    lineHeight: 14,
-  },
-  e1rmRow: {
-    paddingLeft: 38,
-    marginTop: 2,
-    marginBottom: 4,
-  },
-  e1rmText: {
-    fontSize: 10,
-    fontStyle: 'italic',
-  },
-  footerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-    paddingHorizontal: 4,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(11, 11, 15, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalCard: {
-    borderWidth: 1,
-    padding: 24,
-    width: '100%',
-    maxWidth: 400,
-    borderRadius: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  infoStatsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 16,
-  },
-  infoStatBox: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: 'rgba(144, 213, 255, 0.05)',
-    borderRadius: 8,
-    padding: 10,
-    alignItems: 'center',
-  },
-  infoStatLabel: {
-    fontSize: 10,
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  infoStatValue: {
-    fontSize: 14,
-    fontFamily: 'SpaceGrotesk_700Bold',
-  },
-  infoSubtitle: {
-    fontSize: 14,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    textTransform: 'uppercase',
-  },
-  infoSetRow: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 13,
-    paddingVertical: 4,
-  },
-  modalCloseBtn: {
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  modalCloseBtnText: {
-    fontSize: 14,
-  },
-  notesSection: {
-    marginTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#2A2B31',
-    paddingTop: 12,
-    gap: 10,
-  },
-  optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2A2B31',
-    gap: 12,
-  },
-  optionText: {
-    fontSize: 15,
-    fontFamily: 'Manrope_500Medium',
-  },
-  notesContainer: {
-    marginBottom: 16,
-    gap: 8,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#0B0B0F',
-    borderRadius: 8,
-    padding: 3,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  tabButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  tabText: {
-    fontSize: 12,
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-  },
-  noteInputWrapper: {
-    width: '100%',
-  },
-  noteInput: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 16,
-    fontFamily: 'Manrope_500Medium',
-    backgroundColor: '#0B0B0F',
-  },
-});
+    rowContainer: {
+      marginBottom: 6,
+    },
+    swipeFrame: {
+      borderRadius: 10,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    swipeDeleteBackground: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      width: 96,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: 'transparent',
+      borderRadius: 10,
+      paddingVertical: 4,
+      paddingHorizontal: 2,
+    },
+    cell: {
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    centerAlign: {
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    typeBadge: {
+      fontSize: 12,
+      fontWeight: '800',
+      borderRadius: 6,
+      width: 22,
+      height: 22,
+      textAlign: 'center',
+      lineHeight: 22,
+      overflow: 'hidden',
+    },
+    input: {
+      borderRadius: 8,
+      marginHorizontal: 2,
+      paddingVertical: 6,
+      paddingHorizontal: 2,
+      fontSize: 16,
+      textAlign: 'center',
+      fontWeight: '500',
+      borderWidth: 1,
+      borderColor: 'transparent',
+      minHeight: 44,
+      minWidth: 0,
+    },
+    doneBtn: {
+      borderRadius: 8,
+      minHeight: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    deleteSetBtn: {
+      borderWidth: 1,
+      borderRadius: 8,
+      minHeight: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: 4,
+    },
+    addSetRow: {
+      flexDirection: 'row',
+      height: 48,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderTopWidth: 1,
+      marginHorizontal: -16,
+      marginBottom: -16,
+      marginTop: 16,
+      gap: 6,
+    },
+    addSetRowText: {
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    warmupIconCircle: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      borderWidth: 1.5,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    warmupIconText: {
+      fontSize: 12,
+      fontWeight: '800',
+      lineHeight: 14,
+    },
+    e1rmRow: {
+      paddingLeft: 38,
+      marginTop: 2,
+      marginBottom: 4,
+    },
+    e1rmText: {
+      fontSize: 10,
+      fontStyle: 'italic',
+    },
+    footerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 8,
+      paddingHorizontal: 4,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.colors.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+    },
+    modalCard: {
+      borderWidth: 1,
+      padding: 24,
+      width: '100%',
+      maxWidth: 400,
+      borderRadius: 16,
+    },
+    modalTitle: {
+      fontSize: 20,
+      marginBottom: 16,
+      textAlign: 'center',
+    },
+    infoStatsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+      marginBottom: 16,
+    },
+    infoStatBox: {
+      flex: 1,
+      minWidth: '45%',
+      backgroundColor: theme.colors.primarySubtle,
+      borderRadius: 8,
+      padding: 10,
+      alignItems: 'center',
+    },
+    infoStatLabel: {
+      fontSize: 10,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      textTransform: 'uppercase',
+      marginBottom: 4,
+    },
+    infoStatValue: {
+      fontSize: 14,
+      fontFamily: 'SpaceGrotesk_700Bold',
+    },
+    infoSubtitle: {
+      fontSize: 14,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      textTransform: 'uppercase',
+    },
+    infoSetRow: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 13,
+      paddingVertical: 4,
+    },
+    modalCloseBtn: {
+      height: 48,
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+    },
+    modalCloseBtnText: {
+      fontSize: 14,
+    },
+    notesSection: {
+      marginTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+      paddingTop: 12,
+      gap: 10,
+    },
+    optionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      gap: 12,
+    },
+    optionText: {
+      fontSize: 15,
+      fontFamily: 'Manrope_500Medium',
+    },
+    notesContainer: {
+      marginBottom: 16,
+      gap: 8,
+    },
+    tabContainer: {
+      flexDirection: 'row',
+      backgroundColor: theme.colors.background,
+      borderRadius: 8,
+      padding: 3,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    tabButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: 6,
+      borderRadius: 6,
+    },
+    tabText: {
+      fontSize: 12,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+    },
+    noteInputWrapper: {
+      width: '100%',
+    },
+    noteInput: {
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      fontSize: 16,
+      fontFamily: 'Manrope_500Medium',
+      backgroundColor: theme.colors.background,
+    },
+  });

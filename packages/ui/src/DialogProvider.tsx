@@ -219,7 +219,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     dialog?.tone === 'danger'
       ? theme.colors.accent
       : dialog?.tone === 'success'
-        ? '#22c55e'
+        ? theme.colors.success
         : theme.colors.primary;
 
   return (
@@ -231,7 +231,9 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         animationType="none"
         onRequestClose={() => closeDialog()}
       >
-        <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
+        <Animated.View
+          style={[styles.overlay, { opacity: fadeAnim, backgroundColor: theme.colors.overlay }]}
+        >
           <Pressable style={styles.overlayPressable} onPress={() => closeDialog()}>
             <Animated.View
               style={[
@@ -338,7 +340,6 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(11, 11, 15, 0.86)',
   },
   overlayPressable: {
     flex: 1,

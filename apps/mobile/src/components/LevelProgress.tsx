@@ -9,6 +9,7 @@ import Animated, {
 import { useTheme } from '@fitness-tracker/ui';
 import { getLevelBadge } from '../utils/level';
 import levelBadges from '../../assets/level-badges.png';
+import { VoltBackdrop } from './VoltBackdrop';
 
 export function LevelEmblem({ level, size = 52 }: { level: number; size?: number }) {
   const tier = level < 10 ? 0 : level < 20 ? 1 : level < 50 ? 2 : 3;
@@ -40,7 +41,20 @@ export function LevelProgress({ level, xp }: { level: number; xp: number }) {
   }, [xp, progress, reduced]);
   const style = useAnimatedStyle(() => ({ width: `${progress.value * 100}%` }));
   return (
-    <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', marginVertical: 16 }}>
+    <View
+      style={{
+        flexDirection: 'row',
+        gap: 12,
+        alignItems: 'center',
+        marginVertical: 16,
+        padding: 16,
+        borderRadius: theme.radius.lg,
+        borderWidth: 1,
+        borderColor: theme.colors.borderActive,
+        backgroundColor: theme.colors.surface,
+      }}
+    >
+      <VoltBackdrop />
       <LevelEmblem level={level} />
       <View style={{ flex: 1, gap: 7 }}>
         <Text
@@ -65,7 +79,7 @@ export function LevelProgress({ level, xp }: { level: number; xp: number }) {
                 backgroundColor: theme.colors.primary,
                 borderRadius: 4,
                 borderTopWidth: 2,
-                borderTopColor: '#D3F1FF',
+                borderTopColor: theme.colors.tertiary,
               },
               style,
             ]}

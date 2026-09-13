@@ -1,3 +1,5 @@
+import { AuthHeader } from '../../src/components/AuthHeader';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams, Href } from 'expo-router';
@@ -8,6 +10,7 @@ import { useAuthStore } from '../../src/stores/authStore';
 export default function VerifyScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { showAlert } = useDialog();
   const { email = '' } = useLocalSearchParams<{ email?: string }>();
   const { initialize, resendVerificationEmail, isLoading } = useAuthStore();
@@ -27,7 +30,8 @@ export default function VerifyScreen() {
       } else {
         await showAlert({
           title: 'Not Verified Yet',
-          message: 'We could not detect an active session. Please make sure to open the link inside your confirmation email first.',
+          message:
+            'We could not detect an active session. Please make sure to open the link inside your confirmation email first.',
           tone: 'default',
         });
       }
@@ -67,14 +71,17 @@ export default function VerifyScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: Math.max(48, insets.top + 24),
+            paddingBottom: Math.max(32, insets.bottom + 24),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
       >
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>VOLT</Text>
-          <Text style={[styles.subtitle, { color: theme.colors.primary }]}>PERFORMANCE</Text>
-        </View>
+        <AuthHeader title="Check your inbox" />
 
         <View style={styles.body}>
           <Ionicons
@@ -89,7 +96,8 @@ export default function VerifyScreen() {
           </Text>
           <Text style={[styles.emailText, { color: theme.colors.text }]}>{email}</Text>
           <Text style={[styles.bodyText, { color: theme.colors.muted }]}>
-            Please tap the link inside that email to complete your registration, then click check status below.
+            Please tap the link inside that email to complete your registration, then click check
+            status below.
           </Text>
         </View>
 
@@ -129,6 +137,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
@@ -185,6 +196,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   footer: {
+    flexWrap: 'wrap',
     alignItems: 'center',
   },
   backButton: {

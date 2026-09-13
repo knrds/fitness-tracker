@@ -101,13 +101,15 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <RNModal visible={shouldRender} transparent animationType="none" onRequestClose={onClose}>
-      <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
+      <Animated.View
+        style={[styles.overlay, { opacity: fadeAnim, backgroundColor: theme.colors.overlay }]}
+      >
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <Animated.View
           style={[
             styles.container,
             {
-              backgroundColor: theme.colors.surface,
+              backgroundColor: theme.colors.surfaceElevated,
               borderColor: theme.colors.border,
               borderRadius: theme.radius.lg,
               transform: [{ translateY: slideAnim }],
@@ -157,10 +159,9 @@ export const Modal: React.FC<ModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(11, 11, 15, 0.8)', // Semi-transparent background
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: 16,
   },
   overlayPressable: {
     flex: 1,
@@ -200,6 +201,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'flex-end',
     padding: 24,
     borderTopWidth: 1,

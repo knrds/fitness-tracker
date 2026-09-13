@@ -1,3 +1,4 @@
+import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { KeyboardDoneAccessory } from './KeyboardDoneAccessory';
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, TextInput, Pressable, ScrollView } from 'react-native';
@@ -34,6 +35,7 @@ const PLATE_METADATA: Record<
 
 export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Props) => {
   const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
   const { profile } = useProfileStore();
   const isImperial = profile.preferredUnits === 'imperial';
 
@@ -361,220 +363,221 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(11, 11, 15, 0.85)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  card: {
-    borderWidth: 1,
-    padding: 24,
-    maxHeight: '88%',
-  },
-  bodyScroll: {
-    width: '100%',
-  },
-  bodyScrollContent: {
-    paddingBottom: 8,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 20,
-  },
-  subtitle: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 13,
-    marginBottom: 20,
-    lineHeight: 18,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontFamily: 'SpaceGrotesk_400Regular',
-    fontSize: 12,
-    textTransform: 'uppercase',
-    marginBottom: 8,
-    letterSpacing: 1,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-  },
-  input: {
-    flex: 1,
-    paddingVertical: 12,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 20,
-    fontVariant: ['tabular-nums'],
-  },
-  unitText: {
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 16,
-    marginLeft: 8,
-  },
-  visualizerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 100,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 20,
-    paddingHorizontal: 8,
-    overflow: 'hidden',
-  },
-  visualizerInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  barbellSleeve: {
-    width: 18,
-    height: 12,
-    backgroundColor: '#6B6E78',
-    borderRadius: 3,
-  },
-  barbellCollar: {
-    width: 8,
-    height: 38,
-    backgroundColor: '#8A8D96',
-    borderRadius: 2,
-    zIndex: 2,
-  },
-  barbellCenter: {
-    flex: 1,
-    height: 8,
-    backgroundColor: '#8A8D96',
-    minWidth: 40,
-  },
-  platesWrapper: {
-    alignItems: 'center',
-    gap: 1,
-    zIndex: 1,
-  },
-  plateBlock: {
-    borderRadius: 4,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  plateLabel: {
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  summaryList: {
-    maxHeight: 160,
-    marginBottom: 20,
-  },
-  emptyState: {
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 14,
-  },
-  summaryContainer: {
-    paddingVertical: 4,
-  },
-  summaryHeader: {
-    fontFamily: 'SpaceGrotesk_400Regular',
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 10,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  colorIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 3,
-    marginRight: 10,
-  },
-  summaryText: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 14,
-  },
-  boldText: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-  },
-  actionButton: {
-    height: 52,
-    minHeight: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionButtonText: {
-    fontSize: 15,
-  },
-  barbellAlert: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 16,
-    gap: 8,
-  },
-  barbellAlertText: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 13,
-    flex: 1,
-  },
-  addPlatesContainer: {
-    marginBottom: 20,
-  },
-  platesScroll: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 4,
-  },
-  addPlateChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 64,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  addPlateChipText: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 12,
-  },
-  resetBarBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 4,
-    backgroundColor: 'rgba(144, 213, 255, 0.05)',
-  },
-  resetBarBtnText: {
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 12,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.colors.overlay,
+      justifyContent: 'center',
+      padding: 24,
+    },
+    card: {
+      borderWidth: 1,
+      padding: 24,
+      maxHeight: '88%',
+    },
+    bodyScroll: {
+      width: '100%',
+    },
+    bodyScrollContent: {
+      paddingBottom: 8,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    title: {
+      fontSize: 20,
+    },
+    subtitle: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 13,
+      marginBottom: 20,
+      lineHeight: 18,
+    },
+    inputContainer: {
+      marginBottom: 20,
+    },
+    inputLabel: {
+      fontFamily: 'SpaceGrotesk_400Regular',
+      fontSize: 12,
+      textTransform: 'uppercase',
+      marginBottom: 8,
+      letterSpacing: 1,
+    },
+    inputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+    },
+    input: {
+      flex: 1,
+      paddingVertical: 12,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 20,
+      fontVariant: ['tabular-nums'],
+    },
+    unitText: {
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      fontSize: 16,
+      marginLeft: 8,
+    },
+    visualizerContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: 100,
+      borderRadius: 12,
+      borderWidth: 1,
+      marginBottom: 20,
+      paddingHorizontal: 8,
+      overflow: 'hidden',
+    },
+    visualizerInner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+    },
+    barbellSleeve: {
+      width: 18,
+      height: 12,
+      backgroundColor: '#6B6E78',
+      borderRadius: 3,
+    },
+    barbellCollar: {
+      width: 8,
+      height: 38,
+      backgroundColor: '#8A8D96',
+      borderRadius: 2,
+      zIndex: 2,
+    },
+    barbellCenter: {
+      flex: 1,
+      height: 8,
+      backgroundColor: '#8A8D96',
+      minWidth: 40,
+    },
+    platesWrapper: {
+      alignItems: 'center',
+      gap: 1,
+      zIndex: 1,
+    },
+    plateBlock: {
+      borderRadius: 4,
+      borderWidth: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    plateLabel: {
+      fontWeight: '800',
+      textAlign: 'center',
+    },
+    summaryList: {
+      maxHeight: 160,
+      marginBottom: 20,
+    },
+    emptyState: {
+      paddingVertical: 20,
+      alignItems: 'center',
+    },
+    emptyText: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 14,
+    },
+    summaryContainer: {
+      paddingVertical: 4,
+    },
+    summaryHeader: {
+      fontFamily: 'SpaceGrotesk_400Regular',
+      fontSize: 12,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      marginBottom: 10,
+    },
+    summaryRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    colorIndicator: {
+      width: 12,
+      height: 12,
+      borderRadius: 3,
+      marginRight: 10,
+    },
+    summaryText: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 14,
+    },
+    boldText: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+    },
+    actionButton: {
+      height: 52,
+      minHeight: 52,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    actionButtonText: {
+      fontSize: 15,
+    },
+    barbellAlert: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderRadius: 8,
+      padding: 10,
+      marginBottom: 16,
+      gap: 8,
+    },
+    barbellAlertText: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 13,
+      flex: 1,
+    },
+    addPlatesContainer: {
+      marginBottom: 20,
+    },
+    platesScroll: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 4,
+    },
+    addPlateChip: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      minWidth: 64,
+      shadowColor: theme.colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    addPlateChipText: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 12,
+    },
+    resetBarBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      gap: 4,
+      backgroundColor: theme.colors.primarySubtle,
+    },
+    resetBarBtnText: {
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      fontSize: 12,
+    },
+  });

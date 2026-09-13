@@ -21,15 +21,15 @@ export const Badge: React.FC<BadgeProps> = ({ label, variant = 'default', style 
       break;
     case 'danger':
       backgroundColor = theme.colors.accent;
-      textColor = '#FFFFFF';
+      textColor = theme.colors.onError;
       break;
     case 'warning':
-      backgroundColor = '#FFB800'; // Hardcoded for warning, not explicitly in PRD but needed for some set types
-      textColor = '#000000';
+      backgroundColor = theme.colors.warning;
+      textColor = theme.colors.onPrimary;
       break;
     case 'success':
-      backgroundColor = '#00C853';
-      textColor = '#FFFFFF';
+      backgroundColor = theme.colors.success;
+      textColor = theme.colors.onPrimary;
       break;
     case 'default':
     default:
@@ -56,7 +56,8 @@ export const Badge: React.FC<BadgeProps> = ({ label, variant = 'default', style 
 
 const styles = StyleSheet.create({
   container: {
-    height: 24,
+    minHeight: 24,
+    paddingVertical: 4,
     paddingHorizontal: 8,
     justifyContent: 'center',
     alignItems: 'center',

@@ -1,3 +1,4 @@
+import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
 import React, { useState } from 'react';
 import {
@@ -12,6 +13,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { ExercisePickerModal } from '../../src/components/workout/ExercisePickerModal';
@@ -25,7 +27,9 @@ import {
 
 export default function WorkoutTemplateBuilderScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
   const { programId, templateId, dayOfWeek, week } = useLocalSearchParams<{
     programId?: string;
     templateId?: string;
@@ -53,7 +57,7 @@ export default function WorkoutTemplateBuilderScreen() {
   if (programId && !program) {
     return (
       <View style={styles.centered}>
-        <Text style={{ color: '#F4F5F7' }}>Program not found.</Text>
+        <Text style={{ color: theme.colors.text }}>Program not found.</Text>
       </View>
     );
   }
@@ -105,16 +109,30 @@ export default function WorkoutTemplateBuilderScreen() {
       <View
         style={[
           styles.header,
-          { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border },
+          {
+            backgroundColor: theme.colors.surface,
+            borderBottomColor: theme.colors.border,
+            paddingTop: Math.max(insets.top, 12),
+          },
         ]}
       >
-        <Pressable onPress={() => router.back()} hitSlop={15} style={styles.backBtn}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Zurück"
+          onPress={() => router.back()}
+          hitSlop={15}
+          style={styles.backBtn}
+        >
           <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+        <Text
+          numberOfLines={1}
+          style={[styles.headerTitle, { color: theme.colors.text, flex: 1, marginHorizontal: 8 }]}
+        >
           {existingTemplate ? 'Edit Workout' : 'New Workout'}
         </Text>
         <Pressable
+          accessibilityRole="button"
           onPress={handleSave}
           style={[styles.saveBtn, { backgroundColor: theme.colors.primary }]}
         >
@@ -130,7 +148,15 @@ export default function WorkoutTemplateBuilderScreen() {
           sorter.onScroll(e);
         }}
         scrollEventThrottle={16}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          {
+            width: '100%',
+            maxWidth: theme.layout.contentWidth,
+            alignSelf: 'center',
+            paddingBottom: Math.max(insets.bottom, 24),
+          },
+        ]}
         scrollEnabled={sorter.scrollEnabled}
         keyboardDismissMode="on-drag"
         automaticallyAdjustKeyboardInsets={true}
@@ -141,7 +167,7 @@ export default function WorkoutTemplateBuilderScreen() {
           value={name}
           onChangeText={setName}
           placeholder="e.g. Push Day"
-          placeholderTextColor="#8A8D9F"
+          placeholderTextColor={theme.colors.muted}
           inputAccessoryViewID={KEYBOARD_DONE_ID}
           onSubmitEditing={() => Keyboard.dismiss()}
         />
@@ -152,7 +178,7 @@ export default function WorkoutTemplateBuilderScreen() {
           value={description}
           onChangeText={setDescription}
           placeholder="e.g. Focused on chest and triceps"
-          placeholderTextColor="#8A8D9F"
+          placeholderTextColor={theme.colors.muted}
           inputAccessoryViewID={KEYBOARD_DONE_ID}
           onSubmitEditing={() => Keyboard.dismiss()}
         />
@@ -235,7 +261,7 @@ export default function WorkoutTemplateBuilderScreen() {
                     </Text>
                   </View>
                   <Pressable onPress={() => removeExercise(te.id)} hitSlop={10}>
-                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                    <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
                   </Pressable>
                 </View>
 
@@ -379,7 +405,7 @@ export default function WorkoutTemplateBuilderScreen() {
                               ]}
                               hitSlop={5}
                             >
-                              <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                              <Ionicons name="trash-outline" size={16} color={theme.colors.error} />
                             </Pressable>
                           </View>
                         </View>
@@ -431,155 +457,162 @@ export default function WorkoutTemplateBuilderScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0B0F' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0B0B0F' },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    paddingTop: 50,
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: { fontSize: 18, fontFamily: 'SpaceGrotesk_700Bold', textTransform: 'uppercase' },
-  saveBtn: {
-    height: 36,
-    paddingHorizontal: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  saveBtnText: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    textAlignVertical: 'center',
-    includeFontPadding: false,
-  },
-  content: { padding: 16, paddingBottom: 40 },
-  label: {
-    fontSize: 14,
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    color: '#8A8D9F',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  input: {
-    backgroundColor: '#1A1C23',
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 16,
-    fontFamily: 'Manrope_500Medium',
-    color: '#F4F5F7',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#90D5FF',
-    marginBottom: 16,
-    textTransform: 'uppercase',
-  },
-  exerciseCard: {
-    marginBottom: 16,
-  },
-  exHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  exName: { fontSize: 16, fontFamily: 'SpaceGrotesk_700Bold' },
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.colors.background },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      alignItems: 'center',
+      borderBottomWidth: 1,
+      paddingTop: 50,
+    },
+    backBtn: {
+      width: 44,
+      height: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerTitle: { fontSize: 18, fontFamily: 'SpaceGrotesk_700Bold', textTransform: 'uppercase' },
+    saveBtn: {
+      minHeight: 44,
+      paddingHorizontal: 16,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: 8,
+    },
+    saveBtnText: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      textAlignVertical: 'center',
+      includeFontPadding: false,
+    },
+    content: { padding: 16, paddingBottom: 40 },
+    label: {
+      fontSize: 14,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      color: theme.colors.muted,
+      marginBottom: 8,
+      textTransform: 'uppercase',
+    },
+    input: {
+      minHeight: 44,
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: 12,
+      padding: 12,
+      fontSize: 16,
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.text,
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.primary,
+      marginBottom: 16,
+      textTransform: 'uppercase',
+    },
+    exerciseCard: {
+      marginBottom: 16,
+    },
+    exHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+      alignItems: 'center',
+    },
+    exName: { fontSize: 16, fontFamily: 'SpaceGrotesk_700Bold' },
 
-  tableHeaderRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-    paddingHorizontal: 4,
-  },
-  tableColHeader: {
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  setCol: { width: 30, textAlign: 'center' },
-  setColText: {
-    width: 30,
-    textAlign: 'center',
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 15,
-  },
-  inputCol: { flex: 1, textAlign: 'center' },
-  actionColHeader: { width: 34, marginLeft: 4 },
-  deleteSetBtn: {
-    width: 34,
-    height: 42,
-    borderRadius: 8,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 4,
-  },
-  tableRowContainer: {
-    marginBottom: 10,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'transparent',
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 2,
-  },
-  inputField: {
-    borderRadius: 8,
-    marginHorizontal: 4,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    fontSize: 16,
-    textAlign: 'center',
-    fontWeight: '500',
-    borderWidth: 1,
-    borderColor: 'transparent',
-    height: 42,
-  },
-  addSetRow: {
-    flexDirection: 'row',
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderTopWidth: 1,
-    marginHorizontal: -16,
-    marginBottom: -16,
-    marginTop: 16,
-    gap: 6,
-  },
-  addSetRowText: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  addExBtn: {
-    backgroundColor: 'transparent',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderStyle: 'dashed',
-  },
-  addExText: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 16, textTransform: 'uppercase' },
-  dragHandle: {
-    paddingRight: 8,
-    paddingVertical: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+    tableHeaderRow: {
+      flexDirection: 'row',
+      marginBottom: 8,
+      paddingHorizontal: 4,
+    },
+    tableColHeader: {
+      fontSize: 12,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    setCol: { width: 30, textAlign: 'center' },
+    setColText: {
+      width: 30,
+      textAlign: 'center',
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 15,
+    },
+    inputCol: { flex: 1, textAlign: 'center' },
+    actionColHeader: { width: 34, marginLeft: 4 },
+    deleteSetBtn: {
+      width: 34,
+      height: 42,
+      borderRadius: 8,
+      borderWidth: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: 4,
+    },
+    tableRowContainer: {
+      marginBottom: 10,
+    },
+    tableRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: 'transparent',
+      borderRadius: 10,
+      paddingVertical: 8,
+      paddingHorizontal: 2,
+    },
+    inputField: {
+      borderRadius: 8,
+      marginHorizontal: 4,
+      paddingVertical: 10,
+      paddingHorizontal: 8,
+      fontSize: 16,
+      textAlign: 'center',
+      fontWeight: '500',
+      borderWidth: 1,
+      borderColor: 'transparent',
+      height: 42,
+    },
+    addSetRow: {
+      flexDirection: 'row',
+      height: 48,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderTopWidth: 1,
+      marginHorizontal: -16,
+      marginBottom: -16,
+      marginTop: 16,
+      gap: 6,
+    },
+    addSetRowText: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    addExBtn: {
+      backgroundColor: 'transparent',
+      padding: 16,
+      borderRadius: 8,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderStyle: 'dashed',
+    },
+    addExText: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 16, textTransform: 'uppercase' },
+    dragHandle: {
+      paddingRight: 8,
+      paddingVertical: 4,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  });

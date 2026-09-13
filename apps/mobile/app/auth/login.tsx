@@ -1,3 +1,5 @@
+import { AuthHeader } from '../../src/components/AuthHeader';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useState } from 'react';
 import {
   View,
@@ -15,6 +17,7 @@ import { useAuthStore } from '../../src/stores/authStore';
 export default function LoginScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { showAlert } = useDialog();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -49,14 +52,17 @@ export default function LoginScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: Math.max(48, insets.top + 24),
+            paddingBottom: Math.max(32, insets.bottom + 24),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
       >
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>VOLT</Text>
-          <Text style={[styles.subtitle, { color: theme.colors.primary }]}>PERFORMANCE</Text>
-        </View>
+        <AuthHeader title="Welcome back" />
 
         <View style={styles.form}>
           <Input
@@ -99,7 +105,11 @@ export default function LoginScreen() {
           <Text style={[styles.footerText, { color: theme.colors.muted }]}>
             Don't have an account?{' '}
           </Text>
-          <Pressable onPress={() => router.push('/auth/register' as Href)}>
+          <Pressable
+            accessibilityRole="button"
+            style={{ minHeight: 44, justifyContent: 'center' }}
+            onPress={() => router.push('/auth/register' as Href)}
+          >
             <Text style={[styles.link, { color: theme.colors.primary }]}>Sign Up</Text>
           </Pressable>
         </View>
@@ -113,6 +123,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
@@ -140,6 +153,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   footer: {
+    flexWrap: 'wrap',
+    alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 32,
@@ -153,6 +168,8 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceGrotesk_600SemiBold',
   },
   forgotPasswordContainer: {
+    minHeight: 44,
+    justifyContent: 'center',
     alignSelf: 'flex-end',
     marginBottom: 20,
     marginTop: -8,

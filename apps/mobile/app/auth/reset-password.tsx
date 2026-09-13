@@ -1,3 +1,5 @@
+import { AuthHeader } from '../../src/components/AuthHeader';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter, Href } from 'expo-router';
@@ -7,6 +9,7 @@ import { useAuthStore } from '../../src/stores/authStore';
 export default function ResetPasswordScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { showAlert } = useDialog();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -64,14 +67,17 @@ export default function ResetPasswordScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: Math.max(48, insets.top + 24),
+            paddingBottom: Math.max(32, insets.bottom + 24),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
       >
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>VOLT</Text>
-          <Text style={[styles.subtitle, { color: theme.colors.primary }]}>PERFORMANCE</Text>
-        </View>
+        <AuthHeader title="Choose a new password" />
 
         <View style={styles.form}>
           <Text style={[styles.instructionText, { color: theme.colors.muted }]}>
@@ -114,6 +120,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,

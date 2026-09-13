@@ -1,3 +1,4 @@
+import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { getStorageScope, isScopeCurrent } from '../../src/data/storageScope';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Share } from 'react-native';
@@ -18,6 +19,7 @@ import * as Crypto from 'expo-crypto';
 import { useDialog } from '@fitness-tracker/ui';
 
 export default function WorkoutDetailScreen() {
+  const styles = useThemeStyles(createStyles);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { sessions } = useHistoryStore();
@@ -221,105 +223,131 @@ export default function WorkoutDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  outerContainer: { flex: 1, backgroundColor: '#0B0B0F' },
-  container: { flex: 1 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0B0B0F' },
-  content: { padding: 16, paddingBottom: 40 },
-  header: {
-    backgroundColor: '#1A1C23',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  title: {
-    fontSize: 22,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#F4F5F7',
-    marginBottom: 4,
-    textTransform: 'uppercase',
-  },
-  date: { fontSize: 14, fontFamily: 'Manrope_500Medium', color: '#8A8D9F', marginBottom: 8 },
-  duration: { fontSize: 16, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#F4F5F7' },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
-  },
-  actionBtn: {
-    flex: 1,
-    backgroundColor: '#90D5FF',
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionBtnText: {
-    color: '#0B0B0F',
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 14,
-  },
-  saveBtn: {
-    backgroundColor: '#2A2B31',
-  },
-  saveBtnText: {
-    color: '#F4F5F7',
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 14,
-  },
-  shareBtn: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  shareBtnText: {
-    color: '#F4F5F7',
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 14,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#90D5FF',
-    marginBottom: 12,
-    textTransform: 'uppercase',
-  },
-  card: {
-    backgroundColor: '#1A1C23',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  exName: {
-    fontSize: 16,
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    color: '#F4F5F7',
-    marginBottom: 4,
-  },
-  volumeText: {
-    fontSize: 14,
-    color: '#90D5FF',
-    fontFamily: 'SpaceGrotesk_700Bold',
-    marginBottom: 12,
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#2A2B31',
-    paddingBottom: 8,
-    marginBottom: 8,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 6,
-  },
-  incompleteRow: { opacity: 0.4 },
-  colSet: { flex: 1, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#8A8D9F' },
-  colWeight: { flex: 1, textAlign: 'center', fontFamily: 'Manrope_500Medium', color: '#F4F5F7' },
-  colReps: { flex: 1, textAlign: 'center', fontFamily: 'Manrope_500Medium', color: '#F4F5F7' },
-  colRpe: { flex: 1, textAlign: 'center', fontFamily: 'Manrope_500Medium', color: '#F4F5F7' },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    outerContainer: { flex: 1, backgroundColor: theme.colors.background },
+    container: { flex: 1 },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.background,
+    },
+    content: { padding: 16, paddingBottom: 40 },
+    header: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    title: {
+      fontSize: 22,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.text,
+      marginBottom: 4,
+      textTransform: 'uppercase',
+    },
+    date: {
+      fontSize: 14,
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.muted,
+      marginBottom: 8,
+    },
+    duration: { fontSize: 16, fontFamily: 'SpaceGrotesk_600SemiBold', color: theme.colors.text },
+    actionRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 16,
+    },
+    actionBtn: {
+      flex: 1,
+      backgroundColor: theme.colors.primary,
+      paddingVertical: 12,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    actionBtnText: {
+      color: theme.colors.background,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 14,
+    },
+    saveBtn: {
+      backgroundColor: theme.colors.border,
+    },
+    saveBtnText: {
+      color: theme.colors.text,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 14,
+    },
+    shareBtn: {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    shareBtnText: {
+      color: theme.colors.text,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 14,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.primary,
+      marginBottom: 12,
+      textTransform: 'uppercase',
+    },
+    card: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.radius.lg,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    exName: {
+      fontSize: 16,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      color: theme.colors.text,
+      marginBottom: 4,
+    },
+    volumeText: {
+      fontSize: 14,
+      color: theme.colors.primary,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      marginBottom: 12,
+    },
+    tableHeader: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      paddingBottom: 8,
+      marginBottom: 8,
+    },
+    tableRow: {
+      flexDirection: 'row',
+      paddingVertical: 6,
+    },
+    incompleteRow: { opacity: 0.4 },
+    colSet: { flex: 1, fontFamily: 'SpaceGrotesk_600SemiBold', color: theme.colors.muted },
+    colWeight: {
+      flex: 1,
+      textAlign: 'center',
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.text,
+    },
+    colReps: {
+      flex: 1,
+      textAlign: 'center',
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.text,
+    },
+    colRpe: {
+      flex: 1,
+      textAlign: 'center',
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.text,
+    },
+  });

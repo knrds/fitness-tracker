@@ -1,3 +1,4 @@
+import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
 import React, { useState, useEffect } from 'react';
 import {
@@ -25,6 +26,7 @@ export default function ExerciseDetailScreen() {
   const { status, addExercise, startWorkout } = useWorkoutStore();
   const { profile, updateProfile } = useProfileStore();
   const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
 
   const [imageLoading, setImageLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
@@ -144,7 +146,7 @@ export default function ExerciseDetailScreen() {
               </View>
             )}
             <View style={styles.expandBadge}>
-              <Ionicons name="expand" size={18} color="#F4F5F7" />
+              <Ionicons name="expand" size={18} color={theme.colors.text} />
             </View>
             <View style={styles.playOverlay}>
               <Text style={styles.playOverlayText}>▶ Tap to enlarge &amp; play</Text>
@@ -250,7 +252,7 @@ export default function ExerciseDetailScreen() {
                           : current.filter((id) => id !== exercise.id);
                         updateProfile({ rpeEnabledExerciseIds: updated });
                       }}
-                      trackColor={{ false: '#2A2B31', true: theme.colors.primary }}
+                      trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
                     />
                   </View>
                 )}
@@ -266,7 +268,7 @@ export default function ExerciseDetailScreen() {
                           : current.filter((id) => id !== exercise.id);
                         updateProfile({ rirEnabledExerciseIds: updated });
                       }}
-                      trackColor={{ false: '#2A2B31', true: theme.colors.primary }}
+                      trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
                     />
                   </View>
                 )}
@@ -304,7 +306,7 @@ export default function ExerciseDetailScreen() {
               hitSlop={12}
               onPress={() => setFullscreen(false)}
             >
-              <Ionicons name="close" size={30} color="#F4F5F7" />
+              <Ionicons name="close" size={30} color={theme.colors.text} />
             </Pressable>
             <Pressable style={styles.fullscreenImageWrap} onPress={() => setIsPlaying((p) => !p)}>
               <Image
@@ -332,302 +334,303 @@ const formatName = (str: string) => {
     .join(' ');
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0B0B0F',
-  },
-  content: {
-    paddingBottom: 40,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#0B0B0F',
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#ef4444',
-  },
-  imageContainer: {
-    width: '100%',
-    height: 280,
-    backgroundColor: '#1A1C23',
-    position: 'relative',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  imageLoader: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(11, 11, 15, 0.8)',
-  },
-  imagePlaceholder: {
-    width: '100%',
-    height: 280,
-    backgroundColor: '#1A1C23',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#2A2B31',
-  },
-  placeholderIcon: {
-    fontSize: 54,
-    marginBottom: 8,
-  },
-  placeholderText: {
-    fontSize: 14,
-    color: '#8A8D9F',
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-  },
-  detailsContainer: {
-    padding: 20,
-  },
-  header: {
-    marginBottom: 20,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  title: {
-    fontSize: 26,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#F4F5F7',
-    flex: 1,
-    lineHeight: 32,
-    textTransform: 'uppercase',
-  },
-  favoriteButton: {
-    marginLeft: 16,
-    padding: 4,
-  },
-  favoriteIcon: {
-    fontSize: 30,
-    color: '#eab308',
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 24,
-  },
-  infoCard: {
-    flex: 1,
-    backgroundColor: '#1A1C23',
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  infoLabel: {
-    fontSize: 11,
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    color: '#8A8D9F',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 6,
-  },
-  infoValue: {
-    fontSize: 15,
-    fontFamily: 'Manrope_500Medium',
-    color: '#F4F5F7',
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#90D5FF',
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  badges: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  instructionsContainer: {
-    backgroundColor: '#1A1C23',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  instructionStep: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  stepNumberContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#90D5FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    marginTop: 2,
-  },
-  stepNumberText: {
-    fontSize: 12,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#0B0B0F',
-  },
-  instructionText: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily: 'Manrope_500Medium',
-    color: '#F4F5F7',
-    lineHeight: 22,
-  },
-  noInstructionsText: {
-    fontSize: 15,
-    fontFamily: 'Manrope_500Medium',
-    color: '#8A8D9F',
-    fontStyle: 'italic',
-  },
-  actionButton: {
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 16,
-  },
-  actionButtonActive: {
-    backgroundColor: '#90D5FF',
-  },
-  actionButtonStart: {
-    backgroundColor: '#90D5FF',
-  },
-  actionButtonPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.98 }],
-  },
-  actionButtonText: {
-    color: '#0B0B0F',
-    fontSize: 16,
-    fontFamily: 'SpaceGrotesk_700Bold',
-  },
-  restTimerConfig: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1A1C23',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-    gap: 20,
-  },
-  adjustRestBtn: {
-    backgroundColor: '#2A2B31',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  adjustRestBtnText: {
-    fontSize: 14,
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    color: '#F4F5F7',
-  },
-  restDurationDisplay: {
-    minWidth: 100,
-    alignItems: 'center',
-  },
-  restDurationVal: {
-    fontSize: 18,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#F4F5F7',
-  },
-  expandBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(11, 11, 15, 0.75)',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playOverlay: {
-    position: 'absolute',
-    bottom: 12,
-    right: 12,
-    backgroundColor: 'rgba(11, 11, 15, 0.75)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  fullscreenContainer: {
-    flex: 1,
-    backgroundColor: '#0B0B0F',
-    justifyContent: 'center',
-  },
-  fullscreenClose: {
-    position: 'absolute',
-    top: 48,
-    right: 20,
-    zIndex: 2,
-    backgroundColor: 'rgba(26,28,35,0.9)',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullscreenImageWrap: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullscreenImage: {
-    width: '100%',
-    height: '80%',
-  },
-  fullscreenHint: {
-    position: 'absolute',
-    bottom: 48,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(26,28,35,0.9)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  playOverlayText: {
-    color: '#90D5FF',
-    fontSize: 12,
-    fontFamily: 'SpaceGrotesk_700Bold',
-  },
-  exerciseOptionsContainer: {
-    backgroundColor: '#1A1C23',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  optionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2A2B31',
-  },
-  optionLabel: {
-    fontSize: 15,
-    fontFamily: 'Manrope_500Medium',
-    color: '#F4F5F7',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    content: {
+      paddingBottom: 40,
+    },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.background,
+    },
+    errorText: {
+      fontSize: 16,
+      color: theme.colors.error,
+    },
+    imageContainer: {
+      width: '100%',
+      height: 280,
+      backgroundColor: theme.colors.surface,
+      position: 'relative',
+    },
+    image: {
+      width: '100%',
+      height: '100%',
+    },
+    imageLoader: {
+      ...StyleSheet.absoluteFillObject,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.overlay,
+    },
+    imagePlaceholder: {
+      width: '100%',
+      height: 280,
+      backgroundColor: theme.colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    placeholderIcon: {
+      fontSize: 54,
+      marginBottom: 8,
+    },
+    placeholderText: {
+      fontSize: 14,
+      color: theme.colors.muted,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+    },
+    detailsContainer: {
+      padding: 20,
+    },
+    header: {
+      marginBottom: 20,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    title: {
+      fontSize: 26,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.text,
+      flex: 1,
+      lineHeight: 32,
+      textTransform: 'uppercase',
+    },
+    favoriteButton: {
+      marginLeft: 16,
+      padding: 4,
+    },
+    favoriteIcon: {
+      fontSize: 30,
+      color: theme.colors.warning,
+    },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: 12,
+      marginBottom: 24,
+    },
+    infoCard: {
+      flex: 1,
+      backgroundColor: theme.colors.surface,
+      padding: 16,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    infoLabel: {
+      fontSize: 11,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      color: theme.colors.muted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+      marginBottom: 6,
+    },
+    infoValue: {
+      fontSize: 15,
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.text,
+    },
+    section: {
+      marginBottom: 24,
+    },
+    sectionTitle: {
+      fontSize: 13,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.primary,
+      marginBottom: 12,
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+    },
+    badges: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    instructionsContainer: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    instructionStep: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: 16,
+    },
+    stepNumberContainer: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: theme.colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+      marginTop: 2,
+    },
+    stepNumberText: {
+      fontSize: 12,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.background,
+    },
+    instructionText: {
+      flex: 1,
+      fontSize: 15,
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.text,
+      lineHeight: 22,
+    },
+    noInstructionsText: {
+      fontSize: 15,
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.muted,
+      fontStyle: 'italic',
+    },
+    actionButton: {
+      padding: 16,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 16,
+    },
+    actionButtonActive: {
+      backgroundColor: theme.colors.primary,
+    },
+    actionButtonStart: {
+      backgroundColor: theme.colors.primary,
+    },
+    actionButtonPressed: {
+      opacity: 0.85,
+      transform: [{ scale: 0.98 }],
+    },
+    actionButtonText: {
+      color: theme.colors.background,
+      fontSize: 16,
+      fontFamily: 'SpaceGrotesk_700Bold',
+    },
+    restTimerConfig: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      gap: 20,
+    },
+    adjustRestBtn: {
+      backgroundColor: theme.colors.border,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    adjustRestBtnText: {
+      fontSize: 14,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      color: theme.colors.text,
+    },
+    restDurationDisplay: {
+      minWidth: 100,
+      alignItems: 'center',
+    },
+    restDurationVal: {
+      fontSize: 18,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.text,
+    },
+    expandBadge: {
+      position: 'absolute',
+      top: 12,
+      right: 12,
+      backgroundColor: theme.colors.overlay,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    playOverlay: {
+      position: 'absolute',
+      bottom: 12,
+      right: 12,
+      backgroundColor: theme.colors.overlay,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+    },
+    fullscreenContainer: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+      justifyContent: 'center',
+    },
+    fullscreenClose: {
+      position: 'absolute',
+      top: 48,
+      right: 20,
+      zIndex: 2,
+      backgroundColor: theme.colors.surfaceElevated,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    fullscreenImageWrap: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    fullscreenImage: {
+      width: '100%',
+      height: '80%',
+    },
+    fullscreenHint: {
+      position: 'absolute',
+      bottom: 48,
+      alignSelf: 'center',
+      backgroundColor: theme.colors.surfaceElevated,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+    },
+    playOverlayText: {
+      color: theme.colors.primary,
+      fontSize: 12,
+      fontFamily: 'SpaceGrotesk_700Bold',
+    },
+    exerciseOptionsContainer: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    optionRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    optionLabel: {
+      fontSize: 15,
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.text,
+    },
+  });

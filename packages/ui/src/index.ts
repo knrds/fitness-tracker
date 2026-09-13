@@ -8,3 +8,5 @@ export * from './components/Badge';
 export * from './components/EmptyState';
 export * from './components/LoadingSkeleton';
 export * from './components/Modal';
+export * from './components/SegmentedControl';
+export { AnimatedDisclosure } from './components/AnimatedDisclosure';

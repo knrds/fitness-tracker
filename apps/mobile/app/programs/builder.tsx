@@ -1,3 +1,4 @@
+import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { KeyboardDoneAccessory } from '../../src/components/workout/KeyboardDoneAccessory';
 import { templateExercisesFromSession } from '@fitness-tracker/domain';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
@@ -33,6 +34,7 @@ import { useTheme } from '@fitness-tracker/ui';
 export default function ProgramBuilderScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
   const { id, week } = useLocalSearchParams<{ id?: string; week?: string }>();
   const { programs, updateProgram, templates, createTemplate } = useProgramStore();
   const { sessions } = useHistoryStore();
@@ -237,7 +239,7 @@ export default function ProgramBuilderScreen() {
   if (!activeProgram) {
     return (
       <View style={styles.centered}>
-        <Text style={{ color: '#F4F5F7' }}>Program not found.</Text>
+        <Text style={{ color: theme.colors.text }}>Program not found.</Text>
       </View>
     );
   }
@@ -352,7 +354,7 @@ export default function ProgramBuilderScreen() {
           value={activeProgram.name}
           onChangeText={(text) => handleChange({ name: text })}
           placeholder="e.g. 5/3/1 Boring But Big"
-          placeholderTextColor="#8A8D9F"
+          placeholderTextColor={theme.colors.muted}
         />
 
         <Text style={styles.label}>Description</Text>
@@ -369,7 +371,7 @@ export default function ProgramBuilderScreen() {
           value={activeProgram.description || ''}
           onChangeText={(text) => handleChange({ description: text })}
           placeholder="Optional description"
-          placeholderTextColor="#8A8D9F"
+          placeholderTextColor={theme.colors.muted}
           multiline
         />
 
@@ -388,7 +390,7 @@ export default function ProgramBuilderScreen() {
           keyboardType="numeric"
           inputAccessoryViewID="keyboardDoneAccessory"
           returnKeyType="done"
-          placeholderTextColor="#8A8D9F"
+          placeholderTextColor={theme.colors.muted}
         />
 
         <Text style={styles.sectionTitle}>Weekly Schedule</Text>
@@ -868,7 +870,7 @@ export default function ProgramBuilderScreen() {
                     styles.menuItem,
                     { borderBottomWidth: 1, borderBottomColor: theme.colors.border },
                     rescheduleWorkout?.dayOfWeek === dayNum && {
-                      backgroundColor: 'rgba(144, 213, 255, 0.1)',
+                      backgroundColor: theme.colors.primarySubtle,
                     },
                   ]}
                   onPress={() => {
@@ -912,219 +914,226 @@ export default function ProgramBuilderScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0B0F' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0B0B0F' },
-  content: { padding: 16, paddingBottom: 40 },
-  label: {
-    fontSize: 14,
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    color: '#8A8D9F',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  input: {
-    backgroundColor: '#1A1C23',
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 16,
-    fontFamily: 'Manrope_500Medium',
-    color: '#F4F5F7',
-    marginBottom: 16,
-  },
-  textArea: { minHeight: 80, textAlignVertical: 'top' },
-  sectionTitle: {
-    fontSize: 20,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#90D5FF',
-    marginTop: 16,
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  weekTabsScroll: {
-    marginBottom: 16,
-  },
-  weekTab: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#2A2B31',
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  weekTabText: {
-    color: '#8A8D9F',
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 14,
-  },
-  dayContainer: {
-    backgroundColor: '#1A1C23',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-    overflow: 'visible',
-  },
-  dayName: {
-    fontSize: 16,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#F4F5F7',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  workoutRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#0B0B0F',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  workoutName: { fontSize: 16, fontFamily: 'SpaceGrotesk_600SemiBold', color: '#F4F5F7' },
-  workoutActions: {
-    flexDirection: 'row',
-    width: '100%',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    gap: 4,
-  },
-  workoutAction: {
-    minHeight: 44,
-    minWidth: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  editText: { color: '#90D5FF', fontFamily: 'SpaceGrotesk_700Bold' },
-  removeText: { color: '#ef4444', fontFamily: 'SpaceGrotesk_700Bold' },
-  startText: { color: '#90D5FF', fontFamily: 'SpaceGrotesk_700Bold' },
-  dragHandle: {
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 4,
-  },
-  addWorkoutBtn: {
-    padding: 12,
-    alignItems: 'center',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-    borderStyle: 'dashed',
-    marginTop: 4,
-  },
-  addWorkoutText: { color: '#8A8D9F', fontFamily: 'SpaceGrotesk_700Bold' },
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.colors.background },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.background,
+    },
+    content: { padding: 16, paddingBottom: 40 },
+    label: {
+      fontSize: 14,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      color: theme.colors.muted,
+      marginBottom: 8,
+      textTransform: 'uppercase',
+    },
+    input: {
+      minHeight: 44,
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: 12,
+      padding: 12,
+      fontSize: 16,
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.text,
+      marginBottom: 16,
+    },
+    textArea: { minHeight: 80, textAlignVertical: 'top' },
+    sectionTitle: {
+      fontSize: 20,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.primary,
+      marginTop: 16,
+      marginBottom: 8,
+      textTransform: 'uppercase',
+    },
+    weekTabsScroll: {
+      marginBottom: 16,
+    },
+    weekTab: {
+      minHeight: 44,
+      justifyContent: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      backgroundColor: theme.colors.border,
+      marginRight: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    weekTabText: {
+      color: theme.colors.muted,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      fontSize: 14,
+    },
+    dayContainer: {
+      backgroundColor: theme.colors.background,
+      borderRadius: theme.radius.lg,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 0,
+      borderColor: theme.colors.border,
+      overflow: 'visible',
+    },
+    dayName: {
+      fontSize: 16,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.text,
+      marginBottom: 8,
+    },
+    workoutRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: theme.colors.background,
+      padding: 12,
+      borderRadius: 8,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    workoutName: { fontSize: 16, fontFamily: 'SpaceGrotesk_600SemiBold', color: theme.colors.text },
+    workoutActions: {
+      flexDirection: 'row',
+      width: '100%',
+      justifyContent: 'space-between',
+      marginTop: 8,
+      gap: 4,
+    },
+    workoutAction: {
+      minHeight: 44,
+      minWidth: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 4,
+    },
+    editText: { color: theme.colors.primary, fontFamily: 'SpaceGrotesk_700Bold' },
+    removeText: { color: theme.colors.error, fontFamily: 'SpaceGrotesk_700Bold' },
+    startText: { color: theme.colors.primary, fontFamily: 'SpaceGrotesk_700Bold' },
+    dragHandle: {
+      paddingHorizontal: 4,
+      paddingVertical: 4,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 4,
+    },
+    addWorkoutBtn: {
+      minHeight: 44,
+      padding: 12,
+      alignItems: 'center',
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderStyle: 'dashed',
+      marginTop: 4,
+    },
+    addWorkoutText: { color: theme.colors.muted, fontFamily: 'SpaceGrotesk_700Bold' },
 
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(11, 11, 15, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalCard: {
-    borderWidth: 1,
-    padding: 24,
-    width: '100%',
-    maxWidth: 380,
-    borderRadius: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  modalSub: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  modalBtn: {
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    marginBottom: 12,
-  },
-  modalBtnText: {
-    fontSize: 15,
-  },
-  modalCloseBtn: {
-    paddingVertical: 12,
-    alignItems: 'center',
-    width: '100%',
-  },
-  templateList: {
-    maxHeight: 200,
-    width: '100%',
-    marginBottom: 16,
-  },
-  templateItem: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    width: '100%',
-  },
-  templateItemName: {
-    fontSize: 15,
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    marginBottom: 2,
-  },
-  templateItemCount: {
-    fontSize: 12,
-    fontFamily: 'Manrope_500Medium',
-  },
-  backOptionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    width: '100%',
-  },
-  backOptionText: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 14,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2A2B31',
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabButtonText: {
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 14,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-  },
-  menuItemText: {
-    color: '#F4F5F7',
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    fontSize: 15,
-  },
-});
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.colors.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+    },
+    modalCard: {
+      borderWidth: 1,
+      padding: 24,
+      width: '100%',
+      maxWidth: 380,
+      borderRadius: theme.radius.lg,
+    },
+    modalTitle: {
+      fontSize: 20,
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    modalSub: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 14,
+      textAlign: 'center',
+      marginBottom: 20,
+      lineHeight: 20,
+    },
+    modalBtn: {
+      paddingVertical: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      marginBottom: 12,
+    },
+    modalBtnText: {
+      fontSize: 15,
+    },
+    modalCloseBtn: {
+      paddingVertical: 12,
+      alignItems: 'center',
+      width: '100%',
+    },
+    templateList: {
+      maxHeight: 200,
+      width: '100%',
+      marginBottom: 16,
+    },
+    templateItem: {
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      width: '100%',
+    },
+    templateItemName: {
+      fontSize: 15,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      marginBottom: 2,
+    },
+    templateItemCount: {
+      fontSize: 12,
+      fontFamily: 'Manrope_500Medium',
+    },
+    backOptionBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: 8,
+      width: '100%',
+    },
+    backOptionText: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 14,
+    },
+    tabContainer: {
+      flexDirection: 'row',
+      marginBottom: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    tabButton: {
+      flex: 1,
+      paddingVertical: 10,
+      alignItems: 'center',
+      borderBottomWidth: 2,
+      borderBottomColor: 'transparent',
+    },
+    tabButtonText: {
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      fontSize: 14,
+    },
+    menuItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 8,
+    },
+    menuItemText: {
+      color: theme.colors.text,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      fontSize: 15,
+    },
+  });

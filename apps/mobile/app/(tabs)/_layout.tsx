@@ -1,21 +1,19 @@
 import { TabIcon } from '../../src/components/TabIcon';
 import { useReducedMotion } from 'react-native-reanimated';
 import React from 'react';
-import { Tabs, usePathname } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
 import { useTheme } from '@fitness-tracker/ui';
-import { StyleSheet, Platform, Pressable, Animated, View } from 'react-native';
-import { isIOS } from '../../src/utils/platform';
+import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MinimizedWorkoutBar } from '../../src/components/workout/MinimizedWorkoutBar';
 
 export default function TabLayout() {
   const theme = useTheme();
   const reducedMotion = useReducedMotion();
-  const pathname = usePathname();
-  const isHomeFocused = pathname === '/';
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <View style={{ flex: 1, width: '100%', maxWidth: 1040, alignSelf: 'center' }}>
         <Tabs
           screenOptions={{
@@ -23,12 +21,13 @@ export default function TabLayout() {
             animation: reducedMotion ? 'none' : 'fade',
             tabBarActiveTintColor: theme.colors.primary,
             tabBarInactiveTintColor: theme.colors.muted,
+            tabBarLabelStyle: { fontFamily: 'Manrope_600SemiBold', fontSize: 11 },
             tabBarStyle: {
-              backgroundColor: theme.colors.background,
+              backgroundColor: theme.colors.surface,
               borderTopColor: theme.colors.border,
               borderTopWidth: 1,
-              height: isIOS ? 88 : 64,
-              paddingBottom: isIOS ? 24 : 8,
+              height: 72 + insets.bottom,
+              paddingBottom: Math.max(insets.bottom, 8),
               paddingTop: 8,
             },
           }}
@@ -38,6 +37,7 @@ export default function TabLayout() {
             options={{
               title: 'History',
               tabBarLabel: 'History',
+              tabBarAccessibilityLabel: 'History',
               tabBarIcon: ({ color, focused }) => (
                 <TabIcon
                   focused={focused}
@@ -52,8 +52,13 @@ export default function TabLayout() {
             options={{
               title: 'Plans',
               tabBarLabel: 'Plans',
+              tabBarAccessibilityLabel: 'Plans',
               tabBarIcon: ({ color, focused }) => (
-                <Ionicons name={focused ? 'barbell' : 'barbell-outline'} color={color} />
+                <TabIcon
+                  name={focused ? 'barbell' : 'barbell-outline'}
+                  color={color}
+                  focused={focused}
+                />
               ),
             }}
           />
@@ -61,51 +66,15 @@ export default function TabLayout() {
             name="index"
             options={{
               title: 'Home',
-              tabBarLabel: () => null,
-              tabBarButton: (props) => {
-                const focused = isHomeFocused;
-                return (
-                  <Pressable
-                    accessibilityRole="tab"
-                    accessibilityLabel="Home"
-                    accessibilityState={{ selected: focused }}
-                    aria-selected={focused}
-                    onPress={props.onPress}
-                    onLongPress={props.onLongPress}
-                    style={[props.style, styles.centerTabContainer]}
-                  >
-                    <Animated.View
-                      style={[
-                        styles.centerTabCircle,
-                        Platform.OS === 'web'
-                          ? styles.centerTabCircleWebShadow
-                          : styles.centerTabCircleNativeShadow,
-                        {
-                          backgroundColor: focused ? theme.colors.primary : '#1A1C23',
-                          borderColor: focused ? theme.colors.primary : theme.colors.muted,
-                          borderWidth: 2,
-                        },
-                        focused &&
-                          (Platform.OS === 'web'
-                            ? styles.centerTabFocusedWebShadow
-                            : {
-                                shadowColor: theme.colors.primary,
-                                shadowOffset: { width: 0, height: 0 },
-                                shadowOpacity: 0.35,
-                                shadowRadius: 8,
-                                elevation: 8,
-                              }),
-                      ]}
-                    >
-                      <Ionicons
-                        name={focused ? 'home' : 'home-outline'}
-                        size={26}
-                        color={focused ? theme.colors.background : theme.colors.muted}
-                      />
-                    </Animated.View>
-                  </Pressable>
-                );
-              },
+              tabBarLabel: 'Home',
+              tabBarAccessibilityLabel: 'Home',
+              tabBarIcon: ({ color, focused }) => (
+                <TabIcon
+                  name={focused ? 'flash' : 'flash-outline'}
+                  color={color}
+                  focused={focused}
+                />
+              ),
             }}
           />
           <Tabs.Screen
@@ -119,11 +88,12 @@ export default function TabLayout() {
             options={{
               title: 'Coach',
               tabBarLabel: 'Coach',
+              tabBarAccessibilityLabel: 'Coach',
               tabBarIcon: ({ color, focused }) => (
-                <Ionicons
+                <TabIcon
                   name={focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'}
-                  size={22}
                   color={color}
+                  focused={focused}
                 />
               ),
             }}
@@ -133,8 +103,9 @@ export default function TabLayout() {
             options={{
               title: 'Body',
               tabBarLabel: 'Body',
+              tabBarAccessibilityLabel: 'Body',
               tabBarIcon: ({ color, focused }) => (
-                <Ionicons name={focused ? 'body' : 'body-outline'} color={color} />
+                <TabIcon name={focused ? 'body' : 'body-outline'} color={color} focused={focused} />
               ),
             }}
           />
@@ -150,31 +121,3 @@ export default function TabLayout() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  centerTabContainer: {
-    top: isIOS ? -12 : -16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  centerTabCircle: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  centerTabCircleNativeShadow: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  centerTabCircleWebShadow: {
-    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
-  },
-  centerTabFocusedWebShadow: {
-    boxShadow: '0 0 18px rgba(144, 213, 255, 0.7)',
-  },
-});

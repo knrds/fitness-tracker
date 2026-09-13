@@ -77,6 +77,26 @@ describe('native workout path with a real SQLite engine', () => {
     mockRepository = undefined;
   });
 
+  it('restores appearance from SQLite without losing legacy profile fields', async () => {
+    await useProfileStore.persist.rehydrate();
+    useProfileStore.setState({
+      profile: { displayName: 'Athlete', preferredUnits: 'imperial', heightCm: 182 },
+    });
+    await useProfileStore.persist.rehydrate();
+    expect(useProfileStore.getState().profile.colorway).toBeUndefined();
+    useProfileStore.getState().updateProfile({ colorway: 'amber' });
+    withoutStorageWrites(() =>
+      useProfileStore.setState({ profile: { displayName: '', preferredUnits: 'metric' } }),
+    );
+    await useProfileStore.persist.rehydrate();
+    expect(useProfileStore.getState().profile).toMatchObject({
+      displayName: 'Athlete',
+      preferredUnits: 'imperial',
+      heightCm: 182,
+      colorway: 'amber',
+    });
+  });
+
   it('imports AsyncStorage data even when an empty MMKV instance is available, then reads only SQLite', async () => {
     const raw = JSON.stringify({ state: { count: 12 }, version: 1 });
     await AsyncStorage.setItem('legacy-test', raw);
@@ -265,15 +285,13 @@ describe('native workout path with a real SQLite engine', () => {
       exercises: [{ ...originalExercise, supersetGroup: 'A', notes: 'Exercise cue' }],
     });
     useWorkoutStore.getState().updateWorkoutNotes('Workout cue');
-    useWorkoutStore
-      .getState()
-      .updateSet(originalExercise.id, originalExercise.sets[0]!.id, {
-        rir: 0,
-        restSeconds: 125,
-        durationSeconds: 45,
-        distanceMeters: 20,
-        notes: 'Set cue',
-      });
+    useWorkoutStore.getState().updateSet(originalExercise.id, originalExercise.sets[0]!.id, {
+      rir: 0,
+      restSeconds: 125,
+      durationSeconds: 45,
+      distanceMeters: 20,
+      notes: 'Set cue',
+    });
     const history = useWorkoutStore.getState().finishWorkout()!;
     useWorkoutStore.getState().startWorkoutFromSession(history);
     const repeatedId = useWorkoutStore.getState().sessionId;

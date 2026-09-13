@@ -1,3 +1,4 @@
+import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, Platform } from 'react-native';
@@ -13,6 +14,7 @@ import { WorkoutTemplate } from '@fitness-tracker/domain';
 export default function QuickStartScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
   const { templates, deleteTemplate } = useProgramStore();
   const { exercises: allExercises } = useExerciseStore();
   const { status: activeWorkoutStatus, startWorkout, startWorkoutFromTemplate } = useWorkoutStore();
@@ -188,148 +190,148 @@ export default function QuickStartScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0B0B0F',
-    padding: 16,
-    paddingTop: isIOS ? 50 : 48,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    borderBottomWidth: 1,
-    paddingBottom: 16,
-    gap: 12,
-  },
-  backBtn: {
-    padding: 4,
-  },
-  headerTextContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#F4F5F7',
-    textTransform: 'uppercase',
-  },
-  headerSub: {
-    fontSize: 13,
-    fontFamily: 'Manrope_500Medium',
-    color: '#8A8D9F',
-    marginTop: 2,
-  },
-  emptyWorkoutBtn: {
-    backgroundColor: '#90D5FF',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  emptyWorkoutBtnText: {
-    color: '#0B0B0F',
-    fontSize: 16,
-    fontFamily: 'SpaceGrotesk_700Bold',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#90D5FF',
-    marginBottom: 12,
-    textTransform: 'uppercase',
-  },
-  list: {
-    paddingBottom: 24,
-  },
-  card: {
-    backgroundColor: '#1A1C23',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#F4F5F7',
-    flex: 1,
-    marginRight: 12,
-  },
-  templateActions: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-  },
-  actionBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#2A2B31',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  startBtn: {
-    backgroundColor: '#90D5FF',
-  },
-  startBtnText: {
-    color: '#0B0B0F',
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 14,
-  },
-  editBtnText: {
-    color: '#90D5FF',
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 14,
-  },
-  deleteBtnText: {
-    color: '#ef4444',
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 14,
-  },
-  cardDesc: {
-    fontSize: 14,
-    fontFamily: 'Manrope_500Medium',
-    color: '#8A8D9F',
-    marginBottom: 12,
-  },
-  exercisePreview: {
-    backgroundColor: '#0B0B0F',
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  exerciseText: {
-    fontSize: 14,
-    fontFamily: 'Manrope_500Medium',
-    color: '#F4F5F7',
-    marginBottom: 4,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    marginTop: 40,
-    padding: 24,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#F4F5F7',
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    fontFamily: 'Manrope_500Medium',
-    color: '#8A8D9F',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+      padding: 16,
+      paddingTop: isIOS ? 50 : 48,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 20,
+      borderBottomWidth: 1,
+      paddingBottom: 16,
+      gap: 12,
+    },
+    backBtn: {
+      padding: 4,
+    },
+    headerTextContainer: {
+      flex: 1,
+    },
+    headerTitle: {
+      fontSize: 22,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.text,
+    },
+    headerSub: {
+      fontSize: 13,
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.muted,
+      marginTop: 2,
+    },
+    emptyWorkoutBtn: {
+      backgroundColor: theme.colors.primary,
+      borderRadius: 12,
+      padding: 16,
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    emptyWorkoutBtnText: {
+      color: theme.colors.background,
+      fontSize: 16,
+      fontFamily: 'SpaceGrotesk_700Bold',
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.primary,
+      marginBottom: 12,
+      textTransform: 'uppercase',
+    },
+    list: {
+      paddingBottom: 24,
+    },
+    card: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.radius.lg,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    cardTitle: {
+      fontSize: 18,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.text,
+      flex: 1,
+      marginRight: 12,
+    },
+    templateActions: {
+      flexDirection: 'row',
+      gap: 8,
+      alignItems: 'center',
+    },
+    actionBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 8,
+      backgroundColor: theme.colors.border,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    startBtn: {
+      backgroundColor: theme.colors.primary,
+    },
+    startBtnText: {
+      color: theme.colors.background,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 14,
+    },
+    editBtnText: {
+      color: theme.colors.primary,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 14,
+    },
+    deleteBtnText: {
+      color: theme.colors.error,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 14,
+    },
+    cardDesc: {
+      fontSize: 14,
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.muted,
+      marginBottom: 12,
+    },
+    exercisePreview: {
+      backgroundColor: theme.colors.background,
+      borderRadius: 8,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    exerciseText: {
+      fontSize: 14,
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.text,
+      marginBottom: 4,
+    },
+    emptyContainer: {
+      alignItems: 'center',
+      marginTop: 40,
+      padding: 24,
+    },
+    emptyText: {
+      fontSize: 16,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.text,
+      marginBottom: 8,
+    },
+    emptySubtext: {
+      fontSize: 14,
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.muted,
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+  });

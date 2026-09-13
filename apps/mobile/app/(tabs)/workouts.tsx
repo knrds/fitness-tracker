@@ -1,3 +1,5 @@
+import { SegmentedControl } from '@fitness-tracker/ui';
+import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { useFocusScroll } from '../../src/hooks/useFocusScroll';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
 import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
@@ -29,6 +31,7 @@ export default function WorkoutsScreen() {
   const router = useRouter();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const theme = useTheme();
+  const styles = useThemeStyles(createStyles);
   const insets = useSafeAreaInsets();
   const { templates, deleteTemplate, updateTemplatesOrder } = useProgramStore();
   const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
@@ -107,7 +110,7 @@ export default function WorkoutsScreen() {
       })
       .join('\n');
 
-    const message = `🏋️ ${template.name}\n\n${exerciseLines}\n\n— Shared from Volt Performance`;
+    const message = `${template.name}\n\n${exerciseLines}\n\n— Shared from Volt Performance`;
 
     try {
       await Share.share({ message, title: template.name });
@@ -144,50 +147,26 @@ export default function WorkoutsScreen() {
         { backgroundColor: theme.colors.background, paddingTop: Math.max(insets.top, 16) },
       ]}
     >
-      {/* Top Segmented Control Tab Toggle */}
-      <View
+      <Text
         style={[
-          styles.tabToggleHeader,
-          { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+          theme.typography.heading,
+          { color: theme.colors.text, marginHorizontal: 16, marginBottom: 16 },
         ]}
       >
-        {(
-          [
-            { id: 'workouts', label: 'Templates', icon: 'document-text-outline' },
-            { id: 'programs', label: 'Programs', icon: 'calendar-outline' },
-          ] as const
-        ).map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <Pressable
-              key={tab.id}
-              style={[
-                styles.tabToggleBtn,
-                isActive && { backgroundColor: theme.colors.background },
-              ]}
-              onPress={() => {
-                setActiveTab(tab.id);
-                router.setParams({ tab: tab.id });
-              }}
-            >
-              <Ionicons
-                name={tab.icon}
-                size={16}
-                color={isActive ? theme.colors.primary : theme.colors.muted}
-              />
-              <Text
-                style={[
-                  styles.tabToggleBtnText,
-                  { color: isActive ? theme.colors.primary : theme.colors.muted },
-                ]}
-              >
-                {tab.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
+        Plans
+      </Text>
+      <SegmentedControl
+        label="Plan views"
+        value={activeTab}
+        onChange={(value) => {
+          setActiveTab(value);
+          router.setParams({ tab: value });
+        }}
+        options={[
+          { value: 'workouts', label: 'Templates' },
+          { value: 'programs', label: 'Programs' },
+        ]}
+      />
       {activeTab === 'workouts' ? (
         <ScrollView
           ref={sorter.scrollViewRef}
@@ -257,7 +236,7 @@ export default function WorkoutsScreen() {
                     hitSlop={10}
                     onPress={() => setMenuTemplateId(item.id)}
                   >
-                    <Ionicons name="ellipsis-vertical" size={20} color="#8A8D9F" />
+                    <Ionicons name="ellipsis-vertical" size={20} color={theme.colors.muted} />
                   </Pressable>
                 </Animated.View>
               );
@@ -292,8 +271,10 @@ export default function WorkoutsScreen() {
                 }
               }}
             >
-              <Ionicons name="play-circle-outline" size={20} color="#90D5FF" />
-              <Text style={[styles.menuItemText, { color: '#90D5FF' }]}>Start Workout</Text>
+              <Ionicons name="play-circle-outline" size={20} color={theme.colors.primary} />
+              <Text style={[styles.menuItemText, { color: theme.colors.primary }]}>
+                Start Workout
+              </Text>
             </Pressable>
             <Pressable
               style={styles.menuItem}
@@ -308,7 +289,7 @@ export default function WorkoutsScreen() {
                   );
               }}
             >
-              <Ionicons name="create-outline" size={20} color="#F4F5F7" />
+              <Ionicons name="create-outline" size={20} color={theme.colors.text} />
               <Text style={styles.menuItemText}>Edit</Text>
             </Pressable>
             <Pressable
@@ -324,7 +305,7 @@ export default function WorkoutsScreen() {
                 }
               }}
             >
-              <Ionicons name="arrow-up-outline" size={20} color="#F4F5F7" />
+              <Ionicons name="arrow-up-outline" size={20} color={theme.colors.text} />
               <Text style={styles.menuItemText}>Move Up</Text>
             </Pressable>
             <Pressable
@@ -344,7 +325,7 @@ export default function WorkoutsScreen() {
                 }
               }}
             >
-              <Ionicons name="arrow-down-outline" size={20} color="#F4F5F7" />
+              <Ionicons name="arrow-down-outline" size={20} color={theme.colors.text} />
               <Text style={styles.menuItemText}>Move Down</Text>
             </Pressable>
             <Pressable
@@ -356,7 +337,7 @@ export default function WorkoutsScreen() {
                 }
               }}
             >
-              <Ionicons name="share-outline" size={20} color="#F4F5F7" />
+              <Ionicons name="share-outline" size={20} color={theme.colors.text} />
               <Text style={styles.menuItemText}>Share</Text>
             </Pressable>
             <Pressable
@@ -367,8 +348,8 @@ export default function WorkoutsScreen() {
                 if (id) handleDeleteTemplate(id);
               }}
             >
-              <Ionicons name="trash-outline" size={20} color="#ef4444" />
-              <Text style={[styles.menuItemText, { color: '#ef4444' }]}>Delete</Text>
+              <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
+              <Text style={[styles.menuItemText, { color: theme.colors.error }]}>Delete</Text>
             </Pressable>
           </View>
         </Pressable>
@@ -466,188 +447,197 @@ export default function WorkoutsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0B0F' },
-  tabToggleHeader: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderRadius: 10,
-    marginHorizontal: 24,
-    marginVertical: 16,
-    padding: 3,
-    gap: 3,
-  },
-  tabToggleBtn: {
-    flex: 1,
-    minHeight: 36,
-    borderRadius: 7,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  tabToggleBtnText: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 12,
-    textTransform: 'uppercase',
-  },
-  quickStart: {
-    padding: 16,
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#90D5FF',
-    marginBottom: 12,
-    textTransform: 'uppercase',
-  },
-  emptyWorkoutBtn: {
-    backgroundColor: '#90D5FF',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  emptyWorkoutBtnText: {
-    color: '#0B0B0F',
-    fontSize: 16,
-    fontFamily: 'SpaceGrotesk_700Bold',
-  },
-  list: { padding: 16 },
-  card: {
-    backgroundColor: '#1A1C23',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-  },
-  cardInfo: { flex: 1 },
-  cardTitle: { fontSize: 16, fontFamily: 'SpaceGrotesk_700Bold', color: '#F4F5F7' },
-  cardSubtitle: { fontSize: 14, fontFamily: 'Manrope_500Medium', color: '#8A8D9F', marginTop: 4 },
-  kebabBtn: { padding: 4 },
-  menuOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(11, 11, 15, 0.7)',
-    justifyContent: 'flex-end',
-  },
-  menuSheet: {
-    backgroundColor: '#1A1C23',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderWidth: 1,
-    borderColor: '#2A2B31',
-    paddingTop: 16,
-    paddingBottom: 40,
-    paddingHorizontal: 12,
-  },
-  menuTitle: {
-    fontFamily: 'SpaceGrotesk_700Bold',
-    color: '#8A8D9F',
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    paddingHorizontal: 12,
-    marginBottom: 8,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-  },
-  menuItemText: { color: '#F4F5F7', fontFamily: 'SpaceGrotesk_600SemiBold', fontSize: 16 },
-  emptyText: {
-    color: '#8A8D9F',
-    fontFamily: 'Manrope_500Medium',
-    textAlign: 'center',
-    marginTop: 24,
-    paddingHorizontal: 20,
-    lineHeight: 22,
-  },
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.colors.background },
+    tabToggleHeader: {
+      flexDirection: 'row',
+      borderWidth: 1,
+      borderRadius: 10,
+      marginHorizontal: 24,
+      marginVertical: 16,
+      padding: 3,
+      gap: 3,
+    },
+    tabToggleBtn: {
+      flex: 1,
+      minHeight: 36,
+      borderRadius: 7,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+    },
+    tabToggleBtnText: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 12,
+      textTransform: 'uppercase',
+    },
+    quickStart: {
+      padding: 16,
+      marginBottom: 8,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.text,
+      marginBottom: 12,
+    },
+    emptyWorkoutBtn: {
+      backgroundColor: theme.colors.primary,
+      paddingVertical: 16,
+      borderRadius: 12,
+      alignItems: 'center',
+    },
+    emptyWorkoutBtnText: {
+      color: theme.colors.background,
+      fontSize: 16,
+      fontFamily: 'SpaceGrotesk_700Bold',
+    },
+    list: { padding: 16 },
+    card: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.radius.lg,
+      padding: 16,
+      marginBottom: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    cardInfo: { flex: 1 },
+    cardTitle: { fontSize: 16, fontFamily: 'SpaceGrotesk_700Bold', color: theme.colors.text },
+    cardSubtitle: {
+      fontSize: 14,
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.muted,
+      marginTop: 4,
+    },
+    kebabBtn: { minHeight: 44, padding: 4 },
+    menuOverlay: {
+      flex: 1,
+      backgroundColor: theme.colors.overlay,
+      justifyContent: 'flex-end',
+    },
+    menuSheet: {
+      backgroundColor: theme.colors.surface,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      paddingTop: 16,
+      paddingBottom: 40,
+      paddingHorizontal: 12,
+    },
+    menuTitle: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.muted,
+      fontSize: 12,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      paddingHorizontal: 12,
+      marginBottom: 8,
+    },
+    menuItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      paddingVertical: 16,
+      paddingHorizontal: 12,
+      borderRadius: 12,
+    },
+    menuItemText: {
+      color: theme.colors.text,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      fontSize: 16,
+    },
+    emptyText: {
+      color: theme.colors.muted,
+      fontFamily: 'Manrope_500Medium',
+      textAlign: 'center',
+      marginTop: 24,
+      paddingHorizontal: 20,
+      lineHeight: 22,
+    },
 
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(11, 11, 15, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalCard: {
-    borderWidth: 1,
-    padding: 24,
-    width: '100%',
-    maxWidth: 380,
-    borderRadius: 16,
-  },
-  modalHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    width: '100%',
-  },
-  modalTitle: {
-    fontSize: 20,
-    flex: 1,
-    marginRight: 12,
-  },
-  modalSummaryStatsRow: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 20,
-    width: '100%',
-  },
-  modalStatItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  modalStatText: {
-    fontFamily: 'Manrope_500Medium',
-    fontSize: 13,
-  },
-  summaryExerciseList: {
-    maxHeight: 250,
-    width: '100%',
-    marginBottom: 24,
-  },
-  summaryExRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    width: '100%',
-  },
-  summaryExName: {
-    fontSize: 14,
-    fontFamily: 'SpaceGrotesk_600SemiBold',
-    flex: 1,
-    marginRight: 12,
-  },
-  summaryExDetails: {
-    fontSize: 13,
-    fontFamily: 'SpaceGrotesk_700Bold',
-  },
-  modalStartBtn: {
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  modalStartBtnText: {
-    fontSize: 15,
-  },
-  dragHandle: {
-    paddingRight: 8,
-    paddingVertical: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.colors.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+    },
+    modalCard: {
+      borderWidth: 1,
+      padding: 24,
+      width: '100%',
+      maxWidth: 380,
+      borderRadius: theme.radius.lg,
+    },
+    modalHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+      width: '100%',
+    },
+    modalTitle: {
+      fontSize: 20,
+      flex: 1,
+      marginRight: 12,
+    },
+    modalSummaryStatsRow: {
+      flexDirection: 'row',
+      gap: 16,
+      marginBottom: 20,
+      width: '100%',
+    },
+    modalStatItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    modalStatText: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 13,
+    },
+    summaryExerciseList: {
+      maxHeight: 250,
+      width: '100%',
+      marginBottom: 24,
+    },
+    summaryExRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      width: '100%',
+    },
+    summaryExName: {
+      fontSize: 14,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      flex: 1,
+      marginRight: 12,
+    },
+    summaryExDetails: {
+      fontSize: 13,
+      fontFamily: 'SpaceGrotesk_700Bold',
+    },
+    modalStartBtn: {
+      height: 52,
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+    },
+    modalStartBtnText: {
+      fontSize: 15,
+    },
+    dragHandle: {
+      paddingRight: 8,
+      paddingVertical: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  });

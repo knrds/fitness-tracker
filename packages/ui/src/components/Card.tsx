@@ -5,6 +5,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   Easing,
+  useReducedMotion,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../ThemeProvider';
@@ -26,6 +27,7 @@ export const Card: React.FC<CardProps> = ({
   ...props
 }) => {
   const theme = useTheme();
+  const reducedMotion = useReducedMotion();
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -36,13 +38,19 @@ export const Card: React.FC<CardProps> = ({
 
   const handlePressIn = () => {
     if (onPress) {
-      scale.value = withTiming(0.96, { duration: 100, easing: Easing.out(Easing.quad) });
+      scale.value = withTiming(reducedMotion ? 1 : 0.99, {
+        duration: theme.motion.fast,
+        easing: Easing.out(Easing.quad),
+      });
     }
   };
 
   const handlePressOut = () => {
     if (onPress) {
-      scale.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.quad) });
+      scale.value = withTiming(1, {
+        duration: reducedMotion ? 0 : theme.motion.fast,
+        easing: Easing.out(Easing.quad),
+      });
     }
   };
 
@@ -80,6 +88,7 @@ export const Card: React.FC<CardProps> = ({
   if (onPress) {
     return (
       <AnimatedPressable
+        accessibilityRole="button"
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={handlePress}

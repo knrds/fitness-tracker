@@ -19,6 +19,7 @@ import { useCoachStore } from '../../src/stores/coachStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import * as ImagePicker from 'expo-image-picker';
 import { CoachComposer } from '../../src/components/CoachComposer';
+import { CoachTrainingContext } from '../../src/components/CoachTrainingContext';
 import { CoachPlanCard } from '../../src/components/CoachPlanCard';
 import { CoachSources } from '../../src/components/CoachSources';
 import { useCoachRecorder } from '../../src/hooks/useCoachRecorder';
@@ -119,12 +120,12 @@ export default function CoachScreen() {
                 { color: theme.colors.text, ...theme.typography.heading },
               ]}
             >
-              COACH
+              Coach
             </Text>
             <Text
               style={[styles.subtitle, { color: theme.colors.muted, ...theme.typography.caption }]}
             >
-              Training log companion
+              Training, progression & recovery
             </Text>
           </View>
           <Pressable
@@ -168,6 +169,7 @@ export default function CoachScreen() {
           </View>
         ) : null}
 
+        <CoachTrainingContext onAsk={(question) => void handleSend(question)} />
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -182,11 +184,11 @@ export default function CoachScreen() {
                   style={[
                     styles.bubble,
                     isUser
-                      ? { backgroundColor: theme.colors.primary }
+                      ? { backgroundColor: theme.colors.primarySubtle }
                       : {
-                          backgroundColor: theme.colors.surface,
+                          backgroundColor: theme.colors.background,
                           borderColor: theme.colors.border,
-                          borderWidth: 1,
+                          borderWidth: 0,
                         },
                   ]}
                 >
@@ -199,7 +201,7 @@ export default function CoachScreen() {
                       style={[
                         styles.messageText,
                         isUser
-                          ? { color: theme.colors.background, fontFamily: 'Manrope_600SemiBold' }
+                          ? { color: theme.colors.text, fontFamily: 'Manrope_600SemiBold' }
                           : { color: theme.colors.text, fontFamily: 'Manrope_500Medium' },
                       ]}
                     >
@@ -319,8 +321,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   iconButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: 20,
     borderWidth: 1,
     justifyContent: 'center',
@@ -366,7 +368,7 @@ const styles = StyleSheet.create({
   },
   messageText: {
     fontSize: 15,
-    lineHeight: 20,
+    lineHeight: 23,
   },
   loaderContainer: {
     paddingHorizontal: 8,

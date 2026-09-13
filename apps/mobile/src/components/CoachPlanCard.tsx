@@ -61,7 +61,7 @@ export function CoachPlanCard({ message }: { message: ChatMessage }) {
           if (saved) {
             router.navigate({
               pathname: '/workouts',
-              params: { tab: isProgram ? 'programs' : 'templates' },
+              params: { tab: isProgram ? 'programs' : 'workouts' },
             });
             return;
           }

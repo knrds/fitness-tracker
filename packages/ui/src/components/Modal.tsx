@@ -10,6 +10,8 @@ import {
   Easing,
   Platform,
   AccessibilityInfo,
+  KeyboardAvoidingView,
+  ScrollView,
 } from 'react-native';
 import { useTheme } from '../ThemeProvider';
 import { Button } from './Button';
@@ -101,57 +103,70 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <RNModal visible={shouldRender} transparent animationType="none" onRequestClose={onClose}>
-      <Animated.View
-        style={[styles.overlay, { opacity: fadeAnim, backgroundColor: theme.colors.overlay }]}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <Animated.View
-          style={[
-            styles.container,
-            {
-              backgroundColor: theme.colors.surfaceElevated,
-              borderColor: theme.colors.border,
-              borderRadius: theme.radius.lg,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
+          style={[styles.overlay, { opacity: fadeAnim, backgroundColor: theme.colors.overlay }]}
         >
-          <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
-            <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
-              {title}
-            </Text>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Schließen"
-              onPress={onClose}
-              style={styles.closeButton}
-            >
-              <Ionicons name="close" size={24} color={theme.colors.muted} />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.content}>{children}</View>
-          {(primaryActionTitle || secondaryActionTitle) && (
-            <View style={[styles.footer, { borderTopColor: theme.colors.border }]}>
-              {secondaryActionTitle && (
-                <Button
-                  title={secondaryActionTitle}
-                  onPress={onSecondaryAction || onClose}
-                  variant="ghost"
-                  style={styles.actionButton}
-                />
-              )}
-              {primaryActionTitle && onPrimaryAction && (
-                <Button
-                  title={primaryActionTitle}
-                  onPress={onPrimaryAction}
-                  variant="primary"
-                  style={styles.actionButton}
-                />
-              )}
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+          <Animated.View
+            style={[
+              styles.container,
+              {
+                backgroundColor: theme.colors.surfaceElevated,
+                borderColor: theme.colors.border,
+                borderRadius: theme.radius.lg,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+              <Text
+                style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}
+              >
+                {title}
+              </Text>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Schließen"
+                onPress={onClose}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color={theme.colors.muted} />
+              </TouchableOpacity>
             </View>
-          )}
+            <ScrollView
+              style={{ flexShrink: 1 }}
+              contentContainerStyle={styles.content}
+              keyboardShouldPersistTaps="handled"
+            >
+              {children}
+            </ScrollView>
+            {(primaryActionTitle || secondaryActionTitle) && (
+              <View style={[styles.footer, { borderTopColor: theme.colors.border }]}>
+                {secondaryActionTitle && (
+                  <Button
+                    title={secondaryActionTitle}
+                    onPress={onSecondaryAction || onClose}
+                    variant="ghost"
+                    style={styles.actionButton}
+                  />
+                )}
+                {primaryActionTitle && onPrimaryAction && (
+                  <Button
+                    title={primaryActionTitle}
+                    onPress={onPrimaryAction}
+                    variant="primary"
+                    style={styles.actionButton}
+                  />
+                )}
+              </View>
+            )}
+          </Animated.View>
         </Animated.View>
-      </Animated.View>
+      </KeyboardAvoidingView>
     </RNModal>
   );
 };

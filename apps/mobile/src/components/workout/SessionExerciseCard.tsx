@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Pressable,
   TextInput,
+  Keyboard,
   Platform,
   Modal,
   ScrollView,
@@ -31,7 +32,7 @@ import { useExerciseStore } from '../../stores/exerciseStore';
 import { useProfileStore } from '../../stores/profileStore';
 import { useHistoryStore } from '../../stores/historyStore';
 import { PlateCalculatorModal } from './PlateCalculatorModal';
-import { useTheme, Card, useDialog } from '@fitness-tracker/ui';
+import { useTheme, Card, useDialog, Modal as DetailModal } from '@fitness-tracker/ui';
 import { Ionicons } from '@expo/vector-icons';
 
 const secondsToDigitString = (totalSecs?: number) => {
@@ -102,8 +103,8 @@ export const SessionExerciseCard = ({
 }: Props) => {
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
-  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
-  const compact = windowWidth < 480;
+  const { height: windowHeight } = useWindowDimensions();
+  const compact = true;
   const router = useRouter();
   const navigateToInstructions = () => {
     router.push(`/exercise/${sessionExercise.exerciseId}`);
@@ -547,11 +548,11 @@ export const SessionExerciseCard = ({
             <Text style={[styles.columnHeader, styles.doneCol, { color: theme.colors.muted }]}>
               ✓
             </Text>
-            {Platform.OS === 'web' && (
+            {
               <Text
                 style={[styles.columnHeader, styles.deleteCol, { color: theme.colors.muted }]}
               />
-            )}
+            }
           </View>
 
           {(() => {
@@ -1075,6 +1076,11 @@ const SetRow = ({
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
   const isDone = set.completed;
+  const [detailsVisible, setDetailsVisible] = useState(false);
+  const closeDetails = () => {
+    Keyboard.dismiss();
+    setDetailsVisible(false);
+  };
   const swipeX = React.useRef(new Animated.Value(0)).current;
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -1288,7 +1294,7 @@ const SetRow = ({
             style={[
               styles.input,
               styles.rpeCol,
-              compact && { flexGrow: 0, flexShrink: 0, flexBasis: 56, width: 56 },
+              { flexGrow: 0, flexShrink: 0, flexBasis: 48, width: '100%', minWidth: 0 },
               {
                 color: theme.colors.text,
                 backgroundColor: theme.colors.background,
@@ -1319,7 +1325,7 @@ const SetRow = ({
             style={[
               styles.input,
               styles.rirCol,
-              compact && { flexGrow: 0, flexShrink: 0, flexBasis: 56, width: 56 },
+              { flexGrow: 0, flexShrink: 0, flexBasis: 48, width: '100%', minWidth: 0 },
               {
                 color: theme.colors.text,
                 backgroundColor: theme.colors.background,
@@ -1463,36 +1469,43 @@ const SetRow = ({
                 color={isDone ? theme.colors.background : theme.colors.muted}
               />
             </Pressable>
-            {Platform.OS === 'web' && (
-              <Pressable
-                style={[
-                  styles.deleteSetBtn,
-                  styles.deleteCol,
-                  { borderColor: theme.colors.border, backgroundColor: theme.colors.background },
-                ]}
-                onPress={handleDeleteSet}
-                hitSlop={6}
-              >
-                <Ionicons name="close" size={16} color={theme.colors.error} />
-              </Pressable>
-            )}
-          </View>
-          {compact && (showRpe || showRir) && (
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                gap: 6,
-                paddingTop: 6,
-                paddingBottom: 8,
-              }}
+            <Pressable
+              style={[styles.deleteCol, styles.centerAlign, { minHeight: 44 }]}
+              accessibilityRole="button"
+              accessibilityLabel={`Satz ${workingSetNumber} Details`}
+              onPress={() => setDetailsVisible(true)}
             >
-              {effortInputs}
-            </View>
-          )}
+              <Ionicons
+                name="ellipsis-horizontal"
+                size={18}
+                color={set.rpe || set.rir !== undefined ? theme.colors.primary : theme.colors.muted}
+              />
+            </Pressable>
+          </View>
         </Animated.View>
       </View>
+      <DetailModal
+        visible={detailsVisible}
+        title={`Satz ${workingSetNumber} · Details`}
+        onClose={closeDetails}
+        primaryActionTitle="Fertig"
+        onPrimaryAction={closeDetails}
+      >
+        <Text style={{ color: theme.colors.muted, marginBottom: 16, lineHeight: 21 }}>
+          RPE beschreibt die Anstrengung. RIR zählt die noch möglichen Wiederholungen.
+        </Text>
+        <View style={{ gap: 12 }}>{effortInputs}</View>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            setDetailsVisible(false);
+            handleDeleteSet();
+          }}
+          style={{ minHeight: 48, justifyContent: 'center', marginTop: 16 }}
+        >
+          <Text style={{ color: theme.colors.error }}>Satz entfernen</Text>
+        </Pressable>
+      </DetailModal>
       {lastPerformanceSet && (
         <View style={styles.e1rmRow}>
           <Text style={[styles.e1rmText, { color: theme.colors.muted }]}>
@@ -1573,12 +1586,12 @@ const createStyles = (theme: Theme) =>
       textAlign: 'center',
     },
     setCol: { width: 28, textAlign: 'center' },
-    weightCol: { flex: 1.25, textAlign: 'center' },
-    repsCol: { flex: 1.0, textAlign: 'center' },
+    weightCol: { flex: 1.25, minWidth: 0, textAlign: 'center' },
+    repsCol: { flex: 1.0, minWidth: 0, textAlign: 'center' },
     rpeCol: { flex: 0.9, textAlign: 'center' },
     rirCol: { flex: 0.9, textAlign: 'center' },
     doneCol: { width: 44, textAlign: 'center' },
-    deleteCol: { width: 28, textAlign: 'center' },
+    deleteCol: { width: 44, textAlign: 'center' },
 
     rowContainer: {
       marginBottom: 6,

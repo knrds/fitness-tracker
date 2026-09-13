@@ -1,3 +1,4 @@
+import { VoltDashboard } from '../../src/components/VoltDashboard';
 import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { useFocusScroll } from '../../src/hooks/useFocusScroll';
 import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
@@ -9,40 +10,29 @@ import {
   View,
   ScrollView,
   Pressable,
-  Image,
   Animated,
   Platform,
   Modal,
-  useWindowDimensions,
 } from 'react-native';
-import { useRouter, Href } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { MuscleHeatmap } from '../../src/components/MuscleHeatmap';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WorkoutTemplate, getMuscleActivity } from '@fitness-tracker/domain';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
-import { useProfileStore } from '../../src/stores/profileStore';
 import { useHistoryStore } from '../../src/stores/historyStore';
-import { useAchievementStore } from '../../src/stores/achievementStore';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
-import { LevelProgress } from '../../src/components/LevelProgress';
-import { Button, Card, useTheme } from '@fitness-tracker/ui';
-import { SyncIndicator } from '../../src/components/SyncIndicator';
-import { VoltBackdrop } from '../../src/components/VoltBackdrop';
+import { useTheme } from '@fitness-tracker/ui';
 
 export default function HomeScreen() {
   const scrollRef = useFocusScroll();
-  const wide = useWindowDimensions().width >= 800;
   const router = useRouter();
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
   const insets = useSafeAreaInsets();
 
   const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
-  const { profile } = useProfileStore();
-  const { getStreak, getSessionsByDateDesc } = useHistoryStore();
-  const { level, xp } = useAchievementStore();
+  const { getSessionsByDateDesc } = useHistoryStore();
   const { programs, templates } = useProgramStore();
   const { exercises } = useExerciseStore();
 
@@ -54,18 +44,13 @@ export default function HomeScreen() {
 
   const sessions = getSessionsByDateDesc();
 
-  const sortedTemplates = React.useMemo(() => {
-    return [...templates].sort((a, b) => {
-      const lastSessionA = sessions.find((s) => s.templateId === a.id);
-      const lastSessionB = sessions.find((s) => s.templateId === b.id);
-      const timeA = lastSessionA ? new Date(lastSessionA.startedAt).getTime() : 0;
-      const timeB = lastSessionB ? new Date(lastSessionB.startedAt).getTime() : 0;
-      if (timeA === 0 && timeB === 0) {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      }
-      return timeB - timeA;
-    });
-  }, [templates, sessions]);
+  const sortedTemplates = React.useMemo(
+    () =>
+      [...templates].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
+    [templates],
+  );
 
   const muscleVolumes = React.useMemo(() => {
     const since = new Date();
@@ -73,13 +58,6 @@ export default function HomeScreen() {
     since.setHours(0, 0, 0, 0);
     return getMuscleActivity(sessions, exercises, since);
   }, [sessions, exercises]);
-
-  const handleMusclePress = (muscle: string) => {
-    router.push({
-      pathname: '/body',
-      params: { tab: 'exercises', muscle },
-    });
-  };
 
   const handleStartTemplate = (template: WorkoutTemplate, programId?: string) => {
     const start = () => {
@@ -131,7 +109,6 @@ export default function HomeScreen() {
     ]).start();
   }, [fadeAnim, shouldAnimateEntrance, slideAnim]);
 
-  const streak = getStreak();
   const activeProgram = programs.find((p) => p.isActive);
   const today = new Date();
   const programDayOfWeek = today.getDay() === 0 ? 7 : today.getDay();
@@ -162,17 +139,6 @@ export default function HomeScreen() {
     .map((workout) => templates.find((template) => template.id === workout.templateId))
     .filter((template): template is WorkoutTemplate => Boolean(template));
   const featuredProgramTemplate = todaysProgramTemplates[0] ?? null;
-  const featuredExerciseNames =
-    featuredProgramTemplate?.exercises
-      .map(
-        (templateExercise) =>
-          exercises.find((exercise) => exercise.id === templateExercise.exerciseId)?.name,
-      )
-      .filter((name): name is string => Boolean(name))
-      .slice(0, 5) ?? [];
-  const additionalExerciseCount =
-    (featuredProgramTemplate?.exercises.length ?? 0) - featuredExerciseNames.length;
-
   const handleStartWorkout = () => {
     if (status === 'idle' || status === 'finished') {
       startWorkout('Quick Workout');
@@ -194,33 +160,6 @@ export default function HomeScreen() {
     handleStartWorkout();
   };
 
-  // Profile avatar initials
-  const initials = (profile.displayName || 'U')
-    .split(' ')
-    .map((w) => w.charAt(0))
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-
-  // Logic for Weekly Consistency Chart
-  const last7Days = Array.from({ length: 7 }).map((_, i) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() - ((today.getDay() + 6) % 7) + i);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  });
-
-  const getIsDayTrained = (date: Date) => {
-    return sessions.some((s) => {
-      const sessionDate = new Date(s.startedAt);
-      return (
-        sessionDate.getDate() === date.getDate() &&
-        sessionDate.getMonth() === date.getMonth() &&
-        sessionDate.getFullYear() === date.getFullYear()
-      );
-    });
-  };
-
   return (
     <ScrollView
       ref={scrollRef}
@@ -234,347 +173,17 @@ export default function HomeScreen() {
       ]}
     >
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }], gap: 12 }}>
-        {/* Top Header */}
-        <View style={styles.headerRow}>
-          {/* Profile Avatar & Name */}
-          <Pressable
-            style={styles.headerLeft}
-            onPress={() => router.push('/profile' as Href)}
-            accessibilityLabel="View profile"
-          >
-            {profile.profileImageUri ? (
-              <Image
-                source={{ uri: profile.profileImageUri }}
-                style={[styles.avatar, { borderColor: theme.colors.primary }]}
-              />
-            ) : (
-              <View
-                style={[
-                  styles.avatar,
-                  styles.avatarFallback,
-                  { borderColor: theme.colors.primary, backgroundColor: theme.colors.surface },
-                ]}
-              >
-                <Text style={[styles.avatarInitials, { color: theme.colors.primary }]}>
-                  {initials}
-                </Text>
-              </View>
-            )}
-            <View>
-              <Text
-                style={[{ color: theme.colors.muted, marginBottom: 2 }, theme.typography.caption]}
-              >
-                VOLT / TODAY
-              </Text>
-              <Text style={[{ color: theme.colors.text }, theme.typography.heading]}>
-                {profile.displayName || 'ATHLETE'}
-              </Text>
-            </View>
-          </Pressable>
-          <View style={styles.headerRight}>
-            <SyncIndicator />
-            <View style={styles.readinessContainer}>
-              <Text
-                style={[
-                  { color: theme.colors.primary, fontSize: 24, lineHeight: 30 },
-                  theme.typography.display,
-                ]}
-              >
-                {streak}
-              </Text>
-              <Text style={[{ color: theme.colors.muted }, theme.typography.caption]}>
-                DAY STREAK
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={{ flexDirection: wide ? 'row' : 'column', gap: 16, alignItems: 'stretch' }}>
-          <View style={{ flex: wide ? 1.35 : undefined, minWidth: 0, gap: 12 }}>
-            {/* "Today" Card */}
-            <Text
-              style={[
-                { color: theme.colors.text, fontSize: 20, marginTop: 8, marginBottom: 0 },
-                theme.typography.heading,
-              ]}
-            >
-              Your next session
-            </Text>
-            <Card
-              style={[
-                styles.todayCard,
-                { marginBottom: 0, borderColor: theme.colors.borderActive },
-              ]}
-              padding="md"
-            >
-              <VoltBackdrop />
-              <View
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}
-              >
-                <Ionicons name="flash" size={16} color={theme.colors.primary} />
-                <Text style={[theme.typography.label, { color: theme.colors.primary }]}>
-                  Built for your next rep
-                </Text>
-              </View>
-              {activeProgram ? (
-                <View style={styles.todayDetails}>
-                  <Text
-                    style={[
-                      { color: theme.colors.text, fontSize: 18, marginBottom: 4 },
-                      theme.typography.heading,
-                    ]}
-                    numberOfLines={2}
-                  >
-                    {featuredProgramTemplate?.name || 'Program Rest Day'}
-                  </Text>
-                  <Text style={[styles.todayMetaText, { color: theme.colors.muted }]}>
-                    Week {currentProgramWeek} - {activeProgram.name}
-                  </Text>
-                  {featuredProgramTemplate ? (
-                    <View style={styles.todayExerciseList}>
-                      {featuredExerciseNames.map((name) => (
-                        <View
-                          key={name}
-                          style={[
-                            styles.todayExerciseChip,
-                            {
-                              borderColor: theme.colors.border,
-                              backgroundColor: theme.colors.surface,
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[styles.todayExerciseChipText, { color: theme.colors.text }]}
-                            numberOfLines={1}
-                            ellipsizeMode="tail"
-                          >
-                            {name}
-                          </Text>
-                        </View>
-                      ))}
-                      {additionalExerciseCount > 0 && (
-                        <Text style={[styles.todayMoreText, { color: theme.colors.muted }]}>
-                          +{additionalExerciseCount} more
-                        </Text>
-                      )}
-                    </View>
-                  ) : (
-                    <Text style={[styles.todayBodyText, { color: theme.colors.muted }]}>
-                      No scheduled workout today. Start a free session or review your program.
-                    </Text>
-                  )}
-                </View>
-              ) : (
-                <View style={styles.todayDetails}>
-                  <Text
-                    style={[
-                      { color: theme.colors.text, fontSize: 18, marginBottom: 4 },
-                      theme.typography.heading,
-                    ]}
-                  >
-                    Quick workout
-                  </Text>
-                  <Text style={[{ color: theme.colors.muted, ...theme.typography.body }]}>
-                    Start a session and add exercises as you train.
-                  </Text>
-                </View>
-              )}
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <Button
-                  title={
-                    status === 'active' || status === 'paused'
-                      ? 'Resume workout'
-                      : featuredProgramTemplate
-                        ? 'Start today’s workout'
-                        : 'Start workout'
-                  }
-                  variant="primary"
-                  onPress={handleStartToday}
-                  style={{ flex: 2 }}
-                />
-                {!activeProgram && (
-                  <Button
-                    title="Programs"
-                    variant="ghost"
-                    onPress={() =>
-                      router.navigate({ pathname: '/workouts', params: { tab: 'programs' } })
-                    }
-                    style={{ flex: 1, paddingHorizontal: 12 }}
-                  />
-                )}
-              </View>
-            </Card>
-          </View>
-          <View style={{ flex: wide ? 1 : undefined, minWidth: 0, gap: 12 }}>
-            {/* Weekly Consistency */}
-            <Text
-              style={[
-                { color: theme.colors.text, fontSize: 20, marginTop: 8, marginBottom: 0 },
-                theme.typography.heading,
-              ]}
-            >
-              This week
-            </Text>
-            <Card
-              padding="md"
-              style={[
-                styles.consistencyCard,
-                { marginBottom: 0, flex: wide ? 1 : undefined, justifyContent: 'center' },
-              ]}
-            >
-              <View
-                style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 16 }}
-              >
-                <Text
-                  style={[theme.typography.display, { color: theme.colors.primary, fontSize: 32 }]}
-                >
-                  {last7Days.filter(getIsDayTrained).length}
-                </Text>
-                <Text style={[theme.typography.caption, { color: theme.colors.muted, flex: 1 }]}>
-                  training days this week
-                </Text>
-                <Ionicons name="pulse-outline" size={24} color={theme.colors.primary} />
-              </View>
-              <View style={styles.weekContainer}>
-                {last7Days.map((date, idx) => {
-                  const isToday = date.toDateString() === today.toDateString();
-                  const isTrained = getIsDayTrained(date);
-                  return (
-                    <View key={idx} style={styles.dayColumn}>
-                      <View
-                        style={[
-                          styles.dayCircle,
-                          isTrained
-                            ? { backgroundColor: theme.colors.primary }
-                            : {
-                                backgroundColor: 'transparent',
-                                borderColor: theme.colors.border,
-                                borderWidth: 2,
-                              },
-                          isToday && {
-                            borderColor: theme.colors.text,
-                            borderWidth: 2,
-                            shadowColor: theme.colors.primary,
-                            shadowOffset: { width: 0, height: 0 },
-                            shadowOpacity: 0,
-                            shadowRadius: 6,
-                            elevation: 5,
-                            ...(!isTrained && { backgroundColor: theme.colors.primarySubtle }),
-                          },
-                        ]}
-                      >
-                        {isTrained && (
-                          <Ionicons name="checkmark" size={14} color={theme.colors.background} />
-                        )}
-                      </View>
-                      <Text
-                        style={[
-                          { ...theme.typography.caption, fontSize: 10, marginTop: 8 },
-                          { color: isToday ? theme.colors.primary : theme.colors.muted },
-                          isToday && { fontFamily: 'SpaceGrotesk_700Bold', fontWeight: 'bold' },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'][date.getDay()]}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
-            </Card>
-          </View>
-        </View>
-        {/* Saved Workouts (Templates) */}
-        {templates.length > 0 && (
-          <>
-            <Text
-              style={[
-                { color: theme.colors.text, fontSize: 20, marginTop: 8, marginBottom: 0 },
-                theme.typography.heading,
-              ]}
-            >
-              Saved workouts
-            </Text>
-            <View style={{ gap: 12, marginBottom: 16 }}>
-              {sortedTemplates.slice(0, 4).map((template) => {
-                const exerciseNames = template.exercises
-                  .map((te) => exercises.find((e) => e.id === te.exerciseId)?.name)
-                  .filter(Boolean)
-                  .join(', ');
-
-                const totalSets = template.exercises.reduce((sum, ex) => sum + ex.targetSets, 0);
-
-                return (
-                  <Card
-                    key={template.id}
-                    padding="md"
-                    onPress={() => setSelectedTemplate(template)}
-                    style={[
-                      styles.recentActivityCard,
-                      {
-                        backgroundColor: theme.colors.background,
-                        borderWidth: 0,
-                        borderBottomWidth: 1,
-                        borderRadius: 0,
-                      },
-                    ]}
-                  >
-                    <View style={styles.recentActivityHeader}>
-                      <Text
-                        style={[
-                          {
-                            color: theme.colors.text,
-                            ...theme.typography.body,
-                            fontWeight: 'bold',
-                          },
-                        ]}
-                      >
-                        {template.name}
-                      </Text>
-                    </View>
-                    <Text
-                      style={[
-                        {
-                          color: theme.colors.muted,
-                          fontSize: 14,
-                          fontFamily: 'Manrope_500Medium',
-                          marginVertical: 6,
-                        },
-                      ]}
-                      numberOfLines={2}
-                      ellipsizeMode="tail"
-                    >
-                      {exerciseNames || `${template.exercises.length} Exercises`}
-                    </Text>
-                    <View style={{ flexDirection: 'row', gap: 16, marginTop: 4 }}>
-                      <Text style={[{ color: theme.colors.muted }, theme.typography.caption]}>
-                        Exercises:{' '}
-                        <Text style={{ color: theme.colors.text }}>
-                          {template.exercises.length}
-                        </Text>
-                      </Text>
-                      <Text style={[{ color: theme.colors.muted }, theme.typography.caption]}>
-                        Sets: <Text style={{ color: theme.colors.text }}>{totalSets}</Text>
-                      </Text>
-                    </View>
-                  </Card>
-                );
-              })}
-            </View>
-          </>
-        )}
-
-        {/* Muscle Heatmap */}
-        <Text
-          style={[
-            { color: theme.colors.text, fontSize: 20, marginTop: 8, marginBottom: 0 },
-            theme.typography.heading,
-          ]}
-        >
-          Muscle activity
-        </Text>
-        <MuscleHeatmap activity={muscleVolumes} onSelect={handleMusclePress} />
-        <LevelProgress level={level} xp={xp} />
+        <VoltDashboard
+          template={featuredProgramTemplate}
+          programName={activeProgram?.name}
+          week={currentProgramWeek}
+          durationWeeks={activeProgram?.durationWeeks}
+          templates={sortedTemplates}
+          activity={muscleVolumes}
+          onStart={handleStartToday}
+          onTemplate={setSelectedTemplate}
+          resume={status === 'active' || status === 'paused'}
+        />
       </Animated.View>
 
       {/* Workout Template Summary Popup */}
@@ -684,7 +293,7 @@ const createStyles = (theme: Theme) =>
       flex: 1,
     },
     content: {
-      padding: 24,
+      padding: 16,
       width: '100%',
       maxWidth: 1040,
       alignSelf: 'center',

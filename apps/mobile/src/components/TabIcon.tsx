@@ -19,6 +19,7 @@ export function TabIcon({
   focused: boolean;
 }) {
   const theme = useTheme();
+  const isHome = name === 'flash' || name === 'flash-outline';
   const reduced = useReducedMotion();
   const selection = useSharedValue(focused ? 1 : 0);
   useEffect(() => {
@@ -29,7 +30,10 @@ export function TabIcon({
     backgroundColor: interpolateColor(
       selection.value,
       [0, 1],
-      [withAlpha(theme.colors.primary, 0), withAlpha(theme.colors.primary, 0.14)],
+      [
+        withAlpha(theme.colors.primary, 0),
+        isHome ? theme.colors.primary : withAlpha(theme.colors.primary, 0.14),
+      ],
     ),
   }));
   return (
@@ -40,15 +44,19 @@ export function TabIcon({
       style={[
         {
           width: 44,
-          height: 28,
-          borderRadius: theme.radius.sm,
+          height: isHome ? 40 : 28,
+          borderRadius: isHome ? 22 : theme.radius.sm,
           alignItems: 'center',
           justifyContent: 'center',
         },
         style,
       ]}
     >
-      <Ionicons name={name} color={color} size={22} />
+      <Ionicons
+        name={name}
+        color={isHome && focused ? theme.colors.onPrimary : color}
+        size={isHome ? 26 : 22}
+      />
     </Animated.View>
   );
 }

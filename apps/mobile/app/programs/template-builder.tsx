@@ -571,10 +571,10 @@ const createStyles = (theme: Theme) =>
       fontFamily: 'SpaceGrotesk_700Bold',
       fontSize: 15,
     },
-    inputCol: { flex: 1, minWidth: 0, textAlign: 'center' },
-    actionColHeader: { width: 34, marginLeft: 4 },
+    inputCol: { flex: 1, flexBasis: 0, minWidth: 0, textAlign: 'center' },
+    actionColHeader: { width: 44, marginLeft: 4 },
     deleteSetBtn: {
-      width: 34,
+      width: 44,
       minHeight: 44,
       borderRadius: 8,
       borderWidth: 1,

@@ -15,19 +15,31 @@ export function ActivityRing({
   radius,
   ratio,
   color,
+  animate = true,
+  delay = 0,
 }: {
   radius: number;
   ratio: number;
   color: string;
+  animate?: boolean;
+  delay?: number;
 }) {
   const reduced = useReducedMotion();
   const progress = useSharedValue(reduced ? ratio : 0);
   useEffect(() => {
-    progress.value = withTiming(Math.min(1, Math.max(0, ratio)), {
-      duration: reduced ? 0 : 450,
-      easing: Easing.out(Easing.cubic),
-    });
-  }, [ratio, reduced, progress]);
+    if (!animate) {
+      progress.value = 0;
+      return undefined;
+    }
+    progress.value = 0;
+    const timer = setTimeout(() => {
+      progress.value = withTiming(Math.min(1, Math.max(0, ratio)), {
+        duration: reduced ? 0 : 650,
+        easing: Easing.out(Easing.cubic),
+      });
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [ratio, reduced, progress, animate, delay]);
   const circumference = 2 * Math.PI * radius;
   const props = useAnimatedProps(() => ({
     strokeDashoffset: circumference * (1 - progress.value),

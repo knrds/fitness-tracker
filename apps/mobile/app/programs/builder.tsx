@@ -300,16 +300,26 @@ export default function ProgramBuilderScreen() {
             <Pressable
               accessibilityRole="button"
               onPress={handleCancel}
-              style={{ paddingHorizontal: 8, minHeight: 44, justifyContent: 'center' }}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: theme.colors.border,
+                backgroundColor: theme.colors.surfaceElevated,
+                minHeight: 36,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
             >
               <Text
                 style={{
-                  color: theme.colors.accent,
-                  fontFamily: 'SpaceGrotesk_700Bold',
-                  fontSize: 15,
+                  color: theme.colors.text,
+                  fontFamily: 'SpaceGrotesk_600SemiBold',
+                  fontSize: 13,
                 }}
               >
-                Cancel
+                Abbrechen
               </Text>
             </Pressable>
           ),
@@ -317,16 +327,24 @@ export default function ProgramBuilderScreen() {
             <Pressable
               accessibilityRole="button"
               onPress={handleSave}
-              style={{ paddingHorizontal: 8, minHeight: 44, justifyContent: 'center' }}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+                borderRadius: 8,
+                backgroundColor: theme.colors.primary,
+                minHeight: 36,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
             >
               <Text
                 style={{
-                  color: theme.colors.primary,
+                  color: theme.colors.background,
                   fontFamily: 'SpaceGrotesk_700Bold',
-                  fontSize: 15,
+                  fontSize: 13,
                 }}
               >
-                Save
+                Speichern
               </Text>
             </Pressable>
           ),

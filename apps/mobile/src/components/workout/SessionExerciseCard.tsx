@@ -553,6 +553,11 @@ export const SessionExerciseCard = ({
                 style={[styles.columnHeader, styles.deleteCol, { color: theme.colors.muted }]}
               />
             }
+            {Platform.OS === 'web' && (
+              <Text
+                style={[styles.columnHeader, { width: 36, textAlign: 'center' }]}
+              />
+            )}
           </View>
 
           {(() => {
@@ -1537,6 +1542,16 @@ const SetRow = ({
                 color={set.rpe || set.rir !== undefined ? theme.colors.primary : theme.colors.muted}
               />
             </Pressable>
+            {Platform.OS === 'web' && (
+              <Pressable
+                style={[styles.centerAlign, { width: 36, minHeight: 44, justifyContent: 'center' }]}
+                accessibilityRole="button"
+                accessibilityLabel={`Satz ${workingSetNumber} löschen`}
+                onPress={handleDeleteSet}
+              >
+                <Ionicons name="trash-outline" size={17} color={theme.colors.muted} />
+              </Pressable>
+            )}
           </View>
         </Animated.View>
       </View>

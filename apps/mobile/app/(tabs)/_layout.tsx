@@ -18,7 +18,7 @@ export default function TabLayout() {
         <Tabs
           screenOptions={{
             headerShown: false,
-            animation: reducedMotion ? 'none' : 'fade',
+            animation: reducedMotion ? 'none' : 'shift',
             tabBarActiveTintColor: theme.colors.primary,
             tabBarInactiveTintColor: theme.colors.muted,
             tabBarLabelStyle: { fontFamily: 'Manrope_600SemiBold', fontSize: 10, marginTop: 2, lineHeight: 14, flexShrink: 0 },

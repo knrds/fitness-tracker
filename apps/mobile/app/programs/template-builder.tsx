@@ -134,9 +134,18 @@ export default function WorkoutTemplateBuilderScreen() {
         <Pressable
           accessibilityRole="button"
           onPress={handleSave}
-          style={[styles.saveBtn, { backgroundColor: theme.colors.primary }]}
+          style={[
+            styles.saveBtn,
+            {
+              backgroundColor: theme.colors.primary,
+              borderRadius: 8,
+              paddingHorizontal: 16,
+              minHeight: 36,
+              justifyContent: 'center',
+            },
+          ]}
         >
-          <Text style={[styles.saveBtnText, { color: theme.colors.background }]}>Save</Text>
+          <Text style={[styles.saveBtnText, { color: theme.colors.background }]}>Speichern</Text>
         </Pressable>
       </View>
 

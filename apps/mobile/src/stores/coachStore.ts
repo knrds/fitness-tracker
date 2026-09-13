@@ -9,6 +9,9 @@ import { useProfileStore } from './profileStore';
 import { useBodyMetricStore } from './bodyMetricStore';
 import { useExerciseStore } from './exerciseStore';
 import { useHistoryStore } from './historyStore';
+import { useAchievementStore } from './achievementStore';
+import { useProgramStore } from './programStore';
+import { ACHIEVEMENTS } from '@fitness-tracker/domain';
 import { streamCoachResponse, checkConnectivity, CoachOptions } from '../utils/coachApi';
 import { getStorageScope, isScopeCurrent } from '../data/storageScope';
 
@@ -146,6 +149,23 @@ export const useCoachStore = create<CoachState>()(
               };
             });
 
+          const achievementState = useAchievementStore.getState();
+          const unlockedIds = new Set(Object.keys(achievementState.unlockedAchievements));
+          const unlockedAchievements = ACHIEVEMENTS.filter((a) => unlockedIds.has(a.id)).map(
+            (a) => a.name,
+          );
+          const nextTargets = ACHIEVEMENTS.filter((a) => !unlockedIds.has(a.id))
+            .slice(0, 8)
+            .map((a) => `${a.name}: ${a.description}`);
+          const activeProgram = useProgramStore.getState().programs.find((p) => p.isActive);
+          const personalRecords = useHistoryStore.getState().getPRs();
+          const topPRs = Object.entries(personalRecords)
+            .slice(0, 8)
+            .map(([exerciseId, bestWeightKg]) => ({
+              exercise: exercisesById.get(exerciseId) || 'Exercise',
+              bestWeightKg,
+            }));
+
           const context = {
             exerciseCatalog: useExerciseStore
               .getState()
@@ -163,6 +183,23 @@ export const useCoachStore = create<CoachState>()(
               currentStreak: stats.currentStreak || 0,
               ...(latestWeight !== undefined ? { latestWeight } : {}),
             },
+            achievements: {
+              level: achievementState.level,
+              xp: achievementState.xp,
+              unlockedCount: unlockedAchievements.length,
+              unlocked: unlockedAchievements,
+              nextTargets,
+            },
+            ...(activeProgram
+              ? {
+                  activeProgram: {
+                    name: activeProgram.name,
+                    durationWeeks: activeProgram.durationWeeks,
+                    scheduledWorkouts: activeProgram.workouts.length,
+                  },
+                }
+              : {}),
+            ...(topPRs.length > 0 ? { personalRecords: topPRs } : {}),
             recentWorkouts,
           };
 

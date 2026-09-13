@@ -264,7 +264,7 @@ export default function ProgramListScreen() {
         </View>
 
         <View style={styles.divider} />
-        <Text style={styles.sectionHeaderTitle}>All Programs</Text>
+        <Text style={styles.sectionHeaderTitle}>PROGRAMMKATALOG</Text>
       </View>
     );
   };
@@ -375,18 +375,22 @@ export default function ProgramListScreen() {
                 if (!sorter.activeDragId)
                   sorter.itemLayouts.current[item.id] = e.nativeEvent.layout;
               }}
-              style={[styles.card, sorter.getRowStyle(item.id)]}
+              style={[
+                styles.card,
+                item.isActive && { borderColor: theme.colors.borderActive },
+                sorter.getRowStyle(item.id),
+              ]}
             >
               <View style={styles.cardTopRow}>
                 <View
                   style={[
                     styles.dragHandle,
                     sorter.handleStyle,
-                    { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+                    { minWidth: 36, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
                   ]}
                   {...sorter.getHandleProps(item.id)}
                 >
-                  <Ionicons name="reorder-two" size={24} color={theme.colors.primary} />
+                  <Ionicons name="reorder-two" size={24} color={theme.colors.muted} />
                 </View>
 
                 <Pressable
@@ -398,55 +402,56 @@ export default function ProgramListScreen() {
                   <Text style={styles.cardSubtitle}>{item.durationWeeks} Weeks</Text>
                 </Pressable>
 
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Optionen für ${item.name}`}
-                  style={styles.kebabBtn}
-                  hitSlop={10}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    setMenuProgramId(item.id);
-                  }}
-                >
-                  <Ionicons name="ellipsis-vertical" size={20} color={theme.colors.muted} />
-                </Pressable>
-              </View>
-              <View style={{ flexDirection: 'row', marginLeft: 44, marginTop: 8 }}>
-                {item.isActive ? (
+                <View style={styles.cardRightActions}>
+                  {item.isActive ? (
+                    <Pressable
+                      style={[
+                        styles.smallActiveBtn,
+                        {
+                          backgroundColor: theme.colors.primarySubtle,
+                          borderColor: theme.colors.primary,
+                        },
+                      ]}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        confirmDeactivate();
+                      }}
+                    >
+                      <Ionicons name="checkmark-circle" size={13} color={theme.colors.primary} />
+                      <Text style={[styles.smallActiveBtnText, { color: theme.colors.primary }]}>
+                        ACTIVE
+                      </Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      style={[
+                        styles.smallActivateBtn,
+                        { backgroundColor: theme.colors.surfaceElevated, borderColor: theme.colors.border },
+                      ]}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setActiveProgram(item.id);
+                      }}
+                    >
+                      <Text style={[styles.smallActivateBtnText, { color: theme.colors.text }]}>
+                        ACTIVATE
+                      </Text>
+                    </Pressable>
+                  )}
+
                   <Pressable
-                    style={[
-                      styles.smallActiveBtn,
-                      {
-                        backgroundColor: theme.colors.primarySubtle,
-                        borderColor: theme.colors.primary,
-                      },
-                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Optionen für ${item.name}`}
+                    style={styles.kebabBtn}
+                    hitSlop={10}
                     onPress={(e) => {
                       e.stopPropagation();
-                      confirmDeactivate();
+                      setMenuProgramId(item.id);
                     }}
                   >
-                    <Ionicons name="checkmark-circle" size={12} color={theme.colors.primary} />
-                    <Text style={[styles.smallActiveBtnText, { color: theme.colors.primary }]}>
-                      ACTIVE
-                    </Text>
+                    <Ionicons name="ellipsis-vertical" size={20} color={theme.colors.muted} />
                   </Pressable>
-                ) : (
-                  <Pressable
-                    style={[
-                      styles.smallActivateBtn,
-                      { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
-                    ]}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      setActiveProgram(item.id);
-                    }}
-                  >
-                    <Text style={[styles.smallActivateBtnText, { color: theme.colors.text }]}>
-                      ACTIVATE
-                    </Text>
-                  </Pressable>
-                )}
+                </View>
               </View>
             </Animated.View>
           );
@@ -970,19 +975,24 @@ const createStyles = (theme: Theme) =>
       marginBottom: 12,
       textTransform: 'uppercase',
     },
+    cardRightActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
     cardActionsContainer: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
     },
     smallActiveBtn: {
-      minHeight: 44,
+      minHeight: 36,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
+      gap: 5,
       paddingHorizontal: 10,
       paddingVertical: 6,
-      borderRadius: 16,
+      borderRadius: 10,
       borderWidth: 1,
     },
     smallActiveBtnText: {
@@ -991,11 +1001,13 @@ const createStyles = (theme: Theme) =>
       letterSpacing: 0.5,
     },
     smallActivateBtn: {
-      minHeight: 44,
+      minHeight: 36,
       paddingHorizontal: 12,
       paddingVertical: 6,
-      borderRadius: 16,
+      borderRadius: 10,
       borderWidth: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     smallActivateBtnText: {
       fontFamily: 'SpaceGrotesk_600SemiBold',

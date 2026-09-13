@@ -44,6 +44,11 @@ export function VoltDashboard({
   const c = theme.colors;
   const router = useRouter();
   const [expandedAnatomy, setExpandedAnatomy] = React.useState(false);
+  const [selectedDayIndex, setSelectedDayIndex] = React.useState<number | null>(null);
+  const [activeStatFact, setActiveStatFact] = React.useState<'volume' | 'sets' | 'rpe' | null>(null);
+  const [statFactIndex, setStatFactIndex] = React.useState(0);
+  const [ringAnimationKey, setRingAnimationKey] = React.useState(0);
+  const [showMuscleDetails, setShowMuscleDetails] = React.useState(false);
   const wide = useWindowDimensions().width >= 800;
   const { profile } = useProfileStore();
   const { level, xp } = useAchievementStore();
@@ -89,7 +94,7 @@ export function VoltDashboard({
   const weekCard = (
     <Card padding="md" style={{ flex: wide ? 1 : undefined, justifyContent: 'center' }}>
       {panelTitle(
-        'WEEKLY MICROcycle'.toUpperCase(),
+        'WEEKLY MICROCYCLE'.toUpperCase(),
         'calendar-outline',
         `${weekly.length} SESSIONS`,
       )}
@@ -101,49 +106,144 @@ export function VoltDashboard({
             (s) => new Date(s.startedAt).toDateString() === date.toDateString(),
           );
           const active = date.toDateString() === today.toDateString();
+          const isSelected = selectedDayIndex === i;
           return (
-            <View
+            <Pressable
               key={i}
+              onPress={() => setSelectedDayIndex(isSelected ? null : i)}
+              accessibilityRole="button"
               accessibilityLabel={`${date.toLocaleDateString()}: ${trained ? 'trainiert' : 'kein Training'}`}
               style={{
                 flex: 1,
                 minWidth: 0,
-                minHeight: 60,
-                borderRadius: 8,
+                minHeight: 62,
+                borderRadius: 10,
                 borderWidth: 1,
-                borderColor: active ? c.primary : c.border,
-                backgroundColor: active ? c.primary : c.surfaceElevated,
+                borderColor: isSelected
+                  ? c.primary
+                  : active
+                  ? withAlpha(c.primary, 0.6)
+                  : c.border,
+                backgroundColor: isSelected
+                  ? withAlpha(c.primary, 0.18)
+                  : active
+                  ? c.primary
+                  : c.surfaceElevated,
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 8,
+                gap: 5,
+                paddingVertical: 6,
               }}
             >
-              <Text style={[label, { color: active ? c.onPrimary : c.muted, letterSpacing: 0 }]}>
-                {['M', 'T', 'W', 'T', 'F', 'S', 'S'][i]}
+              <Text
+                style={[
+                  label,
+                  {
+                    color: active && !isSelected ? c.onPrimary : isSelected ? c.primary : c.muted,
+                    letterSpacing: 0,
+                    fontWeight: isSelected || active ? '700' : '500',
+                  },
+                ]}
+              >
+                {['M', 'D', 'M', 'D', 'F', 'S', 'S'][i]}
               </Text>
               <Ionicons
                 name={trained ? 'checkmark-circle' : active ? 'radio-button-on' : 'ellipse-outline'}
-                size={20}
-                color={active ? c.onPrimary : trained ? c.primary : c.muted}
+                size={18}
+                color={active && !isSelected ? c.onPrimary : trained || isSelected ? c.primary : c.muted}
               />
-            </View>
+              <Text
+                style={{
+                  fontSize: 10,
+                  color: active && !isSelected ? c.onPrimary : c.muted,
+                  fontVariant: ['tabular-nums'],
+                }}
+              >
+                {date.getDate()}
+              </Text>
+            </Pressable>
           );
         })}
       </View>
+      {selectedDayIndex !== null && (() => {
+        const selDate = new Date(monday);
+        selDate.setDate(selDate.getDate() + selectedDayIndex);
+        const daySessions = weekly.filter(
+          (s) => new Date(s.startedAt).toDateString() === selDate.toDateString(),
+        );
+        const dayNames = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+        return (
+          <View
+            style={{
+              marginTop: 12,
+              padding: 12,
+              borderRadius: 10,
+              backgroundColor: c.surfaceElevated,
+              borderWidth: 1,
+              borderColor: withAlpha(c.primary, 0.25),
+              gap: 6,
+            }}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontFamily: 'SpaceGrotesk_700Bold', fontSize: 13, color: c.text }}>
+                {dayNames[selectedDayIndex]} · {selDate.toLocaleDateString()}
+              </Text>
+              <Pressable onPress={() => setSelectedDayIndex(null)} hitSlop={10}>
+                <Ionicons name="close" size={16} color={c.muted} />
+              </Pressable>
+            </View>
+            {daySessions.length > 0 ? (
+              daySessions.map((s) => (
+                <View key={s.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
+                  <Text style={{ color: c.primary, fontSize: 13, fontWeight: '600', flex: 1 }} numberOfLines={1}>
+                    {s.name}
+                  </Text>
+                  <Text style={{ color: c.muted, fontSize: 12, fontVariant: ['tabular-nums'] }}>
+                    {s.durationSeconds ? `${Math.round(s.durationSeconds / 60)} Min · ` : ''}
+                    {s.exercises.reduce((acc, ex) => acc + ex.sets.filter((st) => st.completed).length, 0)} Sätze
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <Text style={{ color: c.muted, fontSize: 12, fontStyle: 'italic' }}>
+                Ruhetag · Keine Einheit geloggt
+              </Text>
+            )}
+          </View>
+        );
+      })()}
     </Card>
   );
   const hero = (
     <Card padding="md" style={{ borderColor: c.borderActive, overflow: 'hidden', gap: 16 }}>
       <VoltBackdrop />
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-        <Text
-          style={[
-            label,
-            { color: c.primary, backgroundColor: c.primarySubtle, padding: 6, borderRadius: 4 },
-          ]}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            backgroundColor: withAlpha(c.primary, 0.12),
+            borderWidth: 1,
+            borderColor: withAlpha(c.primary, 0.3),
+            paddingHorizontal: 10,
+            paddingVertical: 4,
+            borderRadius: 12,
+            alignSelf: 'flex-start',
+          }}
         >
-          {programName ? `W${String(week).padStart(2, '0')} / ${durationWeeks}` : 'YOUR TRAINING'}
-        </Text>
+          <Ionicons name="calendar-outline" size={12} color={c.primary} />
+          <Text
+            style={{
+              color: c.primary,
+              fontFamily: 'SpaceGrotesk_700Bold',
+              fontSize: 11,
+              letterSpacing: 0.8,
+            }}
+          >
+            {programName ? `WOCHE ${String(week).padStart(2, '0')} · ${durationWeeks}` : 'DEIN TRAINING'}
+          </Text>
+        </View>
         <Pressable
           onPress={openPrograms}
           accessibilityRole="button"
@@ -295,29 +395,140 @@ export function VoltDashboard({
         </>
       )}
       {/* Analytics — after templates */}
-      {caption('WEEKLY LOAD DISTRIBUTION')}
+      {caption('WEEKLY LOAD DISTRIBUTION (TIPPEN FÜR FUN-FACTS)')}
       <View style={{ flexDirection: 'row', gap: 8 }}>
-        {[
-          ['VOLUME', `${(volume / 1000).toFixed(1)} t`, 'Recorded load'],
-          ['SETS', `${setCount}`, 'Completed'],
-          ['AVG RPE', averageRpe === null ? '—' : averageRpe.toFixed(1), 'Logged effort'],
-        ].map(([name, value, detail]) => (
-          <Card key={name} padding="sm" style={{ flex: 1, minWidth: 0, gap: 7 }}>
-            {caption(name!)}
-            <Text
-              adjustsFontSizeToFit
-              numberOfLines={1}
-              style={[heading, { fontSize: 25, fontVariant: ['tabular-nums'] }]}
+        {([
+          ['VOLUME', `${(volume / 1000).toFixed(1)} t`, 'Recorded load', 'volume'],
+          ['SETS', `${setCount}`, 'Completed', 'sets'],
+          ['AVG RPE', averageRpe === null ? '—' : averageRpe.toFixed(1), 'Logged effort', 'rpe'],
+        ] as const).map(([name, value, detail, key]) => {
+          const isSelected = activeStatFact === key;
+          return (
+            <Card
+              key={name}
+              padding="sm"
+              onPress={() => {
+                setActiveStatFact(isSelected ? null : key);
+                setStatFactIndex(0);
+              }}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                gap: 7,
+                borderWidth: 1,
+                borderColor: isSelected ? c.primary : c.border,
+                backgroundColor: isSelected ? withAlpha(c.primary, 0.08) : c.surface,
+              }}
             >
-              {value}
-            </Text>
-            <Text style={{ color: c.primary, fontSize: 10 }}>{detail}</Text>
-          </Card>
-        ))}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                {caption(name)}
+                <Ionicons
+                  name={isSelected ? 'sparkles' : 'information-circle-outline'}
+                  size={12}
+                  color={isSelected ? c.primary : c.muted}
+                />
+              </View>
+              <Text
+                adjustsFontSizeToFit
+                numberOfLines={1}
+                style={[heading, { fontSize: 25, fontVariant: ['tabular-nums'] }]}
+              >
+                {value}
+              </Text>
+              <Text style={{ color: isSelected ? c.primary : c.muted, fontSize: 10 }}>{detail}</Text>
+            </Card>
+          );
+        })}
       </View>
+      {activeStatFact && (
+        <Pressable
+          onPress={() => setStatFactIndex((prev) => prev + 1)}
+          style={{
+            padding: 14,
+            borderRadius: 12,
+            backgroundColor: withAlpha(c.primary, 0.08),
+            borderWidth: 1,
+            borderColor: withAlpha(c.primary, 0.28),
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
+          <View style={{ flex: 1, gap: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Ionicons
+                name={
+                  activeStatFact === 'volume'
+                    ? 'barbell-outline'
+                    : activeStatFact === 'sets'
+                    ? 'repeat-outline'
+                    : 'speedometer-outline'
+                }
+                size={14}
+                color={c.primary}
+              />
+              <Text style={[label, { color: c.primary }]}>
+                {activeStatFact === 'volume'
+                  ? 'VOLUMEN-ÄQUIVALENT (TIPPEN FÜR WEITEREN VERGLEICH)'
+                  : activeStatFact === 'sets'
+                  ? 'SATZ-INSIGHT (TIPPEN FÜR MEHR)'
+                  : 'RPE-GUIDE (TIPPEN FÜR MEHR)'}
+              </Text>
+            </View>
+            <Text style={{ color: c.text, fontSize: 13, fontFamily: 'Manrope_600SemiBold', lineHeight: 19 }}>
+              {activeStatFact === 'volume'
+                ? [
+                    `Dieses Wochenvolumen (${(volume / 1000).toFixed(1)} t) entspricht ca. ${(volume / 5000).toFixed(1)} Afrikanischen Elefanten 🐘`,
+                    `Du hast das Gewicht von ${(volume / 450).toFixed(0)} Steinway-Konzertflügeln gestemmt 🎹`,
+                    `Entspricht dem Gewicht von ${(volume / 1200).toFixed(1)} Kleinwagen 🚗`,
+                    `Bewegtes Gewicht entspricht ca. ${(volume / 8000).toFixed(1)} Tyrannosaurus Rex 🦖`,
+                  ][statFactIndex % 4]
+                : activeStatFact === 'sets'
+                ? [
+                    `Geschätzte Gesamtzeit unter Muskelspannung (TUT): ~${Math.round(setCount * 45 / 60)} Minuten ⏱️`,
+                    `${setCount >= 16 ? 'Top-Volumen für optimalen Muskelwachstumsreiz! 🔥' : 'Fokussiertes, sauberes Volumen. Kontinuität schlägt Hype! ⚡'}`,
+                  ][statFactIndex % 2]
+                : averageRpe !== null
+                ? [
+                    averageRpe >= 8.5
+                      ? `Durchschnittliches RPE ${averageRpe.toFixed(1)}: Hohe ZNS-Auslastung (~1 Rep im Tank). Auf ausreichende Regeneration achten!`
+                      : averageRpe >= 7
+                      ? `Durchschnittliches RPE ${averageRpe.toFixed(1)}: Perfekter Reizbereich (2–3 RIR). Optimaler Muskelaufbau ohne Überlastung.`
+                      : `Durchschnittliches RPE ${averageRpe.toFixed(1)}: Moderater Belastungsbereich. Ideal für Bewegungsqualität und Erholung.`,
+                    'RPE = Rate of Perceived Exertion. 10 = Max, 9 = 1 Wdh. im Tank, 8 = 2 Wdh. im Tank.',
+                  ][statFactIndex % 2]
+                : 'Trage bei deinen Sätzen RPE ein, um deine Anstrengung präzise zu steuern.'}
+            </Text>
+          </View>
+          <View
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: withAlpha(c.primary, 0.15),
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name="shuffle" size={16} color={c.primary} />
+          </View>
+        </Pressable>
+      )}
       <View style={{ flexDirection: wide ? 'row' : 'column', gap: 18 }}>
-        <Card padding="md" style={{ flex: wide ? 1 : undefined, minWidth: 0 }}>
-          {panelTitle('MUSCLE DISTRIBUTION', 'disc-outline', '7 DAYS')}
+        <Card
+          padding="md"
+          onPress={() => {
+            setShowMuscleDetails((prev) => !prev);
+            setRingAnimationKey((k) => k + 1);
+          }}
+          style={{ flex: wide ? 1 : undefined, minWidth: 0 }}
+        >
+          {panelTitle(
+            'MUSCLE DISTRIBUTION',
+            'disc-outline',
+            showMuscleDetails ? 'DETAILS ↗' : '7 DAYS (TIPPEN)',
+          )}
           <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
             <View style={{ width: 124, height: 124 }}>
               <Svg width={124} height={124} viewBox="0 0 124 124">
@@ -335,7 +546,13 @@ export function VoltDashboard({
                         strokeWidth={7}
                         fill="none"
                       />
-                      <ActivityRing radius={r} ratio={ratio} color={color ?? c.primary} />
+                      <ActivityRing
+                        key={`${ringAnimationKey}-${i}`}
+                        radius={r}
+                        ratio={ratio}
+                        color={color ?? c.primary}
+                        delay={i * 140}
+                      />
                     </React.Fragment>
                   );
                 })}
@@ -378,6 +595,23 @@ export function VoltDashboard({
               )}
             </View>
           </View>
+          {showMuscleDetails && (
+            <View
+              style={{
+                marginTop: 14,
+                padding: 10,
+                borderRadius: 8,
+                backgroundColor: c.surfaceElevated,
+                gap: 6,
+              }}
+            >
+              <Text style={[label, { color: c.primary }]}>FOKUS-AUFTEILUNG DIESE WOCHE</Text>
+              <Text style={{ color: c.text, fontSize: 12, lineHeight: 18 }}>
+                Gesamt: {totalActivity} dokumentierte Arbeitssätze aufgeteilt auf die führenden
+                Muskelpartien. Tippe erneut, um die Aktivitätsringe neu zu animieren.
+              </Text>
+            </View>
+          )}
           <Text style={[label, { marginTop: 14, letterSpacing: 0 }]}>
             Share of recorded primary-muscle set assignments.
           </Text>

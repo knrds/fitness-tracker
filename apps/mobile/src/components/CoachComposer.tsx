@@ -80,8 +80,11 @@ export function CoachComposer(props: Props) {
           multiline
           maxLength={4000}
           editable={!props.sending}
-          returnKeyType="default"
-          submitBehavior="newline"
+          returnKeyType="send"
+          blurOnSubmit={false}
+          onSubmitEditing={() => {
+            if (canSend) props.onSend();
+          }}
           {...(Platform.OS === 'web'
             ? {
                 onKeyDown: (event: {
@@ -205,7 +208,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     textAlignVertical: 'top',
   },
-  toolbar: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  toolbar: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
   control: {
     width: 44,
     height: 44,

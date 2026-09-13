@@ -200,7 +200,7 @@ export function VoltDashboard({
     </Card>
   );
   return (
-    <View style={{ gap: 18 }}>
+    <View style={{ gap: 20 }}>
       <View
         style={{
           flexDirection: 'row',
@@ -211,21 +211,6 @@ export function VoltDashboard({
       >
         <Text style={[heading, { fontSize: 16, letterSpacing: 1, flex: 1, minWidth: 0 }]}>HOME DASHBOARD</Text>
         <SyncIndicator />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="View profile"
-          onPress={() => router.push('/profile')}
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: c.primarySubtle,
-          }}
-        >
-          <Ionicons name="person-outline" size={20} color={c.primary} />
-        </Pressable>
       </View>
       <Card
         padding="md"
@@ -272,10 +257,44 @@ export function VoltDashboard({
           <Ionicons name="options-outline" size={20} color={c.muted} />
         </View>
       </Card>
+      <LevelProgress level={level} xp={xp} />
       <View style={{ flexDirection: wide ? 'row' : 'column', gap: 18, alignItems: 'stretch' }}>
         <View style={{ flex: wide ? 1 : undefined, minWidth: 0 }}>{weekCard}</View>
         <View style={{ flex: wide ? 1.4 : undefined, minWidth: 0 }}>{hero}</View>
       </View>
+      {/* Templates — prioritized before analytics */}
+      {templates.length > 0 && (
+        <>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            {caption('ACTIVE TEMPLATES')}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.navigate('/workouts')}
+              style={{ minHeight: 44, justifyContent: 'center' }}
+            >
+              <Text style={{ color: c.primary, fontSize: 12 }}>View all ↗</Text>
+            </Pressable>
+          </View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+            {templates.slice(0, 4).map((t) => (
+              <View key={t.id} style={{ flexBasis: wide ? '22%' : '46%', flexGrow: 1, minWidth: 0 }}>
+                <Card padding="md" onPress={() => onTemplate(t)} style={{ flex: 1, gap: 12 }}>
+                  <Ionicons name="barbell-outline" size={24} color={c.primary} />
+                  <Text style={[heading, { fontSize: 16 }]}>{t.name}</Text>
+                  <Text numberOfLines={2} style={{ color: c.muted, fontSize: 11, lineHeight: 17 }}>
+                    {names(t)}
+                  </Text>
+                  <Text style={[label, { color: c.primary, marginTop: 'auto', letterSpacing: 0 }]}>
+                    {t.exercises.length} Exercises · {t.exercises.reduce((n, e) => n + e.targetSets, 0)}{' '}
+                    Sets ↗
+                  </Text>
+                </Card>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
+      {/* Analytics — after templates */}
       {caption('WEEKLY LOAD DISTRIBUTION')}
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {[
@@ -431,34 +450,6 @@ export function VoltDashboard({
           </Pressable>
         </Card>
       </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        {caption('ACTIVE TEMPLATES')}
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.navigate('/workouts')}
-          style={{ minHeight: 44, justifyContent: 'center' }}
-        >
-          <Text style={{ color: c.primary, fontSize: 12 }}>View all ↗</Text>
-        </Pressable>
-      </View>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-        {templates.slice(0, 4).map((t) => (
-          <View key={t.id} style={{ flexBasis: wide ? '22%' : '46%', flexGrow: 1, minWidth: 0 }}>
-            <Card padding="md" onPress={() => onTemplate(t)} style={{ flex: 1, gap: 12 }}>
-              <Ionicons name="barbell-outline" size={24} color={c.primary} />
-              <Text style={[heading, { fontSize: 16 }]}>{t.name}</Text>
-              <Text numberOfLines={2} style={{ color: c.muted, fontSize: 11, lineHeight: 17 }}>
-                {names(t)}
-              </Text>
-              <Text style={[label, { color: c.primary, marginTop: 'auto', letterSpacing: 0 }]}>
-                {t.exercises.length} Exercises · {t.exercises.reduce((n, e) => n + e.targetSets, 0)}{' '}
-                Sets ↗
-              </Text>
-            </Card>
-          </View>
-        ))}
-      </View>
-      <LevelProgress level={level} xp={xp} />
     </View>
   );
 }

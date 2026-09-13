@@ -1,5 +1,5 @@
 import { VoltDashboard } from '../../src/components/VoltDashboard';
-import { Theme, useThemeStyles } from '@fitness-tracker/ui';
+import { Theme, useThemeStyles, useTheme, useDialog } from '@fitness-tracker/ui';
 import { useFocusScroll } from '../../src/hooks/useFocusScroll';
 import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
 import React from 'react';
@@ -22,13 +22,13 @@ import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
-import { useTheme } from '@fitness-tracker/ui';
 
 export default function HomeScreen() {
   const scrollRef = useFocusScroll();
   const router = useRouter();
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
+  const { showConfirm } = useDialog();
   const insets = useSafeAreaInsets();
 
   const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
@@ -39,10 +39,10 @@ export default function HomeScreen() {
   const reducedMotion = useReducedMotion();
   const shouldAnimateEntrance = !reducedMotion;
   const fadeAnim = React.useRef(new Animated.Value(shouldAnimateEntrance ? 0 : 1)).current;
-  const slideAnim = React.useRef(new Animated.Value(shouldAnimateEntrance ? 20 : 0)).current;
+  const slideAnim = React.useRef(new Animated.Value(shouldAnimateEntrance ? 15 : 0)).current;
   const [selectedTemplate, setSelectedTemplate] = React.useState<WorkoutTemplate | null>(null);
 
-  const sessions = getSessionsByDateDesc();
+  const sessions = React.useMemo(() => getSessionsByDateDesc(), [getSessionsByDateDesc]);
 
   const sortedTemplates = React.useMemo(
     () =>
@@ -59,33 +59,22 @@ export default function HomeScreen() {
     return getMuscleActivity(sessions, exercises, since);
   }, [sessions, exercises]);
 
-  const handleStartTemplate = (template: WorkoutTemplate, programId?: string) => {
+  const handleStartTemplate = async (template: WorkoutTemplate, programId?: string) => {
     const start = () => {
       startWorkoutFromTemplate(template, programId);
       router.push('/workout/session');
     };
 
     if (status === 'active' || status === 'paused') {
-      if (Platform.OS === 'web') {
-        if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
-          const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-          if (
-            confirmFn?.(
-              'An active workout is already in progress. Do you want to discard it and start this template instead?',
-            )
-          ) {
-            start();
-          }
-        }
-      } else {
-        Alert.alert(
-          'Workout In Progress',
-          'An active workout is already in progress. Do you want to discard it and start this template instead?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Discard & Start', style: 'destructive', onPress: start },
-          ],
-        );
+      const shouldDiscard = await showConfirm({
+        title: 'Laufendes Training',
+        message: 'Ein Training ist bereits aktiv. Möchtest du es verwerfen und stattdessen diese Vorlage starten?',
+        confirmLabel: 'Verwerfen & Starten',
+        cancelLabel: 'Abbrechen',
+        destructive: true,
+      });
+      if (shouldDiscard) {
+        start();
       }
     } else {
       start();

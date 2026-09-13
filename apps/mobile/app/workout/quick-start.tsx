@@ -5,7 +5,7 @@ import { View, Text, StyleSheet, FlatList, Pressable, Platform } from 'react-nat
 import { useRouter } from 'expo-router';
 import { isIOS } from '../../src/utils/platform';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@fitness-tracker/ui';
+import { useTheme, useDialog } from '@fitness-tracker/ui';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
@@ -15,89 +15,65 @@ export default function QuickStartScreen() {
   const router = useRouter();
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
+  const { showConfirm } = useDialog();
   const { templates, deleteTemplate } = useProgramStore();
   const { exercises: allExercises } = useExerciseStore();
   const { status: activeWorkoutStatus, startWorkout, startWorkoutFromTemplate } = useWorkoutStore();
 
-  const handleStartEmptyWorkout = () => {
+  const handleStartEmptyWorkout = async () => {
     const start = () => {
       startWorkout('Empty Workout');
       router.navigate('/workout/session');
     };
 
     if (activeWorkoutStatus === 'active' || activeWorkoutStatus === 'paused') {
-      if (Platform.OS === 'web') {
-        if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
-          const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-          if (
-            confirmFn?.(
-              'An active workout is already in progress. Do you want to discard it and start a new empty workout?',
-            )
-          ) {
-            start();
-          }
-        }
-      } else {
-        Alert.alert(
-          'Workout In Progress',
-          'An active workout is already in progress. Do you want to discard it and start a new empty workout?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Discard & Start', style: 'destructive', onPress: start },
-          ],
-        );
+      const shouldDiscard = await showConfirm({
+        title: 'Laufendes Training',
+        message: 'Ein Training ist bereits aktiv. Möchtest du es verwerfen und ein neues leeres Training starten?',
+        confirmLabel: 'Verwerfen & Starten',
+        cancelLabel: 'Abbrechen',
+        destructive: true,
+      });
+      if (shouldDiscard) {
+        start();
       }
     } else {
       start();
     }
   };
 
-  const handleStartTemplate = (template: WorkoutTemplate) => {
+  const handleStartTemplate = async (template: WorkoutTemplate) => {
     const start = () => {
       startWorkoutFromTemplate(template);
       router.navigate('/workout/session');
     };
 
     if (activeWorkoutStatus === 'active' || activeWorkoutStatus === 'paused') {
-      if (Platform.OS === 'web') {
-        if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
-          const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-          if (
-            confirmFn?.(
-              'An active workout is already in progress. Do you want to discard it and start this template instead?',
-            )
-          ) {
-            start();
-          }
-        }
-      } else {
-        Alert.alert(
-          'Workout In Progress',
-          'An active workout is already in progress. Do you want to discard it and start this template instead?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Discard & Start', style: 'destructive', onPress: start },
-          ],
-        );
+      const shouldDiscard = await showConfirm({
+        title: 'Laufendes Training',
+        message: 'Ein Training ist bereits aktiv. Möchtest du es verwerfen und stattdessen diese Vorlage starten?',
+        confirmLabel: 'Verwerfen & Starten',
+        cancelLabel: 'Abbrechen',
+        destructive: true,
+      });
+      if (shouldDiscard) {
+        start();
       }
     } else {
       start();
     }
   };
 
-  const handleDeleteTemplate = (templateId: string) => {
-    if (Platform.OS === 'web') {
-      if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
-        const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-        if (confirmFn?.('Are you sure you want to delete this template?')) {
-          deleteTemplate(templateId);
-        }
-      }
-    } else {
-      Alert.alert('Delete Template', 'Are you sure you want to delete this template?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => deleteTemplate(templateId) },
-      ]);
+  const handleDeleteTemplate = async (templateId: string) => {
+    const shouldDelete = await showConfirm({
+      title: 'Vorlage löschen',
+      message: 'Möchtest du diese Trainingsvorlage wirklich löschen?',
+      confirmLabel: 'Löschen',
+      cancelLabel: 'Abbrechen',
+      destructive: true,
+    });
+    if (shouldDelete) {
+      deleteTemplate(templateId);
     }
   };
 

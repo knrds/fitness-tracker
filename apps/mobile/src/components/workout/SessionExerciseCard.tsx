@@ -572,16 +572,9 @@ export const SessionExerciseCard = ({
             <Text style={[styles.columnHeader, styles.doneCol, { color: theme.colors.muted }]}>
               ✓
             </Text>
-            {
-              <Text
-                style={[styles.columnHeader, styles.deleteCol, { color: theme.colors.muted }]}
-              />
-            }
-            {Platform.OS === 'web' && (
-              <Text
-                style={[styles.columnHeader, { width: 36, textAlign: 'center' }]}
-              />
-            )}
+            <Text
+              style={[styles.columnHeader, styles.deleteCol, { color: theme.colors.muted }]}
+            />
           </View>
 
           {(() => {
@@ -1200,37 +1193,35 @@ const SetRow = ({
     () =>
       PanResponder.create({
         onMoveShouldSetPanResponder: (_, gestureState) =>
-          Platform.OS !== 'web' &&
-          Math.abs(gestureState.dx) > 10 &&
-          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5,
+          Math.abs(gestureState.dx) > 8 &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.2,
         onPanResponderGrant: () => {
           if (onSwipeStart) onSwipeStart();
         },
         onPanResponderMove: (_, gestureState) => {
           const dx = swipeOpen ? gestureState.dx - SWIPE_BUTTON_WIDTH : gestureState.dx;
-          if (dx < -SWIPE_BUTTON_WIDTH) {
-            const overflow = dx + SWIPE_BUTTON_WIDTH;
-            const resisted = -SWIPE_BUTTON_WIDTH + overflow * 0.3;
-            swipeX.setValue(resisted);
+          if (dx < 0) {
+            swipeX.setValue(dx);
           } else {
-            swipeX.setValue(Math.min(0, dx));
+            swipeX.setValue(dx * 0.2);
           }
         },
         onPanResponderTerminationRequest: () => false,
         onPanResponderRelease: (_, gestureState) => {
           const dx = swipeOpen ? gestureState.dx - SWIPE_BUTTON_WIDTH : gestureState.dx;
-          // Full aggressive swipe → auto-delete
-          if (dx < -140 || gestureState.vx < -1.0) {
+          const vx = gestureState.vx || 0;
+          // Full swipe past threshold (-120) or fast left flick (vx < -0.5) → delete directly with weg-swipe animation
+          if (dx < -120 || (dx < -40 && vx < -0.5)) {
             Animated.timing(swipeX, {
               toValue: -500,
-              duration: 150,
+              duration: 160,
               useNativeDriver: true,
             }).start(handleDeleteSet);
             if (onSwipeEnd) onSwipeEnd();
             return;
           }
-          // Partial swipe past threshold → snap open to reveal delete button
-          if (dx < -40) {
+          // Partial swipe past threshold (-35) → snap open to reveal delete button
+          if (dx < -35) {
             snapToOpen();
             if (onSwipeEnd) onSwipeEnd();
             return;
@@ -1244,7 +1235,7 @@ const SetRow = ({
           if (onSwipeEnd) onSwipeEnd();
         },
       }),
-    [handleDeleteSet, resetSwipe, snapToOpen, closeSwipe, swipeX, swipeOpen, onSwipeStart, onSwipeEnd],
+    [handleDeleteSet, snapToOpen, closeSwipe, swipeX, swipeOpen, onSwipeStart, onSwipeEnd],
   );
 
   // Format Level (unconverted weight for cardio) or normal weight
@@ -1451,36 +1442,42 @@ const SetRow = ({
         if (event.nativeEvent.actionName === 'delete') handleDeleteSet();
       }}
     >
-      <View style={styles.swipeFrame}>
-        {Platform.OS !== 'web' && (
-          <View style={[styles.swipeDeleteBackground, { backgroundColor: theme.colors.error }]}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Satz ${workingSetNumber} löschen`}
-              onPress={() => {
-                closeSwipe();
-                handleDeleteSet();
-              }}
-              style={{
-                width: SWIPE_BUTTON_WIDTH,
-                height: '100%',
-                position: 'absolute',
-                right: 0,
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 4,
-              }}
-            >
-              <Ionicons name="trash-outline" size={18} color={theme.colors.onError} />
-              <Text style={{ color: theme.colors.onError, fontSize: 11, fontWeight: '600' }}>
-                Löschen
-              </Text>
-            </Pressable>
-          </View>
-        )}
+      <View
+        style={[
+          styles.swipeFrame,
+          Platform.OS === 'web' ? ({ touchAction: 'pan-y' } as any) : null,
+        ]}
+      >
+        <View style={[styles.swipeDeleteBackground, { backgroundColor: theme.colors.error }]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Satz ${workingSetNumber} löschen`}
+            onPress={() => {
+              closeSwipe();
+              handleDeleteSet();
+            }}
+            style={{
+              width: SWIPE_BUTTON_WIDTH,
+              height: '100%',
+              position: 'absolute',
+              right: 0,
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+            }}
+          >
+            <Ionicons name="trash-outline" size={18} color={theme.colors.onError} />
+            <Text style={{ color: theme.colors.onError, fontSize: 11, fontWeight: '600' }}>
+              Löschen
+            </Text>
+          </Pressable>
+        </View>
         <Animated.View
-          {...(Platform.OS !== 'web' ? swipeResponder.panHandlers : {})}
-          style={{ transform: [{ translateX: swipeX }] }}
+          {...swipeResponder.panHandlers}
+          style={[
+            { transform: [{ translateX: swipeX }] },
+            Platform.OS === 'web' ? ({ touchAction: 'pan-y' } as any) : null,
+          ]}
         >
           <View
             style={[
@@ -1613,16 +1610,6 @@ const SetRow = ({
                 color={set.rpe || set.rir !== undefined ? theme.colors.primary : theme.colors.muted}
               />
             </Pressable>
-            {Platform.OS === 'web' && (
-              <Pressable
-                style={[styles.centerAlign, { width: 36, minHeight: 44, justifyContent: 'center' }]}
-                accessibilityRole="button"
-                accessibilityLabel={`Satz ${workingSetNumber} löschen`}
-                onPress={handleDeleteSet}
-              >
-                <Ionicons name="trash-outline" size={17} color={theme.colors.muted} />
-              </Pressable>
-            )}
           </View>
         </Animated.View>
       </View>

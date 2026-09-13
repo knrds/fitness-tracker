@@ -221,39 +221,19 @@ export default function WorkoutSessionScreen() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const handleBackAction = () => {
-    if (Platform.OS === 'web') {
-      const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-      if (
-        confirmFn?.(
-          'Möchtest du das aktuelle Training abbrechen (löschen) oder weiter trainieren?\n\n[OK] = Abbrechen, [Abbrechen] = Weiter trainieren',
-        )
-      ) {
-        resetWorkout();
-        router.replace('/');
-      }
-      return;
+  const handleBackAction = async () => {
+    const scope = getStorageScope();
+    const shouldDiscard = await showConfirm({
+      title: 'Training abbrechen',
+      message: 'Möchtest du das aktuelle Training wirklich abbrechen und verwerfen?',
+      confirmLabel: 'Training abbrechen',
+      cancelLabel: 'Weitertrainieren',
+      destructive: true,
+    });
+    if (shouldDiscard && isScopeCurrent(scope)) {
+      resetWorkout();
+      router.replace('/');
     }
-
-    Alert.alert(
-      'Training verlassen',
-      'Möchtest du das aktuelle Training abbrechen (löschen) oder weiter trainieren?',
-      [
-        {
-          text: 'Weiter trainieren',
-          style: 'cancel',
-          onPress: () => {},
-        },
-        {
-          text: 'Abbrechen',
-          style: 'destructive',
-          onPress: () => {
-            resetWorkout();
-            router.replace('/');
-          },
-        },
-      ],
-    );
   };
 
   const completedSetsCount = exercises.reduce(

@@ -1,4 +1,4 @@
-import { Theme, useThemeStyles, useTheme, withAlpha } from '@fitness-tracker/ui';
+import { Theme, useThemeStyles, useTheme, withAlpha, useDialog } from '@fitness-tracker/ui';
 import { KeyboardDoneAccessory } from '../../src/components/workout/KeyboardDoneAccessory';
 import { templateExercisesFromSession } from '@fitness-tracker/domain';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
@@ -36,6 +36,7 @@ export default function ProgramBuilderScreen() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
+  const { showConfirm, showAlert } = useDialog();
   const { id, week } = useLocalSearchParams<{ id?: string; week?: string }>();
   const { programs, updateProgram, templates, createTemplate } = useProgramStore();
   const { sessions } = useHistoryStore();
@@ -123,35 +124,23 @@ export default function ProgramBuilderScreen() {
   const mapToTemplateExercises = (exercises: SessionExercise[]): TemplateExercise[] =>
     templateExercisesFromSession(exercises, Crypto.randomUUID);
 
-  const handleStartTemplate = (template: WorkoutTemplate | undefined, programId: string) => {
+  const handleStartTemplate = async (template: WorkoutTemplate | undefined, programId: string) => {
     if (!template) return;
-
     const start = () => {
       startWorkoutFromTemplate(template, programId);
       router.navigate('/workout/session');
     };
 
     if (activeWorkoutStatus === 'active' || activeWorkoutStatus === 'paused') {
-      if (Platform.OS === 'web') {
-        if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
-          const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-          if (
-            confirmFn?.(
-              'An active workout is already in progress. Do you want to discard it and start this template instead?',
-            )
-          ) {
-            start();
-          }
-        }
-      } else {
-        Alert.alert(
-          'Workout In Progress',
-          'An active workout is already in progress. Do you want to discard it and start this template instead?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Discard & Start', style: 'destructive', onPress: start },
-          ],
-        );
+      const shouldDiscard = await showConfirm({
+        title: 'Laufendes Training',
+        message: 'Ein Training ist bereits aktiv. Möchtest du es verwerfen und stattdessen diese Vorlage starten?',
+        confirmLabel: 'Verwerfen & Starten',
+        cancelLabel: 'Abbrechen',
+        destructive: true,
+      });
+      if (shouldDiscard) {
+        start();
       }
     } else {
       start();
@@ -181,7 +170,7 @@ export default function ProgramBuilderScreen() {
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (localProgram && program) {
       const isChanged =
         localProgram.name !== program.name ||
@@ -190,16 +179,15 @@ export default function ProgramBuilderScreen() {
         JSON.stringify(localProgram.workouts) !== JSON.stringify(program.workouts);
 
       if (isChanged) {
-        if (Platform.OS === 'web') {
-          const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-          if (confirmFn?.('Discard unsaved changes?')) {
-            router.back();
-          }
-        } else {
-          Alert.alert('Unsaved Changes', 'Are you sure you want to discard your changes?', [
-            { text: 'Keep Editing', style: 'cancel' },
-            { text: 'Discard', style: 'destructive', onPress: () => router.back() },
-          ]);
+        const shouldDiscard = await showConfirm({
+          title: 'Ungespeicherte Änderungen',
+          message: 'Möchtest du deine ungespeicherten Änderungen wirklich verwerfen?',
+          confirmLabel: 'Verwerfen',
+          cancelLabel: 'Weiter bearbeiten',
+          destructive: true,
+        });
+        if (shouldDiscard) {
+          router.back();
         }
       } else {
         router.back();
@@ -253,7 +241,7 @@ export default function ProgramBuilderScreen() {
     });
   };
 
-  const handleDeleteWeek = (weekToDelete: number) => {
+  const handleDeleteWeek = async (weekToDelete: number) => {
     if (!activeProgram || activeProgram.durationWeeks <= 1) {
       Alert.alert('Hinweis', 'Ein Programm muss mindestens eine Woche enthalten.');
       return;
@@ -282,30 +270,16 @@ export default function ProgramBuilderScreen() {
     };
 
     if (workoutsInWeek.length > 0) {
-      if (Platform.OS === 'web') {
-        const confirmFn =
-          typeof globalThis !== 'undefined'
-            ? (globalThis as { confirm?: (msg: string) => boolean }).confirm
-            : undefined;
-        if (confirmFn) {
-          if (
-            confirmFn(
-              `Woche ${weekToDelete} mit ${workoutsInWeek.length} Einheiten wirklich löschen?`,
-            )
-          ) {
-            executeDelete();
-          }
-          return;
-        }
+      const shouldDelete = await showConfirm({
+        title: `Woche ${weekToDelete} löschen`,
+        message: `Möchtest du Woche ${weekToDelete} und alle darin enthaltenen ${workoutsInWeek.length} Einheiten wirklich entfernen?`,
+        confirmLabel: 'Löschen',
+        cancelLabel: 'Abbrechen',
+        destructive: true,
+      });
+      if (shouldDelete) {
+        executeDelete();
       }
-      Alert.alert(
-        `Woche ${weekToDelete} löschen`,
-        `Möchtest du Woche ${weekToDelete} und alle darin enthaltenen ${workoutsInWeek.length} Einheiten wirklich entfernen?`,
-        [
-          { text: 'Abbrechen', style: 'cancel' },
-          { text: 'Löschen', style: 'destructive', onPress: executeDelete },
-        ],
-      );
     } else {
       executeDelete();
     }

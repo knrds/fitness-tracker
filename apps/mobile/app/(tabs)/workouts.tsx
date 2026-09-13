@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@fitness-tracker/ui';
+import { useTheme, useDialog } from '@fitness-tracker/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
@@ -32,6 +32,7 @@ export default function WorkoutsScreen() {
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
+  const { showConfirm } = useDialog();
   const insets = useSafeAreaInsets();
   const { templates, deleteTemplate, updateTemplatesOrder } = useProgramStore();
   const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
@@ -52,52 +53,38 @@ export default function WorkoutsScreen() {
     router.push('/workout/session');
   };
 
-  const handleStartTemplate = (template: WorkoutTemplate) => {
+  const handleStartTemplate = async (template: WorkoutTemplate) => {
     const start = () => {
       startWorkoutFromTemplate(template);
       router.push('/workout/session');
     };
 
     if (status === 'active' || status === 'paused') {
-      if (Platform.OS === 'web') {
-        if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
-          const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-          if (
-            confirmFn?.(
-              'An active workout is already in progress. Do you want to discard it and start this template instead?',
-            )
-          ) {
-            start();
-          }
-        }
-      } else {
-        Alert.alert(
-          'Workout In Progress',
-          'An active workout is already in progress. Do you want to discard it and start this template instead?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Discard & Start', style: 'destructive', onPress: start },
-          ],
-        );
+      const shouldDiscard = await showConfirm({
+        title: 'Laufendes Training',
+        message: 'Ein Training ist bereits aktiv. Möchtest du es verwerfen und stattdessen diese Vorlage starten?',
+        confirmLabel: 'Verwerfen & Starten',
+        cancelLabel: 'Abbrechen',
+        destructive: true,
+      });
+      if (shouldDiscard) {
+        start();
       }
     } else {
       start();
     }
   };
 
-  const handleDeleteTemplate = (templateId: string) => {
-    if (Platform.OS === 'web') {
-      if (typeof globalThis !== 'undefined' && 'confirm' in globalThis) {
-        const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-        if (confirmFn?.('Are you sure you want to delete this template?')) {
-          deleteTemplate(templateId);
-        }
-      }
-    } else {
-      Alert.alert('Delete Template', 'Are you sure you want to delete this template?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => deleteTemplate(templateId) },
-      ]);
+  const handleDeleteTemplate = async (templateId: string) => {
+    const shouldDelete = await showConfirm({
+      title: 'Vorlage löschen',
+      message: 'Möchtest du diese Trainingsvorlage wirklich löschen?',
+      confirmLabel: 'Löschen',
+      cancelLabel: 'Abbrechen',
+      destructive: true,
+    });
+    if (shouldDelete) {
+      deleteTemplate(templateId);
     }
   };
 

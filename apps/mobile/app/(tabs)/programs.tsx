@@ -21,7 +21,7 @@ import {
 import { useRouter } from 'expo-router';
 import * as Crypto from 'expo-crypto';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, Button } from '@fitness-tracker/ui';
+import { useTheme, Button, useDialog } from '@fitness-tracker/ui';
 import { VoltBackdrop } from '../../src/components/VoltBackdrop';
 
 import { Program, WorkoutTemplate } from '@fitness-tracker/domain';
@@ -33,6 +33,7 @@ export default function ProgramListScreen() {
   const router = useRouter();
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
+  const { showConfirm } = useDialog();
   const {
     programs,
     templates,
@@ -87,7 +88,7 @@ export default function ProgramListScreen() {
   const { status: activeWorkoutStatus, startWorkoutFromTemplate } = useWorkoutStore();
   const [selectedWeek, setSelectedWeek] = useState(1);
 
-  const handleStartTemplate = (template: WorkoutTemplate | undefined, programId: string) => {
+  const handleStartTemplate = async (template: WorkoutTemplate | undefined, programId: string) => {
     if (!template) return;
 
     const start = () => {
@@ -96,24 +97,15 @@ export default function ProgramListScreen() {
     };
 
     if (activeWorkoutStatus === 'active' || activeWorkoutStatus === 'paused') {
-      if (Platform.OS === 'web') {
-        const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-        if (
-          confirmFn?.(
-            'An active workout is already in progress. Do you want to discard it and start this template instead?',
-          )
-        ) {
-          start();
-        }
-      } else {
-        Alert.alert(
-          'Workout In Progress',
-          'An active workout is already in progress. Do you want to discard it and start this template instead?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Discard & Start', style: 'destructive', onPress: start },
-          ],
-        );
+      const shouldDiscard = await showConfirm({
+        title: 'Laufendes Training',
+        message: 'Ein Training ist bereits aktiv. Möchtest du es verwerfen und stattdessen diese Vorlage starten?',
+        confirmLabel: 'Verwerfen & Starten',
+        cancelLabel: 'Abbrechen',
+        destructive: true,
+      });
+      if (shouldDiscard) {
+        start();
       }
     } else {
       start();
@@ -146,28 +138,7 @@ export default function ProgramListScreen() {
               <Pressable
                 accessibilityRole="button"
                 style={styles.deactivateBtn}
-                onPress={() => {
-                  if (Platform.OS === 'web') {
-                    const confirmFn = (globalThis as { confirm?: (msg: string) => boolean })
-                      .confirm;
-                    if (confirmFn?.('Are you sure you want to deactivate this program?')) {
-                      setActiveProgram(null);
-                    }
-                    return;
-                  }
-                  Alert.alert(
-                    'Deactivate Program',
-                    'Are you sure you want to deactivate this program?',
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Deactivate',
-                        style: 'destructive',
-                        onPress: () => setActiveProgram(null),
-                      },
-                    ],
-                  );
-                }}
+                onPress={confirmDeactivate}
               >
                 <Text style={styles.deactivateBtnText}>Deactivate</Text>
               </Pressable>
@@ -269,32 +240,30 @@ export default function ProgramListScreen() {
     );
   };
 
-  const confirmDeactivate = () => {
-    if (Platform.OS === 'web') {
-      const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-      if (confirmFn?.('Are you sure you want to deactivate this program?')) {
-        setActiveProgram(null);
-      }
-      return;
+  const confirmDeactivate = async () => {
+    const shouldDeactivate = await showConfirm({
+      title: 'Programm deaktivieren',
+      message: 'Möchtest du das aktuelle Trainingsprogramm wirklich deaktivieren?',
+      confirmLabel: 'Deaktivieren',
+      cancelLabel: 'Abbrechen',
+      destructive: true,
+    });
+    if (shouldDeactivate) {
+      setActiveProgram(null);
     }
-    Alert.alert('Deactivate Program', 'Are you sure you want to deactivate this program?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Deactivate', style: 'destructive', onPress: () => setActiveProgram(null) },
-    ]);
   };
 
-  const confirmDelete = (id: string, programName: string) => {
-    if (Platform.OS === 'web') {
-      const confirmFn = (globalThis as { confirm?: (msg: string) => boolean }).confirm;
-      if (confirmFn?.(`Delete "${programName}"? This cannot be undone.`)) {
-        deleteProgram(id);
-      }
-      return;
+  const confirmDelete = async (id: string, programName: string) => {
+    const shouldDelete = await showConfirm({
+      title: 'Programm löschen',
+      message: `Möchtest du "${programName}" wirklich löschen? Dies kann nicht rückgängig gemacht werden.`,
+      confirmLabel: 'Löschen',
+      cancelLabel: 'Abbrechen',
+      destructive: true,
+    });
+    if (shouldDelete) {
+      deleteProgram(id);
     }
-    Alert.alert('Delete Program', `Delete "${programName}"? This cannot be undone.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteProgram(id) },
-    ]);
   };
 
   const handleShareProgram = async (program: Program) => {

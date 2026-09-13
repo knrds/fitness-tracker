@@ -1126,6 +1126,24 @@ const SetRow = ({
     });
   }, [onDelete, measuredHeight, rowHeight, rowOpacity, swipeX]);
 
+  const [swipeOpen, setSwipeOpen] = useState(false);
+  const SWIPE_BUTTON_WIDTH = 88;
+
+  const snapToOpen = React.useCallback(() => {
+    setSwipeOpen(true);
+    Animated.spring(swipeX, {
+      toValue: -SWIPE_BUTTON_WIDTH,
+      useNativeDriver: true,
+      tension: 90,
+      friction: 9,
+    }).start();
+  }, [swipeX]);
+
+  const closeSwipe = React.useCallback(() => {
+    setSwipeOpen(false);
+    resetSwipe();
+  }, [resetSwipe]);
+
   const swipeResponder = React.useMemo(
     () =>
       PanResponder.create({
@@ -1137,10 +1155,10 @@ const SetRow = ({
           if (onSwipeStart) onSwipeStart();
         },
         onPanResponderMove: (_, gestureState) => {
-          const dx = gestureState.dx;
-          if (dx < -96) {
-            const overflow = dx + 96;
-            const resisted = -96 + overflow * 0.3;
+          const dx = swipeOpen ? gestureState.dx - SWIPE_BUTTON_WIDTH : gestureState.dx;
+          if (dx < -SWIPE_BUTTON_WIDTH) {
+            const overflow = dx + SWIPE_BUTTON_WIDTH;
+            const resisted = -SWIPE_BUTTON_WIDTH + overflow * 0.3;
             swipeX.setValue(resisted);
           } else {
             swipeX.setValue(Math.min(0, dx));
@@ -1148,24 +1166,33 @@ const SetRow = ({
         },
         onPanResponderTerminationRequest: () => false,
         onPanResponderRelease: (_, gestureState) => {
-          if (gestureState.dx < -72 || gestureState.vx < -0.5) {
+          const dx = swipeOpen ? gestureState.dx - SWIPE_BUTTON_WIDTH : gestureState.dx;
+          // Full aggressive swipe → auto-delete
+          if (dx < -140 || gestureState.vx < -1.0) {
             Animated.timing(swipeX, {
-              toValue: -500, // Slide completely off screen left
+              toValue: -500,
               duration: 150,
               useNativeDriver: true,
             }).start(handleDeleteSet);
             if (onSwipeEnd) onSwipeEnd();
             return;
           }
-          resetSwipe();
+          // Partial swipe past threshold → snap open to reveal delete button
+          if (dx < -40) {
+            snapToOpen();
+            if (onSwipeEnd) onSwipeEnd();
+            return;
+          }
+          // Below threshold or swipe right → close
+          closeSwipe();
           if (onSwipeEnd) onSwipeEnd();
         },
         onPanResponderTerminate: () => {
-          resetSwipe();
+          closeSwipe();
           if (onSwipeEnd) onSwipeEnd();
         },
       }),
-    [handleDeleteSet, resetSwipe, swipeX, onSwipeStart, onSwipeEnd],
+    [handleDeleteSet, resetSwipe, snapToOpen, closeSwipe, swipeX, swipeOpen, onSwipeStart, onSwipeEnd],
   );
 
   // Format Level (unconverted weight for cardio) or normal weight
@@ -1352,11 +1379,40 @@ const SetRow = ({
   );
 
   return (
-    <Animated.View onLayout={handleLayout} style={[styles.rowContainer, animatedStyle]}>
+    <Animated.View
+      onLayout={handleLayout}
+      style={[styles.rowContainer, animatedStyle]}
+      accessible
+      accessibilityActions={[{ name: 'delete', label: 'Satz entfernen' }]}
+      onAccessibilityAction={(event) => {
+        if (event.nativeEvent.actionName === 'delete') handleDeleteSet();
+      }}
+    >
       <View style={styles.swipeFrame}>
         {Platform.OS !== 'web' && (
           <View style={[styles.swipeDeleteBackground, { backgroundColor: theme.colors.error }]}>
-            <Ionicons name="trash-outline" size={18} color={theme.colors.onError} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Satz ${workingSetNumber} löschen`}
+              onPress={() => {
+                closeSwipe();
+                handleDeleteSet();
+              }}
+              style={{
+                width: SWIPE_BUTTON_WIDTH,
+                height: '100%',
+                position: 'absolute',
+                right: 0,
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+              }}
+            >
+              <Ionicons name="trash-outline" size={18} color={theme.colors.onError} />
+              <Text style={{ color: theme.colors.onError, fontSize: 11, fontWeight: '600' }}>
+                Löschen
+              </Text>
+            </Pressable>
           </View>
         )}
         <Animated.View
@@ -1606,9 +1662,9 @@ const createStyles = (theme: Theme) =>
       top: 0,
       right: 0,
       bottom: 0,
-      width: 96,
+      left: 0,
       justifyContent: 'center',
-      alignItems: 'center',
+      alignItems: 'flex-end',
     },
     row: {
       flexDirection: 'row',

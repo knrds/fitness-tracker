@@ -257,7 +257,7 @@ export function VoltDashboard({
           <Ionicons name="options-outline" size={20} color={c.muted} />
         </View>
       </Card>
-      <LevelProgress level={level} xp={xp} />
+      <LevelProgress level={level} xp={xp} compact />
       <View style={{ flexDirection: wide ? 'row' : 'column', gap: 18, alignItems: 'stretch' }}>
         <View style={{ flex: wide ? 1 : undefined, minWidth: 0 }}>{weekCard}</View>
         <View style={{ flex: wide ? 1.4 : undefined, minWidth: 0 }}>{hero}</View>

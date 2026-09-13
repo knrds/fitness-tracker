@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, withAlpha } from '@fitness-tracker/ui';
 import Animated, {
@@ -19,77 +20,76 @@ export function TabIcon({
   focused: boolean;
 }) {
   const theme = useTheme();
-  const isHome = name === 'flash' || name === 'flash-outline';
+  const isHome =
+    name === 'home' ||
+    name === 'home-outline' ||
+    name === 'flash' ||
+    name === 'flash-outline';
   const reduced = useReducedMotion();
-  const selection = useSharedValue(focused ? 1 : 0);
+  const progress = useSharedValue(focused ? 1 : 0);
 
   useEffect(() => {
     if (reduced) {
-      selection.value = focused ? 1 : 0;
+      progress.value = focused ? 1 : 0;
     } else {
-      selection.value = withSpring(focused ? 1 : 0, {
-        damping: 16,
-        stiffness: 190,
+      progress.value = withSpring(focused ? 1 : 0, {
+        damping: 15,
+        stiffness: 200,
+        mass: 0.6,
       });
     }
-  }, [focused, reduced, selection]);
+  }, [focused, reduced, progress]);
 
-  const style = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: isHome ? -2 * selection.value : -1 * selection.value },
-      { scale: 1 + (isHome ? 0.08 : 0.04) * selection.value },
-    ],
-    backgroundColor: isHome
-      ? interpolateColor(
-          selection.value,
+  const animatedStyle = useAnimatedStyle(() => {
+    const translateY = -2 * progress.value;
+    const scale = 1 + 0.08 * progress.value;
+
+    if (isHome) {
+      return {
+        transform: [{ translateY }, { scale }],
+        backgroundColor: interpolateColor(
+          progress.value,
           [0, 1],
-          ['transparent', theme.colors.primary],
-        )
-      : interpolateColor(
-          selection.value,
-          [0, 1],
-          ['transparent', withAlpha(theme.colors.primary, 0.12)],
+          [
+            withAlpha(theme.colors.surfaceElevated, 0.85),
+            theme.colors.primary,
+          ],
         ),
-    borderColor: isHome
-      ? interpolateColor(
-          selection.value,
+        borderColor: interpolateColor(
+          progress.value,
           [0, 1],
-          ['transparent', withAlpha(theme.colors.onPrimary || '#FFFFFF', 0.35)],
-        )
-      : 'transparent',
-    shadowOpacity: isHome ? 0.65 * selection.value : 0,
-  }));
+          [
+            withAlpha(theme.colors.border, 0.9),
+            withAlpha(theme.colors.onPrimary || '#FFFFFF', 0.45),
+          ],
+        ),
+        shadowOpacity: 0.55 * progress.value,
+      };
+    }
 
-  if (isHome) {
-    return (
-      <Animated.View
-        accessible={false}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        style={[
-          {
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderWidth: 1,
-            shadowColor: theme.colors.primary,
-            shadowOffset: { width: 0, height: 2 },
-            shadowRadius: 10,
-            elevation: focused ? 8 : 0,
-          },
-          style,
-        ]}
-      >
-        <Ionicons
-          name="flash"
-          color={focused ? (theme.colors.onPrimary || theme.colors.background) : theme.colors.muted}
-          size={24}
-        />
-      </Animated.View>
-    );
-  }
+    return {
+      transform: [{ translateY }, { scale }],
+      backgroundColor: interpolateColor(
+        progress.value,
+        [0, 1],
+        ['transparent', withAlpha(theme.colors.primary, 0.15)],
+      ),
+      borderColor: interpolateColor(
+        progress.value,
+        [0, 1],
+        ['transparent', withAlpha(theme.colors.primary, 0.35)],
+      ),
+      shadowOpacity: 0,
+    };
+  });
+
+  const iconColor = isHome
+    ? focused
+      ? (theme.colors.onPrimary || theme.colors.background)
+      : theme.colors.muted
+    : focused
+    ? theme.colors.primary
+    : color;
 
   return (
     <Animated.View
@@ -97,21 +97,39 @@ export function TabIcon({
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       style={[
+        styles.iconBadge,
+        isHome ? styles.homeBadge : styles.tabBadge,
         {
-          width: 38,
-          height: 28,
-          borderRadius: 14,
-          alignItems: 'center',
-          justifyContent: 'center',
+          shadowColor: theme.colors.primary,
+          shadowOffset: { width: 0, height: 2 },
+          shadowRadius: 8,
+          elevation: isHome && focused ? 6 : 0,
         },
-        style,
+        animatedStyle,
       ]}
     >
       <Ionicons
         name={name}
-        color={focused ? theme.colors.primary : color}
-        size={20}
+        color={iconColor}
+        size={isHome ? 20 : 19}
       />
     </Animated.View>
   );
 }
+
+const styles = StyleSheet.create({
+  iconBadge: {
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  homeBadge: {
+    width: 38,
+    borderRadius: 16,
+  },
+  tabBadge: {
+    width: 44,
+    borderRadius: 14,
+  },
+});

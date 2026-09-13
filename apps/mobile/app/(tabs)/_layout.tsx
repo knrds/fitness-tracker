@@ -23,10 +23,10 @@ export default function TabLayout() {
             tabBarInactiveTintColor: theme.colors.muted,
             tabBarLabelStyle: {
               fontFamily: 'SpaceGrotesk_700Bold',
-              fontSize: 9,
+              fontSize: 9.5,
               letterSpacing: 0.5,
               textTransform: 'uppercase',
-              marginTop: 1,
+              marginTop: 2,
               lineHeight: 12,
               flexShrink: 0,
             },
@@ -37,13 +37,13 @@ export default function TabLayout() {
               backgroundColor: theme.colors.surfaceElevated,
               borderTopWidth: 0,
               marginHorizontal: 16,
-              marginBottom: Math.max(insets.bottom, 12),
+              marginBottom: Math.max(insets.bottom, 10),
               borderWidth: 1,
-              borderColor: withAlpha(theme.colors.primary, 0.2),
+              borderColor: withAlpha(theme.colors.primary, 0.25),
               borderRadius: 36,
-              height: 64,
-              paddingTop: 6,
-              paddingBottom: 6,
+              height: 66,
+              paddingTop: 7,
+              paddingBottom: 7,
               shadowColor: theme.colors.primary,
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.18,
@@ -86,11 +86,11 @@ export default function TabLayout() {
             name="index"
             options={{
               title: 'Home',
-              tabBarLabel: () => null,
+              tabBarLabel: 'Home',
               tabBarAccessibilityLabel: 'Home',
               tabBarIcon: ({ color, focused }) => (
                 <TabIcon
-                  name="flash"
+                  name={focused ? 'home' : 'home-outline'}
                   color={color}
                   focused={focused}
                 />

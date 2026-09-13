@@ -36,28 +36,56 @@ export function TabIcon({
 
   const style = useAnimatedStyle(() => ({
     transform: [
-      { translateY: -2.5 * selection.value },
-      { scale: 1 + 0.08 * selection.value },
+      { translateY: isHome ? -2 * selection.value : -1 * selection.value },
+      { scale: 1 + (isHome ? 0.06 : 0.04) * selection.value },
     ],
-    backgroundColor: interpolateColor(
-      selection.value,
-      [0, 1],
-      [
-        withAlpha(theme.colors.primary, 0),
-        isHome ? theme.colors.primary : withAlpha(theme.colors.primary, 0.14),
-      ],
-    ),
-    borderColor: interpolateColor(
-      selection.value,
-      [0, 1],
-      [
-        'transparent',
-        isHome
-          ? withAlpha(theme.colors.onPrimary, 0.3)
-          : withAlpha(theme.colors.primary, 0.35),
-      ],
-    ),
+    backgroundColor: isHome
+      ? theme.colors.primary
+      : interpolateColor(
+          selection.value,
+          [0, 1],
+          [withAlpha(theme.colors.primary, 0), withAlpha(theme.colors.primary, 0.12)],
+        ),
+    borderColor: isHome
+      ? withAlpha(theme.colors.onPrimary, 0.3)
+      : interpolateColor(
+          selection.value,
+          [0, 1],
+          ['transparent', withAlpha(theme.colors.primary, 0.3)],
+        ),
   }));
+
+  if (isHome) {
+    return (
+      <Animated.View
+        accessible={false}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={[
+          {
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 1,
+            shadowColor: theme.colors.primary,
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0.65,
+            shadowRadius: 12,
+            elevation: 8,
+          },
+          style,
+        ]}
+      >
+        <Ionicons
+          name="flash"
+          color={theme.colors.onPrimary || theme.colors.background}
+          size={24}
+        />
+      </Animated.View>
+    );
+  }
 
   return (
     <Animated.View
@@ -66,9 +94,9 @@ export function TabIcon({
       importantForAccessibility="no-hide-descendants"
       style={[
         {
-          width: 44,
-          height: isHome ? 38 : 30,
-          borderRadius: isHome ? 20 : theme.radius.sm,
+          width: 38,
+          height: 28,
+          borderRadius: 14,
           alignItems: 'center',
           justifyContent: 'center',
           borderWidth: 1,
@@ -78,8 +106,8 @@ export function TabIcon({
     >
       <Ionicons
         name={name}
-        color={isHome && focused ? theme.colors.onPrimary : color}
-        size={isHome ? 24 : 20}
+        color={focused ? theme.colors.primary : color}
+        size={20}
       />
     </Animated.View>
   );

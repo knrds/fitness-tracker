@@ -16,6 +16,7 @@ import {
   Animated,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useProgramStore } from '../../src/stores/programStore';
@@ -32,6 +33,7 @@ import {
 
 export default function ProgramBuilderScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
   const { id, week } = useLocalSearchParams<{ id?: string; week?: string }>();
@@ -291,74 +293,78 @@ export default function ProgramBuilderScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Stack.Screen
-        options={{
-          title: 'Programm bearbeiten',
-          headerShown: true,
-          headerTitleAlign: 'center',
-          headerStyle: { backgroundColor: theme.colors.background },
-          headerShadowVisible: false,
-          headerTitleStyle: {
-            fontFamily: 'SpaceGrotesk_700Bold',
-            fontSize: 16,
-            color: theme.colors.text,
+      <Stack.Screen options={{ headerShown: false }} />
+      <View
+        style={[
+          styles.topHeader,
+          {
+            paddingTop: Math.max(insets.top, 12),
+            backgroundColor: theme.colors.background,
+            borderBottomColor: theme.colors.border,
           },
-          headerLeft: () => (
-            <Pressable
-              accessibilityRole="button"
-              onPress={handleCancel}
-              hitSlop={8}
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 8,
-                borderWidth: 1,
-                borderColor: theme.colors.border,
-                backgroundColor: theme.colors.surfaceElevated,
-                minHeight: 36,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              <Text
-                style={{
-                  color: theme.colors.text,
-                  fontFamily: 'SpaceGrotesk_600SemiBold',
-                  fontSize: 13,
-                }}
-              >
-                Abbrechen
-              </Text>
-            </Pressable>
-          ),
-          headerRight: () => (
-            <Pressable
-              accessibilityRole="button"
-              onPress={handleSave}
-              hitSlop={8}
-              style={{
-                paddingHorizontal: 14,
-                paddingVertical: 6,
-                borderRadius: 8,
-                backgroundColor: theme.colors.primary,
-                minHeight: 36,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              <Text
-                style={{
-                  color: theme.colors.background,
-                  fontFamily: 'SpaceGrotesk_700Bold',
-                  fontSize: 13,
-                }}
-              >
-                Speichern
-              </Text>
-            </Pressable>
-          ),
-        }}
-      />
+        ]}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Abbrechen"
+          onPress={handleCancel}
+          hitSlop={8}
+          style={[
+            styles.headerCancelBtn,
+            {
+              backgroundColor: theme.colors.surfaceElevated,
+              borderColor: theme.colors.border,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.headerCancelText,
+              {
+                color: theme.colors.text,
+              },
+            ]}
+          >
+            Abbrechen
+          </Text>
+        </Pressable>
+
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.headerTitleText,
+            {
+              color: theme.colors.text,
+            },
+          ]}
+        >
+          Programm bearbeiten
+        </Text>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Speichern"
+          onPress={handleSave}
+          hitSlop={8}
+          style={[
+            styles.headerSaveBtn,
+            {
+              backgroundColor: theme.colors.primary,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.headerSaveText,
+              {
+                color: theme.colors.background,
+              },
+            ]}
+          >
+            Speichern
+          </Text>
+        </Pressable>
+      </View>
       <ScrollView
         contentContainerStyle={styles.content}
         scrollEnabled={sorter.scrollEnabled}
@@ -1322,5 +1328,47 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.text,
       fontFamily: 'SpaceGrotesk_600SemiBold',
       fontSize: 15,
+    },
+    topHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingBottom: 12,
+      borderBottomWidth: 1,
+      minHeight: 56,
+      zIndex: 10,
+    },
+    headerCancelBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 8,
+      borderWidth: 1,
+      minHeight: 36,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerCancelText: {
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      fontSize: 13,
+    },
+    headerTitleText: {
+      flex: 1,
+      textAlign: 'center',
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 16,
+      paddingHorizontal: 8,
+    },
+    headerSaveBtn: {
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+      borderRadius: 8,
+      minHeight: 36,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerSaveText: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 13,
     },
   });

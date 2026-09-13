@@ -93,7 +93,7 @@ module.exports = async function handler(req, res) {
   const wantsPlan = body.createPlan === true || wantsStructuredPlan(lastText);
   const planMode = wantsPlan && catalog.length > 0 && !audio;
   const model = audio
-    ? process.env.OPENROUTER_TRANSCRIPTION_MODEL || 'openai/whisper-large-v3'
+    ? process.env.OPENROUTER_TRANSCRIPTION_MODEL || 'openai/whisper-large-v3-turbo'
     : image
       ? process.env.OPENROUTER_VISION_MODEL || 'google/gemini-2.5-flash'
       : OPENROUTER_MODEL;

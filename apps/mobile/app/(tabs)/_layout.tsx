@@ -2,7 +2,7 @@ import { TabIcon } from '../../src/components/TabIcon';
 import { useReducedMotion } from 'react-native-reanimated';
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { useTheme } from '@fitness-tracker/ui';
+import { useTheme, withAlpha } from '@fitness-tracker/ui';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MinimizedWorkoutBar } from '../../src/components/workout/MinimizedWorkoutBar';
@@ -21,22 +21,34 @@ export default function TabLayout() {
             animation: reducedMotion ? 'none' : 'shift',
             tabBarActiveTintColor: theme.colors.primary,
             tabBarInactiveTintColor: theme.colors.muted,
-            tabBarLabelStyle: { fontFamily: 'Manrope_600SemiBold', fontSize: 10, marginTop: 2, lineHeight: 14, flexShrink: 0 },
-            tabBarIconStyle: { height: 36 },
-            tabBarItemStyle: { height: 56, padding: 0 },
+            tabBarLabelStyle: {
+              fontFamily: 'SpaceGrotesk_700Bold',
+              fontSize: 9,
+              letterSpacing: 0.5,
+              textTransform: 'uppercase',
+              marginTop: 1,
+              lineHeight: 12,
+              flexShrink: 0,
+            },
+            tabBarIconStyle: { height: 32, justifyContent: 'center', alignItems: 'center' },
+            tabBarItemStyle: { height: 52, padding: 0, justifyContent: 'center', alignItems: 'center' },
             tabBarLabelPosition: 'below-icon',
             tabBarStyle: {
-              backgroundColor: theme.colors.surface,
-              borderTopColor: theme.colors.border,
-              borderTopWidth: 1,
-              paddingTop: 8,
+              backgroundColor: theme.colors.surfaceElevated,
+              borderTopWidth: 0,
               marginHorizontal: 16,
-              marginBottom: Math.max(insets.bottom, 10),
+              marginBottom: Math.max(insets.bottom, 12),
               borderWidth: 1,
-              borderColor: theme.colors.borderActive,
-              borderRadius: 32,
-              height: 76,
+              borderColor: withAlpha(theme.colors.primary, 0.25),
+              borderRadius: 36,
+              height: 64,
+              paddingTop: 6,
               paddingBottom: 6,
+              shadowColor: theme.colors.primary,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.22,
+              shadowRadius: 16,
+              elevation: 10,
             },
           }}
         >
@@ -44,12 +56,12 @@ export default function TabLayout() {
             name="history"
             options={{
               title: 'History',
-              tabBarLabel: 'History',
+              tabBarLabel: 'Hist',
               tabBarAccessibilityLabel: 'History',
               tabBarIcon: ({ color, focused }) => (
                 <TabIcon
                   focused={focused}
-                  name={focused ? 'analytics' : 'analytics-outline'}
+                  name={focused ? 'time' : 'time-outline'}
                   color={color}
                 />
               ),
@@ -63,7 +75,7 @@ export default function TabLayout() {
               tabBarAccessibilityLabel: 'Plans',
               tabBarIcon: ({ color, focused }) => (
                 <TabIcon
-                  name={focused ? 'barbell' : 'barbell-outline'}
+                  name={focused ? 'calendar' : 'calendar-outline'}
                   color={color}
                   focused={focused}
                 />
@@ -74,11 +86,11 @@ export default function TabLayout() {
             name="index"
             options={{
               title: 'Home',
-              tabBarLabel: 'Home',
+              tabBarLabel: () => null,
               tabBarAccessibilityLabel: 'Home',
               tabBarIcon: ({ color, focused }) => (
                 <TabIcon
-                  name={focused ? 'flash' : 'flash-outline'}
+                  name="flash"
                   color={color}
                   focused={focused}
                 />

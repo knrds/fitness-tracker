@@ -2,6 +2,7 @@ import { SegmentedControl } from '@fitness-tracker/ui';
 import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { useFocusScroll } from '../../src/hooks/useFocusScroll';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
+import { useFolderTemplateReorder } from '../../src/hooks/useFolderTemplateReorder';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
@@ -70,11 +71,6 @@ export default function WorkoutsScreen() {
   const sharedScrollViewRef = useRef<ScrollView>(null);
   useFocusScroll(sharedScrollViewRef);
 
-  // Layout tracking for folder drop targets
-  const folderLayouts = useRef<Record<string, { y: number; height: number }>>({});
-  const hoverTimer = useRef<NodeJS.Timeout | null>(null);
-  const hoveredFolder = useRef<string | null>(null);
-
   // Distinct folders: customFolders union template.folder
   const allFolders = useMemo(() => {
     const list: string[] = [];
@@ -113,114 +109,48 @@ export default function WorkoutsScreen() {
     { scrollViewRef: sharedScrollViewRef },
   );
 
-  // Helper for hover over collapsed folders while dragging a template
-  const handleTemplateHoverY = (contentY: number) => {
-    const entries = Object.entries(folderLayouts.current);
-    const matched = entries.find(([, l]) => contentY >= l.y && contentY <= l.y + l.height);
-    const folderName = matched ? matched[0] : null;
+  // Helper to move a template to another folder (or unassigned)
+  const handleMoveTemplateToFolder = (templateId: string, targetFolder: string | undefined) => {
+    const template = templates.find((t) => t.id === templateId);
+    if (!template) return;
 
-    if (folderName && folderName !== '__unassigned__' && expandedFolders[folderName] === false) {
-      if (hoveredFolder.current !== folderName) {
-        if (hoverTimer.current) clearTimeout(hoverTimer.current);
-        hoveredFolder.current = folderName;
-        hoverTimer.current = setTimeout(() => {
-          setExpandedFolders((prev) => ({ ...prev, [folderName]: true }));
-          void Haptics.selectionAsync();
-        }, 380);
-      }
+    updateTemplate(templateId, { folder: targetFolder });
+
+    const remaining = templates.filter((t) => t.id !== templateId);
+    const updatedTemplate = { ...template, folder: targetFolder };
+
+    const targetGroupKey = targetFolder || '__unassigned__';
+    const lastIndexInTarget = remaining
+      .map((t) => t.folder || '__unassigned__')
+      .lastIndexOf(targetGroupKey);
+
+    const newTemplates = [...remaining];
+    if (lastIndexInTarget !== -1) {
+      newTemplates.splice(lastIndexInTarget + 1, 0, updatedTemplate);
     } else {
-      if (hoverTimer.current) {
-        clearTimeout(hoverTimer.current);
-        hoverTimer.current = null;
-      }
-      hoveredFolder.current = null;
-    }
-  };
-
-  // Helper for dropping a template into a folder
-  const handleTemplateDrop = (item: WorkoutTemplate, dropY: number) => {
-    if (hoverTimer.current) {
-      clearTimeout(hoverTimer.current);
-      hoverTimer.current = null;
-    }
-    hoveredFolder.current = null;
-
-    const entries = Object.entries(folderLayouts.current);
-    if (entries.length === 0) return;
-
-    const matched =
-      entries.find(([, l]) => dropY >= l.y && dropY <= l.y + l.height) ??
-      entries.sort(
-        ([, a], [, b]) =>
-          Math.abs(dropY - a.y - a.height / 2) - Math.abs(dropY - b.y - b.height / 2),
-      )[0];
-
-    if (!matched) return;
-    const targetFolderKey = matched[0];
-    const newFolder = targetFolderKey === '__unassigned__' ? undefined : targetFolderKey;
-
-    const otherTemplates = templates.filter((t) => t.id !== item.id);
-
-    const destGroup = otherTemplates.filter((t) =>
-      targetFolderKey === '__unassigned__' ? !t.folder : t.folder === targetFolderKey,
-    );
-
-    const insertIndex = destGroup.filter((t) => {
-      const layout = templateSorter.itemLayouts.current[t.id];
-      return layout && dropY > layout.y + layout.height / 2;
-    }).length;
-
-    destGroup.splice(insertIndex, 0, {
-      ...item,
-      folder: newFolder,
-    });
-
-    const nonDestGroup = otherTemplates.filter((t) =>
-      targetFolderKey === '__unassigned__' ? Boolean(t.folder) : t.folder !== targetFolderKey,
-    );
-
-    const reordered: WorkoutTemplate[] = [];
-    const processedFolders = new Set<string>();
-
-    for (const t of templates) {
-      const groupKey = t.folder || '__unassigned__';
-      if (groupKey === targetFolderKey) {
-        if (!processedFolders.has(groupKey)) {
-          processedFolders.add(groupKey);
-          reordered.push(...destGroup);
-        }
-      } else if (!processedFolders.has(groupKey)) {
-        processedFolders.add(groupKey);
-        const itemsInGroup = nonDestGroup.filter(
-          (it) => (it.folder || '__unassigned__') === groupKey,
-        );
-        reordered.push(...itemsInGroup);
-      }
+      newTemplates.push(updatedTemplate);
     }
 
-    const presentIds = new Set(reordered.map((t) => t.id));
-    for (const t of destGroup) {
-      if (!presentIds.has(t.id)) reordered.push(t);
-    }
-    for (const t of nonDestGroup) {
-      if (!presentIds.has(t.id)) reordered.push(t);
-    }
+    updateTemplatesOrder(newTemplates);
 
-    updateTemplate(item.id, { folder: newFolder });
-    updateTemplatesOrder(reordered);
-
-    if (targetFolderKey !== '__unassigned__') {
-      setExpandedFolders((prev) => ({ ...prev, [targetFolderKey]: true }));
+    if (targetFolder) {
+      setExpandedFolders((prev) => ({ ...prev, [targetFolder]: true }));
     }
 
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
-  // Sorter for reordering templates and moving between folders
-  const templateSorter = useMeasuredReorder(templates, updateTemplatesOrder, {
+  // Sorter for reordering templates smoothly within folders and moving across folders
+  const templateSorter = useFolderTemplateReorder({
+    templates,
+    allFolders,
+    expandedFolders,
+    onExpandFolder: (folderName) => {
+      setExpandedFolders((prev) => ({ ...prev, [folderName]: true }));
+    },
+    onMoveTemplateToFolder: handleMoveTemplateToFolder,
+    onReorderTemplates: updateTemplatesOrder,
     scrollViewRef: sharedScrollViewRef,
-    onDrop: handleTemplateDrop,
-    onHoverY: handleTemplateHoverY,
   });
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -416,6 +346,8 @@ export default function WorkoutsScreen() {
       .filter(Boolean)
       .join(', ');
 
+    const isActiveDrag = templateSorter.activeDragId === item.id;
+
     return (
       <Animated.View
         key={item.id}
@@ -424,7 +356,11 @@ export default function WorkoutsScreen() {
             templateSorter.itemLayouts.current[item.id] = e.nativeEvent.layout;
           }
         }}
-        style={[styles.card, templateSorter.getRowStyle(item.id)]}
+        style={[
+          styles.card,
+          templateSorter.getRowStyle(item.id),
+          isActiveDrag && styles.cardActiveDrag,
+        ]}
       >
         <View
           style={[
@@ -570,7 +506,12 @@ export default function WorkoutsScreen() {
           )}
 
           {/* Folders Section */}
-          <View style={styles.foldersSection}>
+          <View
+            style={styles.foldersSection}
+            onLayout={(e) => {
+              templateSorter.foldersSectionY.current = e.nativeEvent.layout.y;
+            }}
+          >
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>Ordner</Text>
               <Pressable
@@ -588,17 +529,23 @@ export default function WorkoutsScreen() {
             {allFolders.map((folderName) => {
               const folderItemsInFolder = folderMap.get(folderName) || [];
               const expanded = isFolderExpanded(folderName);
+              const isHoveredTarget = templateSorter.hoveredTargetFolder === folderName;
 
               return (
                 <Animated.View
                   key={folderName}
                   onLayout={(e) => {
-                    folderLayouts.current[folderName] = e.nativeEvent.layout;
+                    templateSorter.folderLayouts.current[folderName] = e.nativeEvent.layout;
                     if (!folderSorter.activeDragId) {
                       folderSorter.itemLayouts.current[folderName] = e.nativeEvent.layout;
                     }
                   }}
-                  style={[styles.folderGroup, folderSorter.getRowStyle(folderName)]}
+                  style={[
+                    styles.folderGroup,
+                    folderSorter.getRowStyle(folderName),
+                    templateSorter.getFolderStyle(folderName),
+                    isHoveredTarget && styles.folderGroupHovered,
+                  ]}
                 >
                   <Pressable
                     style={styles.folderHeader}
@@ -627,11 +574,24 @@ export default function WorkoutsScreen() {
                         size={20}
                         color={theme.colors.primary}
                       />
-                      <Text style={styles.folderTitle}>{folderName.toUpperCase()}</Text>
+                      <Text
+                        style={[
+                          styles.folderTitle,
+                          isHoveredTarget && { color: theme.colors.primary },
+                        ]}
+                      >
+                        {folderName.toUpperCase()}
+                      </Text>
                       <Text style={styles.folderCount}>({folderItemsInFolder.length})</Text>
                     </View>
 
                     <View style={styles.folderHeaderRight}>
+                      {isHoveredTarget && (
+                        <View style={styles.dropTargetBadge}>
+                          <Ionicons name="arrow-down-circle" size={13} color={theme.colors.primary} />
+                          <Text style={styles.dropTargetBadgeText}>Hier ablegen</Text>
+                        </View>
+                      )}
                       <Pressable
                         style={styles.folderKebabBtn}
                         hitSlop={10}
@@ -673,31 +633,68 @@ export default function WorkoutsScreen() {
             {/* Unassigned Templates Section */}
             {allFolders.length > 0 && unassignedTemplates.length > 0 && (
               <View
-                style={styles.folderGroup}
+                style={[
+                  styles.folderGroup,
+                  templateSorter.getFolderStyle('__unassigned__'),
+                  templateSorter.hoveredTargetFolder === '__unassigned__' &&
+                    styles.folderGroupHovered,
+                ]}
                 onLayout={(e) => {
-                  folderLayouts.current['__unassigned__'] = e.nativeEvent.layout;
+                  templateSorter.folderLayouts.current['__unassigned__'] = e.nativeEvent.layout;
                 }}
               >
                 <Pressable
                   style={styles.folderHeader}
                   onPress={() => toggleFolder('__unassigned__')}
                 >
+                  <View style={styles.folderHeaderSpacer} />
                   <View style={styles.folderHeaderLeft}>
                     <Ionicons
-                      name="layers-outline"
+                      name={
+                        isFolderExpanded('__unassigned__')
+                          ? 'folder-open-outline'
+                          : 'folder-outline'
+                      }
                       size={20}
-                      color={theme.colors.muted}
+                      color={
+                        templateSorter.hoveredTargetFolder === '__unassigned__'
+                          ? theme.colors.primary
+                          : theme.colors.muted
+                      }
                     />
-                    <Text style={[styles.folderTitle, { color: theme.colors.muted }]}>
+                    <Text
+                      style={[
+                        styles.folderTitle,
+                        {
+                          color:
+                            templateSorter.hoveredTargetFolder === '__unassigned__'
+                              ? theme.colors.primary
+                              : theme.colors.muted,
+                        },
+                      ]}
+                    >
                       OHNE ORDNER
                     </Text>
                     <Text style={styles.folderCount}>({unassignedTemplates.length})</Text>
                   </View>
-                  <Ionicons
-                    name={isFolderExpanded('__unassigned__') ? 'chevron-down' : 'chevron-forward'}
-                    size={18}
-                    color={theme.colors.muted}
-                  />
+
+                  <View style={styles.folderHeaderRight}>
+                    {templateSorter.hoveredTargetFolder === '__unassigned__' && (
+                      <View style={styles.dropTargetBadge}>
+                        <Ionicons name="arrow-down-circle" size={13} color={theme.colors.primary} />
+                        <Text style={styles.dropTargetBadgeText}>Hier ablegen</Text>
+                      </View>
+                    )}
+                    <Ionicons
+                      name={
+                        isFolderExpanded('__unassigned__')
+                          ? 'chevron-down'
+                          : 'chevron-forward'
+                      }
+                      size={18}
+                      color={theme.colors.muted}
+                    />
+                  </View>
                 </Pressable>
 
                 {isFolderExpanded('__unassigned__') && (
@@ -713,7 +710,7 @@ export default function WorkoutsScreen() {
               <View
                 style={styles.list}
                 onLayout={(e) => {
-                  folderLayouts.current['__unassigned__'] = e.nativeEvent.layout;
+                  templateSorter.folderLayouts.current['__unassigned__'] = e.nativeEvent.layout;
                 }}
               >
                 <View style={styles.emptyFolderHintCard}>
@@ -1312,10 +1309,42 @@ const createStyles = (theme: Theme) =>
     folderGroup: {
       marginBottom: 10,
       borderRadius: theme.radius.md,
-      borderWidth: 1,
+      borderWidth: 1.5,
       borderColor: theme.colors.border,
       backgroundColor: theme.colors.surface,
-      overflow: 'hidden',
+      overflow: 'visible',
+    },
+    folderGroupHovered: {
+      borderColor: theme.colors.primary,
+      borderWidth: 2,
+      backgroundColor: theme.colors.primary + '18',
+    },
+    folderHeaderSpacer: {
+      minWidth: 32,
+      minHeight: 44,
+      paddingHorizontal: 6,
+    },
+    dropTargetBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+      backgroundColor: theme.colors.primary + '25',
+      borderWidth: 1,
+      borderColor: theme.colors.primary,
+      marginRight: 6,
+    },
+    dropTargetBadgeText: {
+      fontSize: 11,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.primary,
+    },
+    cardActiveDrag: {
+      borderColor: theme.colors.primary,
+      borderWidth: 1.5,
+      backgroundColor: theme.colors.surface,
     },
     folderHeader: {
       flexDirection: 'row',

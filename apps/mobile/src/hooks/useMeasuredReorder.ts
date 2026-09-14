@@ -172,13 +172,14 @@ export function useMeasuredReorder<T extends { id: string }>(
           isScopeCurrent(state.scope) &&
           current.current.items.map((i) => i.id).join('|') === state.ids.join('|')
         ) {
-          if (current.current.options?.onDrop)
+          if (current.current.options?.onDrop) {
             current.current.options.onDrop(
               current.current.items[from]!,
               active.y + active.height / 2 + destination,
             );
-          else if (from !== state.to)
+          } else if (from !== state.to) {
             current.current.onReorder(moveItem(current.current.items, from, state.to));
+          }
         }
       } finally {
         reset();

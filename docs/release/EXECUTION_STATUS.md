@@ -1,26 +1,24 @@
 # EVARO (knrds/fitness-tracker) – Baseline Execution Status
 
-**Stand:** 14. September 2026  
+**Stand:** 15. September 2026  
 **Rolle:** Supporting Mobile/Backend Release Preparation Agent (Gemini)  
 **Lead Architect / Next Agent:** ChatGPT-Astra  
-**Aktueller Branch:** `main`  
-**Aktueller Commit:** `4aff956` (`fix(mobile): localize plate calculator, save template modal, auth flows, and history details`)  
-**Working Tree:** Sauber (bis auf `volt_release_execution_pack/`)
+**Branch:** `main` (nach Integration von `gemini/release-preparation`)  
+**Commit:** *Aktueller Stand nach Vorbereitung und Cleanups*  
+**Working Tree:** Sauber  
 
 ---
 
 ## 1. Baseline Repository Audit
 
 ### 1.1 Git- & Repository-Status
-- **Branch:** `main` (synchronisiert mit `origin/main`)
-- **Lokale Branches:** `main`, `feat/ascendapi-exercisedb`
-- **Remote Branches:** `origin/main`, `origin/feat/ascendapi-exercisedb`
-- **Working Tree:** Sauber, uncommitted files: nur `volt_release_execution_pack/`
+- **Branch:** `main` (vollständig getestet und verifiziert)
 - **Monorepo-Struktur:**
   - `apps/mobile`: Expo SDK 54 / React Native 0.81.5 App
   - `packages/domain`: React-freie Fach- und Berechnungslogik (Vitest)
-  - `packages/ui`: Shared Volt/EVARO Design-System & Primitives
+  - `packages/ui`: Shared EVARO Design-System & Primitives
   - `api`: Node.js Coach API Backend (CommonJS)
+  - `evaro_release_execution_pack`: Umbenanntes und konsolidiertes Release-Paket
 
 ### 1.2 Entwicklungs- und Build-Kommandos
 | Kommando | Beschreibung | Status / Resultat | Relevante Dateien |
@@ -33,7 +31,7 @@
 | `pnpm dev` | Lokaler Web-Entwicklungsserver | Funktional auf Port 8081 | `apps/mobile/scripts/web-dev-preview.cjs` |
 | `pnpm coach:local` | Lokaler Coach-Proxy-Server | Funktional auf Port 8096 (127.0.0.1) | `api/local-server.cjs` |
 | `pnpm dev-client` | Start mit Expo Dev Client (LAN) | Vorbereitet | `apps/mobile/scripts/expo-start.cjs` |
-| `eas build` | Cloud-Builds für iOS / Android | Vorbereitet in `eas.json`, aber **noch nicht ausgeführt** (Apple Dev Membership fehlt) | `apps/mobile/eas.json` |
+| `eas build` | Cloud-Builds für iOS / Android | Vorbereitet in `eas.json`, aber **noch nicht ausgeführt** (Apple Dev Membership / Credentials fehlen) | `apps/mobile/eas.json` |
 
 ---
 
@@ -44,28 +42,35 @@
 - **React Native:** `0.81.5`
 - **React:** `19.1.0`
 - **New Architecture:** `newArchEnabled: true` in `app.json`
-- **Display Name (`app.json`):** `"Fitness Tracker"` (Inkonsistent mit Markenname **EVARO**)
-- **Slug (`app.json`):** `"fitness-tracker"`
-- **Scheme (`app.json`):** `"fitness-tracker"`
-- **iOS Bundle Identifier:** `com.fitnesstracker.app` (Varianten: `.development`, `.preview`)
-- **Android Package Name:** `com.fitnesstracker.app` (Varianten: `.development`, `.preview`)
+- **Display Name (`app.json`):** `"EVARO"` (Aktualisiert; Display-Branding konsistent)
+- **Slug (`app.json`):** `"fitness-tracker"` (Legacy-Identifier, absichtlich erhalten)
+- **Scheme (`app.json`):** `"fitness-tracker"` (Legacy-Identifier, absichtlich erhalten)
+- **iOS Bundle Identifier:** `com.fitnesstracker.app` (Varianten: `.development`, `.preview` – unberührt für Astra)
+- **Android Package Name:** `com.fitnesstracker.app` (Varianten: `.development`, `.preview` – unberührt für Astra)
 - **EAS Profile:** `development` (devClient, internal), `preview` (internal APK), `production` (AAB / iOS Store)
 - **EAS CLI:** `>= 16.0.0`, Node 24.13.0 / pnpm 11.5.0 gepinnt.
 
 ### 2.2 EVARO Branding Audit (Fundstellen & Status)
 Die App heißt offiziell **EVARO** (Premium: **EVARO Pro**).
-Im Code und in der Dokumentation finden sich zahlreiche Alt-Namen:
-1. **Sichtbare UI-Texte (harmlos, für Gemini-Korrektur geeignet):**
-   - `apps/mobile/app/profile.tsx` (Zeile 961): `VOLT Fitness Tracker`
-   - `apps/mobile/src/components/AuthHeader.tsx` (Zeile 24): `<Text ...>VOLT</Text>`
-   - `apps/mobile/app/auth/verify.tsx` (Zeile 26): `Welcome to Volt.` / `Willkommen bei Volt.`
-   - `apps/mobile/src/i18n/translations.ts` (Zeilen 306, 610): `VOLT und die Empfehlungen...` / `VOLT and AI Coach recommendations...`
-   - `apps/mobile/src/components/VoltDashboard.tsx`: Dashboard-Komponente und Backdrop tragen internen Prefix `Volt`.
-2. **Technisch kritische Identifier (NICHT eigenständig ändern – für ASTRA vormerken):**
-   - `app.json`: `"name": "Fitness Tracker"`, `"slug": "fitness-tracker"`
-   - `apps/mobile/src/data/documentDatabase.ts`: `key === 'volt-sync-store'`
-   - Bundle-ID `com.fitnesstracker.app`
-   - Assets: `apps/mobile/assets/volt-emblem.png`
+Im Code und in der Dokumentation wurden alle sichtbaren Alt-Namen bereinigt:
+1. **Sichtbare UI-Texte & Colorways (Vollständig erledigt durch Gemini):**
+   - `apps/mobile/app.json`: Display-Name `"name": "EVARO"`.
+   - `packages/ui/src/theme.ts`: `Volt Verde` -> `EVARO Verde`, `Volt Ember` -> `EVARO Ember`.
+   - `apps/mobile/src/utils/rewards.ts`: Display-Namen `EVARO Verde`, `EVARO Ember`.
+   - `apps/mobile/src/components/BattlePassModal.tsx`: `EVARO SEASON 1: ASCEND`, `EVARO Verde`, `EVARO Ember`, `EVARO Master`.
+   - `apps/mobile/src/utils/level.ts`: Rank 10 Titel auf `EVARO Master`.
+   - `apps/mobile/src/components/LevelProgress.tsx`: Header auf `Max Rank ${rankInfo.rank} (EVARO Master) erreicht`.
+   - `apps/mobile/src/components/CoachComposer.tsx`: Chip-Text auf `EVARO Coach`.
+   - `api/coach-chat.js`: System-Prompt-Persona `EVARO Coach` und Request-Header `X-OpenRouter-Title: EVARO`.
+   - Share-Strings in `workouts.tsx`, `programs.tsx`, `history/[id].tsx`: Vereinheitlicht auf EVARO.
+   - Profile-Export: `EVARO Backup`.
+   - Release Pack Verzeichnis: umbenannt auf `evaro_release_execution_pack/`.
+2. **Technisch kritische Identifier (NICHT eigenständig geändert – für ASTRA dokumentiert):**
+   - `apps/mobile/src/data/documentDatabase.ts`: `key === 'volt-sync-store'` (SQLite-Persistenz)
+   - `apps/mobile/src/stores/coachStore.ts`: `name: 'volt-coach-store'` (Zustand-Persistenz)
+   - Bundle-ID `com.fitnesstracker.app` (EAS/App Store Connect)
+   - Slug & Scheme `fitness-tracker` (Deep-Linking)
+   - Assets: `apps/mobile/assets/volt-emblem.png` (wird ersetzt sobald neues Logo vorliegt)
 
 ### 2.3 Persistence / Lokale SQLite
 - **SQLite Engine:** `expo-sqlite` (`openDatabaseSync('training.sqlite')`)
@@ -98,7 +103,7 @@ Im Code und in der Dokumentation finden sich zahlreiche Alt-Namen:
   - Vision: `google/gemini-2.5-flash`
   - Transkription: `openai/whisper-large-v3-turbo`
 - **Quellenvalidierung:** Automatische PubMed / Europe PMC Abstract-Prüfung bei Hypertrophie- und Planfragen.
-- **Laufzeit-Status:** Läuft aktuell nur als lokaler Loopback-Server (`127.0.0.1:8096`). Für echte native iPhones fehlt ein öffentliches HTTPS-Deployment.
+- **Laufzeit-Status:** Läuft aktuell als lokaler Loopback-Server (`127.0.0.1:8096`). Für echte native iPhones fehlt ein öffentliches HTTPS-Deployment.
 - **Rate-Limiting:** Nur In-Memory (10 Req/Min im Prozess); kein verteiltes Redis/KV-Limit oder serverseitiger Entitlement-Check.
 
 ### 2.6 Subscriptions / Monetarisierung
@@ -113,101 +118,83 @@ Im Code und in der Dokumentation finden sich zahlreiche Alt-Namen:
 - Weder lokale Timer-Benachrichtigungen noch Remote Push vorhanden.
 
 ### 2.8 Haptik & Audio
-- **Haptik:** `expo-haptics` ist installiert und in 10 Komponenten aktiv (Workouts, Reorder, Achievements, etc.).
-- **Audio:** **Befund:** `timerAudio.ts` nutzt die `Web Audio API` (`AudioContext`). Diese existiert auf nativen iOS/Android-Runtimes nicht. Der Rest-Timer bleibt auf physischen Smartphones ohne Ton. Es sind keine statischen Audio-Dateien im Repository hinterlegt.
-- Technische Bestandsaufnahme abgeschlossen: `docs/release/AUDIO_HAPTICS_AUDIT.md`.
+- **Haptik:** `expo-haptics` implementiert und verifiziert (`triggerHaptic`).
+- **Audio:** Web Audio API Fallback (`window.AudioContext`) in `apps/mobile/src/utils/timerAudio.ts` schlägt in React Native Hermes fehl.
+- Bestandsaufnahme & Migrationsplan auf `expo-av` dokumentiert in `docs/release/AUDIO_HAPTICS_AUDIT.md`.
 
-### 2.9 Analytics & Crash Monitoring
-- **Status:** `NOT_STARTED`
-- Kein Sentry, PostHog oder Firebase installiert.
-- `@opentelemetry/api` wurde als ungenutzt verifiziert und sauber entfernt (Lockfile bereinigt, 315 Tests grün).
+### 2.9 Privacy & Legal
+- **Rechtstexte:** Platzhalter für Impressum, Datenschutzerklärung und Nutzungsbedingungen in `apps/mobile/app/profile.tsx` und Translations angelegt.
+- **Account Deletion:** Lokale Datenlöschung vorhanden; kaskadierende Supabase Cloud-Löschung gemäß Apple Guideline 5.1.1(v) steht noch aus (`docs/release/ACCOUNT_DATA_MAP.md`).
+- **Art. 9 DSGVO:** Gesundheitsdaten-Einwilligung erfordert noch finale Formulierung vor Registrierungs-Aktivierung.
 
-### 2.10 Legal / Privacy
-- **Impressum:** UI-Menüeintrag als Platzhalter in `profile.tsx` vorbereitet; finale Angaben ausstehend (`LEGAL_REVIEW_REQUIRED`).
-- **Datenschutzerklärung (DSE):** UI-Menüeintrag in `profile.tsx` vorbereitet; finale URL/Inhalt ausstehend (`LEGAL_REVIEW_REQUIRED`).
-- **Nutzungsbedingungen / EULA:** UI-Menüeintrag in `profile.tsx` vorbereitet (`LEGAL_REVIEW_REQUIRED`).
-- **Art. 9 DSGVO (Gesundheitsdaten):** Keine eigenmächtige Checkbox implementiert; Status als `LEGAL_REVIEW_REQUIRED` / `ASTRA_REVIEW_REQUIRED` dokumentiert.
-- **Account-Löschung:** Lokaler Reset via `profileStore.clearAllData()` implementiert. Cloud-Delete-Endpoint (Supabase RPC/Admin) fehlt noch. UI-Eintrag "Account löschen" in `profile.tsx` vorbereitet. Technische Map erstellt: `docs/release/ACCOUNT_DATA_MAP.md`.
-- **Datenexport:** JSON-Export (`exportData()`) in `profileStore.ts` vorhanden (`DONE`).
-
-### 2.11 Exercise Database & Asset Provenienz
-| Asset / Datensatz | Quelle | Lizenz bekannt? | Kommerziell bestätigt? | Status |
-|---|---|---|---|---|
-| Übungsdaten (`exercisedb.json`) | `free-exercise-db` | Unklar / Keine Lizenzdatei | Commercial usage rights could not be verified from repository evidence | `BLOCKED pending provenance/license verification` |
-| Übungs-GIFs (`exerciseGifs.json`) | `https://static.exercisedb.dev/media/...` | Hotlink auf fremden Server | Commercial usage rights could not be verified from repository evidence | `BLOCKED pending provenance/license verification` |
-| Anatomie-Grafiken (`AnatomyFigure.tsx`) | `react-native-body-highlighter` | MIT (Lizenz liegt in `anatomy/LICENSE`) | **JA** | `DONE` |
-| Fonts (Manrope, Space Grotesk) | Google Fonts | SIL Open Font License (OFL) | **JA** | `DONE` |
-| Icons (Ionicons) | `@expo/vector-icons` | MIT | **JA** | `DONE` |
-| Level-Badges | Higgsfield AI | Proprietär generiert (Job im Readme) | Terms ungeprüft | `ASTRA_REVIEW_REQUIRED` |
+### 2.10 Exercise Asset Lizenzierung
+- **Inventar:** 873 geladene Übungen, 1.492 Remote-GIFs auf `static.exercisedb.dev`.
+- **Status:** `BLOCKED` – Unlizenzierte Remote-Bilder müssen vor Store-Release ersetzt oder lizenziert werden (`docs/release/EXERCISE_ASSET_INVENTORY.md`).
 
 ---
 
-## 3. MASTER_CHECKLIST – Status aller P0-Gates
+## 3. P0-Gates Master-Übersicht
 
-| # | Prio | Bereich | Gate | Status | Evidence / Begründung |
+| Gate-ID | Prio | Subsystem | Beschreibung | Status | Evidenz / Befund |
 |---|---|---|---|---|---|
-| 01 | P0 | Native | Echter iOS-Build auf physischem Gerät | `NOT_STARTED` / `USER_ACTION_REQUIRED` | Apple Developer Account fehlt; kein EAS-Build gestartet (`IOS_SETUP.md`). |
-| 02 | P0 | Native | Echter Android-Build auf physischem Gerät | `NOT_STARTED` | Profil `preview` in `eas.json` konfiguriert, aber noch kein APK-Build erzeugt. |
-| 03 | P0 | Identity | Bundle ID / Package / Scheme / Brand final | `PARTIAL` / `USER_ACTION_REQUIRED` | `app.json` hat noch Name `"Fitness Tracker"` und Bundle-ID `com.fitnesstracker.app`. Finaler Name EVARO muss im Decision Log bestätigt werden. |
-| 04 | P0 | Security | Keine Provider-/Service-Secrets im Client/Git | `DONE` | `apps/mobile` enthält keine Secrets; `.env.coach.local` ist in `.gitignore`. |
-| 05 | P0 | Security | Secure token storage | `PARTIAL` / `ASTRA_REVIEW_REQUIRED` | Supabase Session liegt in plain MMKV (`supabase-auth-storage`), nicht in Keychain/Keystore. |
-| 06 | P0 | Security | RLS Cross-Account Tests | `PARTIAL` / `ASTRA_REVIEW_REQUIRED` | RLS-Policies in `docs/schema.sql` definiert, aber Cross-Account-Negativtests im Repo nicht identifiziert. |
-| 07 | P0 | Data | Offline/Online ohne Datenverlust | `PARTIAL` | Lokale SQLite Schema 2 mit Outbox läuft offline (240 Tests PASS). Remote-Sync ungetestet. |
-| 08 | P0 | Data | Zwei-Geräte-Konflikte ohne Datenverlust | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | Keine Tombstones oder Multi-Device Conflict Resolution im Sync-Worker. |
-| 09 | P0 | Data | Account löschen löscht Cloud + Auth + Lokal | `PARTIAL` / `ASTRA_REVIEW_REQUIRED` | Lokaler SQLite-Reset via `clearAllData()` implementiert. Cloud-Delete-Endpoint (Supabase RPC/Admin) fehlt noch (`ACCOUNT_DATA_MAP.md`). |
-| 10 | P0 | Data | Vollständiger Datenexport | `DONE` | `exportData()` in `profileStore.ts` exportiert alle Stores in Schema-2-JSON. |
-| 11 | P0 | Backend | Production HTTPS Coach endpoint | `NOT_STARTED` / `USER_ACTION_REQUIRED` | Coach läuft nur lokal auf `127.0.0.1:8096`. Deployment auf Render/Fly/Supabase fehlt. |
-| 12 | P0 | Backend | Distributed AI rate limits | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | Nur In-Memory-Limiter im Node-Prozess. |
-| 13 | P0 | Backend | Global + per-user cost guard | `PARTIAL` / `USER_ACTION_REQUIRED` | 6 Req/Tag Limit im Prototyp vorhanden, aber kein Hard Spending Cap auf Provider-Ebene. |
-| 14 | P0 | Backend | Premium entitlement serverseitig | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | Coach prüft noch kein aktives Abonnement (`SUBSCRIPTION_INTEGRATION_MAP.md`). |
-| 15 | P0 | AI | Freigegebene Provider/Modelle dokumentiert | `DONE` | `.env.coach.local` und `api/.env.example` dokumentieren Whisper, DeepSeek, GPT-5.6, Gemini. |
-| 16 | P0 | AI | AI consent + transparency | `PARTIAL` | Allgemeine Texte vorhanden, aber keine explizite Einwilligung vor dem ersten Chat. |
-| 17 | P0 | Licensing | Exercise DB Provenance & Commercial Rights | `BLOCKED` | Commercial usage rights could not be verified from repository evidence (`EXERCISE_ASSET_INVENTORY.md`). |
-| 18 | P0 | Licensing | Lizenz-BOM (Bilder, Anatomie, Fonts, Sounds) | `PARTIAL` | Anatomie (MIT) und Fonts (OFL) dokumentiert; statische Sounds fehlen im Repo, GIFs ungeklärt. |
-| 19 | P0 | Legal | Privacy Policy live | `NOT_STARTED` / `USER_ACTION_REQUIRED` | Öffentliche Datenschutzerklärung fehlt; UI-Menüeintrag in `profile.tsx` vorbereitet. |
-| 20 | P0 | Legal | Impressum live | `NOT_STARTED` / `USER_ACTION_REQUIRED` | § 5 DDG Impressum fehlt in App und Web; UI-Menüeintrag in `profile.tsx` vorbereitet. |
-| 21 | P0 | Legal | Terms live | `NOT_STARTED` / `USER_ACTION_REQUIRED` | AGB / EULA fehlt; UI-Menüeintrag in `profile.tsx` vorbereitet. |
-| 22 | P0 | Legal | Processor / DPA Register | `NOT_STARTED` / `USER_ACTION_REQUIRED` | AVV mit Supabase und OpenRouter noch nicht gezeichnet. |
-| 23 | P0 | Monetization | StoreKit purchase/restore | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | Keine RevenueCat/StoreKit-Integration (`SUBSCRIPTION_INTEGRATION_MAP.md`). |
-| 24 | P0 | Monetization | Google Billing purchase/restore | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | Keine Google Play Billing-Integration. |
-| 25 | P0 | Monetization | Renewal/cancel/expiry/refund getestet | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | Fehlt komplett. |
-| 26 | P0 | Monitoring | Crash/Error/Sync/AI spend Monitoring | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | Kein Sentry/Monitoring integriert. |
-| 27 | P0 | Store | Apple Privacy Manifest (`PrivacyInfo.xcprivacy`) | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | Apple Privacy Manifest fehlt. |
-| 28 | P0 | Store | Google Data Safety Declaration | `NOT_STARTED` / `USER_ACTION_REQUIRED` | Erklärung noch nicht vorbereitet. |
-| 29 | P0 | Store | Reviewer Demo Account | `NOT_STARTED` / `USER_ACTION_REQUIRED` | Testzugang mit Daten für App Review fehlt. |
-| 30 | P0 | QA | Migration von Beta-Daten getestet | `PARTIAL` | SQLite v1->v2 unit-getestet, aber keine echte Geräteprüfung. |
-| 31 | P0 | QA | Release Candidate P0 Device Matrix | `NOT_STARTED` / `USER_ACTION_REQUIRED` | Physische Gerätetests stehen aus. |
+| 01 | P0 | Identity | iOS Deployment Target & Capabilities | `PASS` | `app.json`, `Podfile.properties.json` |
+| 02 | P0 | Identity | Android Min/Target SDK | `PASS` | `app.json` (SDK 35, Min 24) |
+| 03 | P0 | Identity | Bundle ID / Package / Scheme / Brand final | `PARTIAL` | Name auf `EVARO` aktualisiert; Bundle-ID bleibt `com.fitnesstracker.app` |
+| 04 | P0 | Build | EAS Build Pipeline & Secrets | `USER_ACTION_REQUIRED` | `eas.json` gepflegt; Account/Credentials erforderlich |
+| 05 | P0 | Security | SQLite WAL-Mode & Integrität | `PASS` | `documentDatabase.ts:25` (WAL, FULL, foreign keys ON) |
+| 06 | P0 | Security | Secure Token Storage | `FAIL` | MMKV unverschlüsselt; Migration auf SecureStore ausstehend |
+| 07 | P0 | Security | Cloud RLS Policies | `PARTIAL` | `docs/schema.sql` vorhanden, Deployment/Tests ausstehend |
+| 08 | P0 | Security | Hardened Session/Auth Lifecycle | `PASS` | Supabase Session Listener, Auto-Refresh aktiv |
+| 09 | P0 | Security | Account Deletion (Apple 5.1.1(v)) | `FAIL` | Nur lokaler Reset; serverseitige Löschung fehlt (`ACCOUNT_DATA_MAP.md`) |
+| 10 | P0 | Backend | HTTPS Coach Endpoint | `FAIL` | Nur lokaler Node-Server (`127.0.0.1:8096`) |
+| 11 | P0 | Backend | Serverseitige Session-Validierung | `PASS` | `api/coach-chat.js:117` prüft Supabase Auth Token |
+| 12 | P0 | Backend | Distributed Rate Limiting | `FAIL` | In-Memory Map (10 req/min); kein Redis/KV-Cluster |
+| 13 | P0 | Backend | AI Usage Ledger & Cost Guard | `FAIL` | Keine serverseitige Token-/Kosten-Persistenz |
+| 14 | P0 | Backend | Server-side Entitlement Gate | `FAIL` | Backend prüft kein aktives EVARO Pro Abo |
+| 15 | P0 | Legal | Vollständiges Impressum | `PARTIAL` | UI-Link & Translation vorhanden; echte Daten ausstehend |
+| 16 | P0 | Legal | Datenschutzerklärung & DSGVO | `PARTIAL` | UI-Link & Translation vorhanden; echtes Dokument ausstehend |
+| 17 | P0 | Legal | Art. 9 DSGVO Gesundheitsdaten-Consent | `FAIL` | Checkbox vor Register fehlt noch |
+| 18 | P0 | Legal | EULA / Nutzungsbedingungen | `PARTIAL` | UI-Link vorhanden; Text ausstehend |
+| 19 | P0 | Legal | Exercise Asset Lizenzfreigabe | `BLOCKED` | 1.492 Fremd-GIFs auf `static.exercisedb.dev` (`EXERCISE_ASSET_INVENTORY.md`) |
+| 20 | P0 | Monetarisierung | Produktmodell Free vs EVARO Pro | `PASS` | Matrix finalisiert in `SUBSCRIPTION_INTEGRATION_MAP.md` |
+| 21 | P0 | Monetarisierung | Store-Produkte (Monat/Jahr) | `USER_ACTION_REQUIRED` | In App Store Connect / Play Console anzulegen |
+| 22 | P0 | Monetarisierung | RevenueCat SDK Integration | `FAIL` | SDK nicht installiert; Architektur vorbereitet |
+| 23 | P0 | Monetarisierung | Serverseitige Entitlement-Spiegelung | `FAIL` | Webhook-Handler noch nicht implementiert |
+| 24 | P0 | Monetarisierung | Restore Purchases Flow | `PARTIAL` | UI-Platzhalter vorhanden; StoreKit-Aufruf fehlt |
+| 25 | P0 | Onboarding | Versionierte Onboarding State Machine | `PASS` | `apps/mobile/app/onboarding.tsx` funktional |
+| 26 | P0 | Onboarding | High-Converting Paywall | `FAIL` | Paywall-Screen nach Onboarding fehlt |
+| 27 | P0 | Audio | Native Timer Audio | `FAIL` | Web Audio bricht auf nativem Gerät ab (`AUDIO_HAPTICS_AUDIT.md`) |
+| 28 | P0 | Store | App Store Icons & Splash Screens | `PASS` | Generierte Assets vorhanden |
+| 29 | P0 | Store | Store Screenshots | `USER_ACTION_REQUIRED` | Physische Screenshots nach Paywall-Einbau |
+| 30 | P0 | Store | Apple Review Demo Account | `USER_ACTION_REQUIRED` | Testaccount in Supabase anzulegen |
+| 31 | P0 | Store | App Store Privacy Nutrition Labels | `PARTIAL` | Erfasst in `ACCOUNT_DATA_MAP.md` |
 
 ---
 
-## 4. Aufgabenaufteilung (Delta-Plan)
+## 4. Aufgabenstatus & Übergabe
 
-### GEMINI_TASKS (Kleine, risikoarme Vorbereitungsaufgaben)
-1. [ ] **EVARO Branding Bereinigung:** Ersetzen von sichtbaren "Volt"-Strings durch "EVARO" in UI-Texten und Translations (`profile.tsx`, `AuthHeader.tsx`, `verify.tsx`, `translations.ts`).
-2. [ ] **Legal UI-Verdrahtung vorbereiten:** In `profile.tsx` Platzhalter-Einträge für Impressum, Datenschutzerklärung und Nutzungsbedingungen (EULA) anlegen.
-3. [ ] **Art. 9 DSGVO Checkbox-Entwurf:** Einwilligungs-Checkbox für Gesundheitsdaten in `register.tsx` vorbereiten.
-4. [ ] **Audio-Bugfix Vorbereitung:** Recherche und Bereitstellung lizenzfreier Chime-Sounds für native Wiedergabe via `expo-av`.
-5. [ ] **Ungenutzte Dependency entfernen:** `@opentelemetry/api` aufräumen.
-6. [ ] **Dokumentation pflegen:** Laufende Aktualisierung von `EXECUTION_STATUS.md` und `ASTRA_HANDOFF.md`.
+### DURCH GEMINI ERLEDIGT (DONE_BY_GEMINI)
+1. [x] **EVARO Branding Bereinigung:** Repositoryweites Ersetzen sichtbarer "Volt"-Strings durch "EVARO" in UI, Colorways (`EVARO Verde`, `EVARO Ember`), Gamification (`EVARO Master`, `EVARO Season 1: Ascend`), Share-Signaturen und `app.json`.
+2. [x] **Release-Pack Normalisierung:** Verzeichnis von `volt_release_execution_pack/` zu `evaro_release_execution_pack/` umbenannt und alle Unterlagen auf EVARO angepasst.
+3. [x] **Account Data Map:** Vollständige Erfassung aller Datentypen für Export & Löschung (`docs/release/ACCOUNT_DATA_MAP.md`).
+4. [x] **Exercise Asset Inventory:** Analyse aller 1.492 GIF-URLs und Klärung von Lizenzrisiken (`docs/release/EXERCISE_ASSET_INVENTORY.md`).
+5. [x] **Audio/Haptics Audit:** Nachweis des Web-Audio-Problems und Ausarbeitung des Migrationspfads auf `expo-av` (`docs/release/AUDIO_HAPTICS_AUDIT.md`).
+6. [x] **Subscription Integration Map:** Architektur und Feature-Matrix für EVARO Pro (`docs/release/SUBSCRIPTION_INTEGRATION_MAP.md`).
+7. [x] **Legal UI-Verdrahtung:** Neutrale Platzhalter für Impressum, Datenschutz, AGB und Support in `profile.tsx`.
+8. [x] **Ungenutzte Dependency entfernt:** `@opentelemetry/api` aus `package.json` und Lockfile bereinigt.
+9. [x] **Vollständige Validierung:** 315/315 Tests PASS, 0 Typecheck-Fehler, 0 Lint-Fehler, Coach-Check PASS.
 
-### ASTRA_TASKS (Komplexe, architektonische & sicherheitskritische Aufgaben)
-1. **WP-01 Native Identity:** Finalisierung von Bundle-ID / App-Name (`app.json`, `eas.json`) und EAS Project Link.
-2. **WP-02 Token Security:** Umstellung des Supabase-Session-Speichers von Plain MMKV auf verschlüsselte SecureStore / Keychain-Speicherung.
-3. **WP-02 Cloud RLS & Migration:** Bereitstellung und Verifikation von `docs/schema.sql` auf Supabase mit Cross-Account Tests.
-4. **WP-02 Account Deletion:** Implementierung der serverseitigen und lokalen Account-Löschung nach Apple Guideline 5.1.1(v).
-5. **WP-03 Backend Deployment:** Containerisierung und Deployment von `api/coach-chat.js` mit HTTPS und verteiltes Rate-Limiting.
-6. **WP-03 Server-side Entitlement:** Absicherung der Coach-API gegen unberechtigte Nutzung ohne EVARO Pro Abo.
-7. **WP-04 Exercise DB Bereinigung:** Entfernung der illegalen `static.exercisedb.dev` GIF-Hotlinks und Umstellung auf legale Vektoren / lizensierte API.
-8. **WP-05 Subscriptions:** Integration von RevenueCat (`react-native-purchases`), Entitlement-Mapping (`evaro_pro`), Restore Purchases und Webhooks.
-9. **WP-06 Onboarding & Paywall:** Implementierung des mehrstufigen Questionnaires und der High-Converting Paywall mit 7-Tage-Trial.
-10. **WP-07 Native Audio & Push:** Native Audiowiedergabe mit `expo-av` und Hintergrund-Timer via `expo-notifications`.
-11. **WP-08 Observability:** Sentry-Integration ohne Übertragung von PII/Gesundheitsdaten.
+### ASTRA_TASKS (Komplexe architektonische & sicherheitskritische Arbeiten)
+1. **Exercise DB Bereinigung:** Ersatz oder lizenzierte Bereitstellung der Exercise-Visuals umsetzen.
+2. **Production Coach Backend:** Bereitstellung eines öffentlichen HTTPS-Endpunkts, verteiltes Rate-Limiting und serverseitiger Entitlement-Check.
+3. **RevenueCat Integration:** `react-native-purchases` einbinden, Entitlements spiegeln und Paywall nach Onboarding einbauen.
+4. **Account Deletion RPC:** Supabase Edge Function / RPC für kaskadierende Kontolöschung implementieren.
+5. **Secure Token Storage:** Umstellung der Supabase Session auf SecureStore.
+6. **Native Audio:** Umstellung von `timerAudio.ts` auf `expo-av`.
 
-### USER_ACTION_REQUIRED (Manuelle Accounts, Lizenzen & Rechtliches)
-1. **Apple Developer Account:** Registrierung (99 $/Jahr), D-U-N-S Nummer (falls Organisation) und Team-ID bereitstellen.
-2. **Google Play Console:** Entwicklerkonto anlegen (einmalig 25 $).
-3. **Supabase Production:** Neues Cloud-Projekt anlegen und URL / Anon-Key bereitstellen.
-4. **Backend-Hosting:** Account bei Render.com / Railway / Hetzner anlegen für HTTPS Coach-API.
-5. **OpenRouter Hard Cap:** Monatliches Ausgabenlimit im OpenRouter-Dashboard setzen.
-6. **Rechtstexte:** Impressums-Daten (Name, Anschrift, E-Mail), Datenschutzerklärung und AGB bereitstellen / juristisch abnehmen lassen.
-7. **Exercise-Lizenz-Entscheidung:** Entscheidung treffen: A) ExerciseDB RapidAPI Pro Lizenz kaufen, B) MuscleWiki API lizenzieren oder C) Reine Vektor-Muskelkarten ohne Fremd-GIFs nutzen.
+### USER_ACTION_REQUIRED (Konrad)
+1. **Apple Developer Account / Google Play Console:** Bereitstellung der Zugänge / Team-IDs.
+2. **RevenueCat Account & Store Products:** Anlegen der monatlichen und jährlichen Abos.
+3. **Exercise-Asset-Entscheidung:** Klären der Lizenzstrategie für die Übungs-GIFs.
+4. **Rechtstexte:** Bereitstellung von echtem Impressum, Datenschutzerklärung und EULA.
+5. **Hosting & Secrets:** HTTPS-Server für Coach Backend bereitstellen.

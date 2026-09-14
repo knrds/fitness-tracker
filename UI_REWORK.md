@@ -62,3 +62,7 @@ Continued from Gemini baseline d461afd on fix/workout-swipe-polish. Existing the
 | Validation | Twelve baseline lint errors | Unused imports and audio/swipe types cleaned up; lint passes |
 
 Validation: 57 domain + 188 mobile + 15 API tests passed (260 total). Final typecheck and lint passed; web export passed. iOS/Android Hermes exports passed before the last small navigation sizing and header accessibility adjustments; exports are not device builds. Real browser touch dispatch verified closed/partial/open swipe, completed rows, long swipes without automatic deletion, closing, cancellation, vertical scrolling and deletion through the details action at narrow widths. The 320 px navigation screenshot was inspected. The complete theme/viewport navigation matrix remains unfinished: the browser session was no longer available on resumption. Physical iPhone/Android, VoiceOver and Dynamic Type remain device gates. No new dependencies.
+
+### Full-swipe deletion follow-up
+
+At the user's request, releasing a deliberate left swipe past 70% of the measured row width now deletes the set directly (minimum travel threshold 132 px). Short swipes still reveal the delete button; velocity alone never deletes. The foreground follows the gesture within the row bounds, with an opaque surface shielding the clipped background, and collapses on deletion. Cancellation closes without deleting. This supersedes the explicit-press-only behavior above. Four targeted swipe tests pass; real-device gesture verification remains open.

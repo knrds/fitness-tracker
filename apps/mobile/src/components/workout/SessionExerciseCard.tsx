@@ -1,3 +1,10 @@
+import { useReducedMotion } from 'react-native-reanimated';
+import {
+  SET_DELETE_WIDTH,
+  shouldCaptureSetSwipe,
+  setSwipeOffset,
+  shouldOpenSetSwipe,
+} from '../../utils/setSwipe';
 import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { scopedAlert as Alert } from '../../utils/scopedAlert';
 import React, { useState, useEffect } from 'react';
@@ -572,9 +579,7 @@ export const SessionExerciseCard = ({
             <Text style={[styles.columnHeader, styles.doneCol, { color: theme.colors.muted }]}>
               ✓
             </Text>
-            <Text
-              style={[styles.columnHeader, styles.deleteCol, { color: theme.colors.muted }]}
-            />
+            <Text style={[styles.columnHeader, styles.deleteCol, { color: theme.colors.muted }]} />
           </View>
 
           {(() => {
@@ -592,7 +597,13 @@ export const SessionExerciseCard = ({
 
               const setWeightKg = set.weight || 0;
               const setReps = set.reps || 0;
-              const setE1RM = estimateOneRepMax(setWeightKg, setReps, set.rpe, set.rir, exercise.name);
+              const setE1RM = estimateOneRepMax(
+                setWeightKg,
+                setReps,
+                set.rpe,
+                set.rir,
+                exercise.name,
+              );
               const isSetPR =
                 set.completed &&
                 set.type !== 'warmup' &&
@@ -624,9 +635,12 @@ export const SessionExerciseCard = ({
                       const willBePR =
                         set.type !== 'warmup' &&
                         historicalBest.bestE1RM > 0 &&
-                        (setE1RM > historicalBest.bestE1RM || setWeightKg > historicalBest.bestWeight);
+                        (setE1RM > historicalBest.bestE1RM ||
+                          setWeightKg > historicalBest.bestWeight);
                       if (willBePR) {
-                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
+                          () => {},
+                        );
                       } else {
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
                       }
@@ -1121,6 +1135,7 @@ const SetRow = ({
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
   const isDone = set.completed;
+  const reducedMotion = useReducedMotion();
   const [detailsVisible, setDetailsVisible] = useState(false);
   const closeDetails = () => {
     Keyboard.dismiss();
@@ -1138,15 +1153,6 @@ const SetRow = ({
     }
   };
 
-  const resetSwipe = React.useCallback(() => {
-    Animated.spring(swipeX, {
-      toValue: 0,
-      useNativeDriver: true,
-      tension: 90,
-      friction: 9,
-    }).start();
-  }, [swipeX]);
-
   const handleDeleteSet = React.useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setIsDeleting(true);
@@ -1154,7 +1160,7 @@ const SetRow = ({
     Animated.parallel([
       Animated.timing(rowHeight, {
         toValue: 0,
-        duration: 200,
+        duration: reducedMotion ? 0 : 200,
         useNativeDriver: false,
       }),
       Animated.timing(rowOpacity, {
@@ -1169,73 +1175,46 @@ const SetRow = ({
       rowOpacity.setValue(1);
       swipeX.setValue(0);
     });
-  }, [onDelete, measuredHeight, rowHeight, rowOpacity, swipeX]);
+  }, [onDelete, measuredHeight, rowHeight, rowOpacity, swipeX, reducedMotion]);
 
   const [swipeOpen, setSwipeOpen] = useState(false);
-  const SWIPE_BUTTON_WIDTH = 88;
-
-  const snapToOpen = React.useCallback(() => {
-    setSwipeOpen(true);
-    Animated.spring(swipeX, {
-      toValue: -SWIPE_BUTTON_WIDTH,
-      useNativeDriver: true,
-      tension: 90,
-      friction: 9,
-    }).start();
-  }, [swipeX]);
-
-  const closeSwipe = React.useCallback(() => {
-    setSwipeOpen(false);
-    resetSwipe();
-  }, [resetSwipe]);
-
+  const swipeOrigin = React.useRef(false);
+  const snapSwipe = React.useCallback(
+    (open: boolean) => {
+      setSwipeOpen(open);
+      swipeX.stopAnimation();
+      Animated.timing(swipeX, {
+        toValue: open ? -SET_DELETE_WIDTH : 0,
+        duration: reducedMotion ? 0 : 180,
+        useNativeDriver: Platform.OS !== 'web',
+      }).start();
+    },
+    [swipeX, reducedMotion],
+  );
+  const closeSwipe = React.useCallback(() => snapSwipe(false), [snapSwipe]);
   const swipeResponder = React.useMemo(
     () =>
       PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gestureState) =>
-          Math.abs(gestureState.dx) > 8 &&
-          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.2,
+        onMoveShouldSetPanResponder: (_, gesture) =>
+          !isDeleting && shouldCaptureSetSwipe(gesture.dx, gesture.dy, swipeOpen),
         onPanResponderGrant: () => {
-          if (onSwipeStart) onSwipeStart();
+          swipeX.stopAnimation();
+          swipeOrigin.current = swipeOpen;
+          onSwipeStart?.();
         },
-        onPanResponderMove: (_, gestureState) => {
-          const dx = swipeOpen ? gestureState.dx - SWIPE_BUTTON_WIDTH : gestureState.dx;
-          if (dx < 0) {
-            swipeX.setValue(dx);
-          } else {
-            swipeX.setValue(dx * 0.2);
-          }
-        },
-        onPanResponderTerminationRequest: () => false,
-        onPanResponderRelease: (_, gestureState) => {
-          const dx = swipeOpen ? gestureState.dx - SWIPE_BUTTON_WIDTH : gestureState.dx;
-          const vx = gestureState.vx || 0;
-          // Full swipe past threshold (-120) or fast left flick (vx < -0.5) → delete directly with weg-swipe animation
-          if (dx < -120 || (dx < -40 && vx < -0.5)) {
-            Animated.timing(swipeX, {
-              toValue: -500,
-              duration: 160,
-              useNativeDriver: true,
-            }).start(handleDeleteSet);
-            if (onSwipeEnd) onSwipeEnd();
-            return;
-          }
-          // Partial swipe past threshold (-35) → snap open to reveal delete button
-          if (dx < -35) {
-            snapToOpen();
-            if (onSwipeEnd) onSwipeEnd();
-            return;
-          }
-          // Below threshold or swipe right → close
-          closeSwipe();
-          if (onSwipeEnd) onSwipeEnd();
+        onPanResponderMove: (_, gesture) =>
+          swipeX.setValue(setSwipeOffset(gesture.dx, swipeOrigin.current)),
+        onPanResponderTerminationRequest: () => true,
+        onPanResponderRelease: (_, gesture) => {
+          snapSwipe(shouldOpenSetSwipe(gesture.dx, gesture.vx, swipeOrigin.current));
+          onSwipeEnd?.();
         },
         onPanResponderTerminate: () => {
           closeSwipe();
-          if (onSwipeEnd) onSwipeEnd();
+          onSwipeEnd?.();
         },
       }),
-    [handleDeleteSet, snapToOpen, closeSwipe, swipeX, swipeOpen, onSwipeStart, onSwipeEnd],
+    [swipeX, swipeOpen, isDeleting, snapSwipe, closeSwipe, onSwipeStart, onSwipeEnd],
   );
 
   // Format Level (unconverted weight for cardio) or normal weight
@@ -1436,28 +1415,42 @@ const SetRow = ({
     <Animated.View
       onLayout={handleLayout}
       style={[styles.rowContainer, animatedStyle]}
-      accessible
-      accessibilityActions={[{ name: 'delete', label: 'Satz entfernen' }]}
-      onAccessibilityAction={(event) => {
-        if (event.nativeEvent.actionName === 'delete') handleDeleteSet();
-      }}
+      testID={`set-row-${set.id}`}
     >
       <View
         style={[
           styles.swipeFrame,
-          Platform.OS === 'web' ? ({ touchAction: 'pan-y' } as any) : null,
+          Platform.OS === 'web' ? ({ touchAction: 'pan-y' } as ViewStyle) : null,
         ]}
       >
-        <View style={[styles.swipeDeleteBackground, { backgroundColor: theme.colors.error }]}>
+        <Animated.View
+          pointerEvents={swipeOpen ? 'auto' : 'none'}
+          accessibilityElementsHidden={!swipeOpen}
+          aria-hidden={!swipeOpen}
+          importantForAccessibility={swipeOpen ? 'auto' : 'no-hide-descendants'}
+          style={[
+            styles.swipeDeleteBackground,
+            {
+              backgroundColor: theme.colors.error,
+              opacity: swipeX.interpolate({
+                inputRange: [-1, 0],
+                outputRange: [1, 0],
+                extrapolate: 'clamp',
+              }),
+            },
+          ]}
+        >
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Satz ${workingSetNumber} löschen`}
+            accessibilityState={{ disabled: !swipeOpen || isDeleting }}
+            disabled={!swipeOpen || isDeleting}
             onPress={() => {
               closeSwipe();
               handleDeleteSet();
             }}
             style={{
-              width: SWIPE_BUTTON_WIDTH,
+              width: SET_DELETE_WIDTH,
               height: '100%',
               position: 'absolute',
               right: 0,
@@ -1471,12 +1464,16 @@ const SetRow = ({
               Löschen
             </Text>
           </Pressable>
-        </View>
+        </Animated.View>
         <Animated.View
           {...swipeResponder.panHandlers}
           style={[
-            { transform: [{ translateX: swipeX }] },
-            Platform.OS === 'web' ? ({ touchAction: 'pan-y' } as any) : null,
+            {
+              transform: [{ translateX: swipeX }],
+              backgroundColor: theme.colors.surface,
+              borderRadius: 10,
+            },
+            Platform.OS === 'web' ? ({ touchAction: 'pan-y' } as ViewStyle) : null,
           ]}
         >
           <View
@@ -1493,7 +1490,10 @@ const SetRow = ({
               },
             ]}
           >
-            <Pressable onPress={cycleSetType} style={[styles.setCol, styles.centerAlign, { position: 'relative' }]}>
+            <Pressable
+              onPress={cycleSetType}
+              style={[styles.setCol, styles.centerAlign, { position: 'relative' }]}
+            >
               {isPR && isDone && (
                 <View style={styles.prBadge}>
                   <Text style={styles.prBadgeText}>PR</Text>
@@ -1575,13 +1575,13 @@ const SetRow = ({
                 {
                   backgroundColor: isDone
                     ? isPR
-                      ? '#EAB308'
+                      ? theme.colors.warning
                       : theme.colors.primary
                     : theme.colors.background,
                   borderWidth: 1,
                   borderColor: isDone
                     ? isPR
-                      ? '#FACC15'
+                      ? theme.colors.warning
                       : theme.colors.primary
                     : theme.colors.border,
                 },
@@ -1595,14 +1595,27 @@ const SetRow = ({
               <Ionicons
                 name={isPR && isDone ? 'trophy' : 'checkmark'}
                 size={isPR && isDone ? 18 : 20}
-                color={isDone ? (isPR ? '#000000' : theme.colors.background) : theme.colors.muted}
+                color={
+                  isDone
+                    ? isPR
+                      ? theme.colors.onWarning
+                      : theme.colors.onPrimary
+                    : theme.colors.muted
+                }
               />
             </Pressable>
             <Pressable
               style={[styles.deleteCol, styles.centerAlign, { minHeight: 44 }]}
               accessibilityRole="button"
               accessibilityLabel={`Satz ${workingSetNumber} Details`}
-              onPress={() => setDetailsVisible(true)}
+              accessibilityActions={[{ name: 'delete', label: 'Satz entfernen' }]}
+              onAccessibilityAction={(event) => {
+                if (event.nativeEvent.actionName === 'delete') handleDeleteSet();
+              }}
+              onPress={() => {
+                closeSwipe();
+                setDetailsVisible(true);
+              }}
             >
               <Ionicons
                 name="ellipsis-horizontal"
@@ -1735,7 +1748,7 @@ const createStyles = (theme: Theme) =>
       top: 0,
       right: 0,
       bottom: 0,
-      left: 0,
+      width: SET_DELETE_WIDTH,
       justifyContent: 'center',
       alignItems: 'flex-end',
     },
@@ -1770,14 +1783,14 @@ const createStyles = (theme: Theme) =>
       position: 'absolute',
       top: -6,
       left: -2,
-      backgroundColor: '#EAB308',
+      backgroundColor: theme.colors.warning,
       paddingHorizontal: 4,
       paddingVertical: 1,
       borderRadius: 4,
       zIndex: 10,
     },
     prBadgeText: {
-      color: '#000000',
+      color: theme.colors.onWarning,
       fontSize: 8,
       fontWeight: '900',
       letterSpacing: 0.5,

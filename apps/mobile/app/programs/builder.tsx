@@ -11,7 +11,6 @@ import {
   TextInput,
   ScrollView,
   Pressable,
-  Platform,
   Modal,
   Animated,
 } from 'react-native';
@@ -36,7 +35,7 @@ export default function ProgramBuilderScreen() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
-  const { showConfirm, showAlert } = useDialog();
+  const { showConfirm } = useDialog();
   const { id, week } = useLocalSearchParams<{ id?: string; week?: string }>();
   const { programs, updateProgram, templates, createTemplate } = useProgramStore();
   const { sessions } = useHistoryStore();

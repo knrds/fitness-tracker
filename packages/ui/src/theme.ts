@@ -169,6 +169,7 @@ export function createTheme(colorway: Colorway) {
     primarySubtle: withAlpha(palette.primary, colorway === 'arctic' ? 0.12 : 0.1),
     success: '#57DFAB',
     warning: '#FFC266',
+    onWarning: '#211500',
     error: '#FF6686',
     onError: '#17070B',
     // Existing destructive usages retain their semantics; new code uses error.

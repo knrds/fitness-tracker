@@ -1,7 +1,6 @@
 import { VoltDashboard } from '../../src/components/VoltDashboard';
 import { Theme, useThemeStyles, useTheme, useDialog } from '@fitness-tracker/ui';
 import { useFocusScroll } from '../../src/hooks/useFocusScroll';
-import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
 import React from 'react';
 import { useReducedMotion } from 'react-native-reanimated';
 import {

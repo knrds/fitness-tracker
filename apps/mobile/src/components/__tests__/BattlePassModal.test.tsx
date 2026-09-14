@@ -54,14 +54,14 @@ describe('BattlePassModal', () => {
       </ThemeProvider>,
     );
 
-    // Tap Level 11 which unlocks Crimson Neon & Cyber Neon Rain
+    // Tap Level 11 which unlocks Crimson Neon & Gold Medaillon
     const lvl11Pill = getByLabelText('Level 11 Details anzeigen');
     fireEvent.press(lvl11Pill);
 
     // Inspection modal opens
     expect(getByText('BELOHNUNGEN AUF LEVEL 11')).toBeTruthy();
     expect(getByText('Crimson Neon')).toBeTruthy();
-    expect(getByText('Cyber Neon Rain')).toBeTruthy();
+    expect(getByText('Gold Medaillon')).toBeTruthy();
 
     // Close inspection modal
     const doneBtn = getByLabelText('Detailansicht schließen');
@@ -89,21 +89,30 @@ describe('BattlePassModal', () => {
     fireEvent.press(doneBtn);
   });
 
-  it('allows tapping mid-level 13 to view Inferno Ember Storm celebration reward', () => {
+  it('allows tapping mid-levels to view celebration rewards (L8 Inferno, L13 Cyber Neon)', () => {
     const { getByLabelText, getByText } = render(
       <ThemeProvider>
         <BattlePassModal visible={true} onClose={jest.fn()} level={10} xp={4800} />
       </ThemeProvider>,
     );
 
-    // Tap mid-level 13 which unlocks Inferno Ember Storm
-    const lvl13Pill = getByLabelText('Level 13 Details anzeigen');
-    fireEvent.press(lvl13Pill);
+    // Tap mid-level 8 which unlocks Inferno Ember Storm
+    const lvl8Pill = getByLabelText('Level 8 Details anzeigen');
+    fireEvent.press(lvl8Pill);
 
-    expect(getByText('BELOHNUNGEN AUF LEVEL 13')).toBeTruthy();
+    expect(getByText('BELOHNUNGEN AUF LEVEL 8')).toBeTruthy();
     expect(getByText('Inferno Ember Storm')).toBeTruthy();
 
     const doneBtn = getByLabelText('Detailansicht schließen');
     fireEvent.press(doneBtn);
+
+    // Tap mid-level 13 which unlocks Cyber Neon Rain
+    const lvl13Pill = getByLabelText('Level 13 Details anzeigen');
+    fireEvent.press(lvl13Pill);
+
+    expect(getByText('BELOHNUNGEN AUF LEVEL 13')).toBeTruthy();
+    expect(getByText('Cyber Neon Rain')).toBeTruthy();
+
+    fireEvent.press(getByLabelText('Detailansicht schließen'));
   });
 });

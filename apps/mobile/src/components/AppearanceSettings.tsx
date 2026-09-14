@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { createTheme, useTheme, withAlpha } from '@fitness-tracker/ui';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useProfileStore, CelebrationEffect } from '../stores/profileStore';
 import { useAchievementStore } from '../stores/achievementStore';
+import { getRankForLevel } from '../utils/level';
 import {
   COLORWAY_REWARDS,
   CELEBRATION_REWARDS,
@@ -19,10 +20,24 @@ import { WorkoutCelebrationOverlay } from './workout/WorkoutCelebrationOverlay';
 export function AppearanceSettings() {
   const theme = useTheme();
   const { profile, updateProfile } = useProfileStore();
-  const { level, xp } = useAchievementStore();
+  const { level, xp, setTestLevel } = useAchievementStore();
   const [battlePassVisible, setBattlePassVisible] = useState(false);
   const [previewEffect, setPreviewEffect] = useState<CelebrationEffect | null>(null);
+  const [sliderWidth, setSliderWidth] = useState(300);
   const previewTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const currentRank = getRankForLevel(level);
+
+  const handleStepLevel = (delta: number) => {
+    void Haptics.selectionAsync();
+    const newLevel = Math.max(1, Math.min(50, level + delta));
+    setTestLevel(newLevel);
+  };
+
+  const handleSetExactLevel = (target: number) => {
+    void Haptics.selectionAsync();
+    setTestLevel(target);
+  };
 
   useEffect(() => {
     return () => {
@@ -291,7 +306,7 @@ export function AppearanceSettings() {
           <View style={styles.headerLeft}>
             <Ionicons name="color-palette-outline" size={16} color={theme.colors.primary} />
             <Text style={[theme.typography.label, { color: theme.colors.primary }]}>
-              THEMES &amp; FARBWELTEN
+              THEMES & FARBWELTEN
             </Text>
           </View>
           <Pressable
@@ -312,6 +327,232 @@ export function AppearanceSettings() {
         <Text style={[styles.subtitle, { color: theme.colors.muted }]}>
           11 exklusive Farbwelten · Schalte neue Themes & Effekte über deinen Level-Pass frei
         </Text>
+      </View>
+
+      {/* Beta Level & Rang Simulator Card */}
+      <View
+        style={[
+          styles.betaCard,
+          {
+            backgroundColor: theme.colors.surface,
+            borderColor: theme.colors.primary + '50',
+          },
+        ]}
+      >
+        <View style={styles.betaCardHeader}>
+          <View style={[styles.betaTag, { backgroundColor: theme.colors.primary + '20' }]}>
+            <Ionicons name="flask" size={13} color={theme.colors.primary} />
+            <Text style={[styles.betaTagText, { color: theme.colors.primary }]}>
+              BETA-TESTER
+            </Text>
+          </View>
+          <Text style={[styles.betaCardTitle, { color: theme.colors.text }]}>
+            LEVEL & RANG SIMULATOR
+          </Text>
+        </View>
+
+        <Text style={[styles.betaCardDesc, { color: theme.colors.muted }]}>
+          Passe dein Level an, um alle Themes, Effekte und Level-Pass Belohnungen live zu testen.
+        </Text>
+
+        {/* Current Simulated Status Row */}
+        <View style={styles.betaStatusRow}>
+          <Text style={[styles.betaLevelText, { color: theme.colors.primary }]}>
+            LEVEL {level}
+          </Text>
+          <Text style={[styles.betaRankText, { color: theme.colors.text }]}>
+            Rang {currentRank.rank}: {currentRank.title}
+          </Text>
+          <Text style={[styles.betaXpText, { color: theme.colors.muted }]}>
+            ({((level - 1) * 500).toLocaleString('de-DE')} XP)
+          </Text>
+        </View>
+
+        {/* Interactive Track */}
+        <View
+          style={styles.sliderTrackContainer}
+          onLayout={(e) => {
+            const w = e.nativeEvent.layout.width;
+            if (w > 0) setSliderWidth(w);
+          }}
+        >
+          <Pressable
+            accessibilityRole="adjustable"
+            accessibilityLabel={`Level Slider, aktuell Level ${level}`}
+            onPress={(e) => {
+              if (sliderWidth > 0) {
+                const ratio = Math.max(0, Math.min(1, e.nativeEvent.locationX / sliderWidth));
+                const targetLvl = Math.max(1, Math.min(50, Math.round(1 + ratio * 49)));
+                handleSetExactLevel(targetLvl);
+              }
+            }}
+            style={[
+              styles.sliderTrackBg,
+              { backgroundColor: theme.colors.surfaceElevated || theme.colors.border },
+            ]}
+          >
+            <View
+              style={[
+                styles.sliderTrackFill,
+                {
+                  width: `${Math.max(2, Math.min(100, ((level - 1) / 49) * 100))}%`,
+                  backgroundColor: theme.colors.primary,
+                },
+              ]}
+            />
+            <View
+              style={[
+                styles.sliderThumb,
+                {
+                  left: `${Math.max(0, Math.min(94, ((level - 1) / 49) * 100))}%`,
+                  backgroundColor: theme.colors.primary,
+                  borderColor: theme.colors.background,
+                },
+              ]}
+            />
+          </Pressable>
+        </View>
+
+        {/* Stepper Buttons Row */}
+        <View style={styles.stepperRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="5 Level zurück"
+            disabled={level <= 1}
+            onPress={() => handleStepLevel(-5)}
+            style={({ pressed }) => [
+              styles.stepBtn,
+              {
+                backgroundColor: theme.colors.background,
+                borderColor: theme.colors.border,
+                opacity: level <= 1 ? 0.4 : pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <Text style={[styles.stepBtnText, { color: theme.colors.text }]}>-5</Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="1 Level zurück"
+            disabled={level <= 1}
+            onPress={() => handleStepLevel(-1)}
+            style={({ pressed }) => [
+              styles.stepBtn,
+              {
+                backgroundColor: theme.colors.background,
+                borderColor: theme.colors.border,
+                opacity: level <= 1 ? 0.4 : pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <Text style={[styles.stepBtnText, { color: theme.colors.text }]}>-1</Text>
+          </Pressable>
+
+          <View
+            style={[
+              styles.levelDisplayPill,
+              {
+                backgroundColor: theme.colors.primary + '18',
+                borderColor: theme.colors.primary + '40',
+              },
+            ]}
+          >
+            <Text style={[styles.levelDisplayPillText, { color: theme.colors.primary }]}>
+              L{level} / 50
+            </Text>
+          </View>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="1 Level vor"
+            disabled={level >= 50}
+            onPress={() => handleStepLevel(1)}
+            style={({ pressed }) => [
+              styles.stepBtn,
+              {
+                backgroundColor: theme.colors.background,
+                borderColor: theme.colors.border,
+                opacity: level >= 50 ? 0.4 : pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <Text style={[styles.stepBtnText, { color: theme.colors.text }]}>+1</Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="5 Level vor"
+            disabled={level >= 50}
+            onPress={() => handleStepLevel(5)}
+            style={({ pressed }) => [
+              styles.stepBtn,
+              {
+                backgroundColor: theme.colors.background,
+                borderColor: theme.colors.border,
+                opacity: level >= 50 ? 0.4 : pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <Text style={[styles.stepBtnText, { color: theme.colors.text }]}>+5</Text>
+          </Pressable>
+        </View>
+
+        {/* Milestone Quick-Jump Pills */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.milestonesRow}
+        >
+          {[
+            { lvl: 1, label: 'L1 Start' },
+            { lvl: 8, label: 'L8 Inferno 🔥' },
+            { lvl: 13, label: 'L13 Neon ⚡' },
+            { lvl: 16, label: 'L16 Rose' },
+            { lvl: 21, label: 'L21 Verde' },
+            { lvl: 26, label: 'L26 Telemetry' },
+            { lvl: 29, label: 'L29 Gold 🏆' },
+            { lvl: 31, label: 'L31 Alpine' },
+            { lvl: 33, label: 'L33 Matrix 💻' },
+            { lvl: 41, label: 'L41 Avionics' },
+            { lvl: 43, label: 'L43 Cosmic 🌌' },
+            { lvl: 50, label: 'L50 Master' },
+          ].map((m) => {
+            const isCurrent = level === m.lvl;
+            return (
+              <Pressable
+                key={m.lvl}
+                accessibilityRole="button"
+                accessibilityLabel={`Springe zu Level ${m.lvl}`}
+                onPress={() => handleSetExactLevel(m.lvl)}
+                style={({ pressed }) => [
+                  styles.milestonePill,
+                  {
+                    backgroundColor: isCurrent
+                      ? theme.colors.primary
+                      : theme.colors.background,
+                    borderColor: isCurrent ? theme.colors.primary : theme.colors.border,
+                    opacity: pressed ? 0.75 : 1,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.milestonePillText,
+                    {
+                      color: isCurrent
+                        ? theme.colors.background
+                        : theme.colors.text,
+                      fontWeight: isCurrent ? '700' : '500',
+                    },
+                  ]}
+                >
+                  {m.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {/* Group 1: Light Themes (Helle Farbwelten) */}
@@ -651,5 +892,131 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: 'Manrope_500Medium',
     lineHeight: 15,
+  },
+  betaCard: {
+    borderRadius: 16,
+    borderWidth: 1.5,
+    padding: 14,
+    marginBottom: 20,
+    gap: 10,
+  },
+  betaCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  betaTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  betaTagText: {
+    fontSize: 9,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    letterSpacing: 0.8,
+  },
+  betaCardTitle: {
+    fontSize: 13,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    letterSpacing: 0.5,
+  },
+  betaCardDesc: {
+    fontSize: 11,
+    fontFamily: 'Manrope_500Medium',
+    lineHeight: 15,
+  },
+  betaStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+    marginTop: 2,
+  },
+  betaLevelText: {
+    fontSize: 16,
+    fontFamily: 'SpaceGrotesk_700Bold',
+  },
+  betaRankText: {
+    fontSize: 13,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+  },
+  betaXpText: {
+    fontSize: 11,
+    fontFamily: 'Manrope_500Medium',
+  },
+  sliderTrackContainer: {
+    width: '100%',
+    paddingVertical: 8,
+  },
+  sliderTrackBg: {
+    height: 10,
+    borderRadius: 5,
+    position: 'relative',
+    overflow: 'visible',
+    justifyContent: 'center',
+  },
+  sliderTrackFill: {
+    height: 10,
+    borderRadius: 5,
+  },
+  sliderThumb: {
+    position: 'absolute',
+    top: -5,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  stepperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  stepBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepBtnText: {
+    fontSize: 12,
+    fontFamily: 'SpaceGrotesk_700Bold',
+  },
+  levelDisplayPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  levelDisplayPillText: {
+    fontSize: 13,
+    fontFamily: 'SpaceGrotesk_700Bold',
+  },
+  milestonesRow: {
+    flexDirection: 'row',
+    gap: 6,
+    paddingVertical: 2,
+  },
+  milestonePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  milestonePillText: {
+    fontSize: 10,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
   },
 });

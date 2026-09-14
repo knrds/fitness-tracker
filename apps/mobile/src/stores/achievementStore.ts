@@ -24,6 +24,7 @@ export interface AchievementState {
   awardXpAndCheckAchievements: (session: WorkoutSession) => void;
   clearCelebrations: () => void;
   resetAchievements: () => void;
+  setTestLevel: (level: number) => void;
 }
 
 const achievementPersistedSchema = z.object({
@@ -444,6 +445,14 @@ export const useAchievementStore = create<AchievementState>()(
           newlyUnlocked: [],
           levelUpTo: null,
         }),
+
+      setTestLevel: (level: number) => {
+        const targetLevel = Math.max(1, Math.min(50, Math.floor(level || 1)));
+        set({
+          level: targetLevel,
+          xp: (targetLevel - 1) * 500,
+        });
+      },
     }),
     {
       name: 'achievement-storage',

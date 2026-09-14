@@ -99,9 +99,36 @@ describe('AppearanceSettings', () => {
     fireEvent.press(roseTheme);
     expect(useProfileStore.getState().profile.colorway).toBe('rose');
 
-    // Inferno requires Level 13 - now unlocked at level 20!
+    // Inferno requires Level 8 - now unlocked at level 20!
     const infernoCelebration = getByText('Inferno Ember Storm');
     fireEvent.press(infernoCelebration);
     expect(useProfileStore.getState().profile.celebrationEffect).toBe('inferno');
+  });
+
+  it('allows beta testers to adjust level dynamically via stepper and milestone pills', () => {
+    const { getByText } = render(
+      <ThemeProvider>
+        <AppearanceSettings />
+      </ThemeProvider>,
+    );
+
+    // Initial state: Level 1
+    expect(getByText('LEVEL & RANG SIMULATOR')).toBeTruthy();
+    expect(getByText('LEVEL 1')).toBeTruthy();
+    expect(getByText('Rang 1: Novice Lifter')).toBeTruthy();
+
+    // Step +5
+    const plusFiveBtn = getByText('+5');
+    fireEvent.press(plusFiveBtn);
+    expect(useAchievementStore.getState().level).toBe(6);
+    expect(getByText('LEVEL 6')).toBeTruthy();
+    expect(getByText('Rang 2: Building Strength')).toBeTruthy();
+
+    // Quick Milestone jump to L13 (which unlocks Cyber Neon Rain)
+    const l13Pill = getByText('L13 Neon ⚡');
+    fireEvent.press(l13Pill);
+    expect(useAchievementStore.getState().level).toBe(13);
+    expect(getByText('LEVEL 13')).toBeTruthy();
+    expect(getByText('Rang 3: Consistent Lifter')).toBeTruthy();
   });
 });

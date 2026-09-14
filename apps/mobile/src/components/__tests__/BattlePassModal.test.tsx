@@ -46,4 +46,46 @@ describe('BattlePassModal', () => {
     fireEvent.press(closeBtn);
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
+
+  it('allows tapping a level with rewards to view miniature reward details', () => {
+    const { getByLabelText, getByText } = render(
+      <ThemeProvider>
+        <BattlePassModal visible={true} onClose={jest.fn()} level={4} xp={1850} />
+      </ThemeProvider>,
+    );
+
+    // Tap Level 11 which unlocks Crimson Neon & Cyber Neon Rain
+    const lvl11Pill = getByLabelText('Level 11 Details anzeigen');
+    fireEvent.press(lvl11Pill);
+
+    // Inspection modal opens
+    expect(getByText('BELOHNUNGEN AUF LEVEL 11')).toBeTruthy();
+    expect(getByText('Crimson Neon')).toBeTruthy();
+    expect(getByText('Cyber Neon Rain')).toBeTruthy();
+
+    // Close inspection modal
+    const doneBtn = getByLabelText('Detailansicht schließen');
+    fireEvent.press(doneBtn);
+  });
+
+  it('allows tapping a level without rewards to view missing XP and milestone info', () => {
+    const { getByLabelText, getByText } = render(
+      <ThemeProvider>
+        <BattlePassModal visible={true} onClose={jest.fn()} level={2} xp={600} />
+      </ThemeProvider>,
+    );
+
+    // Tap Level 4 (no cosmetic reward)
+    const lvl4Pill = getByLabelText('Level 4 Details anzeigen');
+    fireEvent.press(lvl4Pill);
+
+    // Inspection shows milestone progress and missing XP
+    expect(getByText('Meilenstein-Aufstieg')).toBeTruthy();
+    // Total XP for L4 is 1500, user has 600 -> 900 XP missing
+    expect(getByText('Noch 900 XP benötigt')).toBeTruthy();
+
+    // Close inspection modal
+    const doneBtn = getByLabelText('Detailansicht schließen');
+    fireEvent.press(doneBtn);
+  });
 });

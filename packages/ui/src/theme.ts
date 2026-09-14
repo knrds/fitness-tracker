@@ -2,7 +2,6 @@ import { TextStyle } from 'react-native';
 
 export type Colorway =
   | 'glacier'
-  | 'amber'
   | 'arctic'
   | 'avionics'
   | 'telemetry'
@@ -10,7 +9,10 @@ export type Colorway =
   | 'ember'
   | 'verde'
   | 'solar'
-  | 'alpine';
+  | 'alpine'
+  | 'rose'
+  | 'crimson'
+  | 'amber'; // retained for backwards-compatibility
 
 export const colorways: {
   id: Colorway;
@@ -18,15 +20,18 @@ export const colorways: {
   description: string;
   isLight?: boolean;
 }[] = [
+  // Dark Themes
   { id: 'glacier', name: 'Glacier Core', description: 'Cyan · Kühles Graphit' },
-  { id: 'amber', name: 'Amber Forge', description: 'Bernstein · Warmes Graphit' },
+  { id: 'crimson', name: 'Crimson Neon', description: 'Neon Magenta · Velvet Obsidian' },
   { id: 'verde', name: 'Volt Verde', description: 'Mint Bio-Signal · Obsidian' },
   { id: 'telemetry', name: 'Telemetry Cyber', description: 'Electric Lime · Midnight Navy' },
   { id: 'ember', name: 'Volt Ember', description: 'Ember Orange · Deep Carbon' },
   { id: 'avionics', name: 'Avionics Stealth', description: 'Zinc Matrix · Acid Lime' },
   { id: 'titanium', name: 'Royal Titanium', description: 'Champagne Gold · Luxury' },
+  // Light Themes
   { id: 'arctic', name: 'Arctic Lab (Light)', description: 'Clean White · Ocean Cyan', isLight: true },
   { id: 'solar', name: 'Solar Dune (Light)', description: 'Warm Sand · Amber Gold', isLight: true },
+  { id: 'rose', name: 'Porcelain Rose (Light)', description: 'Porzellan · Korallen-Rose', isLight: true },
   { id: 'alpine', name: 'Alpine Mist (Light)', description: 'Studio Snow · Electric Indigo', isLight: true },
 ];
 
@@ -166,6 +171,28 @@ const palettes: Record<
     muted: '#64748B',
     border: '#CBD5E1',
   },
+  rose: {
+    background: '#FCF8F9',
+    surface: '#FFFFFF',
+    surfaceElevated: '#F9ECEF',
+    primary: '#E11D48',
+    secondary: '#F43F5E',
+    tertiary: '#FB7185',
+    text: '#1C1014',
+    muted: '#7A6B71',
+    border: '#F2DCE2',
+  },
+  crimson: {
+    background: '#0D070B',
+    surface: '#180D14',
+    surfaceElevated: '#24141E',
+    primary: '#FF2A6D',
+    secondary: '#FB7185',
+    tertiary: '#E11D48',
+    text: '#FDF2F4',
+    muted: '#A88B95',
+    border: '#361927',
+  },
 };
 export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 };
 export const radius = { sm: 6, md: 10, lg: 14, full: 9999 };
@@ -188,8 +215,12 @@ export const typography: Record<string, TextStyle> = {
   },
 };
 export function createTheme(colorway: Colorway) {
-  const palette = palettes[colorway];
-  const isLight = colorway === 'arctic' || colorway === 'solar' || colorway === 'alpine';
+  const palette = palettes[colorway] ?? palettes.glacier;
+  const isLight =
+    colorway === 'arctic' ||
+    colorway === 'solar' ||
+    colorway === 'alpine' ||
+    colorway === 'rose';
   const isDark = !isLight;
   const colors = {
     ...palette,

@@ -5,41 +5,60 @@ import {
   isCelebrationUnlocked,
   getColorwayRewardConfig,
   getCelebrationRewardConfig,
+  getXpForLevel,
+  getRemainingXpForLevel,
+  getLevelRewards,
 } from '../rewards';
 
 describe('rewards utility', () => {
-  it('contains 10 configured colorways with 3 light modes and 7 dark modes', () => {
-    expect(COLORWAY_REWARDS).toHaveLength(10);
+  it('contains 11 configured colorways with 4 light modes and 7 dark modes', () => {
+    expect(COLORWAY_REWARDS).toHaveLength(11);
     const lightModes = COLORWAY_REWARDS.filter((c) => c.isLight);
     const darkModes = COLORWAY_REWARDS.filter((c) => !c.isLight);
-    expect(lightModes).toHaveLength(3);
+    expect(lightModes).toHaveLength(4);
     expect(darkModes).toHaveLength(7);
 
-    expect(lightModes.map((c) => c.id)).toEqual(['arctic', 'solar', 'alpine']);
+    expect(lightModes.map((c) => c.id)).toEqual(['arctic', 'solar', 'rose', 'alpine']);
+    expect(darkModes.map((c) => c.id)).toEqual([
+      'glacier',
+      'crimson',
+      'verde',
+      'telemetry',
+      'ember',
+      'avionics',
+      'titanium',
+    ]);
   });
 
-  it('correctly evaluates colorway unlocks based on level', () => {
-    // Level 1: starter colorways unlocked, higher locked
+  it('provides both a Dark Mode and a Light Mode from Level 1', () => {
     expect(isColorwayUnlocked('glacier', 1)).toBe(true);
-    expect(isColorwayUnlocked('amber', 1)).toBe(true);
-    expect(isColorwayUnlocked('arctic', 1)).toBe(false);
+    expect(isColorwayUnlocked('arctic', 1)).toBe(true);
+    // Higher tier colorways locked
     expect(isColorwayUnlocked('solar', 1)).toBe(false);
+    expect(isColorwayUnlocked('crimson', 1)).toBe(false);
+    expect(isColorwayUnlocked('rose', 1)).toBe(false);
     expect(isColorwayUnlocked('titanium', 1)).toBe(false);
+  });
 
-    // Level 6 (Rank 2): Arctic Lab unlocks
-    expect(isColorwayUnlocked('arctic', 6)).toBe(true);
-    expect(isColorwayUnlocked('solar', 6)).toBe(false);
+  it('correctly evaluates colorway unlocks as user progresses', () => {
+    // Level 6 (Rank 2): Solar Dune unlocks
+    expect(isColorwayUnlocked('solar', 6)).toBe(true);
+    expect(isColorwayUnlocked('crimson', 6)).toBe(false);
 
-    // Level 16 (Rank 4): Solar Dune unlocks
-    expect(isColorwayUnlocked('solar', 16)).toBe(true);
+    // Level 11 (Rank 3): Crimson Neon unlocks
+    expect(isColorwayUnlocked('crimson', 11)).toBe(true);
+    expect(isColorwayUnlocked('rose', 11)).toBe(false);
+
+    // Level 16 (Rank 4): Porcelain Rose unlocks
+    expect(isColorwayUnlocked('rose', 16)).toBe(true);
     expect(isColorwayUnlocked('alpine', 16)).toBe(false);
 
     // Level 31 (Rank 7): Alpine Mist unlocks
     expect(isColorwayUnlocked('alpine', 31)).toBe(true);
     expect(isColorwayUnlocked('titanium', 31)).toBe(false);
 
-    // Level 45: Titanium unlocked
-    expect(isColorwayUnlocked('titanium', 45)).toBe(true);
+    // Level 46 (Rank 10): Titanium unlocks
+    expect(isColorwayUnlocked('titanium', 46)).toBe(true);
   });
 
   it('correctly evaluates celebration effect unlocks based on level', () => {
@@ -63,10 +82,42 @@ describe('rewards utility', () => {
     expect(isCelebrationUnlocked('cosmic', 41)).toBe(true);
   });
 
+  it('calculates XP and missing distance correctly', () => {
+    expect(getXpForLevel(1)).toBe(0);
+    expect(getXpForLevel(2)).toBe(500);
+    expect(getXpForLevel(6)).toBe(2500);
+    expect(getXpForLevel(11)).toBe(5000);
+
+    // User at 1800 XP
+    expect(getRemainingXpForLevel(5, 1800)).toBe(2000 - 1800); // 200 XP
+    expect(getRemainingXpForLevel(3, 1800)).toBe(0); // already reached
+  });
+
+  it('retrieves level reward payloads for inspection', () => {
+    const lvl1 = getLevelRewards(1);
+    expect(lvl1.hasRewards).toBe(true);
+    expect(lvl1.colorways.map((c) => c.id)).toContain('glacier');
+    expect(lvl1.colorways.map((c) => c.id)).toContain('arctic');
+    expect(lvl1.celebrations.map((c) => c.id)).toContain('classic');
+
+    const lvl11 = getLevelRewards(11);
+    expect(lvl11.hasRewards).toBe(true);
+    expect(lvl11.colorways.map((c) => c.id)).toContain('crimson');
+    expect(lvl11.celebrations.map((c) => c.id)).toContain('neon');
+
+    const lvl4 = getLevelRewards(4);
+    expect(lvl4.hasRewards).toBe(false);
+    expect(lvl4.colorways).toHaveLength(0);
+  });
+
   it('provides reward config lookups', () => {
-    const solarConfig = getColorwayRewardConfig('solar');
-    expect(solarConfig?.name).toBe('Solar Dune (Light)');
-    expect(solarConfig?.requiredLevel).toBe(16);
+    const crimsonConfig = getColorwayRewardConfig('crimson');
+    expect(crimsonConfig?.name).toBe('Crimson Neon');
+    expect(crimsonConfig?.requiredLevel).toBe(11);
+
+    const roseConfig = getColorwayRewardConfig('rose');
+    expect(roseConfig?.name).toBe('Porcelain Rose (Light)');
+    expect(roseConfig?.requiredLevel).toBe(16);
 
     const cosmicConfig = getCelebrationRewardConfig('cosmic');
     expect(cosmicConfig?.name).toBe('Supernova Starlight');

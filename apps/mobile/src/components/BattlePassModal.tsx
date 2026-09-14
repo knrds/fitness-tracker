@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,16 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@fitness-tracker/ui';
+import { createTheme, useTheme } from '@fitness-tracker/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { LEVEL_RANKS, RANK_ICONS, getRankForLevel } from '../utils/level';
 import { LevelRankBadge } from './LevelRankBadge';
+import {
+  getLevelRewards,
+  getRemainingXpForLevel,
+  getXpForLevel,
+} from '../utils/rewards';
 
 export interface BattlePassModalProps {
   visible: boolean;
@@ -28,63 +33,63 @@ const RANK_REWARDS: Record<
 > = {
   1: {
     badgeTitle: 'Bronze Medaillon',
-    perk: 'Glacier Core & Amber Forge Themes',
-    rewardTag: '2x Themes & Basis Konfetti',
-    description: 'Dein Einstieg: 2 Farbwelten und der klassische Workout-Konfetti-Effekt.',
+    perk: 'Glacier Core (Dark) & Arctic Lab (Light) + Klassisches Konfetti',
+    rewardTag: '2x Themes & Konfetti',
+    description: 'Dein Einstieg: Direkt 1 Dark- und 1 Light-Theme sowie der klassische Workout-Konfetti-Effekt freigeschaltet.',
   },
   2: {
     badgeTitle: 'Silber Medaillon',
-    perk: 'Neues Theme: Arctic Lab (Light Mode)',
-    rewardTag: 'Light Mode I',
-    description: 'Schaltet das strahlend weiße, reflexionsarme Arctic-Design für dein Training frei.',
+    perk: 'Neues Theme: Solar Dune (Light Mode)',
+    rewardTag: 'Light Mode: Solar Dune',
+    description: 'Warmes Sandstein- und Bernsteingold-Design mit perfektem Lesekomfort im Hellen.',
   },
   3: {
     badgeTitle: 'Gold Medaillon',
-    perk: 'Theme: Volt Verde + Feier-Effekt: Cyber Neon',
-    rewardTag: 'Theme & Effekt',
-    description: 'Bio-Signal Mint Farbwelt und futuristischer Laser-Rain-Effekt beim Workout-Abschluss.',
+    perk: 'Theme: Crimson Neon (Dark) + Feier-Effekt: Cyber Neon Rain',
+    rewardTag: 'Theme & Laser-Effekt',
+    description: 'Rötlich-pinke Neon-Magenta Farbwelt und futuristischer Laser-Rain-Effekt beim Workout-Abschluss.',
   },
   4: {
     badgeTitle: 'Platin Medaillon',
-    perk: 'Neues Theme: Solar Dune (Light Mode)',
-    rewardTag: 'Light Mode II',
-    description: 'Warmes Sandstein- und Bernsteingold-Design mit perfektem Lesekomfort bei Sonnenlicht.',
+    perk: 'Neues Theme: Porcelain Rose (Light Mode)',
+    rewardTag: 'Light Mode: Porcelain Rose',
+    description: 'Edles Porzellan-Weiß mit kontraststarkem Korallen-Rose-Akzent.',
   },
   5: {
     badgeTitle: 'Smaragd Medaillon',
-    perk: 'Neues Theme: Telemetry Cyber',
-    rewardTag: 'Dark Cyber Theme',
-    description: 'Elektrisierendes Chartreuse auf tiefem Midnight Navy.',
+    perk: 'Neues Theme: Volt Verde (Dark)',
+    rewardTag: 'Theme: Volt Verde',
+    description: 'Bio-Signal Mint Farbwelt auf tiefem Obsidian-Schwarz.',
   },
   6: {
     badgeTitle: 'Rubin Medaillon',
-    perk: 'Theme: Volt Ember + Feier-Effekt: Champion Gold',
-    rewardTag: 'Theme & Effekt',
-    description: 'Kupfernes Flammen-Design und glänzender Goldmünzen-Regen bei Workout-Abschluss.',
+    perk: 'Theme: Telemetry Cyber (Dark) + Feier-Effekt: Champion Gold Shower',
+    rewardTag: 'Theme & Gold-Shower',
+    description: 'Elektrisierendes Chartreuse-Navy und glänzender Goldmünzen-Regen bei Workout-Abschluss.',
   },
   7: {
     badgeTitle: 'Saphir Medaillon',
     perk: 'Neues Theme: Alpine Mist (Light Mode)',
-    rewardTag: 'Light Mode III',
-    description: 'Kristallklares Studio-Weiß mit kontraststarkem Electric-Indigo-Akzent.',
+    rewardTag: 'Light Mode: Alpine Mist',
+    description: 'Kristallklares Studio-Weiß mit tiefem Electric-Indigo-Akzent.',
   },
   8: {
     badgeTitle: 'Obsidian Veteran',
-    perk: 'Theme: Avionics Stealth + Veteran Status',
-    rewardTag: 'Stealth Theme',
-    description: 'Militärisches Zink- und Säure-Lime-Design für gestählte Athleten.',
+    perk: 'Theme: Volt Ember (Dark) + Veteran Status',
+    rewardTag: 'Theme: Volt Ember',
+    description: 'Kupfernes Flammen-Design für gestählte Athleten.',
   },
   9: {
     badgeTitle: 'Titan Champion',
-    perk: 'Theme: Royal Titanium + Feier-Effekt: Supernova Starlight',
-    rewardTag: 'Theme & Effekt',
-    description: 'Champagner-Goldenes Luxus-Design und galaktische Diamant-Sterne bei Workout-Abschluss.',
+    perk: 'Theme: Avionics Stealth (Dark) + Feier-Effekt: Supernova Starlight',
+    rewardTag: 'Theme & Supernova',
+    description: 'Militärisches Zink-Stealth-Design und galaktische Diamant-Sterne bei Workout-Abschluss.',
   },
   10: {
     badgeTitle: 'VOLT Master',
-    perk: 'VOLT Master Medaillon + Höchster Legenden-Status',
-    rewardTag: 'Höchste Auszeichnung',
-    description: 'Die ultimative Meisterschaft. Du hast die Spitze des Eisens erklommen.',
+    perk: 'Theme: Royal Titanium (Dark) + VOLT Master Medaillon',
+    rewardTag: 'Theme & Master Medaillon',
+    description: 'Champagner-Goldenes Luxus-Design und die ultimative Meisterschaft des Eisens.',
   },
 };
 
@@ -94,6 +99,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
   const c = theme.colors;
   const currentRankInfo = getRankForLevel(level);
   const scrollRef = useRef<ScrollView>(null);
+  const [inspectedLevel, setInspectedLevel] = useState<number | null>(null);
 
   const xpInCurrentLevel = xp % 500;
   const xpNeededForNextLevel = 500 - xpInCurrentLevel;
@@ -116,6 +122,11 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
       }
     }
   }, [visible, level]);
+
+  const handleSelectLevel = (lvl: number) => {
+    void Haptics.selectionAsync();
+    setInspectedLevel(lvl);
+  };
 
   return (
     <Modal
@@ -159,7 +170,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
             </Pressable>
           </View>
 
-          {/* User Current Status Hero Card */}
+          {/* Current Rank & XP Card (Hero Status) */}
           <View
             style={[
               styles.currentStatusCard,
@@ -176,12 +187,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                   <Text style={[styles.currentLevelNumber, { color: c.primary }]}>
                     LEVEL {level}
                   </Text>
-                  <View
-                    style={[
-                      styles.currentRankPill,
-                      { backgroundColor: c.primary + '25', borderColor: c.primary },
-                    ]}
-                  >
+                  <View style={[styles.currentRankPill, { backgroundColor: c.primary + '20' }]}>
                     <Text style={[styles.currentRankPillText, { color: c.primary }]}>
                       RANG {currentRankInfo.rank}
                     </Text>
@@ -192,9 +198,8 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                   {currentRankInfo.title}
                 </Text>
 
-                <Text style={[styles.currentXpSubtitle, { color: c.muted }]}>
-                  {xp.toLocaleString()} XP Gesamt · Noch {xpNeededForNextLevel} XP bis Level{' '}
-                  {level + 1}
+                <Text style={[styles.currentRankSubtitle, { color: c.muted }]}>
+                  Noch {xpNeededForNextLevel} XP bis Level {level + 1}
                 </Text>
               </View>
             </View>
@@ -220,12 +225,14 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
             </View>
           </View>
 
-          {/* Roadmap Track Title */}
+          {/* Roadmap Track Title & Hint */}
           <View style={styles.trackSectionHeader}>
-            <Text style={[styles.trackSectionTitle, { color: c.text }]}>RÄNGE & BELOHNUNGEN</Text>
-            <Text style={[styles.trackSectionSubtitle, { color: c.muted }]}>
-              Level 1 bis 50+
-            </Text>
+            <View>
+              <Text style={[styles.trackSectionTitle, { color: c.text }]}>RÄNGE & BELOHNUNGEN</Text>
+              <Text style={[styles.trackSectionSubtitle, { color: c.muted }]}>
+                Tippe auf ein Level, um Belohnungen & XP-Bedarf einzusehen
+              </Text>
+            </View>
           </View>
 
           {/* Scrollable Battle Pass Track */}
@@ -376,7 +383,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                       </View>
                     </View>
 
-                    {/* Reward description */}
+                    {/* Reward description & tangible badge */}
                     {rewards && (
                       <View
                         style={[
@@ -392,21 +399,19 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                         ]}
                       >
                         <View style={styles.rewardHeader}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-                            <Ionicons
-                              name={isCompletedRank ? 'checkmark-circle' : isCurrentRank ? 'gift' : 'ribbon-outline'}
-                              size={16}
-                              color={isCurrentRank ? c.primary : isCompletedRank ? '#57DFAB' : c.muted}
-                            />
-                            <Text
-                              style={[
-                                styles.rewardTitle,
-                                { color: isLockedRank ? c.muted : c.text },
-                              ]}
-                            >
-                              {rewards.perk}
-                            </Text>
-                          </View>
+                          <Ionicons
+                            name="gift"
+                            size={16}
+                            color={isCurrentRank ? c.primary : isCompletedRank ? '#57DFAB' : c.muted}
+                          />
+                          <Text
+                            style={[
+                              styles.rewardTitle,
+                              { color: isCurrentRank ? c.primary : isCompletedRank ? '#57DFAB' : c.text },
+                            ]}
+                          >
+                            {rewards.perk}
+                          </Text>
                           {rewards.rewardTag && (
                             <View
                               style={[
@@ -415,8 +420,8 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                                   backgroundColor: isCompletedRank
                                     ? '#57DFAB20'
                                     : isCurrentRank
-                                    ? c.primary + '20'
-                                    : c.surfaceElevated || c.background,
+                                    ? c.primary + '25'
+                                    : c.surfaceElevated || c.border,
                                   borderColor: isCompletedRank
                                     ? '#57DFAB'
                                     : isCurrentRank
@@ -448,16 +453,21 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                       </View>
                     )}
 
-                    {/* Individual Level Milestones */}
+                    {/* Individual Level Milestones (Interactive Chips) */}
                     <View style={styles.levelPillsRow}>
                       {rankLevels.map((lvl) => {
                         const isDone = level > lvl;
                         const isCurrentLvl = level === lvl;
+                        const lvlPayload = getLevelRewards(lvl);
+                        const hasSpecialReward = lvlPayload.hasRewards || lvl === tier.minLevel;
 
                         return (
-                          <View
+                          <Pressable
                             key={lvl}
-                            style={[
+                            accessibilityRole="button"
+                            accessibilityLabel={`Level ${lvl} Details anzeigen`}
+                            onPress={() => handleSelectLevel(lvl)}
+                            style={({ pressed }) => [
                               styles.levelStepPill,
                               {
                                 backgroundColor: isCurrentLvl
@@ -470,10 +480,17 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                                   : isDone
                                   ? c.primary + '40'
                                   : c.border,
+                                opacity: pressed ? 0.75 : 1,
                               },
                             ]}
                           >
-                            {isDone ? (
+                            {hasSpecialReward ? (
+                              <Ionicons
+                                name="gift-outline"
+                                size={11}
+                                color={isCurrentLvl || isDone ? c.primary : '#FFB84D'}
+                              />
+                            ) : isDone ? (
                               <Ionicons name="checkmark" size={11} color={c.primary} />
                             ) : isCurrentLvl ? (
                               <Ionicons name="radio-button-on" size={11} color={c.primary} />
@@ -495,7 +512,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                             >
                               L{lvl}
                             </Text>
-                          </View>
+                          </Pressable>
                         );
                       })}
                     </View>
@@ -504,6 +521,470 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
               );
             })}
           </ScrollView>
+
+          {/* Level Detail Inspection Modal */}
+          {inspectedLevel !== null && (() => {
+            const targetRank = getRankForLevel(inspectedLevel);
+            const targetXp = getXpForLevel(inspectedLevel);
+            const missingXp = getRemainingXpForLevel(inspectedLevel, xp);
+            const isUnlocked = level >= inspectedLevel;
+            const lvlRewards = getLevelRewards(inspectedLevel);
+            const isRankStart = inspectedLevel === targetRank.minLevel;
+            const rankReward = RANK_REWARDS[targetRank.rank];
+
+            return (
+              <Modal
+                visible={true}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setInspectedLevel(null)}
+              >
+                <View style={[styles.detailOverlay, { backgroundColor: c.overlay }]}>
+                  <Pressable
+                    style={styles.detailBackdrop}
+                    accessibilityRole="button"
+                    accessibilityLabel="Hintergrund schließen"
+                    onPress={() => setInspectedLevel(null)}
+                  />
+                  <View
+                    style={[
+                      styles.detailSheet,
+                      {
+                        backgroundColor: c.surface,
+                        borderColor: c.border,
+                      },
+                    ]}
+                  >
+                    {/* Sheet Top Bar */}
+                    <View style={styles.detailHeader}>
+                      <View style={styles.detailHeaderLeft}>
+                        <Image
+                          source={RANK_ICONS[targetRank.rank]}
+                          style={styles.detailMedallionThumb}
+                          resizeMode="contain"
+                        />
+                        <View style={{ marginLeft: 12, flex: 1 }}>
+                          <View style={styles.detailLevelBadgeRow}>
+                            <Text style={[styles.detailLevelTitle, { color: c.text }]}>
+                              LEVEL {inspectedLevel}
+                            </Text>
+                            <View
+                              style={[
+                                styles.statusPill,
+                                {
+                                  backgroundColor: isUnlocked
+                                    ? '#57DFAB20'
+                                    : c.surfaceElevated || c.border,
+                                  borderColor: isUnlocked ? '#57DFAB' : c.border,
+                                },
+                              ]}
+                            >
+                              <Ionicons
+                                name={isUnlocked ? 'checkmark-circle' : 'lock-closed'}
+                                size={11}
+                                color={isUnlocked ? '#57DFAB' : c.muted}
+                              />
+                              <Text
+                                style={[
+                                  styles.statusPillText,
+                                  { color: isUnlocked ? '#57DFAB' : c.muted },
+                                ]}
+                              >
+                                {isUnlocked ? 'FREIGESCHALTET' : 'NOCH GESPERRT'}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text style={[styles.detailRankSubtitle, { color: c.muted }]}>
+                            Rang {targetRank.rank}: {targetRank.title}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Schließen"
+                        onPress={() => setInspectedLevel(null)}
+                        style={[
+                          styles.closeBtn,
+                          {
+                            width: 32,
+                            height: 32,
+                            backgroundColor: c.background,
+                            borderColor: c.border,
+                          },
+                        ]}
+                      >
+                        <Ionicons name="close" size={18} color={c.muted} />
+                      </Pressable>
+                    </View>
+
+                    {/* XP Progress to this Level */}
+                    <View
+                      style={[
+                        styles.detailXpBox,
+                        {
+                          backgroundColor: c.background,
+                          borderColor: isUnlocked ? '#57DFAB40' : c.primary + '40',
+                        },
+                      ]}
+                    >
+                      <View style={styles.detailXpHeader}>
+                        <Text style={[styles.detailXpLabel, { color: c.muted }]}>
+                          ERFAHRUNGS-STATUS
+                        </Text>
+                        <Text
+                          style={[
+                            styles.detailXpTarget,
+                            { color: isUnlocked ? '#57DFAB' : c.primary },
+                          ]}
+                        >
+                          {targetXp.toLocaleString('de-DE')} Gesamt-XP
+                        </Text>
+                      </View>
+
+                      {isUnlocked ? (
+                        <View style={styles.detailXpCompletedRow}>
+                          <Ionicons name="checkmark-circle" size={16} color="#57DFAB" />
+                          <Text style={[styles.detailXpCompletedText, { color: c.text }]}>
+                            Bereits erreicht! Dein Fortschritt:{' '}
+                            <Text style={{ color: c.primary, fontWeight: '700' }}>
+                              {xp.toLocaleString('de-DE')} XP
+                            </Text>
+                          </Text>
+                        </View>
+                      ) : (
+                        <View>
+                          <View style={styles.detailMissingXpRow}>
+                            <Text style={[styles.detailMissingXpNum, { color: c.primary }]}>
+                              Noch {missingXp.toLocaleString('de-DE')} XP benötigt
+                            </Text>
+                            <Text style={[styles.detailMissingWorkouts, { color: c.muted }]}>
+                              ≈ {Math.ceil(missingXp / 150)} Workouts
+                            </Text>
+                          </View>
+                          <View
+                            style={[
+                              styles.detailProgressBarBg,
+                              { backgroundColor: c.surfaceElevated || c.border },
+                            ]}
+                          >
+                            <View
+                              style={[
+                                styles.detailProgressBarFill,
+                                {
+                                  width: `${Math.min(
+                                    100,
+                                    Math.max(
+                                      0,
+                                      targetXp > 0 ? (xp / targetXp) * 100 : 0,
+                                    ),
+                                  )}%`,
+                                  backgroundColor: c.primary,
+                                },
+                              ]}
+                            />
+                          </View>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Rewards or Milestone Information */}
+                    {lvlRewards.hasRewards || isRankStart ? (
+                      <View style={styles.detailRewardsSection}>
+                        <Text style={[styles.detailSectionTitle, { color: c.text }]}>
+                          BELOHNUNGEN AUF LEVEL {inspectedLevel}
+                        </Text>
+
+                        {/* Colorway Rewards (Miniature View) */}
+                        {lvlRewards.colorways.map((cw) => {
+                          const preview = createTheme(cw.id);
+                          return (
+                            <View
+                              key={cw.id}
+                              style={[
+                                styles.miniPreviewCard,
+                                {
+                                  backgroundColor: preview.colors.background,
+                                  borderColor: preview.colors.border,
+                                },
+                              ]}
+                            >
+                              <View style={styles.miniThemeColorStrip}>
+                                <View
+                                  style={[
+                                    styles.miniThemeTile,
+                                    {
+                                      backgroundColor: preview.colors.surface,
+                                      borderColor: preview.colors.border,
+                                    },
+                                  ]}
+                                >
+                                  <View
+                                    style={[
+                                      styles.miniThemeAccentDot,
+                                      { backgroundColor: preview.colors.primary },
+                                    ]}
+                                  />
+                                  <Text
+                                    style={[
+                                      styles.miniThemeMockText,
+                                      { color: preview.colors.textPrimary },
+                                    ]}
+                                  >
+                                    Aa
+                                  </Text>
+                                </View>
+                              </View>
+
+                              <View style={styles.miniThemeInfo}>
+                                <View style={styles.miniBadgeRow}>
+                                  <Text
+                                    style={[
+                                      styles.miniItemTitle,
+                                      { color: preview.colors.textPrimary },
+                                    ]}
+                                  >
+                                    {cw.name}
+                                  </Text>
+                                  <View
+                                    style={[
+                                      styles.miniPillTag,
+                                      {
+                                        backgroundColor:
+                                          preview.colors.primary + '25',
+                                      },
+                                    ]}
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.miniPillTagText,
+                                        { color: preview.colors.primary },
+                                      ]}
+                                    >
+                                      {cw.isLight ? 'LIGHT THEME' : 'DARK THEME'}
+                                    </Text>
+                                  </View>
+                                </View>
+                                <Text
+                                  style={[
+                                    styles.miniItemSubtitle,
+                                    { color: preview.colors.textSecondary },
+                                  ]}
+                                >
+                                  {cw.subtitle}
+                                </Text>
+                              </View>
+                            </View>
+                          );
+                        })}
+
+                        {/* Celebration Effect Rewards (Miniature View) */}
+                        {lvlRewards.celebrations.map((eff) => (
+                          <View
+                            key={eff.id}
+                            style={[
+                              styles.miniPreviewCard,
+                              {
+                                backgroundColor: c.background,
+                                borderColor: c.border,
+                              },
+                            ]}
+                          >
+                            <View
+                              style={[
+                                styles.miniEffectIconBox,
+                                { backgroundColor: eff.previewColors[0] + '20' },
+                              ]}
+                            >
+                              <Ionicons
+                                name="sparkles"
+                                size={20}
+                                color={eff.previewColors[0]}
+                              />
+                            </View>
+
+                            <View style={styles.miniThemeInfo}>
+                              <View style={styles.miniBadgeRow}>
+                                <Text style={[styles.miniItemTitle, { color: c.text }]}>
+                                  {eff.name}
+                                </Text>
+                                <View
+                                  style={[
+                                    styles.miniPillTag,
+                                    { backgroundColor: eff.previewColors[0] + '25' },
+                                  ]}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.miniPillTagText,
+                                      { color: eff.previewColors[0] },
+                                    ]}
+                                  >
+                                    WORKOUT-EFFEKT
+                                  </Text>
+                                </View>
+                              </View>
+                              <Text
+                                style={[styles.miniItemSubtitle, { color: c.muted }]}
+                              >
+                                {eff.description}
+                              </Text>
+                              <View style={styles.miniColorDotsRow}>
+                                {eff.previewColors.map((color, idx) => (
+                                  <View
+                                    key={idx}
+                                    style={[
+                                      styles.miniColorDot,
+                                      { backgroundColor: color },
+                                    ]}
+                                  />
+                                ))}
+                              </View>
+                            </View>
+                          </View>
+                        ))}
+
+                        {/* Rank Medallion Reward (when entering a new rank) */}
+                        {isRankStart && (
+                          <View
+                            style={[
+                              styles.miniPreviewCard,
+                              {
+                                backgroundColor: c.background,
+                                borderColor: c.border,
+                              },
+                            ]}
+                          >
+                            <Image
+                              source={RANK_ICONS[targetRank.rank]}
+                              style={styles.miniMedallionImage}
+                              resizeMode="contain"
+                            />
+                            <View style={styles.miniThemeInfo}>
+                              <View style={styles.miniBadgeRow}>
+                                <Text
+                                  style={[styles.miniItemTitle, { color: c.text }]}
+                                >
+                                  {rankReward?.badgeTitle ??
+                                    `Rang ${targetRank.rank} Medaillon`}
+                                </Text>
+                                <View
+                                  style={[
+                                    styles.miniPillTag,
+                                    { backgroundColor: c.primary + '25' },
+                                  ]}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.miniPillTagText,
+                                      { color: c.primary },
+                                    ]}
+                                  >
+                                    RANG-MEDAILLON
+                                  </Text>
+                                </View>
+                              </View>
+                              <Text
+                                style={[styles.miniItemSubtitle, { color: c.muted }]}
+                              >
+                                Neuer Rang: {targetRank.title}
+                              </Text>
+                            </View>
+                          </View>
+                        )}
+                      </View>
+                    ) : (
+                      /* No Reward Level Info */
+                      <View
+                        style={[
+                          styles.noRewardCard,
+                          {
+                            backgroundColor: c.background,
+                            borderColor: c.border,
+                          },
+                        ]}
+                      >
+                        <View style={styles.noRewardHeader}>
+                          <View
+                            style={[
+                              styles.noRewardIconBox,
+                              { backgroundColor: c.primary + '15' },
+                            ]}
+                          >
+                            <Ionicons
+                              name="barbell-outline"
+                              size={22}
+                              color={c.primary}
+                            />
+                          </View>
+                          <View style={{ flex: 1, marginLeft: 12 }}>
+                            <Text style={[styles.noRewardTitle, { color: c.text }]}>
+                              Meilenstein-Aufstieg
+                            </Text>
+                            <Text
+                              style={[styles.noRewardDesc, { color: c.muted }]}
+                            >
+                              Auf Level {inspectedLevel} gibt es kein neues exklusives
+                              Design-Item. Jeder Levelaufstieg bringt dich näher an Rang{' '}
+                              {targetRank.rank +
+                                (inspectedLevel === targetRank.maxLevel ? 1 : 0)}{' '}
+                              und die nächsten großen Belohnungen!
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View
+                          style={[
+                            styles.noRewardBottomRow,
+                            {
+                              backgroundColor: c.surfaceElevated || c.surface,
+                              borderColor: c.border,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[styles.noRewardStatusLabel, { color: c.muted }]}
+                          >
+                            {isUnlocked ? 'Levelstatus' : 'Bis Level ' + inspectedLevel}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.noRewardStatusValue,
+                              { color: isUnlocked ? '#57DFAB' : c.primary },
+                            ]}
+                          >
+                            {isUnlocked
+                              ? 'Bereits gemeistert ✓'
+                              : `Noch ${missingXp.toLocaleString('de-DE')} XP`}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Dismiss Button */}
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Detailansicht schließen"
+                      onPress={() => setInspectedLevel(null)}
+                      style={[
+                        styles.detailCloseButton,
+                        { backgroundColor: c.primary },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.detailCloseButtonText,
+                          { color: c.background },
+                        ]}
+                      >
+                        Fertig
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </Modal>
+            );
+          })()}
         </View>
       </View>
     </Modal>
@@ -580,20 +1061,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
-    borderWidth: 1,
   },
   currentRankPillText: {
     fontSize: 10,
     fontFamily: 'SpaceGrotesk_700Bold',
+    letterSpacing: 0.5,
   },
   currentRankTitle: {
     fontSize: 18,
     fontFamily: 'SpaceGrotesk_700Bold',
-    marginBottom: 2,
+    letterSpacing: -0.3,
   },
-  currentXpSubtitle: {
+  currentRankSubtitle: {
     fontSize: 12,
     fontFamily: 'Manrope_500Medium',
+    marginTop: 2,
   },
   progressBarContainer: {
     marginTop: 14,
@@ -605,29 +1087,30 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   progressBarFill: {
-    height: 8,
+    height: '100%',
     borderRadius: 4,
   },
   progressBarLabel: {
     fontSize: 11,
-    fontFamily: 'Manrope_500Medium',
+    fontFamily: 'Manrope_600SemiBold',
     textAlign: 'right',
   },
   trackSectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   trackSectionTitle: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: 'SpaceGrotesk_700Bold',
     letterSpacing: 1,
   },
   trackSectionSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: 'Manrope_500Medium',
+    marginTop: 2,
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -635,7 +1118,7 @@ const styles = StyleSheet.create({
   },
   tierContainer: {
     position: 'relative',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   connectorLine: {
     position: 'absolute',
@@ -643,12 +1126,12 @@ const styles = StyleSheet.create({
     top: 60,
     bottom: -18,
     width: 2,
-    zIndex: 0,
+    zIndex: 1,
   },
   tierCard: {
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 14,
-    zIndex: 1,
+    zIndex: 2,
   },
   tierCardHeader: {
     flexDirection: 'row',
@@ -658,22 +1141,25 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    borderWidth: 1.5,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     position: 'relative',
   },
   medallionImage: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 40,
+    height: 40,
   },
   lockedIconOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
   tierStatusRow: {
     flexDirection: 'row',
@@ -738,7 +1224,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
   },
@@ -756,5 +1242,260 @@ const styles = StyleSheet.create({
   levelStepText: {
     fontSize: 11,
     fontFamily: 'SpaceGrotesk_600SemiBold',
+  },
+
+  // Detail Modal Styles
+  detailOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  detailBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  detailSheet: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  detailHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  detailHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  detailMedallionThumb: {
+    width: 44,
+    height: 44,
+  },
+  detailLevelBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
+  detailLevelTitle: {
+    fontSize: 18,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    letterSpacing: 0.5,
+  },
+  detailRankSubtitle: {
+    fontSize: 12,
+    fontFamily: 'Manrope_500Medium',
+  },
+  detailXpBox: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 16,
+  },
+  detailXpHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  detailXpLabel: {
+    fontSize: 10,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    letterSpacing: 0.8,
+  },
+  detailXpTarget: {
+    fontSize: 11,
+    fontFamily: 'SpaceGrotesk_700Bold',
+  },
+  detailXpCompletedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 2,
+  },
+  detailXpCompletedText: {
+    fontSize: 13,
+    fontFamily: 'Manrope_600SemiBold',
+    flex: 1,
+  },
+  detailMissingXpRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 8,
+  },
+  detailMissingXpNum: {
+    fontSize: 15,
+    fontFamily: 'SpaceGrotesk_700Bold',
+  },
+  detailMissingWorkouts: {
+    fontSize: 12,
+    fontFamily: 'Manrope_500Medium',
+  },
+  detailProgressBarBg: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  detailProgressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  detailRewardsSection: {
+    marginBottom: 16,
+    gap: 10,
+  },
+  detailSectionTitle: {
+    fontSize: 11,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  miniPreviewCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  miniThemeColorStrip: {
+    marginRight: 10,
+  },
+  miniThemeTile: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  miniThemeAccentDot: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  miniThemeMockText: {
+    fontSize: 13,
+    fontFamily: 'SpaceGrotesk_700Bold',
+  },
+  miniThemeInfo: {
+    flex: 1,
+  },
+  miniBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  miniItemTitle: {
+    fontSize: 13,
+    fontFamily: 'SpaceGrotesk_700Bold',
+  },
+  miniItemSubtitle: {
+    fontSize: 11,
+    fontFamily: 'Manrope_500Medium',
+  },
+  miniPillTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  miniPillTagText: {
+    fontSize: 8,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    letterSpacing: 0.5,
+  },
+  miniEffectIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  miniColorDotsRow: {
+    flexDirection: 'row',
+    gap: 4,
+    marginTop: 6,
+  },
+  miniColorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  miniMedallionImage: {
+    width: 40,
+    height: 40,
+    marginRight: 10,
+  },
+  noRewardCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 16,
+    gap: 12,
+  },
+  noRewardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  noRewardIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noRewardTitle: {
+    fontSize: 13,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    marginBottom: 2,
+  },
+  noRewardDesc: {
+    fontSize: 11,
+    fontFamily: 'Manrope_500Medium',
+    lineHeight: 16,
+  },
+  noRewardBottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  noRewardStatusLabel: {
+    fontSize: 11,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+  },
+  noRewardStatusValue: {
+    fontSize: 12,
+    fontFamily: 'SpaceGrotesk_700Bold',
+  },
+  detailCloseButton: {
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailCloseButtonText: {
+    fontSize: 14,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    letterSpacing: 0.5,
   },
 });

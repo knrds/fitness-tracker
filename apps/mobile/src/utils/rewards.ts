@@ -31,67 +31,75 @@ export const COLORWAY_REWARDS: RewardColorwayConfig[] = [
     requiredRank: 1,
   },
   {
-    id: 'amber',
-    name: 'Amber Forge',
-    subtitle: 'Bernstein · Warmes Graphit',
+    id: 'crimson',
+    name: 'Crimson Neon',
+    subtitle: 'Neon Magenta · Velvet Obsidian',
     isLight: false,
-    requiredLevel: 1,
-    requiredRank: 1,
+    requiredLevel: 11,
+    requiredRank: 3,
   },
   {
     id: 'verde',
     name: 'Volt Verde',
     subtitle: 'Mint Bio-Signal · Obsidian',
     isLight: false,
-    requiredLevel: 11,
-    requiredRank: 3,
+    requiredLevel: 21,
+    requiredRank: 5,
   },
   {
     id: 'telemetry',
     name: 'Telemetry Cyber',
     subtitle: 'Electric Lime · Midnight Navy',
     isLight: false,
-    requiredLevel: 21,
-    requiredRank: 5,
+    requiredLevel: 26,
+    requiredRank: 6,
   },
   {
     id: 'ember',
     name: 'Volt Ember',
     subtitle: 'Ember Orange · Deep Carbon',
     isLight: false,
-    requiredLevel: 26,
-    requiredRank: 6,
+    requiredLevel: 36,
+    requiredRank: 8,
   },
   {
     id: 'avionics',
     name: 'Avionics Stealth',
     subtitle: 'Zinc Matrix · Acid Lime',
     isLight: false,
-    requiredLevel: 36,
-    requiredRank: 8,
+    requiredLevel: 41,
+    requiredRank: 9,
   },
   {
     id: 'titanium',
     name: 'Royal Titanium',
     subtitle: 'Champagne Gold · Luxury',
     isLight: false,
-    requiredLevel: 41,
-    requiredRank: 9,
+    requiredLevel: 46,
+    requiredRank: 10,
   },
 
   // Light Themes
   {
     id: 'arctic',
     name: 'Arctic Lab (Light)',
-    subtitle: 'Clean White · Ocean Cyan',
+    subtitle: 'Clean White · Ocean Cyan (Standard)',
     isLight: true,
-    requiredLevel: 6,
-    requiredRank: 2,
+    requiredLevel: 1,
+    requiredRank: 1,
   },
   {
     id: 'solar',
     name: 'Solar Dune (Light)',
     subtitle: 'Warm Sand · Amber Gold',
+    isLight: true,
+    requiredLevel: 6,
+    requiredRank: 2,
+  },
+  {
+    id: 'rose',
+    name: 'Porcelain Rose (Light)',
+    subtitle: 'Porzellan · Korallen-Rose',
     isLight: true,
     requiredLevel: 16,
     requiredRank: 4,
@@ -165,4 +173,32 @@ export function getCelebrationRewardConfig(
   effectId: CelebrationEffect,
 ): RewardCelebrationConfig | undefined {
   return CELEBRATION_REWARDS.find((c) => c.id === effectId);
+}
+
+export function getXpForLevel(level: number): number {
+  const normalized = Math.max(1, Math.floor(level || 1));
+  return (normalized - 1) * 500;
+}
+
+export function getRemainingXpForLevel(targetLevel: number, currentXp: number): number {
+  const targetXp = getXpForLevel(targetLevel);
+  return Math.max(0, targetXp - Math.max(0, currentXp));
+}
+
+export interface LevelRewardsPayload {
+  level: number;
+  colorways: RewardColorwayConfig[];
+  celebrations: RewardCelebrationConfig[];
+  hasRewards: boolean;
+}
+
+export function getLevelRewards(level: number): LevelRewardsPayload {
+  const colorways = COLORWAY_REWARDS.filter((c) => c.requiredLevel === level);
+  const celebrations = CELEBRATION_REWARDS.filter((c) => c.requiredLevel === level);
+  return {
+    level,
+    colorways,
+    celebrations,
+    hasRewards: colorways.length > 0 || celebrations.length > 0,
+  };
 }

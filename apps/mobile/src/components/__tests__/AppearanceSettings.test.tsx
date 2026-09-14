@@ -49,9 +49,10 @@ describe('AppearanceSettings', () => {
 
     // Colorway names
     expect(getByText('Glacier Core')).toBeTruthy();
-    expect(getByText('Amber Forge')).toBeTruthy();
+    expect(getByText('Crimson Neon')).toBeTruthy();
     expect(getByText('Arctic Lab (Light)')).toBeTruthy();
     expect(getByText('Solar Dune (Light)')).toBeTruthy();
+    expect(getByText('Porcelain Rose (Light)')).toBeTruthy();
     expect(getByText('Alpine Mist (Light)')).toBeTruthy();
 
     // Celebration names
@@ -59,17 +60,17 @@ describe('AppearanceSettings', () => {
     expect(getByText('Cyber Neon Rain')).toBeTruthy();
   });
 
-  it('allows selecting an unlocked theme and celebration effect', () => {
+  it('allows selecting an unlocked Light Mode and celebration effect from Level 1', () => {
     const { getByText } = render(
       <ThemeProvider>
         <AppearanceSettings />
       </ThemeProvider>,
     );
 
-    // Amber is unlocked at Level 1
-    const amberTheme = getByText('Amber Forge');
-    fireEvent.press(amberTheme);
-    expect(useProfileStore.getState().profile.colorway).toBe('amber');
+    // Arctic Lab is available from Level 1!
+    const arcticTheme = getByText('Arctic Lab (Light)');
+    fireEvent.press(arcticTheme);
+    expect(useProfileStore.getState().profile.colorway).toBe('arctic');
 
     // Classic is unlocked at Level 1
     const classicCelebration = getByText('Klassisches Konfetti');
@@ -86,10 +87,15 @@ describe('AppearanceSettings', () => {
       </ThemeProvider>,
     );
 
-    // Solar Dune requires Level 16 - now unlocked!
-    const solarTheme = getByText('Solar Dune (Light)');
-    fireEvent.press(solarTheme);
-    expect(useProfileStore.getState().profile.colorway).toBe('solar');
+    // Crimson Neon requires Level 11 - now unlocked!
+    const crimsonTheme = getByText('Crimson Neon');
+    fireEvent.press(crimsonTheme);
+    expect(useProfileStore.getState().profile.colorway).toBe('crimson');
+
+    // Porcelain Rose requires Level 16 - now unlocked!
+    const roseTheme = getByText('Porcelain Rose (Light)');
+    fireEvent.press(roseTheme);
+    expect(useProfileStore.getState().profile.colorway).toBe('rose');
 
     // Cyber Neon requires Level 11 - now unlocked!
     const neonCelebration = getByText('Cyber Neon Rain');

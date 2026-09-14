@@ -99,7 +99,6 @@ const profileStateSchema = z.object({
   colorway: z
     .enum([
       'glacier',
-      'amber',
       'arctic',
       'avionics',
       'telemetry',
@@ -108,6 +107,9 @@ const profileStateSchema = z.object({
       'verde',
       'solar',
       'alpine',
+      'rose',
+      'crimson',
+      'amber',
     ])
     .optional(),
   celebrationEffect: z.enum(['classic', 'neon', 'gold', 'cosmic']).optional(),

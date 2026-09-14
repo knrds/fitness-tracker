@@ -1,4 +1,4 @@
-import { Theme, useThemeStyles } from '@fitness-tracker/ui';
+import { Theme, useThemeStyles, withAlpha } from '@fitness-tracker/ui';
 import { LevelEmblem } from '../LevelProgress';
 import React, { useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
@@ -167,7 +167,12 @@ export const AchievementCelebration = () => {
                         },
                       ]}
                     >
-                      <View style={[styles.achIcon, { backgroundColor: 'rgba(255,176,32,0.12)' }]}>
+                      <View
+                        style={[
+                          styles.achIcon,
+                          { backgroundColor: withAlpha(theme.colors.warning, 0.12) },
+                        ]}
+                      >
                         <Ionicons
                           name={ach.icon as React.ComponentProps<typeof Ionicons>['name']}
                           size={28}
@@ -190,24 +195,25 @@ export const AchievementCelebration = () => {
                 })}
               </View>
             )}
-
-            <Pressable
-              style={[
-                styles.button,
-                { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md },
-              ]}
-              onPress={clearCelebrations}
-            >
-              <Text
-                style={[
-                  styles.buttonText,
-                  { color: theme.colors.background, ...theme.typography.button },
-                ]}
-              >
-                Let&apos;s Go
-              </Text>
-            </Pressable>
           </ScrollView>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Erfolge schließen"
+            style={[
+              styles.button,
+              { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md },
+            ]}
+            onPress={clearCelebrations}
+          >
+            <Text
+              style={[
+                styles.buttonText,
+                { color: theme.colors.onPrimary, ...theme.typography.button },
+              ]}
+            >
+              Let&apos;s Go
+            </Text>
+          </Pressable>
         </Pressable>
       </Pressable>
     </Modal>

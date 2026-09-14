@@ -2,14 +2,12 @@ import { SegmentedControl } from '@fitness-tracker/ui';
 import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { useFocusScroll } from '../../src/hooks/useFocusScroll';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
-import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
 import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
-  Platform,
   Modal,
   Share,
   ScrollView,

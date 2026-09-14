@@ -1,6 +1,28 @@
 import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
+// Minimal browser audio contract, keeping DOM globals out of the native TypeScript target.
+interface AudioParameter {
+  setValueAtTime(value: number, time: number): void;
+  linearRampToValueAtTime(value: number, time: number): void;
+  exponentialRampToValueAtTime(value: number, time: number): void;
+}
+interface AudioConnection {
+  connect(destination: AudioConnection): void;
+}
+interface BrowserAudioContext {
+  currentTime: number;
+  destination: AudioConnection;
+  createOscillator(): AudioConnection & {
+    type: string;
+    frequency: AudioParameter;
+    start(time: number): void;
+    stop(time: number): void;
+  };
+  createGain(): AudioConnection & { gain: AudioParameter };
+  close(): Promise<void>;
+}
+
 /**
  * Plays a pleasant, latency-free double-tone bell chime (A5 -> D6)
  * using Web Audio API on web/browsers without downloading external audio files.
@@ -9,8 +31,8 @@ export function playRestTimerChime(): void {
   if (typeof globalThis === 'undefined') return;
   try {
     const g = globalThis as unknown as {
-      AudioContext?: new () => any;
-      webkitAudioContext?: new () => any;
+      AudioContext?: new () => BrowserAudioContext;
+      webkitAudioContext?: new () => BrowserAudioContext;
     };
     const AudioCtx = g.AudioContext || g.webkitAudioContext;
     if (!AudioCtx) return;
@@ -43,6 +65,10 @@ export function playRestTimerChime(): void {
     gain2.connect(ctx.destination);
     osc2.start(now + 0.12);
     osc2.stop(now + 0.7);
+    // Release audio resources even when browser autoplay leaves the context suspended.
+    setTimeout(() => {
+      void ctx.close().catch(() => {});
+    }, 1200);
   } catch {
     // Gracefully ignore audio errors (e.g. autoplay restrictions)
   }

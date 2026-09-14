@@ -48,3 +48,17 @@ At 320 px the template editor's native web-input minimum widths overflowed its c
 Visual artifacts are in the task's `outputs/screenshots` directory. Synthetic chart sessions exist only in the isolated Playwright browser profile, not in source/default app data. Physical keyboard, touch performance, native screenreader and Dynamic Type verification remain device gates; iOS/Android Hermes exports are not device builds.
 
 Final checks: 57 domain + 182 mobile + 14 API tests passed; typecheck and lint passed; web, iOS and Android exports completed. The final 320 px editor/search smoke passed after correcting input shrink bounds. Reduced-motion auth/navigation review covered all five auth routes. No new dependencies were introduced by this UI pass.
+
+## Gemini baseline follow-up — 2026-09-14
+
+Continued from Gemini baseline d461afd on fix/workout-swipe-polish. Existing themes, exercise media, ghost values, PR feedback and Coach behavior are preserved. Scope was limited at the user's request to conserve remaining credits and publish the current work.
+
+| Area | Before | Current behavior |
+| --- | --- | --- |
+| Set swipe | Red behind the entire translucent row; unbounded swipe and automatic deletion | Opaque foreground, bounded 88 px trailing action, explicit deletion, cancellation and hidden-action accessibility handling |
+| Navigation | Uneven icon/label sizing and narrow targets | Consistent icons, readable labels, full-width targets, safe-area spacing and restrained reduced-motion-aware feedback |
+| Workout clock | Parent session rerendered every second | Timer updates isolated in a small component with a pause/render regression test |
+| Achievements | Dismiss button below scrolling content | Stable footer action with an accessible label |
+| Validation | Twelve baseline lint errors | Unused imports and audio/swipe types cleaned up; lint passes |
+
+Validation: 57 domain + 188 mobile + 15 API tests passed (260 total). Final typecheck and lint passed; web export passed. iOS/Android Hermes exports passed before the last small navigation sizing and header accessibility adjustments; exports are not device builds. Real browser touch dispatch verified closed/partial/open swipe, completed rows, long swipes without automatic deletion, closing, cancellation, vertical scrolling and deletion through the details action at narrow widths. The 320 px navigation screenshot was inspected. The complete theme/viewport navigation matrix remains unfinished: the browser session was no longer available on resumption. Physical iPhone/Android, VoiceOver and Dynamic Type remain device gates. No new dependencies.

@@ -1,8 +1,9 @@
+import { WorkoutElapsedTime } from '../../src/components/workout/WorkoutElapsedTime';
 import { Theme, useThemeStyles, AnimatedDisclosure } from '@fitness-tracker/ui';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
 import { getStorageScope, isScopeCurrent } from '../../src/data/storageScope';
 import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +11,6 @@ import {
   ScrollView,
   Pressable,
   TextInput,
-  Platform,
   Animated,
   NativeSyntheticEvent,
   NativeScrollEvent,
@@ -51,9 +51,6 @@ export default function WorkoutSessionScreen() {
     finishWorkout,
     addExercise,
     updateWorkoutNotes,
-    startedAt,
-    pausedAt,
-    accumulatedPauseMs,
     resetWorkout,
     reorderExercises,
     templateId,
@@ -64,7 +61,6 @@ export default function WorkoutSessionScreen() {
   const [pickerVisible, setPickerVisible] = useState(false);
   const [saveModalVisible, setSaveModalVisible] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
   const [customCaffeineMg, setCustomCaffeineMg] = useState('');
   const [caffeineExpanded, setCaffeineExpanded] = useState(false);
 
@@ -80,34 +76,6 @@ export default function WorkoutSessionScreen() {
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     sorter.onScroll(event);
   };
-
-  useEffect(() => {
-    const calculateElapsed = () => {
-      if (!startedAt) return 0;
-      const startedTime = startedAt instanceof Date ? startedAt : new Date(startedAt);
-      const pausedTime = pausedAt
-        ? pausedAt instanceof Date
-          ? pausedAt
-          : new Date(pausedAt)
-        : null;
-      const endTime = pausedTime || new Date();
-      return Math.floor((endTime.getTime() - startedTime.getTime() - accumulatedPauseMs) / 1000);
-    };
-
-    setElapsed(calculateElapsed());
-
-    let interval: ReturnType<typeof setInterval> | undefined;
-    if (status === 'active') {
-      interval = setInterval(() => {
-        setElapsed(calculateElapsed());
-      }, 1000);
-    }
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [status, startedAt, pausedAt, accumulatedPauseMs]);
 
   if (status === 'idle' || status === 'finished') {
     return (
@@ -211,16 +179,6 @@ export default function WorkoutSessionScreen() {
     setPickerVisible(true);
   };
 
-  const formatElapsed = (secs: number) => {
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    if (h > 0) {
-      return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
-    }
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
   const handleBackAction = async () => {
     const scope = getStorageScope();
     const shouldDiscard = await showConfirm({
@@ -307,6 +265,7 @@ export default function WorkoutSessionScreen() {
               onPress={handleBackAction}
               style={{ minWidth: 44, minHeight: 44, justifyContent: 'center' }}
               accessibilityLabel="Training beenden"
+              accessibilityRole="button"
             >
               <Ionicons name="close" size={24} color={theme.colors.muted} />
             </Pressable>
@@ -315,8 +274,9 @@ export default function WorkoutSessionScreen() {
                 setMinimized(true);
                 router.navigate('/(tabs)/workouts');
               }}
-              style={{ paddingRight: 12 }}
+              style={{ minWidth: 44, minHeight: 44, justifyContent: 'center' }}
               accessibilityLabel="Training minimieren"
+              accessibilityRole="button"
             >
               <Ionicons name="chevron-down" size={24} color={theme.colors.primary} />
             </Pressable>
@@ -332,16 +292,13 @@ export default function WorkoutSessionScreen() {
                 {name}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
-                <Text
-                  numberOfLines={1}
+                <WorkoutElapsedTime
                   style={[
                     styles.standardElapsed,
                     theme.typography.display,
                     { color: theme.colors.primary },
                   ]}
-                >
-                  {formatElapsed(elapsed)}
-                </Text>
+                />
               </View>
             </View>
           </View>

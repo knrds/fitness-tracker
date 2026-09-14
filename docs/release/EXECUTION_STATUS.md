@@ -84,10 +84,10 @@ Im Code und in der Dokumentation finden sich zahlreiche Alt-Namen:
 
 ### 2.4 Supabase / Cloud / Auth
 - **Client:** `@supabase/supabase-js` (`apps/mobile/src/utils/supabase.ts`)
-- **Session-Speicher:** MMKV (`supabase-auth-storage`), Fallback AsyncStorage. **Sicherheitslücke:** MMKV ist unverschlüsselt (keine Keychain/Keystore-Bindung).
+- **Session-Speicher:** MMKV (`supabase-auth-storage`), Fallback AsyncStorage. **Sicherheitsbefund:** MMKV ist unverschlüsselt (keine Bindung an iOS Keychain / Android Keystore).
 - **Auth Flows:** Email/Password (Login, Register mit Email-Verifizierung, Password-Reset).
 - **Cloud-Schema:** `docs/schema.sql` (409 Zeilen PostgreSQL mit RLS-Entwürfen).
-- **Status:** Schema wurde noch **nicht** auf eine produktive Supabase-Instanz deployed; RLS-Policies sind noch ungetestet.
+- **Status:** RLS-Policies sind in `docs/schema.sql` definiert, aber Cross-Account-Negativtests wurden im Repo nicht identifiziert. Live-Projekt-Deployment steht aus (`PARTIAL` / `ASTRA_REVIEW_REQUIRED`).
 
 ### 2.5 AI Coach Backend
 - **Architektur:** Node.js Backend (`api/coach-chat.js`).
@@ -104,7 +104,8 @@ Im Code und in der Dokumentation finden sich zahlreiche Alt-Namen:
 ### 2.6 Subscriptions / Monetarisierung
 - **Status:** `NOT_STARTED`
 - Weder RevenueCat (`react-native-purchases`) noch StoreKit 2 oder Google Play Billing sind installiert.
-- Keine Paywall-Screen oder In-App-Produktkonfiguration vorhanden.
+- Technische Bestandsaufnahme abgeschlossen: `docs/release/SUBSCRIPTION_INTEGRATION_MAP.md`.
+- Platzhalter "Abonnement verwalten" im Profil-UI vorbereitet.
 
 ### 2.7 Push Notifications
 - **Status:** `NOT_STARTED`
@@ -112,30 +113,32 @@ Im Code und in der Dokumentation finden sich zahlreiche Alt-Namen:
 - Weder lokale Timer-Benachrichtigungen noch Remote Push vorhanden.
 
 ### 2.8 Haptik & Audio
-- **Haptik:** `expo-haptics` ist installiert und in 9 Komponenten aktiv (Workouts, Reorder, Achievements, etc.).
-- **Audio:** **Befund:** `timerAudio.ts` nutzt die `Web Audio API` (`AudioContext`). Diese existiert auf nativen iOS/Android-Geräten nicht. Der Rest-Timer bleibt auf echten Smartphones **stumm**. Es sind keine Audio-Assets in `apps/mobile/assets/` hinterlegt.
+- **Haptik:** `expo-haptics` ist installiert und in 10 Komponenten aktiv (Workouts, Reorder, Achievements, etc.).
+- **Audio:** **Befund:** `timerAudio.ts` nutzt die `Web Audio API` (`AudioContext`). Diese existiert auf nativen iOS/Android-Runtimes nicht. Der Rest-Timer bleibt auf physischen Smartphones ohne Ton. Es sind keine statischen Audio-Dateien im Repository hinterlegt.
+- Technische Bestandsaufnahme abgeschlossen: `docs/release/AUDIO_HAPTICS_AUDIT.md`.
 
 ### 2.9 Analytics & Crash Monitoring
 - **Status:** `NOT_STARTED`
 - Kein Sentry, PostHog oder Firebase installiert.
-- `@opentelemetry/api` ist als ungenutzte Dependency in `package.json`.
+- `@opentelemetry/api` wurde als ungenutzt verifiziert und sauber entfernt (Lockfile bereinigt, 315 Tests grün).
 
 ### 2.10 Legal / Privacy
-- **Impressum:** Kein Impressum vorhanden (`NOT_STARTED`).
-- **Datenschutzerklärung (DSE):** Keine externe URL oder Live-Seite vorhanden (`NOT_STARTED`).
-- **Art. 9 DSGVO (Gesundheitsdaten):** Keine explizite Einwilligung im Onboarding/Auth-Flow (`NOT_STARTED`).
-- **Account-Löschung:** `profile.tsx` hat nur lokalen Reset; keine Löschung des Supabase-Accounts (`NOT_STARTED`).
-- **Datenexport:** JSON-Export (`exportData()`) vorhanden (`DONE`). Import/Restore fehlt (`NOT_STARTED`).
+- **Impressum:** UI-Menüeintrag als Platzhalter in `profile.tsx` vorbereitet; finale Angaben ausstehend (`LEGAL_REVIEW_REQUIRED`).
+- **Datenschutzerklärung (DSE):** UI-Menüeintrag in `profile.tsx` vorbereitet; finale URL/Inhalt ausstehend (`LEGAL_REVIEW_REQUIRED`).
+- **Nutzungsbedingungen / EULA:** UI-Menüeintrag in `profile.tsx` vorbereitet (`LEGAL_REVIEW_REQUIRED`).
+- **Art. 9 DSGVO (Gesundheitsdaten):** Keine eigenmächtige Checkbox implementiert; Status als `LEGAL_REVIEW_REQUIRED` / `ASTRA_REVIEW_REQUIRED` dokumentiert.
+- **Account-Löschung:** Lokaler Reset via `profileStore.clearAllData()` implementiert. Cloud-Delete-Endpoint (Supabase RPC/Admin) fehlt noch. UI-Eintrag "Account löschen" in `profile.tsx` vorbereitet. Technische Map erstellt: `docs/release/ACCOUNT_DATA_MAP.md`.
+- **Datenexport:** JSON-Export (`exportData()`) in `profileStore.ts` vorhanden (`DONE`).
 
 ### 2.11 Exercise Database & Asset Provenienz
 | Asset / Datensatz | Quelle | Lizenz bekannt? | Kommerziell bestätigt? | Status |
 |---|---|---|---|---|
-| Übungsdaten (`exercisedb.json`) | `free-exercise-db` | Unklar / Keine Lizenzdatei | **NEIN** | `BLOCKED – COMMERCIAL RIGHTS NOT VERIFIED` |
-| Übungs-GIFs (`exerciseGifs.json`) | `https://static.exercisedb.dev/media/...` | Hotlink auf fremden Server | **NEIN (Hohes Abmahnrisiko)** | `BLOCKED – COMMERCIAL RIGHTS NOT VERIFIED` |
+| Übungsdaten (`exercisedb.json`) | `free-exercise-db` | Unklar / Keine Lizenzdatei | Commercial usage rights could not be verified from repository evidence | `BLOCKED pending provenance/license verification` |
+| Übungs-GIFs (`exerciseGifs.json`) | `https://static.exercisedb.dev/media/...` | Hotlink auf fremden Server | Commercial usage rights could not be verified from repository evidence | `BLOCKED pending provenance/license verification` |
 | Anatomie-Grafiken (`AnatomyFigure.tsx`) | `react-native-body-highlighter` | MIT (Lizenz liegt in `anatomy/LICENSE`) | **JA** | `DONE` |
 | Fonts (Manrope, Space Grotesk) | Google Fonts | SIL Open Font License (OFL) | **JA** | `DONE` |
 | Icons (Ionicons) | `@expo/vector-icons` | MIT | **JA** | `DONE` |
-| Level-Badges | Higgsfield AI | Proprietär generiert | **JA** | `DONE` |
+| Level-Badges | Higgsfield AI | Proprietär generiert (Job im Readme) | Terms ungeprüft | `ASTRA_REVIEW_REQUIRED` |
 
 ---
 
@@ -145,27 +148,27 @@ Im Code und in der Dokumentation finden sich zahlreiche Alt-Namen:
 |---|---|---|---|---|---|
 | 01 | P0 | Native | Echter iOS-Build auf physischem Gerät | `NOT_STARTED` / `USER_ACTION_REQUIRED` | Apple Developer Account fehlt; kein EAS-Build gestartet (`IOS_SETUP.md`). |
 | 02 | P0 | Native | Echter Android-Build auf physischem Gerät | `NOT_STARTED` | Profil `preview` in `eas.json` konfiguriert, aber noch kein APK-Build erzeugt. |
-| 03 | P0 | Identity | Bundle ID / Package / Scheme / Brand final | `PARTIAL` / `USER_ACTION_REQUIRED` | `app.json` hat noch Name `"Fitness Tracker"` und Bundle-ID `com.fitnesstracker.app`. Finaler Name EVARO muss bestätigt werden. |
+| 03 | P0 | Identity | Bundle ID / Package / Scheme / Brand final | `PARTIAL` / `USER_ACTION_REQUIRED` | `app.json` hat noch Name `"Fitness Tracker"` und Bundle-ID `com.fitnesstracker.app`. Finaler Name EVARO muss im Decision Log bestätigt werden. |
 | 04 | P0 | Security | Keine Provider-/Service-Secrets im Client/Git | `DONE` | `apps/mobile` enthält keine Secrets; `.env.coach.local` ist in `.gitignore`. |
 | 05 | P0 | Security | Secure token storage | `PARTIAL` / `ASTRA_REVIEW_REQUIRED` | Supabase Session liegt in plain MMKV (`supabase-auth-storage`), nicht in Keychain/Keystore. |
-| 06 | P0 | Security | RLS Cross-Account Tests | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | `docs/schema.sql` existiert, wurde aber auf keinem echten Supabase-Projekt getestet. |
+| 06 | P0 | Security | RLS Cross-Account Tests | `PARTIAL` / `ASTRA_REVIEW_REQUIRED` | RLS-Policies in `docs/schema.sql` definiert, aber Cross-Account-Negativtests im Repo nicht identifiziert. |
 | 07 | P0 | Data | Offline/Online ohne Datenverlust | `PARTIAL` | Lokale SQLite Schema 2 mit Outbox läuft offline (240 Tests PASS). Remote-Sync ungetestet. |
 | 08 | P0 | Data | Zwei-Geräte-Konflikte ohne Datenverlust | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | Keine Tombstones oder Multi-Device Conflict Resolution im Sync-Worker. |
-| 09 | P0 | Data | Account löschen löscht Cloud + Auth + Lokal | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | Nur lokaler Reset vorhanden; Cloud-Löschung fehlt (Apple Guideline 5.1.1(v) Blocker!). |
-| 10 | P0 | Data | Vollständiger Datenexport | `DONE` | `exportData()` in `profileStore.ts` exportiert alle 13 Stores in Schema-2-JSON. |
+| 09 | P0 | Data | Account löschen löscht Cloud + Auth + Lokal | `PARTIAL` / `ASTRA_REVIEW_REQUIRED` | Lokaler SQLite-Reset via `clearAllData()` implementiert. Cloud-Delete-Endpoint (Supabase RPC/Admin) fehlt noch (`ACCOUNT_DATA_MAP.md`). |
+| 10 | P0 | Data | Vollständiger Datenexport | `DONE` | `exportData()` in `profileStore.ts` exportiert alle Stores in Schema-2-JSON. |
 | 11 | P0 | Backend | Production HTTPS Coach endpoint | `NOT_STARTED` / `USER_ACTION_REQUIRED` | Coach läuft nur lokal auf `127.0.0.1:8096`. Deployment auf Render/Fly/Supabase fehlt. |
 | 12 | P0 | Backend | Distributed AI rate limits | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | Nur In-Memory-Limiter im Node-Prozess. |
 | 13 | P0 | Backend | Global + per-user cost guard | `PARTIAL` / `USER_ACTION_REQUIRED` | 6 Req/Tag Limit im Prototyp vorhanden, aber kein Hard Spending Cap auf Provider-Ebene. |
-| 14 | P0 | Backend | Premium entitlement serverseitig | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | Coach prüft noch kein aktives Abonnement. |
+| 14 | P0 | Backend | Premium entitlement serverseitig | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | Coach prüft noch kein aktives Abonnement (`SUBSCRIPTION_INTEGRATION_MAP.md`). |
 | 15 | P0 | AI | Freigegebene Provider/Modelle dokumentiert | `DONE` | `.env.coach.local` und `api/.env.example` dokumentieren Whisper, DeepSeek, GPT-5.6, Gemini. |
 | 16 | P0 | AI | AI consent + transparency | `PARTIAL` | Allgemeine Texte vorhanden, aber keine explizite Einwilligung vor dem ersten Chat. |
-| 17 | P0 | Licensing | Exercise DB Provenance & Commercial Rights | `BLOCKED` | `exerciseGifs.json` hotlinkt `static.exercisedb.dev`. Keine kommerzielle Lizenz nachweisbar. |
-| 18 | P0 | Licensing | Lizenz-BOM (Bilder, Anatomie, Fonts, Sounds) | `PARTIAL` | Anatomie (MIT) und Fonts (OFL) dokumentiert; Sounds fehlen, GIFs ungeklärt. |
-| 19 | P0 | Legal | Privacy Policy live | `NOT_STARTED` / `USER_ACTION_REQUIRED` | Öffentliche Datenschutzerklärung fehlt. |
-| 20 | P0 | Legal | Impressum live | `NOT_STARTED` / `USER_ACTION_REQUIRED` | § 5 DDG Impressum fehlt in App und Web. |
-| 21 | P0 | Legal | Terms live | `NOT_STARTED` / `USER_ACTION_REQUIRED` | AGB / EULA fehlt. |
+| 17 | P0 | Licensing | Exercise DB Provenance & Commercial Rights | `BLOCKED` | Commercial usage rights could not be verified from repository evidence (`EXERCISE_ASSET_INVENTORY.md`). |
+| 18 | P0 | Licensing | Lizenz-BOM (Bilder, Anatomie, Fonts, Sounds) | `PARTIAL` | Anatomie (MIT) und Fonts (OFL) dokumentiert; statische Sounds fehlen im Repo, GIFs ungeklärt. |
+| 19 | P0 | Legal | Privacy Policy live | `NOT_STARTED` / `USER_ACTION_REQUIRED` | Öffentliche Datenschutzerklärung fehlt; UI-Menüeintrag in `profile.tsx` vorbereitet. |
+| 20 | P0 | Legal | Impressum live | `NOT_STARTED` / `USER_ACTION_REQUIRED` | § 5 DDG Impressum fehlt in App und Web; UI-Menüeintrag in `profile.tsx` vorbereitet. |
+| 21 | P0 | Legal | Terms live | `NOT_STARTED` / `USER_ACTION_REQUIRED` | AGB / EULA fehlt; UI-Menüeintrag in `profile.tsx` vorbereitet. |
 | 22 | P0 | Legal | Processor / DPA Register | `NOT_STARTED` / `USER_ACTION_REQUIRED` | AVV mit Supabase und OpenRouter noch nicht gezeichnet. |
-| 23 | P0 | Monetization | StoreKit purchase/restore | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | Keine RevenueCat/StoreKit-Integration. |
+| 23 | P0 | Monetization | StoreKit purchase/restore | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | Keine RevenueCat/StoreKit-Integration (`SUBSCRIPTION_INTEGRATION_MAP.md`). |
 | 24 | P0 | Monetization | Google Billing purchase/restore | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | Keine Google Play Billing-Integration. |
 | 25 | P0 | Monetization | Renewal/cancel/expiry/refund getestet | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | Fehlt komplett. |
 | 26 | P0 | Monitoring | Crash/Error/Sync/AI spend Monitoring | `NOT_STARTED` / `ASTRA_REVIEW_REQUIRED` | Kein Sentry/Monitoring integriert. |

@@ -36,8 +36,12 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
     switch (effectType) {
       case 'neon':
         return ['#00F0FF', '#FF007F', '#39FF14', '#CCFF00', '#A855F7'];
+      case 'inferno':
+        return ['#FF3B30', '#FF9500', '#FFCC00', '#FF2D55', '#FF4500'];
       case 'gold':
         return ['#FFD700', '#F59E0B', '#FBBF24', '#D97706', '#FEF3C7'];
+      case 'matrix':
+        return ['#00FF66', '#00F0FF', '#10B981', '#34D399', '#A7F3D0'];
       case 'cosmic':
         return ['#C084FC', '#38BDF8', '#F43F5E', '#818CF8', '#FFFFFF', '#F472B6'];
       case 'classic':
@@ -49,14 +53,40 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
   const colors = getColors(effect);
 
   const particles = useRef<Particle[]>(
-    Array.from({ length: effect === 'neon' ? 24 : 20 }).map((_, i) => {
+    Array.from({ length: effect === 'neon' || effect === 'matrix' ? 24 : 20 }).map((_, i) => {
       const isNeon = effect === 'neon';
+      const isInferno = effect === 'inferno';
       const isGold = effect === 'gold';
+      const isMatrix = effect === 'matrix';
       const isCosmic = effect === 'cosmic';
 
-      const size = isNeon ? Math.random() * 3 + 3 : isGold ? Math.random() * 8 + 7 : isCosmic ? Math.random() * 10 + 6 : Math.random() * 8 + 6;
-      const heightRatio = isNeon ? Math.random() * 4 + 3 : isCosmic && i % 2 === 0 ? 1.4 : 1;
-      const borderRadius = isNeon ? 2 : isGold ? size / 2 : isCosmic ? (i % 2 === 0 ? 1 : size / 2) : (i % 2 === 0 ? 2 : size / 2);
+      const size = isNeon
+        ? Math.random() * 3 + 3
+        : isMatrix
+        ? Math.random() * 2 + 3
+        : isInferno
+        ? Math.random() * 6 + 5
+        : isGold
+        ? Math.random() * 8 + 7
+        : isCosmic
+        ? Math.random() * 10 + 6
+        : Math.random() * 8 + 6;
+      const heightRatio = isNeon
+        ? Math.random() * 4 + 3
+        : isMatrix
+        ? Math.random() * 6 + 4
+        : isInferno
+        ? Math.random() * 1.6 + 1
+        : isCosmic && i % 2 === 0
+        ? 1.4
+        : 1;
+      const borderRadius = isNeon || isMatrix
+        ? 2
+        : isInferno || isGold
+        ? size / 2
+        : isCosmic
+        ? (i % 2 === 0 ? 1 : size / 2)
+        : (i % 2 === 0 ? 2 : size / 2);
 
       return {
         id: i,
@@ -66,7 +96,11 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
         borderRadius,
         color: colors[Math.floor(Math.random() * colors.length)] || theme.colors.primary,
         delay: Math.random() * 900,
-        duration: isNeon ? Math.random() * 1000 + 1400 : Math.random() * 1400 + 1900,
+        duration: isNeon || isMatrix
+          ? Math.random() * 1000 + 1300
+          : isInferno
+          ? Math.random() * 1200 + 1600
+          : Math.random() * 1400 + 1900,
         animY: new Animated.Value(-25),
         animX: new Animated.Value(0),
         animRotate: new Animated.Value(0),
@@ -128,8 +162,16 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
               borderRadius: p.borderRadius,
               backgroundColor: p.color,
               shadowColor: p.color,
-              shadowOpacity: effect === 'neon' || effect === 'cosmic' ? 0.8 : 0.3,
-              shadowRadius: effect === 'neon' ? 6 : 3,
+              shadowOpacity:
+                effect === 'neon' || effect === 'cosmic' || effect === 'inferno' || effect === 'matrix'
+                  ? 0.85
+                  : 0.3,
+              shadowRadius:
+                effect === 'neon' || effect === 'matrix'
+                  ? 6
+                  : effect === 'inferno'
+                  ? 8
+                  : 3,
               transform: [
                 { translateY: p.animY },
                 { translateX: p.animX },

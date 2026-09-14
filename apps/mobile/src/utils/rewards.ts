@@ -134,6 +134,15 @@ export const CELEBRATION_REWARDS: RewardCelebrationConfig[] = [
     previewColors: ['#00F0FF', '#FF007F', '#39FF14', '#A855F7'],
   },
   {
+    id: 'inferno',
+    name: 'Inferno Ember Storm',
+    subtitle: 'Glühende Funken & Flammenwirbel',
+    description: 'Lodernde Glutpartikel und aufsteigende Funken für hitzige Trainingserfolge.',
+    requiredLevel: 13,
+    requiredRank: 3,
+    previewColors: ['#FF3B30', '#FF9500', '#FFCC00', '#FF2D55'],
+  },
+  {
     id: 'gold',
     name: 'Champion Gold Shower',
     subtitle: 'Goldmünzen & Champagner-Glanz',
@@ -141,6 +150,15 @@ export const CELEBRATION_REWARDS: RewardCelebrationConfig[] = [
     requiredLevel: 26,
     requiredRank: 6,
     previewColors: ['#FFD700', '#F59E0B', '#D97706', '#FFFBEB'],
+  },
+  {
+    id: 'matrix',
+    name: 'Quantum Matrix Stream',
+    subtitle: 'Binäre Lichtimpulse & Cyber-Prisma',
+    description: 'Kaskadierende digitale Matrix-Codes und fluoreszierende Lichtimpulse.',
+    requiredLevel: 29,
+    requiredRank: 6,
+    previewColors: ['#00FF66', '#00F0FF', '#10B981', '#E0F2FE'],
   },
   {
     id: 'cosmic',

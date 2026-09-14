@@ -58,6 +58,8 @@ describe('AppearanceSettings', () => {
     // Celebration names
     expect(getByText('Klassisches Konfetti')).toBeTruthy();
     expect(getByText('Cyber Neon Rain')).toBeTruthy();
+    expect(getByText('Inferno Ember Storm')).toBeTruthy();
+    expect(getByText('Quantum Matrix Stream')).toBeTruthy();
   });
 
   it('allows selecting an unlocked Light Mode and celebration effect from Level 1', () => {
@@ -97,9 +99,9 @@ describe('AppearanceSettings', () => {
     fireEvent.press(roseTheme);
     expect(useProfileStore.getState().profile.colorway).toBe('rose');
 
-    // Cyber Neon requires Level 11 - now unlocked!
-    const neonCelebration = getByText('Cyber Neon Rain');
-    fireEvent.press(neonCelebration);
-    expect(useProfileStore.getState().profile.celebrationEffect).toBe('neon');
+    // Inferno requires Level 13 - now unlocked at level 20!
+    const infernoCelebration = getByText('Inferno Ember Storm');
+    fireEvent.press(infernoCelebration);
+    expect(useProfileStore.getState().profile.celebrationEffect).toBe('inferno');
   });
 });

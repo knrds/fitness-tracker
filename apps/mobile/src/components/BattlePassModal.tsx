@@ -45,9 +45,9 @@ const RANK_REWARDS: Record<
   },
   3: {
     badgeTitle: 'Gold Medaillon',
-    perk: 'Theme: Crimson Neon (Dark) + Feier-Effekt: Cyber Neon Rain',
-    rewardTag: 'Theme & Laser-Effekt',
-    description: 'Rötlich-pinke Neon-Magenta Farbwelt und futuristischer Laser-Rain-Effekt beim Workout-Abschluss.',
+    perk: 'Theme: Crimson Neon + 2 Feier-Effekte: Cyber Neon (L11) & Inferno (L13)',
+    rewardTag: 'Theme & 2x Effekte',
+    description: 'Neon-Magenta Farbwelt, Cyber-Laser-Rain (L11) und feuriger Inferno-Ember-Storm auf Level 13!',
   },
   4: {
     badgeTitle: 'Platin Medaillon',
@@ -63,9 +63,9 @@ const RANK_REWARDS: Record<
   },
   6: {
     badgeTitle: 'Rubin Medaillon',
-    perk: 'Theme: Telemetry Cyber (Dark) + Feier-Effekt: Champion Gold Shower',
-    rewardTag: 'Theme & Gold-Shower',
-    description: 'Elektrisierendes Chartreuse-Navy und glänzender Goldmünzen-Regen bei Workout-Abschluss.',
+    perk: 'Theme: Telemetry Cyber + 2 Feier-Effekte: Gold (L26) & Matrix (L29)',
+    rewardTag: 'Theme & 2x Effekte',
+    description: 'Chartreuse-Navy, glänzender Goldmünzen-Regen (L26) und der Quantum-Matrix-Stream auf Level 29!',
   },
   7: {
     badgeTitle: 'Saphir Medaillon',

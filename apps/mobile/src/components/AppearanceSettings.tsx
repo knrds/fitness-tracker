@@ -310,7 +310,7 @@ export function AppearanceSettings() {
           </Pressable>
         </View>
         <Text style={[styles.subtitle, { color: theme.colors.muted }]}>
-          10 exklusive Farbwelten · Schalte neue Themes über deinen Level-Pass frei
+          11 exklusive Farbwelten · Schalte neue Themes & Effekte über deinen Level-Pass frei
         </Text>
       </View>
 

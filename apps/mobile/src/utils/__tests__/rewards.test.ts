@@ -61,24 +61,34 @@ describe('rewards utility', () => {
     expect(isColorwayUnlocked('titanium', 46)).toBe(true);
   });
 
-  it('correctly evaluates celebration effect unlocks based on level', () => {
-    expect(CELEBRATION_REWARDS).toHaveLength(4);
+  it('correctly evaluates celebration effect unlocks including mid-level rewards', () => {
+    expect(CELEBRATION_REWARDS).toHaveLength(6);
 
     // Level 1: classic unlocked, others locked
     expect(isCelebrationUnlocked('classic', 1)).toBe(true);
     expect(isCelebrationUnlocked('neon', 1)).toBe(false);
+    expect(isCelebrationUnlocked('inferno', 1)).toBe(false);
     expect(isCelebrationUnlocked('gold', 1)).toBe(false);
+    expect(isCelebrationUnlocked('matrix', 1)).toBe(false);
     expect(isCelebrationUnlocked('cosmic', 1)).toBe(false);
 
-    // Level 11 (Rank 3): neon unlocks
+    // Level 11 (Rank 3 start): neon unlocks
     expect(isCelebrationUnlocked('neon', 11)).toBe(true);
-    expect(isCelebrationUnlocked('gold', 11)).toBe(false);
+    expect(isCelebrationUnlocked('inferno', 11)).toBe(false);
 
-    // Level 26 (Rank 6): gold unlocks
+    // Level 13 (Rank 3 mid-level!): inferno unlocks
+    expect(isCelebrationUnlocked('inferno', 13)).toBe(true);
+    expect(isCelebrationUnlocked('gold', 13)).toBe(false);
+
+    // Level 26 (Rank 6 start): gold unlocks
     expect(isCelebrationUnlocked('gold', 26)).toBe(true);
-    expect(isCelebrationUnlocked('cosmic', 26)).toBe(false);
+    expect(isCelebrationUnlocked('matrix', 26)).toBe(false);
 
-    // Level 41 (Rank 9): cosmic unlocks
+    // Level 29 (Rank 6 mid-level!): matrix unlocks
+    expect(isCelebrationUnlocked('matrix', 29)).toBe(true);
+    expect(isCelebrationUnlocked('cosmic', 29)).toBe(false);
+
+    // Level 41 (Rank 9 start): cosmic unlocks
     expect(isCelebrationUnlocked('cosmic', 41)).toBe(true);
   });
 
@@ -93,7 +103,7 @@ describe('rewards utility', () => {
     expect(getRemainingXpForLevel(3, 1800)).toBe(0); // already reached
   });
 
-  it('retrieves level reward payloads for inspection', () => {
+  it('retrieves level reward payloads for inspection including mid-level rewards', () => {
     const lvl1 = getLevelRewards(1);
     expect(lvl1.hasRewards).toBe(true);
     expect(lvl1.colorways.map((c) => c.id)).toContain('glacier');
@@ -104,6 +114,16 @@ describe('rewards utility', () => {
     expect(lvl11.hasRewards).toBe(true);
     expect(lvl11.colorways.map((c) => c.id)).toContain('crimson');
     expect(lvl11.celebrations.map((c) => c.id)).toContain('neon');
+
+    // Mid-level 13 has inferno!
+    const lvl13 = getLevelRewards(13);
+    expect(lvl13.hasRewards).toBe(true);
+    expect(lvl13.celebrations.map((c) => c.id)).toContain('inferno');
+
+    // Mid-level 29 has matrix!
+    const lvl29 = getLevelRewards(29);
+    expect(lvl29.hasRewards).toBe(true);
+    expect(lvl29.celebrations.map((c) => c.id)).toContain('matrix');
 
     const lvl4 = getLevelRewards(4);
     expect(lvl4.hasRewards).toBe(false);

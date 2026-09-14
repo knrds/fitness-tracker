@@ -88,4 +88,22 @@ describe('BattlePassModal', () => {
     const doneBtn = getByLabelText('Detailansicht schließen');
     fireEvent.press(doneBtn);
   });
+
+  it('allows tapping mid-level 13 to view Inferno Ember Storm celebration reward', () => {
+    const { getByLabelText, getByText } = render(
+      <ThemeProvider>
+        <BattlePassModal visible={true} onClose={jest.fn()} level={10} xp={4800} />
+      </ThemeProvider>,
+    );
+
+    // Tap mid-level 13 which unlocks Inferno Ember Storm
+    const lvl13Pill = getByLabelText('Level 13 Details anzeigen');
+    fireEvent.press(lvl13Pill);
+
+    expect(getByText('BELOHNUNGEN AUF LEVEL 13')).toBeTruthy();
+    expect(getByText('Inferno Ember Storm')).toBeTruthy();
+
+    const doneBtn = getByLabelText('Detailansicht schließen');
+    fireEvent.press(doneBtn);
+  });
 });

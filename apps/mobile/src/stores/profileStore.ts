@@ -39,7 +39,13 @@ function snapshotStore<T extends object>(store: {
   return () => store.setState(previous);
 }
 
-export type CelebrationEffect = 'classic' | 'neon' | 'gold' | 'cosmic';
+export type CelebrationEffect =
+  | 'classic'
+  | 'neon'
+  | 'inferno'
+  | 'gold'
+  | 'matrix'
+  | 'cosmic';
 
 export interface Profile {
   displayName: string;
@@ -112,7 +118,9 @@ const profileStateSchema = z.object({
       'amber',
     ])
     .optional(),
-  celebrationEffect: z.enum(['classic', 'neon', 'gold', 'cosmic']).optional(),
+  celebrationEffect: z
+    .enum(['classic', 'neon', 'inferno', 'gold', 'matrix', 'cosmic'])
+    .optional(),
   fitnessGoal: FitnessGoalSchema.optional(),
   experienceLevel: ExperienceLevelSchema.optional(),
   preferredUnits: UnitSystemSchema,

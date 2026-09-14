@@ -118,39 +118,60 @@ function HistoryView() {
   const getVolumeFunFact = (volumeKg: number): string => {
     const displayVol = isImperial ? Math.round(volumeKg * 2.20462) : Math.round(volumeKg);
     const unit = isImperial ? 'lbs' : 'kg';
+    const isDe = language === 'de';
 
-    if (volumeKg <= 0) return 'Session completed. Work logged in telemetry.';
+    if (volumeKg <= 0) {
+      return isDe
+        ? 'Training abgeschlossen. Arbeitsvolumen in der Telemetrie erfasst.'
+        : 'Session completed. Work logged in telemetry.';
+    }
 
     if (volumeKg < 100) {
       const plates = (displayVol / (isImperial ? 5.5 : 2.5)).toFixed(0);
-      return `Logged ${displayVol} ${unit} total work. Equivalent to warm-up handling across ${plates} calibrated fractional plates.`;
+      return isDe
+        ? `${displayVol} ${unit} Gesamtarbeit erfasst. Entspricht dem Aufwärmen mit ${plates} kalibrierten Mikroscheiben.`
+        : `Logged ${displayVol} ${unit} total work. Equivalent to warm-up handling across ${plates} calibrated fractional plates.`;
     }
     if (volumeKg < 300) {
       const plates = (displayVol / (isImperial ? 44 : 20)).toFixed(0);
-      return `Moved ${displayVol} ${unit} tonnage. Equivalent to loading ${plates} standard 20 kg competition plates.`;
+      return isDe
+        ? `${displayVol} ${unit} bewegte Last. Entspricht dem Heben von ${plates} Standard-20-kg-Wettkampfscheiben.`
+        : `Moved ${displayVol} ${unit} tonnage. Equivalent to loading ${plates} standard 20 kg competition plates.`;
     }
     if (volumeKg < 800) {
       const benches = (displayVol / (isImperial ? 100 : 45)).toFixed(1).replace(/\.0$/, '');
-      return `${displayVol} ${unit} cumulative load. Equivalent to the iron mass of ${benches} adjustable training benches.`;
+      return isDe
+        ? `${displayVol} ${unit} kumulierte Last. Entspricht der Eisenmasse von ${benches} verstellbaren Hantelbänken.`
+        : `${displayVol} ${unit} cumulative load. Equivalent to the iron mass of ${benches} adjustable training benches.`;
     }
     if (volumeKg < 1500) {
       const plates = (displayVol / (isImperial ? 44 : 20)).toFixed(0);
-      return `${displayVol} ${unit} moved. Equivalent to cycling through ${plates} standard 20 kg barbell plates.`;
+      return isDe
+        ? `${displayVol} ${unit} bewegt. Entspricht dem Bewegen von ${plates} Standard-20-kg-Hantelscheiben.`
+        : `${displayVol} ${unit} moved. Equivalent to cycling through ${plates} standard 20 kg barbell plates.`;
     }
     if (volumeKg < 3000) {
       const stacks = (displayVol / (isImperial ? 440 : 200)).toFixed(1).replace(/\.0$/, '');
-      return `${displayVol} ${unit} total workload. Equivalent to ${stacks} heavy selectorized cable stacks.`;
+      return isDe
+        ? `${displayVol} ${unit} Gesamtbelastung. Entspricht ${stacks} schweren Kabelzug-Gewichtsblöcken.`
+        : `${displayVol} ${unit} total workload. Equivalent to ${stacks} heavy selectorized cable stacks.`;
     }
     if (volumeKg < 6000) {
       const racks = (displayVol / (isImperial ? 990 : 450)).toFixed(1).replace(/\.0$/, '');
-      return `${displayVol} ${unit} iron tonnage. Equivalent to ${racks} fully loaded power racks.`;
+      return isDe
+        ? `${displayVol} ${unit} Eisengewicht. Entspricht ${racks} voll beladenen Power-Racks.`
+        : `${displayVol} ${unit} iron tonnage. Equivalent to ${racks} fully loaded power racks.`;
     }
     if (volumeKg < 12000) {
       const cars = (displayVol / (isImperial ? 3300 : 1500)).toFixed(1).replace(/\.0$/, '');
-      return `${displayVol} ${unit} moved. Session volume matches the mass of ${cars} compact vehicles in mechanical work.`;
+      return isDe
+        ? `${displayVol} ${unit} bewegt. Session-Volumen entspricht der Masse von ${cars} Kleinwagen an mechanischer Arbeit.`
+        : `${displayVol} ${unit} moved. Session volume matches the mass of ${cars} compact vehicles in mechanical work.`;
     }
     const trucks = (displayVol / (isImperial ? 22000 : 10000)).toFixed(1).replace(/\.0$/, '');
-    return `${displayVol} ${unit} tonnage. Elite high-volume session equivalent to moving ${trucks} transport trucks of load.`;
+    return isDe
+      ? `${displayVol} ${unit} Tonnage. Elite-Volumentraining: entspricht der Last von ${trucks} Transport-LKWs.`
+      : `${displayVol} ${unit} tonnage. Elite high-volume session equivalent to moving ${trucks} transport trucks of load.`;
   };
 
   const formatDate = (date: Date) => {
@@ -695,7 +716,7 @@ function HistoryView() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                     <Ionicons name="analytics-outline" size={13} color={theme.colors.primary} />
                     <Text style={[styles.modalFactTitle, { color: theme.colors.primary, marginBottom: 0 }]}>
-                      SESSION TELEMETRY
+                      {language === 'de' ? 'SESSION-TELEMETRIE' : 'SESSION TELEMETRY'}
                     </Text>
                   </View>
                   <Text

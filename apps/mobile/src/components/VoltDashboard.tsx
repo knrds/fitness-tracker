@@ -496,7 +496,13 @@ export function VoltDashboard({
                 color={c.primary}
               />
               <Text style={[label, { color: c.primary }]}>
-                {activeStatFact === 'volume'
+                {language === 'en'
+                  ? activeStatFact === 'volume'
+                    ? 'VOLUME TELEMETRY (TAP TO SWITCH)'
+                    : activeStatFact === 'sets'
+                    ? 'SET ANALYSIS (TAP TO SWITCH)'
+                    : 'RPE MANAGEMENT (TAP TO SWITCH)'
+                  : activeStatFact === 'volume'
                   ? 'VOLUMEN-TELEMETRIE (TIPPEN FÜR WECHSEL)'
                   : activeStatFact === 'sets'
                   ? 'SATZ-ANALYSE (TIPPEN FÜR WECHSEL)'
@@ -505,25 +511,47 @@ export function VoltDashboard({
             </View>
             <Text style={{ color: c.text, fontSize: 13, fontFamily: 'Manrope_600SemiBold', lineHeight: 19 }}>
               {activeStatFact === 'volume'
-                ? [
-                    `Wochenvolumen: ${(volume / 1000).toFixed(1)} t kumulierte Last. Entspricht rund ${Math.round(volume / 20)} bewegten 20-kg-Hantelscheiben.`,
-                    `Gesamte Tonnage entspricht ${((volume / 1000) / 1.2).toFixed(1)} Kleinwagen an bewegter Eisenmasse in dieser Trainingswoche.`,
-                    `Entspricht der kumulierten Zuglast von rund ${Math.round(volume / 200)} Standard-Kabelzug-Gewichtsblöcken.`,
-                  ][statFactIndex % 3]
+                ? (language === 'en'
+                  ? [
+                      `Weekly volume: ${(volume / 1000).toFixed(1)} t cumulative load. Equivalent to ~${Math.round(volume / 20)} moved 20 kg barbell plates.`,
+                      `Total tonnage matches ${((volume / 1000) / 1.2).toFixed(1)} compact cars in iron moved this training week.`,
+                      `Matches the cumulative cable load of ~${Math.round(volume / 200)} standard cable weight stacks.`,
+                    ]
+                  : [
+                      `Wochenvolumen: ${(volume / 1000).toFixed(1)} t kumulierte Last. Entspricht rund ${Math.round(volume / 20)} bewegten 20-kg-Hantelscheiben.`,
+                      `Gesamte Tonnage entspricht ${((volume / 1000) / 1.2).toFixed(1)} Kleinwagen an bewegter Eisenmasse in dieser Trainingswoche.`,
+                      `Entspricht der kumulierten Zuglast von rund ${Math.round(volume / 200)} Standard-Kabelzug-Gewichtsblöcken.`,
+                    ])[statFactIndex % 3]
                 : activeStatFact === 'sets'
-                ? [
-                    `Geschätzte Zeit unter Muskelspannung (TUT): ~${Math.round(setCount * 45 / 60)} Minuten bei 45s pro Satz.`,
-                    `${setCount >= 16 ? 'Hypertrophie-Optimum: Effektives Satzvolumen für maximalen mechanischen Reiz.' : 'Fokussiertes Satzvolumen: Hohe Bewegungsqualität und zielgerichtete Reizdichte.'}`,
-                  ][statFactIndex % 2]
+                ? (language === 'en'
+                  ? [
+                      `Estimated time under tension (TUT): ~${Math.round((setCount * 45) / 60)} minutes at 45s per set.`,
+                      `${setCount >= 16 ? 'Hypertrophy optimum: Effective set volume for maximum mechanical stimulus.' : 'Focused set volume: High movement quality and targeted stimulus density.'}`,
+                    ]
+                  : [
+                      `Geschätzte Zeit unter Muskelspannung (TUT): ~${Math.round((setCount * 45) / 60)} Minuten bei 45s pro Satz.`,
+                      `${setCount >= 16 ? 'Hypertrophie-Optimum: Effektives Satzvolumen für maximalen mechanischen Reiz.' : 'Fokussiertes Satzvolumen: Hohe Bewegungsqualität und zielgerichtete Reizdichte.'}`,
+                    ])[statFactIndex % 2]
                 : averageRpe !== null
-                ? [
-                    averageRpe >= 8.5
-                      ? `Durchschnittliches RPE ${averageRpe.toFixed(1)}: Hohe ZNS-Auslastung (~1 Rep im Tank). Ausreichende Regeneration zwischen den Einheiten einplanen.`
-                      : averageRpe >= 7
-                      ? `Durchschnittliches RPE ${averageRpe.toFixed(1)}: Optimaler Hypertrophiebereich (2–3 RIR). Hoher Wachstumsreiz bei kontrollierter Ermüdung.`
-                      : `Durchschnittliches RPE ${averageRpe.toFixed(1)}: Moderater Belastungsbereich. Ideal für Technikfokus, Kraftaufbau und Deloads.`,
-                    'RPE (Rate of Perceived Exertion): 10 = Maximales Limit, 9 = 1 Wiederholung in Reserve, 8 = 2 Wiederholungen in Reserve.',
-                  ][statFactIndex % 2]
+                ? (language === 'en'
+                  ? [
+                      averageRpe >= 8.5
+                        ? `Average RPE ${averageRpe.toFixed(1)}: High CNS fatigue (~1 rep left in reserve). Plan sufficient recovery between sessions.`
+                        : averageRpe >= 7
+                        ? `Average RPE ${averageRpe.toFixed(1)}: Optimal hypertrophy zone (2–3 RIR). High muscle-building stimulus with manageable fatigue.`
+                        : `Average RPE ${averageRpe.toFixed(1)}: Moderate exertion zone. Ideal for technique focus, strength foundation, and deloads.`,
+                      'RPE (Rate of Perceived Exertion): 10 = Maximum effort limit, 9 = 1 rep in reserve, 8 = 2 reps in reserve.',
+                    ]
+                  : [
+                      averageRpe >= 8.5
+                        ? `Durchschnittliches RPE ${averageRpe.toFixed(1)}: Hohe ZNS-Auslastung (~1 Rep im Tank). Ausreichende Regeneration zwischen den Einheiten einplanen.`
+                        : averageRpe >= 7
+                        ? `Durchschnittliches RPE ${averageRpe.toFixed(1)}: Optimaler Hypertrophiebereich (2–3 RIR). Hoher Wachstumsreiz bei kontrollierter Ermüdung.`
+                        : `Durchschnittliches RPE ${averageRpe.toFixed(1)}: Moderater Belastungsbereich. Ideal für Technikfokus, Kraftaufbau und Deloads.`,
+                      'RPE (Rate of Perceived Exertion): 10 = Maximales Limit, 9 = 1 Wiederholung in Reserve, 8 = 2 Wiederholungen in Reserve.',
+                    ])[statFactIndex % 2]
+                : language === 'en'
+                ? 'Log RPE on your sets to precisely monitor and guide your training intensity.'
                 : 'Trage bei deinen Sätzen RPE ein, um deine Anstrengung präzise zu steuern.'}
             </Text>
           </View>

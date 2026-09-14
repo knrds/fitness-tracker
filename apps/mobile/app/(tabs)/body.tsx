@@ -121,13 +121,21 @@ export default function BodyTrackingScreen() {
   const hydrationProgress = dailyGoalMl > 0 ? Math.min(1, todayIntakeMl / dailyGoalMl) : 0;
   const hydrationPercent = Math.round(hydrationProgress * 100);
   const hydrationFact =
-    hydrationPercent >= 100
-      ? 'Your water meter is full. Tiny cellular high-fives are happening quietly.'
-      : hydrationPercent >= 70
-        ? 'Hydration is in the green zone. Your next set of organs is probably applauding politely.'
-        : hydrationPercent >= 35
-          ? 'Halfway-ish hydration: not heroic yet, but definitely no desert arc today.'
-          : 'Start with one glass. The most underrated performance supplement is still boring old water.';
+    language === 'de'
+      ? hydrationPercent >= 100
+        ? 'Dein Wasserspeicher ist voll. Deine Zellen feiern leise ein Fest.'
+        : hydrationPercent >= 70
+          ? 'Hydration im grünen Bereich. Deine Organe klatschen bereits Beifall.'
+          : hydrationPercent >= 35
+            ? 'Auf halbem Weg: Noch kein Heldenstatus, aber definitiv keine Wüstentour.'
+            : 'Starte mit einem Glas. Das am meisten unterschätzte Leistungs-Supplement ist immer noch Wasser.'
+      : hydrationPercent >= 100
+        ? 'Your water meter is full. Tiny cellular high-fives are happening quietly.'
+        : hydrationPercent >= 70
+          ? 'Hydration is in the green zone. Your next set of organs is probably applauding politely.'
+          : hydrationPercent >= 35
+            ? 'Halfway-ish hydration: not heroic yet, but definitely no desert arc today.'
+            : 'Start with one glass. The most underrated performance supplement is still boring old water.';
 
   const handleSaveHydrationGoal = () => {
     const nextGoal = parseInt(hydrationGoalInput, 10);

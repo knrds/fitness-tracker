@@ -958,7 +958,7 @@ export default function ProfileScreen() {
                 borderTopColor: theme.colors.border,
               }}
             >
-              <Text style={{ fontSize: 11, color: theme.colors.muted }}>VOLT Fitness Tracker</Text>
+              <Text style={{ fontSize: 11, color: theme.colors.muted }}>EVARO</Text>
               <Text
                 style={{
                   fontFamily: 'SpaceGrotesk_700Bold',

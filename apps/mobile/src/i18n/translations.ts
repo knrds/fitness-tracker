@@ -303,7 +303,7 @@ export const translations = {
         'Deine Trainings-, Körper- und Profildaten verbleiben offline-first auf deinem Gerät. Eine Übertragung an externe Server erfolgt nur bei explizit aktiviertem Cloud-Sync oder bei Nutzung des KI-Coaches.',
       disclaimerTitle: 'Medizinischer Haftungsausschluss',
       disclaimerDesc:
-        'VOLT und die Empfehlungen des KI-Coaches dienen ausschließlich sportlicher Orientierung und ersetzen keine ärztliche, sportmedizinische oder physiotherapeutische Diagnose und Beratung. Training erfolgt stets auf eigene Verantwortung.',
+        'EVARO und die Empfehlungen des KI-Coaches dienen ausschließlich sportlicher Orientierung und ersetzen keine ärztliche, sportmedizinische oder physiotherapeutische Diagnose und Beratung. Training erfolgt stets auf eigene Verantwortung.',
       version: 'v0.1.0 Beta',
     },
   },
@@ -607,7 +607,7 @@ export const translations = {
         'Your workout, body, and profile data remain offline-first on your device. Transfer to external servers occurs only when Cloud Sync is explicitly enabled or when using the AI Coach.',
       disclaimerTitle: 'Medical Disclaimer',
       disclaimerDesc:
-        'VOLT and AI Coach recommendations are for fitness guidance only and do not replace medical, sports-medical, or physical therapy diagnosis or advice. Training is always at your own risk.',
+        'EVARO and AI Coach recommendations are for fitness guidance only and do not replace medical, sports-medical, or physical therapy diagnosis or advice. Training is always at your own risk.',
       version: 'v0.1.0 Beta',
     },
   },

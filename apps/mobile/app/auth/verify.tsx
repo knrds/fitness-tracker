@@ -27,8 +27,8 @@ export default function VerifyScreen() {
           title: language === 'de' ? 'Erfolg' : 'Success',
           message:
             language === 'de'
-              ? 'E-Mail erfolgreich bestätigt! Willkommen bei Volt.'
-              : 'Email successfully verified! Welcome to Volt.',
+              ? 'E-Mail erfolgreich bestätigt! Willkommen bei EVARO.'
+              : 'Email successfully verified! Welcome to EVARO.',
           tone: 'success',
         });
         router.replace('/' as Href);

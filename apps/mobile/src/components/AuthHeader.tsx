@@ -23,7 +23,7 @@ export function AuthHeader({ title }: { title: string }) {
           <Ionicons name="flash" size={24} color={theme.colors.primary} />
         </View>
         <Text style={[theme.typography.heading, { color: theme.colors.text, letterSpacing: 2 }]}>
-          VOLT
+          EVARO
         </Text>
       </View>
       <View style={{ gap: 8 }}>

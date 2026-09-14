@@ -87,3 +87,54 @@ it('does not commit an old account gesture after the generation changes', () => 
   act(() => callbacks.onPanResponderRelease?.(event, gesture(230)));
   expect(hook.commit).not.toHaveBeenCalled();
 });
+
+describe('useMeasuredReorder with collapsedItemHeight option', () => {
+  function setupCollapsed() {
+    const commit = jest.fn();
+    const hook = renderHook(() =>
+      useMeasuredReorder([{ id: 'a' }, { id: 'b' }, { id: 'c' }], commit, {
+        collapsedItemHeight: 64,
+        itemGap: 12,
+      }),
+    );
+    hook.result.current.itemLayouts.current = {
+      a: { y: 100, height: 300 },
+      b: { y: 412, height: 250 },
+      c: { y: 674, height: 200 },
+    };
+    hook.result.current.getHandleProps('b');
+    return { ...hook, commit };
+  }
+
+  it('immediately sets activeDragId on grab to fold/collapse cards, and restores on inert tap release', () => {
+    const hook = setupCollapsed();
+    expect(hook.result.current.activeDragId).toBeNull();
+
+    // Grab item 'b'
+    act(() => callbacks.onPanResponderGrant?.(event, gesture(0)));
+    expect(hook.result.current.activeDragId).toBe('b');
+
+    // Release without moving -> inert tap resets activeDragId
+    act(() => callbacks.onPanResponderRelease?.(event, gesture(0)));
+    expect(hook.result.current.activeDragId).toBeNull();
+    expect(hook.commit).not.toHaveBeenCalled();
+  });
+
+  it('reorders based on collapsed pitch and commits reorder on release', () => {
+    const hook = setupCollapsed();
+
+    // Grab item 'b' (index 1)
+    act(() => callbacks.onPanResponderGrant?.(event, gesture(0)));
+    expect(hook.result.current.activeDragId).toBe('b');
+
+    // Move up by ~80px (more than pitch = 76px) to move 'b' above 'a'
+    act(() => callbacks.onPanResponderMove?.(event, gesture(-85)));
+    expect(hook.result.current.hoverIndex).toBe(0);
+
+    // Release to drop 'b' before 'a'
+    act(() => callbacks.onPanResponderRelease?.(event, gesture(-85)));
+    expect(hook.commit).toHaveBeenCalledWith([{ id: 'b' }, { id: 'a' }, { id: 'c' }]);
+    expect(hook.result.current.activeDragId).toBeNull();
+  });
+});
+

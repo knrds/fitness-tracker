@@ -54,8 +54,13 @@ export default function WorkoutTemplateBuilderScreen() {
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [collapsedExercises, setCollapsedExercises] = useState<Record<string, boolean>>({});
 
-  const sorter = useMeasuredReorder(templateExercises, (items) =>
-    setTemplateExercises(items.map((item, order) => ({ ...item, order }))),
+  const sorter = useMeasuredReorder(
+    templateExercises,
+    (items) => setTemplateExercises(items.map((item, order) => ({ ...item, order }))),
+    {
+      collapsedItemHeight: 64,
+      itemGap: 12,
+    },
   );
   if (programId && !program) {
     return (
@@ -275,7 +280,8 @@ export default function WorkoutTemplateBuilderScreen() {
 
         {templateExercises.map((te, index) => {
           const ex = exercises.find((e) => e.id === te.exerciseId);
-          const isCollapsed = isReorderMode || !!collapsedExercises[te.id];
+          const isCollapsed =
+            isReorderMode || sorter.activeDragId !== null || !!collapsedExercises[te.id];
 
           return (
             <Animated.View
@@ -290,10 +296,27 @@ export default function WorkoutTemplateBuilderScreen() {
                 style={[styles.exerciseCard, isCollapsed && styles.exerciseCardCollapsed]}
               >
                 <View style={[styles.exCardHeader, isCollapsed && styles.exCardHeaderCollapsed]}>
+                  <View
+                    style={[
+                      styles.dragHandle,
+                      sorter.handleStyle,
+                      {
+                        minWidth: 44,
+                        minHeight: 44,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: 6,
+                      },
+                    ]}
+                    {...sorter.getHandleProps(te.id)}
+                  >
+                    <Ionicons name="reorder-two" size={24} color={theme.colors.primary} />
+                  </View>
+
                   <Pressable
                     style={styles.exTitleContainer}
                     onPress={() => {
-                      if (!isReorderMode) {
+                      if (!isReorderMode && !sorter.activeDragId) {
                         setCollapsedExercises((prev) => ({ ...prev, [te.id]: !prev[te.id] }));
                       }
                     }}
@@ -317,22 +340,7 @@ export default function WorkoutTemplateBuilderScreen() {
                   </Pressable>
 
                   <View style={styles.exHeaderRight}>
-                    <View
-                      style={[
-                        styles.dragHandle,
-                        sorter.handleStyle,
-                        {
-                          minWidth: 44,
-                          minHeight: 44,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        },
-                      ]}
-                      {...sorter.getHandleProps(te.id)}
-                    >
-                      <Ionicons name="reorder-two" size={24} color={theme.colors.primary} />
-                    </View>
-                    {index > 0 && (
+                    {isReorderMode && index > 0 && (
                       <Pressable
                         style={styles.arrowBtn}
                         accessibilityRole="button"
@@ -353,7 +361,7 @@ export default function WorkoutTemplateBuilderScreen() {
                         <Ionicons name="chevron-up" size={20} color={theme.colors.primary} />
                       </Pressable>
                     )}
-                    {index < templateExercises.length - 1 && (
+                    {isReorderMode && index < templateExercises.length - 1 && (
                       <Pressable
                         style={styles.arrowBtn}
                         accessibilityRole="button"

@@ -66,7 +66,10 @@ export default function WorkoutSessionScreen() {
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [collapsedExerciseIds, setCollapsedExerciseIds] = useState<Record<string, boolean>>({});
 
-  const sorter = useMeasuredReorder(exercises, reorderExercises);
+  const sorter = useMeasuredReorder(exercises, reorderExercises, {
+    collapsedItemHeight: 76,
+    itemGap: 16,
+  });
   const {
     isEnabled: caffeineEnabled,
     currentWorkoutMg,
@@ -531,7 +534,9 @@ export default function WorkoutSessionScreen() {
             >
               <SessionExerciseCard
                 sessionExercise={ex}
-                collapsed={isReorderMode || !!collapsedExerciseIds[ex.id]}
+                collapsed={
+                  isReorderMode || sorter.activeDragId !== null || !!collapsedExerciseIds[ex.id]
+                }
                 onToggleCollapse={() => {
                   setCollapsedExerciseIds((prev) => ({
                     ...prev,

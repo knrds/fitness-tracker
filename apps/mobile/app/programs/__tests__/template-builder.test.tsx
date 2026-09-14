@@ -46,7 +46,7 @@ const mockExercise2: Exercise = {
   id: 'ex-2',
   name: 'Incline Dumbbell Press',
   primaryMuscles: [MuscleGroup.Chest],
-  secondaryMuscles: [MuscleGroup.Shoulders],
+  secondaryMuscles: [MuscleGroup.FrontDelts],
   equipment: Equipment.Dumbbell,
   movementPattern: MovementPattern.HorizontalPush,
   isCustom: false,
@@ -123,5 +123,21 @@ describe('WorkoutTemplateBuilderScreen - Reorder Mode & Collapsible Cards', () =
     fireEvent.press(doneBtn);
     expect(getByText('Sortieren')).toBeTruthy();
     expect(queryAllByText('ADD SET').length).toBe(2);
+  });
+
+  it('renders drag handles accessible on the left of each exercise card in normal mode', () => {
+    const { getAllByLabelText, getAllByLabelText: getAllHandles } = render(
+      <ThemeProvider>
+        <DialogProvider>
+          <WorkoutTemplateBuilderScreen />
+        </DialogProvider>
+      </ThemeProvider>,
+    );
+
+    const handles = getAllHandles('Reihenfolge ändern');
+    expect(handles.length).toBe(2);
+
+    const collapseBtns = getAllByLabelText('Übung einklappen');
+    expect(collapseBtns.length).toBe(2);
   });
 });

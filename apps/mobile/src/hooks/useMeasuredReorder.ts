@@ -13,15 +13,19 @@ import * as Haptics from 'expo-haptics';
 import { getStorageScope, isScopeCurrent } from '../data/storageScope';
 import { getDropIndex, moveItem, RowLayout } from '../utils/reorderGeometry';
 
+export interface MeasuredReorderOptions<T> {
+  onDrop?: (item: T, contentY: number) => void;
+  onHoverY?: (contentY: number) => void;
+  scrollViewRef?: React.RefObject<ScrollView | null>;
+  collapsedItemHeight?: number;
+  itemGap?: number;
+}
+
 /** Stable card sizes, measured targets, one persistence write after a completed drop. */
 export function useMeasuredReorder<T extends { id: string }>(
   items: T[],
   onReorder: (items: T[]) => void,
-  options?: {
-    onDrop?: (item: T, contentY: number) => void;
-    onHoverY?: (contentY: number) => void;
-    scrollViewRef?: React.RefObject<ScrollView | null>;
-  },
+  options?: MeasuredReorderOptions<T>,
 ) {
   const current = useRef({ items, onReorder, options });
   current.current = { items, onReorder, options };
@@ -39,6 +43,7 @@ export function useMeasuredReorder<T extends { id: string }>(
     id: string;
     ids: string[];
     layouts: Record<string, RowLayout>;
+    shiftY: number;
     scope: ReturnType<typeof getStorageScope>;
     startScroll: number;
     dy: number;
@@ -84,14 +89,16 @@ export function useMeasuredReorder<T extends { id: string }>(
   const update = () => {
     const state = drag.current;
     if (!state?.active || state.settling) return;
-    const translation = state.dy + scrollYRef.current - state.startScroll;
+    const translation = state.shiftY + state.dy + scrollYRef.current - state.startScroll;
     dragY.setValue(translation);
     if (current.current.options?.onHoverY && state.layouts[state.id]) {
       current.current.options.onHoverY(
-        state.layouts[state.id]!.y + state.layouts[state.id]!.height / 2 + translation,
+        state.layouts[state.id]!.y +
+          state.layouts[state.id]!.height / 2 +
+          (translation - state.shiftY),
       );
     }
-    const to = getDropIndex(state.ids, state.layouts, state.id, translation);
+    const to = getDropIndex(state.ids, state.layouts, state.id, translation - state.shiftY);
     if (to === state.to) return;
     state.to = to;
     setHoverIndex(to);
@@ -108,7 +115,9 @@ export function useMeasuredReorder<T extends { id: string }>(
     const shift = layout.height + Math.max(0, gap);
     state.ids.forEach((id, index) => {
       if (id === state.id) return;
-      const offset = index > from && index <= to ? -shift : index < from && index >= to ? shift : 0;
+      const offset =
+        state.shiftY +
+        (index > from && index <= to ? -shift : index < from && index >= to ? shift : 0);
       Animated.spring(valueFor(id), {
         toValue: offset,
         useNativeDriver: Platform.OS !== 'web',
@@ -151,15 +160,20 @@ export function useMeasuredReorder<T extends { id: string }>(
       reset();
       return;
     }
-    state.settling = true;
     const from = state.ids.indexOf(state.id);
+    if (from === state.to && Math.abs(state.dy) < 4) {
+      reset();
+      return;
+    }
+    state.settling = true;
     const target = state.layouts[state.ids[state.to]!]!;
     const active = state.layouts[state.id]!;
     const destination = current.current.options?.onDrop
       ? state.dy + scrollYRef.current - state.startScroll
-      : state.to > from
-        ? target.y + target.height - active.height - active.y
-        : target.y - active.y;
+      : state.shiftY +
+        (state.to > from
+          ? target.y + target.height - active.height - active.y
+          : target.y - active.y);
     Animated.timing(dragY, {
       toValue: destination,
       duration: 140,
@@ -194,22 +208,62 @@ export function useMeasuredReorder<T extends { id: string }>(
     if (!responder) {
       responder = PanResponder.create({
         onStartShouldSetPanResponder: () =>
-          !drag.current && current.current.items.every((item) => itemLayouts.current[item.id]),
+          !drag.current &&
+          (current.current.options?.collapsedItemHeight
+            ? Boolean(itemLayouts.current[id] || Object.keys(itemLayouts.current).length > 0)
+            : current.current.items.every((item) => itemLayouts.current[item.id])),
         onPanResponderGrant: (event) => {
           const ids = current.current.items.map((item) => item.id);
+          const from = ids.indexOf(id);
+          const collapsedH = current.current.options?.collapsedItemHeight;
+          const gap = current.current.options?.itemGap ?? 12;
+
+          let layouts = { ...itemLayouts.current };
+          let shiftY = 0;
+
+          if (collapsedH && ids.length > 0) {
+            const pitch = collapsedH + gap;
+            const startY = itemLayouts.current[ids[0]!]?.y ?? itemLayouts.current[id]?.y ?? 0;
+            const expandedY = itemLayouts.current[id]?.y ?? (startY + from * pitch);
+            const baseCollapsedY = startY + from * pitch;
+            shiftY = expandedY - baseCollapsedY;
+
+            layouts = {};
+            ids.forEach((itemId, idx) => {
+              layouts[itemId] = {
+                y: startY + shiftY + idx * pitch,
+                height: collapsedH,
+              };
+            });
+          }
+
           drag.current = {
             id,
             ids,
-            layouts: { ...itemLayouts.current },
+            layouts,
+            shiftY,
             scope: getStorageScope(),
             startScroll: scrollYRef.current,
             dy: 0,
             pointerY: event.nativeEvent.pageY,
-            to: ids.indexOf(id),
-            active: false,
+            to: from,
+            active: Boolean(collapsedH),
             settling: false,
             lastTime: 0,
           };
+
+          if (collapsedH) {
+            dragY.setValue(shiftY);
+            ids.forEach((itemId) => {
+              if (itemId !== id) {
+                valueFor(itemId).setValue(shiftY);
+              }
+            });
+            setActiveDragId(id);
+            setHoverIndex(from);
+            Haptics.selectionAsync().catch(() => {});
+            frame.current = requestAnimationFrame(callbacks.current.tick);
+          }
         },
         onPanResponderMove: (_, gesture) => {
           const state = drag.current;

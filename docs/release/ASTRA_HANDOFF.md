@@ -118,3 +118,17 @@ Folgende interne Identifier wurden bewusst **nicht** verändert, um die lauffäh
 
 Das Repository befindet sich in einem **sauberen, vollständig getesteten und stabilen Zustand**.
 Astra kann direkt mit den Aufgaben aus `READY_FOR_ASTRA` fortfahren.
+
+---
+
+## 5. Stable Base for Astra
+
+Astra soll alle kommenden größeren Arbeiten von folgendem Safepoint aus betrachten:
+
+- **Tag:** `v0.1.0-beta.1`
+- **Commit:** *Finaler Commit dieses Checkpoints*
+- **Version:** `0.1.0-beta.1`
+
+Dieser Stand wurde vor den großen Architektur-, Sicherheits-, Monetarisierungs- und Production-Arbeiten vollständig getestet (315/315 Tests PASS, 0 Typecheck-Fehler, 0 Lint-Fehler, Coach Preflight PASS).
+
+Bei schwerwiegenden Regressionen dient dieser Commit bzw. Tag als gesicherte und unveränderliche Referenz.

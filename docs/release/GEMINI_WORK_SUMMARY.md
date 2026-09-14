@@ -75,6 +75,36 @@
 
 ---
 
+### Prompt 4 – Repository Cleanup & Beta Checkpoint
+- **Pre-Cleanup Safepoint:**
+  - Commit: `a9043bd`
+  - Branch: `main`
+  - Tests: PASS (315/315 Tests grün, 0 Typecheck-Fehler, 0 Lint-Fehler, Coach Preflight PASS)
+- **Entfernte Artefakte:**
+  - Keine redundanten temporären Caches, `.bak`, `.tmp`, `.old` oder `.orig` Dateien im Quellcode gefunden (Hygiene war bereits sauber).
+  - Veraltetes Verzeichnis `volt_release_execution_pack/` vollständig durch `evaro_release_execution_pack/` ersetzt.
+- **Konsolidierte Dokumentation:**
+  - `README.md` auf EVARO aktualisiert und Verweise auf `docs/release/*` konsolidiert.
+  - `docs/release/BETA_RELEASE_NOTES.md` für Checkpoint `v0.1.0-beta.1` erstellt.
+  - `docs/release/REPOSITORY_CLEANUP_REPORT.md` als Nachweis aller Prüfungen und Retention-Entscheidungen angelegt.
+  - `docs/release/EXECUTION_STATUS.md` und `docs/release/ASTRA_HANDOFF.md` um den stabilen Basispunkt für Astra ergänzt.
+- **Code Cleanup:**
+  - Version in `package.json` und `apps/mobile/package.json` auf `0.1.0-beta.1` gesetzt.
+  - Keine toten Imports oder vergessenen `console.log` im mobilen Quellcode (ESLint garantiert `no-console`).
+- **Dependencies:**
+  - Bereits in Prompt 2 bereinigt (`@opentelemetry/api` entfernt); keine weiteren ungenutzten Abhängigkeiten vorhanden.
+- **Bewusst behalten:**
+  - `inspo/` (Design-Inspirationen, alternative Themes & Icon-Packs für zukünftige UI-Ausbaustufen).
+  - `apps/mobile/assets/Design_idea/` (Historische PRDs und UI-Konzepte).
+  - `docs/schema.sql` (Vollständige PostgreSQL- und RLS-Definition für Supabase).
+  - `docs/archive/` (Archivierte Meilensteine und Statusberichte).
+  - Interne technische Legacy-Identifier (`com.fitnesstracker.app`, `fitness-tracker`, `volt-sync-store`, `volt-coach-store`, `volt-emblem.png`).
+- **Beta Tag:** `v0.1.0-beta.1`
+- **Release:** Pre-release Checkpoint dokumentiert in `BETA_RELEASE_NOTES.md` (manueller GitHub Pre-release via Web, da `gh` CLI lokal nicht installiert ist).
+- **Final Tests:** 315/315 PASS, 0 Typecheck-Fehler, 0 Lint-Fehler, Coach Preflight PASS.
+
+---
+
 # Aktueller technischer Stand
 
 ## Funktioniert / verifiziert

@@ -3,8 +3,8 @@
 **Stand:** 15. September 2026  
 **Rolle:** Supporting Mobile/Backend Release Preparation Agent (Gemini)  
 **Lead Architect / Next Agent:** ChatGPT-Astra  
-**Branch:** `main` (nach Integration von `gemini/release-preparation`)  
-**Commit:** `29ae2fa`  
+**Pre-Cleanup Safepoint:** `a9043bd` (Branch: `main`, Tests: PASS)  
+**Branch:** `main`  
 **Working Tree:** Sauber  
 
 ---
@@ -198,3 +198,19 @@ Im Code und in der Dokumentation wurden alle sichtbaren Alt-Namen bereinigt:
 3. **Exercise-Asset-Entscheidung:** Klären der Lizenzstrategie für die Übungs-GIFs.
 4. **Rechtstexte:** Bereitstellung von echtem Impressum, Datenschutzerklärung und EULA.
 5. **Hosting & Secrets:** HTTPS-Server für Coach Backend bereitstellen.
+
+---
+
+## 5. Stable Beta Checkpoint
+
+**Version:** `0.1.0-beta.1`  
+**Tag:** `v0.1.0-beta.1`  
+**Commit:** *Finaler Commit dieses Blocks*  
+**Date:** 15. September 2026  
+**Typecheck:** PASS (0 Fehler über alle Pakete)  
+**Lint:** PASS (0 Fehler, 0 Warnungen)  
+**Tests:** 315 / 315 PASS (100% grün)  
+**Coach Check:** PASS (Modell & API-Key bestätigt)  
+**Physical iOS:** NOT VERIFIED  
+**Physical Android:** NOT VERIFIED  
+**Status:** `STABLE_BETA_CHECKPOINT`  

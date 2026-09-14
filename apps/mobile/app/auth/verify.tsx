@@ -6,12 +6,14 @@ import { useRouter, useLocalSearchParams, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, Button, useDialog } from '@fitness-tracker/ui';
 import { useAuthStore } from '../../src/stores/authStore';
+import { useI18n } from '../../src/i18n';
 
 export default function VerifyScreen() {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { showAlert } = useDialog();
+  const { language } = useI18n();
   const { email = '' } = useLocalSearchParams<{ email?: string }>();
   const { initialize, resendVerificationEmail, isLoading } = useAuthStore();
 
@@ -22,30 +24,47 @@ export default function VerifyScreen() {
       const session = useAuthStore.getState().session;
       if (session) {
         await showAlert({
-          title: 'Success',
-          message: 'Email successfully verified! Welcome to Volt.',
+          title: language === 'de' ? 'Erfolg' : 'Success',
+          message:
+            language === 'de'
+              ? 'E-Mail erfolgreich bestätigt! Willkommen bei Volt.'
+              : 'Email successfully verified! Welcome to Volt.',
           tone: 'success',
         });
         router.replace('/' as Href);
       } else {
         await showAlert({
-          title: 'Not Verified Yet',
+          title: language === 'de' ? 'Noch nicht bestätigt' : 'Not Verified Yet',
           message:
-            'We could not detect an active session. Please make sure to open the link inside your confirmation email first.',
+            language === 'de'
+              ? 'Keine aktive Sitzung gefunden. Bitte öffne zuerst den Bestätigungslink in deiner E-Mail.'
+              : 'We could not detect an active session. Please make sure to open the link inside your confirmation email first.',
           tone: 'default',
         });
       }
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'An unexpected error occurred.';
-      await showAlert({ title: 'Error', message: errMsg, tone: 'danger' });
+      const errMsg =
+        err instanceof Error
+          ? err.message
+          : language === 'de'
+            ? 'Ein unerwarteter Fehler ist aufgetreten.'
+            : 'An unexpected error occurred.';
+      await showAlert({
+        title: language === 'de' ? 'Fehler' : 'Error',
+        message: errMsg,
+        tone: 'danger',
+      });
     }
   };
 
   const handleResendEmail = async () => {
     if (!email) {
       await showAlert({
-        title: 'Error',
-        message: 'No email address found to resend verification.',
+        title: language === 'de' ? 'Fehler' : 'Error',
+        message:
+          language === 'de'
+            ? 'Keine E-Mail-Adresse gefunden, um den Link erneut zu senden.'
+            : 'No email address found to resend verification.',
         tone: 'danger',
       });
       return;
@@ -54,17 +73,33 @@ export default function VerifyScreen() {
     try {
       const result = await resendVerificationEmail(email);
       if (result.error) {
-        await showAlert({ title: 'Error', message: result.error, tone: 'danger' });
+        await showAlert({
+          title: language === 'de' ? 'Fehler' : 'Error',
+          message: result.error,
+          tone: 'danger',
+        });
       } else {
         await showAlert({
-          title: 'Success',
-          message: 'A new verification link has been sent to ' + email,
+          title: language === 'de' ? 'Erfolg' : 'Success',
+          message:
+            language === 'de'
+              ? 'Ein neuer Bestätigungslink wurde an ' + email + ' gesendet.'
+              : 'A new verification link has been sent to ' + email,
           tone: 'success',
         });
       }
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'An unexpected error occurred.';
-      await showAlert({ title: 'Error', message: errMsg, tone: 'danger' });
+      const errMsg =
+        err instanceof Error
+          ? err.message
+          : language === 'de'
+            ? 'Ein unerwarteter Fehler ist aufgetreten.'
+            : 'An unexpected error occurred.';
+      await showAlert({
+        title: language === 'de' ? 'Fehler' : 'Error',
+        message: errMsg,
+        tone: 'danger',
+      });
     }
   };
 
@@ -81,7 +116,7 @@ export default function VerifyScreen() {
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
       >
-        <AuthHeader title="Check your inbox" />
+        <AuthHeader title={language === 'de' ? 'Posteingang prüfen' : 'Check your inbox'} />
 
         <View style={styles.body}>
           <Ionicons
@@ -90,20 +125,25 @@ export default function VerifyScreen() {
             color={theme.colors.primary}
             style={styles.icon}
           />
-          <Text style={[styles.bodyTitle, { color: theme.colors.text }]}>Verify your Email</Text>
+          <Text style={[styles.bodyTitle, { color: theme.colors.text }]}>
+            {language === 'de' ? 'Bestätige deine E-Mail' : 'Verify your Email'}
+          </Text>
           <Text style={[styles.bodyText, { color: theme.colors.muted }]}>
-            We've sent a verification link to:
+            {language === 'de'
+              ? 'Wir haben einen Bestätigungslink gesendet an:'
+              : "We've sent a verification link to:"}
           </Text>
           <Text style={[styles.emailText, { color: theme.colors.text }]}>{email}</Text>
           <Text style={[styles.bodyText, { color: theme.colors.muted }]}>
-            Please tap the link inside that email to complete your registration, then click check
-            status below.
+            {language === 'de'
+              ? 'Bitte tippe auf den Link in dieser E-Mail, um die Registrierung abzuschließen. Klicke danach unten auf Status prüfen.'
+              : 'Please tap the link inside that email to complete your registration, then click check status below.'}
           </Text>
         </View>
 
         <View style={styles.actions}>
           <Button
-            title="I HAVE VERIFIED MY EMAIL"
+            title={language === 'de' ? 'ICH HABE DIE E-MAIL BESTÄTIGT' : 'I HAVE VERIFIED MY EMAIL'}
             variant="primary"
             isLoading={isLoading}
             onPress={handleCheckStatus}
@@ -111,7 +151,7 @@ export default function VerifyScreen() {
           />
 
           <Button
-            title="RESEND EMAIL"
+            title={language === 'de' ? 'E-MAIL ERNEUT SENDEN' : 'RESEND EMAIL'}
             variant="secondary"
             isLoading={isLoading}
             onPress={handleResendEmail}
@@ -121,7 +161,7 @@ export default function VerifyScreen() {
 
         <View style={styles.footer}>
           <Button
-            title="Back to Log In"
+            title={language === 'de' ? 'Zurück zur Anmeldung' : 'Back to Log In'}
             variant="ghost"
             onPress={() => router.push('/auth/login' as Href)}
             style={styles.backButton}

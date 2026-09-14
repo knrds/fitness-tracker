@@ -7,6 +7,7 @@ import { useTheme } from '@fitness-tracker/ui';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 
 import { useProfileStore } from '../../stores/profileStore';
+import { useI18n } from '../../i18n';
 
 interface Props {
   visible: boolean;
@@ -37,6 +38,7 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
   const { profile } = useProfileStore();
+  const { language } = useI18n();
   const isImperial = profile.preferredUnits === 'imperial';
 
   const [inputWeight, setInputWeight] = useState('');
@@ -177,7 +179,7 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
         >
           <View style={styles.header}>
             <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
-              Plate Calculator
+              {language === 'de' ? 'Scheiben-Rechner' : 'Plate Calculator'}
             </Text>
             <Pressable onPress={onClose} hitSlop={15}>
               <Ionicons name="close" size={24} color={theme.colors.muted} />
@@ -202,16 +204,20 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
             >
               <Ionicons name="information-circle-outline" size={18} color={theme.colors.primary} />
               <Text style={[styles.barbellAlertText, { color: theme.colors.text }]}>
-                Calculations are based on a standard{' '}
+                {language === 'de'
+                  ? 'Berechnungen basieren auf einer standardmäßigen '
+                  : 'Calculations are based on a standard '}
                 <Text style={{ color: theme.colors.primary, fontFamily: 'SpaceGrotesk_700Bold' }}>
                   20 kg (44 lbs)
                 </Text>{' '}
-                barbell.
+                {language === 'de' ? 'Langhantel.' : 'barbell.'}
               </Text>
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: theme.colors.muted }]}>Target Weight</Text>
+              <Text style={[styles.inputLabel, { color: theme.colors.muted }]}>
+                {language === 'de' ? 'Zielgewicht' : 'Target Weight'}
+              </Text>
               <View
                 style={[
                   styles.inputRow,
@@ -238,7 +244,7 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
             {/* Load Plates Row */}
             <View style={styles.addPlatesContainer}>
               <Text style={[styles.inputLabel, { color: theme.colors.muted }]}>
-                Load Plates (per side)
+                {language === 'de' ? 'Scheiben auflegen (pro Seite)' : 'Load Plates (per side)'}
               </Text>
               <ScrollView
                 horizontal
@@ -265,12 +271,13 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
                   );
                 })}
                 <Pressable
+                  accessibilityLabel="Clear"
                   style={[styles.resetBarBtn, { borderColor: theme.colors.border }]}
                   onPress={() => setInputWeight(isImperial ? '44' : '20')}
                 >
                   <Ionicons name="refresh-outline" size={16} color={theme.colors.accent} />
                   <Text style={[styles.resetBarBtnText, { color: theme.colors.accent }]}>
-                    Clear
+                    {language === 'de' ? 'Zurücksetzen' : 'Clear'}
                   </Text>
                 </Pressable>
               </ScrollView>
@@ -304,14 +311,20 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
                 <View style={styles.emptyState}>
                   <Text style={[styles.emptyText, { color: theme.colors.muted }]}>
                     {targetWeightKg > 0
-                      ? 'Barbell only (20 kg / 44 lbs).'
-                      : 'Enter a weight greater than 20 kg.'}
+                      ? language === 'de'
+                        ? 'Nur Langhantel (20 kg / 44 lbs).'
+                        : 'Barbell only (20 kg / 44 lbs).'
+                      : language === 'de'
+                        ? 'Gib ein Gewicht größer als 20 kg ein.'
+                        : 'Enter a weight greater than 20 kg.'}
                   </Text>
                 </View>
               ) : (
                 <View style={styles.summaryContainer}>
                   <Text style={[styles.summaryHeader, { color: theme.colors.muted }]}>
-                    Plates per side (Tap to remove)
+                    {language === 'de'
+                      ? 'Scheiben pro Seite (Tippen zum Entfernen)'
+                      : 'Plates per side (Tap to remove)'}
                   </Text>
                   {platesPerSide.map((item, idx) => {
                     const displayWeight = isImperial ? item.weight * 2.20462 : item.weight;
@@ -353,7 +366,7 @@ export const PlateCalculatorModal = ({ visible, initialWeightKg, onClose }: Prop
                 { color: theme.colors.background, ...theme.typography.button },
               ]}
             >
-              Done
+              {language === 'de' ? 'Fertig' : 'Done'}
             </Text>
           </Pressable>
         </Pressable>

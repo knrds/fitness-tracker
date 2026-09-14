@@ -5,12 +5,14 @@ import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } fr
 import { useRouter, Href } from 'expo-router';
 import { useTheme, Input, Button, useDialog } from '@fitness-tracker/ui';
 import { useAuthStore } from '../../src/stores/authStore';
+import { useI18n } from '../../src/i18n';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { showAlert } = useDialog();
+  const { language } = useI18n();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const { updatePassword, isLoading } = useAuthStore();
@@ -18,8 +20,11 @@ export default function ResetPasswordScreen() {
   const handleResetPassword = async () => {
     if (!password.trim() || !confirmPassword.trim()) {
       await showAlert({
-        title: 'Error',
-        message: 'Please fill in both password fields.',
+        title: language === 'de' ? 'Fehler' : 'Error',
+        message:
+          language === 'de'
+            ? 'Bitte fülle beide Passwortfelder aus.'
+            : 'Please fill in both password fields.',
         tone: 'danger',
       });
       return;
@@ -27,8 +32,9 @@ export default function ResetPasswordScreen() {
 
     if (password !== confirmPassword) {
       await showAlert({
-        title: 'Error',
-        message: 'Passwords do not match.',
+        title: language === 'de' ? 'Fehler' : 'Error',
+        message:
+          language === 'de' ? 'Passwörter stimmen nicht überein.' : 'Passwords do not match.',
         tone: 'danger',
       });
       return;
@@ -36,8 +42,11 @@ export default function ResetPasswordScreen() {
 
     if (password.length < 6) {
       await showAlert({
-        title: 'Weak Password',
-        message: 'Password must be at least 6 characters long.',
+        title: language === 'de' ? 'Schwaches Passwort' : 'Weak Password',
+        message:
+          language === 'de'
+            ? 'Das Passwort muss mindestens 6 Zeichen lang sein.'
+            : 'Password must be at least 6 characters long.',
         tone: 'danger',
       });
       return;
@@ -46,18 +55,34 @@ export default function ResetPasswordScreen() {
     try {
       const result = await updatePassword(password);
       if (result.error) {
-        await showAlert({ title: 'Update Failed', message: result.error, tone: 'danger' });
+        await showAlert({
+          title: language === 'de' ? 'Aktualisierung fehlgeschlagen' : 'Update Failed',
+          message: result.error,
+          tone: 'danger',
+        });
       } else {
         await showAlert({
-          title: 'Success',
-          message: 'Your password has been successfully updated.',
+          title: language === 'de' ? 'Erfolg' : 'Success',
+          message:
+            language === 'de'
+              ? 'Dein Passwort wurde erfolgreich aktualisiert.'
+              : 'Your password has been successfully updated.',
           tone: 'success',
         });
         router.replace('/' as Href);
       }
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'An unexpected error occurred.';
-      await showAlert({ title: 'Error', message: errMsg, tone: 'danger' });
+      const errMsg =
+        err instanceof Error
+          ? err.message
+          : language === 'de'
+            ? 'Ein unerwarteter Fehler ist aufgetreten.'
+            : 'An unexpected error occurred.';
+      await showAlert({
+        title: language === 'de' ? 'Fehler' : 'Error',
+        message: errMsg,
+        tone: 'danger',
+      });
     }
   };
 
@@ -77,15 +102,19 @@ export default function ResetPasswordScreen() {
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
       >
-        <AuthHeader title="Choose a new password" />
+        <AuthHeader
+          title={language === 'de' ? 'Neues Passwort wählen' : 'Choose a new password'}
+        />
 
         <View style={styles.form}>
           <Text style={[styles.instructionText, { color: theme.colors.muted }]}>
-            Please enter your new password below.
+            {language === 'de'
+              ? 'Bitte gib unten dein neues Passwort ein.'
+              : 'Please enter your new password below.'}
           </Text>
 
           <Input
-            label="New Password"
+            label={language === 'de' ? 'Neues Passwort' : 'New Password'}
             placeholder="••••••••"
             value={password}
             onChangeText={setPassword}
@@ -94,7 +123,7 @@ export default function ResetPasswordScreen() {
           />
 
           <Input
-            label="Confirm New Password"
+            label={language === 'de' ? 'Neues Passwort bestätigen' : 'Confirm New Password'}
             placeholder="••••••••"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
@@ -103,7 +132,7 @@ export default function ResetPasswordScreen() {
           />
 
           <Button
-            title="UPDATE PASSWORD"
+            title={language === 'de' ? 'PASSWORT AKTUALISIEREN' : 'UPDATE PASSWORD'}
             variant="primary"
             isLoading={isLoading}
             onPress={handleResetPassword}

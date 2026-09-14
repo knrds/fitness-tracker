@@ -9,6 +9,7 @@ import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { SaveTemplateModal } from '../../src/components/workout/SaveTemplateModal';
+import { useI18n } from '../../src/i18n';
 import {
   TemplateExercise,
   SessionExercise,
@@ -28,6 +29,7 @@ export default function WorkoutDetailScreen() {
   const { createTemplate } = useProgramStore();
   const { profile } = useProfileStore();
   const { showAlert, showConfirm } = useDialog();
+  const { language } = useI18n();
   const isImperial = profile.preferredUnits === 'imperial';
 
   const [saveModalVisible, setSaveModalVisible] = useState(false);
@@ -37,13 +39,13 @@ export default function WorkoutDetailScreen() {
   if (!session) {
     return (
       <View style={styles.centered}>
-        <Text>Workout not found.</Text>
+        <Text>{language === 'de' ? 'Training nicht gefunden.' : 'Workout not found.'}</Text>
       </View>
     );
   }
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat(language === 'de' ? 'de-DE' : 'en-US', {
       weekday: 'long',
       month: 'long',
       day: 'numeric',
@@ -86,11 +88,13 @@ export default function WorkoutDetailScreen() {
 
     if (activeWorkoutStatus === 'active' || activeWorkoutStatus === 'paused') {
       const shouldStart = await showConfirm({
-        title: 'Workout In Progress',
+        title: language === 'de' ? 'Laufendes Training' : 'Workout In Progress',
         message:
-          'An active workout is already in progress. Do you want to discard it and repeat this workout instead?',
-        confirmLabel: 'Discard & Start',
-        cancelLabel: 'Keep Current',
+          language === 'de'
+            ? 'Ein Training läuft bereits. Möchtest du es verwerfen und stattdessen dieses Training wiederholen?'
+            : 'An active workout is already in progress. Do you want to discard it and repeat this workout instead?',
+        confirmLabel: language === 'de' ? 'Verwerfen & Starten' : 'Discard & Start',
+        cancelLabel: language === 'de' ? 'Behalten' : 'Keep Current',
         destructive: true,
       });
       if (shouldStart) {
@@ -109,14 +113,17 @@ export default function WorkoutDetailScreen() {
       : Math.round(summary.totalVolume);
     const volumeUnit = isImperial ? 'lbs' : 'kg';
 
-    let shareMessage = `Workout completed: ${session.name}\n`;
-    shareMessage += `Duration: ${durationMin} min\n`;
-    shareMessage += `Total Volume: ${displayVolume} ${volumeUnit}\n`;
-    shareMessage += `Total Sets: ${summary.setCount}\n`;
+    const isDe = language === 'de';
+    let shareMessage = isDe
+      ? `Training abgeschlossen: ${session.name}\n`
+      : `Workout completed: ${session.name}\n`;
+    shareMessage += `${isDe ? 'Dauer' : 'Duration'}: ${durationMin} min\n`;
+    shareMessage += `${isDe ? 'Gesamtvolumen' : 'Total Volume'}: ${displayVolume} ${volumeUnit}\n`;
+    shareMessage += `${isDe ? 'Gesamtsätze' : 'Total Sets'}: ${summary.setCount}\n`;
     if (session.notes) {
-      shareMessage += `Note: ${session.notes}\n`;
+      shareMessage += `${isDe ? 'Notiz' : 'Note'}: ${session.notes}\n`;
     }
-    shareMessage += `\nTracked with Fitness Tracker App!`;
+    shareMessage += `\n${isDe ? 'Getrackt mit Fitness Tracker App!' : 'Tracked with Fitness Tracker App!'}`;
 
     try {
       await Share.share({ message: shareMessage });
@@ -132,8 +139,8 @@ export default function WorkoutDetailScreen() {
     });
     setSaveModalVisible(false);
     await showAlert({
-      title: 'Success',
-      message: 'Template saved successfully!',
+      title: language === 'de' ? 'Erfolg' : 'Success',
+      message: language === 'de' ? 'Vorlage erfolgreich gespeichert!' : 'Template saved successfully!',
       tone: 'success',
     });
   };
@@ -148,16 +155,20 @@ export default function WorkoutDetailScreen() {
 
   return (
     <View style={styles.outerContainer}>
-      <Stack.Screen options={{ title: session.name || 'Workout Details' }} />
+      <Stack.Screen
+        options={{ title: session.name || (language === 'de' ? 'Trainingsdetails' : 'Workout Details') }}
+      />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>{session.name}</Text>
           <Text style={styles.date}>{formatDate(session.startedAt)}</Text>
-          <Text style={styles.duration}>Duration: {formatDuration(session.durationSeconds)}</Text>
+          <Text style={styles.duration}>
+            {language === 'de' ? 'Dauer' : 'Duration'}: {formatDuration(session.durationSeconds)}
+          </Text>
 
           <View style={styles.actionRow}>
             <Pressable style={styles.actionBtn} onPress={handleRepeatWorkout}>
-              <Text style={styles.actionBtnText}>Repeat</Text>
+              <Text style={styles.actionBtnText}>{language === 'de' ? 'Wiederholen' : 'Repeat'}</Text>
             </Pressable>
             <Pressable
               style={[styles.actionBtn, styles.saveBtn]}
@@ -166,12 +177,12 @@ export default function WorkoutDetailScreen() {
               <Text style={styles.saveBtnText}>Template</Text>
             </Pressable>
             <Pressable style={[styles.actionBtn, styles.shareBtn]} onPress={handleShareWorkout}>
-              <Text style={styles.shareBtnText}>Share</Text>
+              <Text style={styles.shareBtnText}>{language === 'de' ? 'Teilen' : 'Share'}</Text>
             </Pressable>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Exercises</Text>
+        <Text style={styles.sectionTitle}>{language === 'de' ? 'Übungen' : 'Exercises'}</Text>
 
         {session.exercises.map((ex, index) => {
           const exerciseDef = exercises.find((e) => e.id === ex.exerciseId);
@@ -181,18 +192,18 @@ export default function WorkoutDetailScreen() {
           return (
             <View key={ex.id} style={styles.card}>
               <Text style={styles.exName}>
-                {index + 1}. {exerciseDef?.name || 'Unknown Exercise'}
+                {index + 1}. {exerciseDef?.name || (language === 'de' ? 'Unbekannte Übung' : 'Unknown Exercise')}
               </Text>
               {volume > 0 && (
                 <Text style={styles.volumeText}>
-                  Volume: {volume.toLocaleString()} {isImperial ? 'lbs' : 'kg'}
+                  {language === 'de' ? 'Volumen' : 'Volume'}: {volume.toLocaleString()} {isImperial ? 'lbs' : 'kg'}
                 </Text>
               )}
 
               <View style={styles.tableHeader}>
-                <Text style={styles.colSet}>Set</Text>
+                <Text style={styles.colSet}>{language === 'de' ? 'Satz' : 'Set'}</Text>
                 <Text style={styles.colWeight}>{isImperial ? 'lbs' : 'kg'}</Text>
-                <Text style={styles.colReps}>Reps</Text>
+                <Text style={styles.colReps}>{language === 'de' ? 'Wdh.' : 'Reps'}</Text>
                 <Text style={styles.colRpe}>RPE</Text>
               </View>
 

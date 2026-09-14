@@ -223,7 +223,7 @@ export default function WorkoutsScreen() {
 
   const handleStartEmpty = () => {
     if (status === 'idle' || status === 'finished') {
-      startWorkout('Empty Workout');
+      startWorkout(language === 'de' ? 'Leeres Workout' : 'Empty Workout');
     }
     router.push('/workout/session');
   };
@@ -236,10 +236,13 @@ export default function WorkoutsScreen() {
 
     if (status === 'active' || status === 'paused') {
       const shouldDiscard = await showConfirm({
-        title: 'Laufendes Training',
-        message: 'Ein Training ist bereits aktiv. Möchtest du es verwerfen und stattdessen diese Vorlage starten?',
-        confirmLabel: 'Verwerfen & Starten',
-        cancelLabel: 'Abbrechen',
+        title: language === 'de' ? 'Laufendes Training' : 'Active Workout',
+        message:
+          language === 'de'
+            ? 'Ein Training ist bereits aktiv. Möchtest du es verwerfen und stattdessen diese Vorlage starten?'
+            : 'A workout is already active. Do you want to discard it and start this template instead?',
+        confirmLabel: language === 'de' ? 'Verwerfen & Starten' : 'Discard & Start',
+        cancelLabel: language === 'de' ? 'Abbrechen' : 'Cancel',
         destructive: true,
       });
       if (shouldDiscard) {
@@ -404,7 +407,16 @@ export default function WorkoutsScreen() {
         >
           <Text style={styles.cardTitle}>{item.name}</Text>
           <Text style={styles.cardSubtitle} numberOfLines={2} ellipsizeMode="tail">
-            {exerciseNames || `${item.exercises.length} Exercises`}
+            {exerciseNames ||
+              `${item.exercises.length} ${
+                item.exercises.length === 1
+                  ? language === 'de'
+                    ? 'Übung'
+                    : 'Exercise'
+                  : language === 'de'
+                  ? 'Übungen'
+                  : 'Exercises'
+              }`}
           </Text>
         </Pressable>
 
@@ -484,8 +496,20 @@ export default function WorkoutsScreen() {
                   const previewText =
                     exSummary.length > 0
                       ? exSummary.slice(0, 3).join(', ') +
-                        (exSummary.length > 3 ? ` & ${exSummary.length - 3} more...` : '')
-                      : `${item.exercises.length} ${language === 'de' ? 'Übungen' : 'Exercises'}`;
+                        (exSummary.length > 3
+                          ? language === 'de'
+                            ? ` & ${exSummary.length - 3} weitere...`
+                            : ` & ${exSummary.length - 3} more...`
+                          : '')
+                      : `${item.exercises.length} ${
+                          item.exercises.length === 1
+                            ? language === 'de'
+                              ? 'Übung'
+                              : 'Exercise'
+                            : language === 'de'
+                            ? 'Übungen'
+                            : 'Exercises'
+                        }`;
 
                   return (
                     <Pressable
@@ -1168,7 +1192,14 @@ export default function WorkoutsScreen() {
                 <View style={styles.modalStatItem}>
                   <Ionicons name="barbell-outline" size={16} color={theme.colors.primary} />
                   <Text style={[styles.modalStatText, { color: theme.colors.muted }]}>
-                    {summaryTemplate.exercises.length} {language === 'de' ? 'Übungen' : 'Exercises'}
+                    {summaryTemplate.exercises.length}{' '}
+                    {summaryTemplate.exercises.length === 1
+                      ? language === 'de'
+                        ? 'Übung'
+                        : 'Exercise'
+                      : language === 'de'
+                      ? 'Übungen'
+                      : 'Exercises'}
                   </Text>
                 </View>
                 <View style={styles.modalStatItem}>

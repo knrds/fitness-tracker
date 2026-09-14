@@ -5,20 +5,25 @@ import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } fr
 import { useRouter, Href } from 'expo-router';
 import { useTheme, Input, Button, useDialog } from '@fitness-tracker/ui';
 import { useAuthStore } from '../../src/stores/authStore';
+import { useI18n } from '../../src/i18n';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { showAlert } = useDialog();
+  const { language } = useI18n();
   const [email, setEmail] = useState('');
   const { sendPasswordResetEmail, isLoading } = useAuthStore();
 
   const handleRequestLink = async () => {
     if (!email.trim()) {
       await showAlert({
-        title: 'Error',
-        message: 'Please enter your email address.',
+        title: language === 'de' ? 'Fehler' : 'Error',
+        message:
+          language === 'de'
+            ? 'Bitte gib deine E-Mail-Adresse ein.'
+            : 'Please enter your email address.',
         tone: 'danger',
       });
       return;
@@ -27,20 +32,39 @@ export default function ForgotPasswordScreen() {
     try {
       const result = await sendPasswordResetEmail(email.trim());
       if (result.error) {
-        await showAlert({ title: 'Request Failed', message: result.error, tone: 'danger' });
+        await showAlert({
+          title: language === 'de' ? 'Anfrage fehlgeschlagen' : 'Request Failed',
+          message: result.error,
+          tone: 'danger',
+        });
       } else {
         await showAlert({
-          title: 'Link Sent',
+          title: language === 'de' ? 'Link gesendet' : 'Link Sent',
           message:
-            'A password reset link has been sent to ' + email.trim() + '. Please check your inbox.',
+            language === 'de'
+              ? 'Ein Link zum Zurücksetzen des Passworts wurde an ' +
+                email.trim() +
+                ' gesendet. Bitte prüfe deinen Posteingang.'
+              : 'A password reset link has been sent to ' +
+                email.trim() +
+                '. Please check your inbox.',
           tone: 'success',
         });
         setEmail('');
         router.push('/auth/login' as Href);
       }
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'An unexpected error occurred.';
-      await showAlert({ title: 'Error', message: errMsg, tone: 'danger' });
+      const errMsg =
+        err instanceof Error
+          ? err.message
+          : language === 'de'
+            ? 'Ein unerwarteter Fehler ist aufgetreten.'
+            : 'An unexpected error occurred.';
+      await showAlert({
+        title: language === 'de' ? 'Fehler' : 'Error',
+        message: errMsg,
+        tone: 'danger',
+      });
     }
   };
 
@@ -60,16 +84,17 @@ export default function ForgotPasswordScreen() {
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
       >
-        <AuthHeader title="Reset your password" />
+        <AuthHeader title={language === 'de' ? 'Passwort zurücksetzen' : 'Reset your password'} />
 
         <View style={styles.form}>
           <Text style={[styles.instructionText, { color: theme.colors.muted }]}>
-            Enter the email address associated with your account, and we'll send you a link to reset
-            your password.
+            {language === 'de'
+              ? 'Gib die mit deinem Konto verknüpfte E-Mail-Adresse ein. Wir senden dir einen Link zum Zurücksetzen deines Passworts.'
+              : "Enter the email address associated with your account, and we'll send you a link to reset your password."}
           </Text>
 
           <Input
-            label="Email Address"
+            label={language === 'de' ? 'E-Mail-Adresse' : 'Email Address'}
             placeholder="email@example.com"
             value={email}
             onChangeText={setEmail}
@@ -78,7 +103,7 @@ export default function ForgotPasswordScreen() {
           />
 
           <Button
-            title="SEND RESET LINK"
+            title={language === 'de' ? 'LINK SENDEN' : 'SEND RESET LINK'}
             variant="primary"
             isLoading={isLoading}
             onPress={handleRequestLink}
@@ -88,7 +113,7 @@ export default function ForgotPasswordScreen() {
 
         <View style={styles.footer}>
           <Button
-            title="Back to Log In"
+            title={language === 'de' ? 'Zurück zur Anmeldung' : 'Back to Log In'}
             variant="ghost"
             onPress={() => router.push('/auth/login' as Href)}
             style={styles.backButton}

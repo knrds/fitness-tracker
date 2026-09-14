@@ -219,14 +219,20 @@ export default function WorkoutSessionScreen() {
   const caffeineWarningLevel = getCaffeineWarningLevel(currentWorkoutMg);
   const caffeineTrollText =
     currentWorkoutMg > 1500
-      ? 'Training und weißer Monster sind offenbar ein Lifestyle. Die eingetragene Menge bitte trotzdem kurz prüfen.'
+      ? language === 'de'
+        ? 'Training und weißer Monster sind offenbar ein Lifestyle. Die eingetragene Menge bitte trotzdem kurz prüfen.'
+        : 'Workout and white Monster seem to be a lifestyle. Please double-check the entered amount.'
       : null;
   const caffeineWarningText =
     caffeineTrollText ??
     (caffeineWarningLevel === 'extreme'
-      ? 'Extreme intake. Consider slowing down and hydrate.'
+      ? language === 'de'
+        ? 'Extreme Menge. Bitte verlangsamen und ausreichend hydrieren.'
+        : 'Extreme intake. Consider slowing down and hydrate.'
       : caffeineWarningLevel === 'high'
-        ? 'High caffeine day. Keep an eye on jitters and sleep.'
+        ? language === 'de'
+          ? 'Hoher Koffeintag. Achte auf Zittrigkeit und deinen Schlaf.'
+          : 'High caffeine day. Keep an eye on jitters and sleep.'
         : null);
 
   const handleAddCustomCaffeine = () => {
@@ -374,7 +380,9 @@ export default function WorkoutSessionScreen() {
             >
               <View style={styles.caffeineTitleRow}>
                 <Ionicons name="flash-outline" size={16} color={theme.colors.primary} />
-                <Text style={[styles.caffeineTitle, { color: theme.colors.text }]}>Caffeine</Text>
+                <Text style={[styles.caffeineTitle, { color: theme.colors.text }]}>
+                  {language === 'de' ? 'Koffein' : 'Caffeine'}
+                </Text>
               </View>
               <Text
                 style={[

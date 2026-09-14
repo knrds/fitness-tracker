@@ -2,9 +2,11 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@fitness-tracker/ui';
+import { useI18n } from '../i18n';
 
 export function AuthHeader({ title }: { title: string }) {
   const theme = useTheme();
+  const { language } = useI18n();
   return (
     <View style={{ marginBottom: 32, gap: 24 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -32,7 +34,7 @@ export function AuthHeader({ title }: { title: string }) {
           {title}
         </Text>
         <Text style={[theme.typography.body, { color: theme.colors.muted }]}>
-          Your training, in focus.
+          {language === 'de' ? 'Dein Training im Fokus.' : 'Your training, in focus.'}
         </Text>
       </View>
     </View>

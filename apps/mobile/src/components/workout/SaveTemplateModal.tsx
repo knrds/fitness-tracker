@@ -12,6 +12,7 @@ import {
   Keyboard,
 } from 'react-native';
 import { useTheme } from '@fitness-tracker/ui';
+import { useI18n } from '../../i18n';
 
 interface Props {
   visible: boolean;
@@ -34,6 +35,7 @@ export const SaveTemplateModal = ({
 }: Props) => {
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
+  const { language } = useI18n();
   const [name, setName] = useState(defaultName);
 
   useEffect(() => {
@@ -47,10 +49,13 @@ export const SaveTemplateModal = ({
       if (Platform.OS === 'web') {
         if (typeof globalThis !== 'undefined' && 'alert' in globalThis) {
           const alertFn = (globalThis as { alert?: (msg: string) => void }).alert;
-          alertFn?.('Name is required');
+          alertFn?.(language === 'de' ? 'Name ist erforderlich' : 'Name is required');
         }
       } else {
-        Alert.alert('Error', 'Name is required');
+        Alert.alert(
+          language === 'de' ? 'Fehler' : 'Error',
+          language === 'de' ? 'Name ist erforderlich' : 'Name is required',
+        );
       }
       return;
     }
@@ -72,16 +77,27 @@ export const SaveTemplateModal = ({
           onPress={(e) => e.stopPropagation()}
         >
           <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
-            {templateId ? 'Template aktualisieren?' : 'Als Template speichern?'}
+            {templateId
+              ? language === 'de'
+                ? 'Template aktualisieren?'
+                : 'Update Template?'
+              : language === 'de'
+              ? 'Als Template speichern?'
+              : 'Save as Template?'}
           </Text>
           <Text style={[styles.subtitle, { color: theme.colors.muted }]}>
             {templateId
-              ? 'Du hast das Training angepasst. Möchtest du das bestehende Template überschreiben oder ein neues erstellen?'
-              : 'Speichere dieses Training als Template ab, um es später einfach wiederholen zu können.'}
+              ? language === 'de'
+                ? 'Du hast das Training angepasst. Möchtest du das bestehende Template überschreiben oder ein neues erstellen?'
+                : 'You adjusted this workout. Do you want to update the existing template or create a new one?'
+              : language === 'de'
+              ? 'Speichere dieses Training als Template ab, um es später einfach wiederholen zu können.'
+              : 'Save this workout as a template to easily repeat it later.'}
           </Text>
           <Text style={[styles.subtitle, { color: theme.colors.muted }]}>
-            Für alle Arbeitssätze gelten die Zielwerte des ersten Arbeitssatzes. Aufwärmsätze und
-            individuelle Satzdetails bleiben im Trainingsverlauf.
+            {language === 'de'
+              ? 'Für alle Arbeitssätze gelten die Zielwerte des ersten Arbeitssatzes. Aufwärmsätze und individuelle Satzdetails bleiben im Trainingsverlauf.'
+              : 'Target values of the first working set apply to all working sets. Warm-up sets and individual set details remain in workout history.'}
           </Text>
 
           {templateId && onUpdate && (
@@ -109,7 +125,9 @@ export const SaveTemplateModal = ({
                   },
                 ]}
               >
-                Bestehendes Template aktualisieren
+                {language === 'de'
+                  ? 'Bestehendes Template aktualisieren'
+                  : 'Update Existing Template'}
               </Text>
             </Pressable>
           )}
@@ -119,7 +137,13 @@ export const SaveTemplateModal = ({
           )}
 
           <Text style={[styles.label, { color: theme.colors.muted }]}>
-            {templateId ? 'Oder als neues speichern unter:' : 'Template-Name'}
+            {templateId
+              ? language === 'de'
+                ? 'Oder als neues speichern unter:'
+                : 'Or save as new template under:'
+              : language === 'de'
+              ? 'Template-Name'
+              : 'Template Name'}
           </Text>
           <TextInput
             style={[
@@ -132,7 +156,7 @@ export const SaveTemplateModal = ({
             ]}
             value={name}
             onChangeText={setName}
-            placeholder="z.B. Push Workout"
+            placeholder={language === 'de' ? 'z. B. Push Workout' : 'e.g. Push Workout'}
             placeholderTextColor={theme.colors.muted}
             autoFocus={!templateId}
             onSubmitEditing={() => Keyboard.dismiss()}
@@ -149,7 +173,7 @@ export const SaveTemplateModal = ({
               <Text
                 style={[styles.btnText, { color: theme.colors.muted, ...theme.typography.button }]}
               >
-                Nicht speichern
+                {language === 'de' ? 'Nicht speichern' : 'Don’t Save'}
               </Text>
             </Pressable>
             <Pressable
@@ -173,7 +197,13 @@ export const SaveTemplateModal = ({
                   },
                 ]}
               >
-                {templateId ? 'Als neues speichern' : 'Speichern'}
+                {templateId
+                  ? language === 'de'
+                    ? 'Als neues speichern'
+                    : 'Save as New'
+                  : language === 'de'
+                  ? 'Speichern'
+                  : 'Save'}
               </Text>
             </Pressable>
           </View>

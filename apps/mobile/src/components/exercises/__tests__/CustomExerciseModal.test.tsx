@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 
-import { Equipment, EXERCISES, MovementPattern, MuscleGroup } from '@fitness-tracker/domain';
+import { EXERCISES, MovementPattern } from '@fitness-tracker/domain';
 import { DialogProvider, ThemeProvider } from '@fitness-tracker/ui';
 
 import { useExerciseStore } from '../../../stores/exerciseStore';

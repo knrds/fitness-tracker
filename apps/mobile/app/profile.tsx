@@ -256,35 +256,46 @@ export default function ProfileScreen() {
       const dataStr = exportData();
       setExportedJson(dataStr);
 
-      Alert.alert('Export Data', 'Would you like to share the backup JSON or view it on screen?', [
-        {
-          text: 'Share / Save File',
-          onPress: async () => {
-            await Share.share({
-              message: dataStr,
-              title: 'Fitness Tracker Backup',
-            });
+      Alert.alert(
+        language === 'de' ? 'Daten exportieren' : 'Export Data',
+        language === 'de'
+          ? 'Möchtest du das Backup teilen oder auf dem Bildschirm ansehen?'
+          : 'Would you like to share the backup JSON or view it on screen?',
+        [
+          {
+            text: language === 'de' ? 'Datei teilen / speichern' : 'Share / Save File',
+            onPress: async () => {
+              await Share.share({
+                message: dataStr,
+                title: 'Fitness Tracker Backup',
+              });
+            },
           },
-        },
-        {
-          text: 'View on Screen',
-          onPress: () => setJsonModalVisible(true),
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]);
+          {
+            text: language === 'de' ? 'Auf Bildschirm anzeigen' : 'View on Screen',
+            onPress: () => setJsonModalVisible(true),
+          },
+          { text: language === 'de' ? 'Abbrechen' : 'Cancel', style: 'cancel' },
+        ],
+      );
     } catch {
-      Alert.alert('Error', 'Failed to export data.');
+      Alert.alert(
+        language === 'de' ? 'Fehler' : 'Error',
+        language === 'de' ? 'Export fehlgeschlagen.' : 'Failed to export data.',
+      );
     }
   };
 
   const handleResetData = () => {
     Alert.alert(
-      'Reset All Data',
-      'WARNING: This will permanently delete all your workouts, metrics, custom exercises, and settings. This action cannot be undone.',
+      language === 'de' ? 'Alle Daten zurücksetzen' : 'Reset All Data',
+      language === 'de'
+        ? 'WARNUNG: Dies löscht unwiderruflich alle deine Trainings, Metriken, benutzerdefinierten Übungen und Einstellungen. Diese Aktion kann nicht rückgängig gemacht werden.'
+        : 'WARNING: This will permanently delete all your workouts, metrics, custom exercises, and settings. This action cannot be undone.',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: language === 'de' ? 'Abbrechen' : 'Cancel', style: 'cancel' },
         {
-          text: 'Reset Everything',
+          text: language === 'de' ? 'Alles zurücksetzen' : 'Reset Everything',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -293,11 +304,18 @@ export default function ProfileScreen() {
               setGoal('');
               setLevel('');
               Alert.alert(
-                'Data Cleared',
-                'Local training data and recovery backups have been reset. Your account and cloud data remain available.',
+                language === 'de' ? 'Daten gelöscht' : 'Data Cleared',
+                language === 'de'
+                  ? 'Lokale Trainingsdaten und Sicherungen wurden zurückgesetzt. Dein Account und Clouddaten bleiben verfügbar.'
+                  : 'Local training data and recovery backups have been reset. Your account and cloud data remain available.',
               );
             } catch {
-              Alert.alert('Reset Failed', 'Local data could not be fully reset. Please try again.');
+              Alert.alert(
+                language === 'de' ? 'Zurücksetzen fehlgeschlagen' : 'Reset Failed',
+                language === 'de'
+                  ? 'Lokale Daten konnten nicht vollständig zurückgesetzt werden. Bitte erneut versuchen.'
+                  : 'Local data could not be fully reset. Please try again.',
+              );
             }
           },
         },
@@ -308,10 +326,12 @@ export default function ProfileScreen() {
   const handleSignOut = async () => {
     const result = await signOut();
     if (result.error) {
-      Alert.alert('Sign Out Failed', result.error);
+      Alert.alert(
+        language === 'de' ? 'Abmeldung fehlgeschlagen' : 'Sign Out Failed',
+        result.error,
+      );
     }
   };
-
 
   const handlePickImage = async () => {
     const scope = getStorageScope();
@@ -334,7 +354,10 @@ export default function ProfileScreen() {
         }
       }
     } catch {
-      Alert.alert('Error', 'Could not pick image.');
+      Alert.alert(
+        language === 'de' ? 'Fehler' : 'Error',
+        language === 'de' ? 'Bild konnte nicht ausgewählt werden.' : 'Could not pick image.',
+      );
     }
   };
 

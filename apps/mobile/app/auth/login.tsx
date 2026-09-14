@@ -13,19 +13,25 @@ import {
 import { useRouter, Href } from 'expo-router';
 import { useTheme, Input, Button, useDialog } from '@fitness-tracker/ui';
 import { useAuthStore } from '../../src/stores/authStore';
+import { useI18n } from '../../src/i18n';
 
 export default function LoginScreen() {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { showAlert } = useDialog();
+  const { language } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { signIn, isLoading } = useAuthStore();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      await showAlert({ title: 'Error', message: 'Please fill in all fields.', tone: 'danger' });
+      await showAlert({
+        title: language === 'de' ? 'Fehler' : 'Error',
+        message: language === 'de' ? 'Bitte fülle alle Felder aus.' : 'Please fill in all fields.',
+        tone: 'danger',
+      });
       return;
     }
 
@@ -36,13 +42,26 @@ export default function LoginScreen() {
       });
 
       if (result.error) {
-        await showAlert({ title: 'Login Failed', message: result.error, tone: 'danger' });
+        await showAlert({
+          title: language === 'de' ? 'Anmeldung fehlgeschlagen' : 'Login Failed',
+          message: result.error,
+          tone: 'danger',
+        });
       } else {
         // Auth state listener in _layout.tsx will navigate to (tabs) automatically
       }
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'An unexpected error occurred.';
-      await showAlert({ title: 'Error', message: errMsg, tone: 'danger' });
+      const errMsg =
+        err instanceof Error
+          ? err.message
+          : language === 'de'
+            ? 'Ein unerwarteter Fehler ist aufgetreten.'
+            : 'An unexpected error occurred.';
+      await showAlert({
+        title: language === 'de' ? 'Fehler' : 'Error',
+        message: errMsg,
+        tone: 'danger',
+      });
     }
   };
 
@@ -62,11 +81,11 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
       >
-        <AuthHeader title="Welcome back" />
+        <AuthHeader title={language === 'de' ? 'Willkommen zurück' : 'Welcome back'} />
 
         <View style={styles.form}>
           <Input
-            label="Email Address"
+            label={language === 'de' ? 'E-Mail-Adresse' : 'Email Address'}
             placeholder="email@example.com"
             value={email}
             onChangeText={setEmail}
@@ -75,7 +94,7 @@ export default function LoginScreen() {
           />
 
           <Input
-            label="Password"
+            label={language === 'de' ? 'Passwort' : 'Password'}
             placeholder="••••••••"
             value={password}
             onChangeText={setPassword}
@@ -88,12 +107,12 @@ export default function LoginScreen() {
             onPress={() => router.push('/auth/forgot-password' as Href)}
           >
             <Text style={[styles.forgotPasswordText, { color: theme.colors.primary }]}>
-              Forgot Password?
+              {language === 'de' ? 'Passwort vergessen?' : 'Forgot Password?'}
             </Text>
           </Pressable>
 
           <Button
-            title="LOG IN"
+            title={language === 'de' ? 'ANMELDEN' : 'LOG IN'}
             variant="primary"
             isLoading={isLoading}
             onPress={handleLogin}
@@ -103,14 +122,16 @@ export default function LoginScreen() {
 
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: theme.colors.muted }]}>
-            Don't have an account?{' '}
+            {language === 'de' ? 'Noch kein Konto? ' : "Don't have an account? "}
           </Text>
           <Pressable
             accessibilityRole="button"
             style={{ minHeight: 44, justifyContent: 'center' }}
             onPress={() => router.push('/auth/register' as Href)}
           >
-            <Text style={[styles.link, { color: theme.colors.primary }]}>Sign Up</Text>
+            <Text style={[styles.link, { color: theme.colors.primary }]}>
+              {language === 'de' ? 'Registrieren' : 'Sign Up'}
+            </Text>
           </Pressable>
         </View>
       </ScrollView>

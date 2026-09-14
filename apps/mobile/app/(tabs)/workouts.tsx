@@ -2,7 +2,7 @@ import { SegmentedControl } from '@fitness-tracker/ui';
 import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { useFocusScroll } from '../../src/hooks/useFocusScroll';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useDialog } from '@fitness-tracker/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
@@ -39,11 +40,13 @@ export default function WorkoutsScreen() {
     templates,
     customFolders = [],
     deleteTemplate,
+    updateTemplate,
     updateTemplatesOrder,
     createFolder,
     renameFolder,
     deleteFolder,
     setTemplateFolder,
+    updateFoldersOrder,
   } = useProgramStore();
 
   const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
@@ -64,10 +67,165 @@ export default function WorkoutsScreen() {
   // Track expanded/collapsed folders (default to all expanded)
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
 
-  const sorter = useMeasuredReorder(templates, updateTemplatesOrder);
-  useFocusScroll(sorter.scrollViewRef);
+  const sharedScrollViewRef = useRef<ScrollView>(null);
+  useFocusScroll(sharedScrollViewRef);
+
+  // Layout tracking for folder drop targets
+  const folderLayouts = useRef<Record<string, { y: number; height: number }>>({});
+  const hoverTimer = useRef<NodeJS.Timeout | null>(null);
+  const hoveredFolder = useRef<string | null>(null);
+
+  // Distinct folders: customFolders union template.folder
+  const allFolders = useMemo(() => {
+    const list: string[] = [];
+    const seen = new Set<string>();
+
+    for (const f of customFolders) {
+      const trimmed = f.trim();
+      if (trimmed && !seen.has(trimmed)) {
+        seen.add(trimmed);
+        list.push(trimmed);
+      }
+    }
+    for (const t of templates) {
+      if (t.folder?.trim()) {
+        const trimmed = t.folder.trim();
+        if (!seen.has(trimmed)) {
+          seen.add(trimmed);
+          list.push(trimmed);
+        }
+      }
+    }
+    return list;
+  }, [customFolders, templates]);
+
+  const folderItems = useMemo(
+    () => allFolders.map((name) => ({ id: name, name })),
+    [allFolders],
+  );
+
+  // Sorter for reordering folders themselves
+  const folderSorter = useMeasuredReorder(
+    folderItems,
+    (reordered) => {
+      updateFoldersOrder(reordered.map((f) => f.name));
+    },
+    { scrollViewRef: sharedScrollViewRef },
+  );
+
+  // Helper for hover over collapsed folders while dragging a template
+  const handleTemplateHoverY = (contentY: number) => {
+    const entries = Object.entries(folderLayouts.current);
+    const matched = entries.find(([, l]) => contentY >= l.y && contentY <= l.y + l.height);
+    const folderName = matched ? matched[0] : null;
+
+    if (folderName && folderName !== '__unassigned__' && expandedFolders[folderName] === false) {
+      if (hoveredFolder.current !== folderName) {
+        if (hoverTimer.current) clearTimeout(hoverTimer.current);
+        hoveredFolder.current = folderName;
+        hoverTimer.current = setTimeout(() => {
+          setExpandedFolders((prev) => ({ ...prev, [folderName]: true }));
+          void Haptics.selectionAsync();
+        }, 380);
+      }
+    } else {
+      if (hoverTimer.current) {
+        clearTimeout(hoverTimer.current);
+        hoverTimer.current = null;
+      }
+      hoveredFolder.current = null;
+    }
+  };
+
+  // Helper for dropping a template into a folder
+  const handleTemplateDrop = (item: WorkoutTemplate, dropY: number) => {
+    if (hoverTimer.current) {
+      clearTimeout(hoverTimer.current);
+      hoverTimer.current = null;
+    }
+    hoveredFolder.current = null;
+
+    const entries = Object.entries(folderLayouts.current);
+    if (entries.length === 0) return;
+
+    const matched =
+      entries.find(([, l]) => dropY >= l.y && dropY <= l.y + l.height) ??
+      entries.sort(
+        ([, a], [, b]) =>
+          Math.abs(dropY - a.y - a.height / 2) - Math.abs(dropY - b.y - b.height / 2),
+      )[0];
+
+    if (!matched) return;
+    const targetFolderKey = matched[0];
+    const newFolder = targetFolderKey === '__unassigned__' ? undefined : targetFolderKey;
+
+    const otherTemplates = templates.filter((t) => t.id !== item.id);
+
+    const destGroup = otherTemplates.filter((t) =>
+      targetFolderKey === '__unassigned__' ? !t.folder : t.folder === targetFolderKey,
+    );
+
+    const insertIndex = destGroup.filter((t) => {
+      const layout = templateSorter.itemLayouts.current[t.id];
+      return layout && dropY > layout.y + layout.height / 2;
+    }).length;
+
+    destGroup.splice(insertIndex, 0, {
+      ...item,
+      folder: newFolder,
+    });
+
+    const nonDestGroup = otherTemplates.filter((t) =>
+      targetFolderKey === '__unassigned__' ? Boolean(t.folder) : t.folder !== targetFolderKey,
+    );
+
+    const reordered: WorkoutTemplate[] = [];
+    const processedFolders = new Set<string>();
+
+    for (const t of templates) {
+      const groupKey = t.folder || '__unassigned__';
+      if (groupKey === targetFolderKey) {
+        if (!processedFolders.has(groupKey)) {
+          processedFolders.add(groupKey);
+          reordered.push(...destGroup);
+        }
+      } else if (!processedFolders.has(groupKey)) {
+        processedFolders.add(groupKey);
+        const itemsInGroup = nonDestGroup.filter(
+          (it) => (it.folder || '__unassigned__') === groupKey,
+        );
+        reordered.push(...itemsInGroup);
+      }
+    }
+
+    const presentIds = new Set(reordered.map((t) => t.id));
+    for (const t of destGroup) {
+      if (!presentIds.has(t.id)) reordered.push(t);
+    }
+    for (const t of nonDestGroup) {
+      if (!presentIds.has(t.id)) reordered.push(t);
+    }
+
+    updateTemplate(item.id, { folder: newFolder });
+    updateTemplatesOrder(reordered);
+
+    if (targetFolderKey !== '__unassigned__') {
+      setExpandedFolders((prev) => ({ ...prev, [targetFolderKey]: true }));
+    }
+
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
+  // Sorter for reordering templates and moving between folders
+  const templateSorter = useMeasuredReorder(templates, updateTemplatesOrder, {
+    scrollViewRef: sharedScrollViewRef,
+    onDrop: handleTemplateDrop,
+    onHoverY: handleTemplateHoverY,
+  });
+
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    sorter.onScroll(event);
+    folderSorter.onScroll(event);
+    templateSorter.onScroll(event);
   };
 
   // Compute top 4 workouts based on session history (falling back to template order)
@@ -96,18 +254,6 @@ export default function WorkoutsScreen() {
     return sorted.slice(0, 4);
   }, [templates, sessions]);
 
-  // Distinct folders: customFolders union template.folder
-  const allFolders = useMemo(() => {
-    const set = new Set<string>();
-    for (const f of customFolders) {
-      if (f.trim()) set.add(f.trim());
-    }
-    for (const t of templates) {
-      if (t.folder?.trim()) set.add(t.folder.trim());
-    }
-    return Array.from(set);
-  }, [customFolders, templates]);
-
   // Group templates by folder
   const { folderMap, unassignedTemplates } = useMemo(() => {
     const map = new Map<string, WorkoutTemplate[]>();
@@ -126,11 +272,10 @@ export default function WorkoutsScreen() {
     return { folderMap: map, unassignedTemplates: unassigned };
   }, [allFolders, templates]);
 
-  const toggleFolder = (name: string) => {
+  const toggleFolder = (name: string, forceState?: boolean) => {
     setExpandedFolders((prev) => ({
       ...prev,
-      // Default to open (true) if undefined, so click flips to false
-      [name]: prev[name] === false ? true : false,
+      [name]: forceState !== undefined ? forceState : prev[name] === false ? true : false,
     }));
   };
 
@@ -264,8 +409,8 @@ export default function WorkoutsScreen() {
     if (tab === 'programs' || tab === 'workouts') setActiveTab(tab);
   }, [tab]);
 
-  // Helper to render template card row
-  const renderTemplateCard = (item: WorkoutTemplate, isDraggable: boolean = true) => {
+  // Helper to render draggable template card row
+  const renderTemplateCard = (item: WorkoutTemplate) => {
     const exerciseNames = item.exercises
       .map((te) => exercises.find((e) => e.id === te.exerciseId)?.name)
       .filter(Boolean)
@@ -275,32 +420,30 @@ export default function WorkoutsScreen() {
       <Animated.View
         key={item.id}
         onLayout={(e) => {
-          if (isDraggable && !sorter.activeDragId) {
-            sorter.itemLayouts.current[item.id] = e.nativeEvent.layout;
+          if (!templateSorter.activeDragId) {
+            templateSorter.itemLayouts.current[item.id] = e.nativeEvent.layout;
           }
         }}
-        style={[styles.card, isDraggable && sorter.getRowStyle(item.id)]}
+        style={[styles.card, templateSorter.getRowStyle(item.id)]}
       >
-        {isDraggable && (
-          <View
-            style={[
-              styles.dragHandle,
-              sorter.handleStyle,
-              {
-                minWidth: 40,
-                minHeight: 44,
-                alignItems: 'center',
-                justifyContent: 'center',
-              },
-            ]}
-            {...sorter.getHandleProps(item.id)}
-          >
-            <Ionicons name="reorder-two" size={24} color={theme.colors.primary} />
-          </View>
-        )}
+        <View
+          style={[
+            styles.dragHandle,
+            templateSorter.handleStyle,
+            {
+              minWidth: 38,
+              minHeight: 44,
+              alignItems: 'center',
+              justifyContent: 'center',
+            },
+          ]}
+          {...templateSorter.getHandleProps(item.id)}
+        >
+          <Ionicons name="reorder-two" size={24} color={theme.colors.primary} />
+        </View>
 
         <Pressable
-          style={[styles.cardInfo, isDraggable && { marginLeft: 8 }]}
+          style={[styles.cardInfo, { marginLeft: 8 }]}
           onPress={() => setSummaryTemplateId(item.id)}
         >
           <Text style={styles.cardTitle}>{item.name}</Text>
@@ -349,11 +492,11 @@ export default function WorkoutsScreen() {
       />
       {activeTab === 'workouts' ? (
         <ScrollView
-          ref={sorter.scrollViewRef}
-          onLayout={sorter.onLayout}
-          onContentSizeChange={sorter.onContentSizeChange}
+          ref={sharedScrollViewRef}
+          onLayout={templateSorter.onLayout}
+          onContentSizeChange={templateSorter.onContentSizeChange}
           contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 20, 100) }}
-          scrollEnabled={sorter.scrollEnabled}
+          scrollEnabled={templateSorter.scrollEnabled && folderSorter.scrollEnabled}
           onScroll={handleScroll}
           scrollEventThrottle={16}
         >
@@ -441,17 +584,43 @@ export default function WorkoutsScreen() {
               </Pressable>
             </View>
 
-            {/* Render each folder */}
+            {/* Render each folder with reorderable folder handle */}
             {allFolders.map((folderName) => {
-              const folderItems = folderMap.get(folderName) || [];
+              const folderItemsInFolder = folderMap.get(folderName) || [];
               const expanded = isFolderExpanded(folderName);
 
               return (
-                <View key={folderName} style={styles.folderGroup}>
+                <Animated.View
+                  key={folderName}
+                  onLayout={(e) => {
+                    folderLayouts.current[folderName] = e.nativeEvent.layout;
+                    if (!folderSorter.activeDragId) {
+                      folderSorter.itemLayouts.current[folderName] = e.nativeEvent.layout;
+                    }
+                  }}
+                  style={[styles.folderGroup, folderSorter.getRowStyle(folderName)]}
+                >
                   <Pressable
                     style={styles.folderHeader}
                     onPress={() => toggleFolder(folderName)}
                   >
+                    {/* Folder Reorder Drag Handle */}
+                    <View
+                      style={[
+                        styles.dragHandle,
+                        folderSorter.handleStyle,
+                        {
+                          minWidth: 32,
+                          minHeight: 44,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        },
+                      ]}
+                      {...folderSorter.getHandleProps(folderName)}
+                    >
+                      <Ionicons name="reorder-two" size={22} color={theme.colors.muted} />
+                    </View>
+
                     <View style={styles.folderHeaderLeft}>
                       <Ionicons
                         name={expanded ? 'folder-open' : 'folder'}
@@ -459,7 +628,7 @@ export default function WorkoutsScreen() {
                         color={theme.colors.primary}
                       />
                       <Text style={styles.folderTitle}>{folderName.toUpperCase()}</Text>
-                      <Text style={styles.folderCount}>({folderItems.length})</Text>
+                      <Text style={styles.folderCount}>({folderItemsInFolder.length})</Text>
                     </View>
 
                     <View style={styles.folderHeaderRight}>
@@ -484,26 +653,31 @@ export default function WorkoutsScreen() {
                   {/* Folder Items when expanded */}
                   {expanded && (
                     <View style={styles.folderContent}>
-                      {folderItems.map((item) => renderTemplateCard(item, false))}
-                      {folderItems.length === 0 && (
+                      {folderItemsInFolder.map((item) => renderTemplateCard(item))}
+                      {folderItemsInFolder.length === 0 && (
                         <View style={styles.folderEmptyBox}>
                           <Text style={styles.folderEmptyText}>
                             Keine Vorlagen in diesem Ordner.
                           </Text>
                           <Text style={styles.folderEmptySubtext}>
-                            Tippe bei einer Vorlage auf (⋮) und wähle &quot;In Ordner verschieben&quot;.
+                            Ziehe Vorlagen hierher oder nutze (⋮) &quot;In Ordner verschieben&quot;.
                           </Text>
                         </View>
                       )}
                     </View>
                   )}
-                </View>
+                </Animated.View>
               );
             })}
 
             {/* Unassigned Templates Section */}
             {allFolders.length > 0 && unassignedTemplates.length > 0 && (
-              <View style={styles.folderGroup}>
+              <View
+                style={styles.folderGroup}
+                onLayout={(e) => {
+                  folderLayouts.current['__unassigned__'] = e.nativeEvent.layout;
+                }}
+              >
                 <Pressable
                   style={styles.folderHeader}
                   onPress={() => toggleFolder('__unassigned__')}
@@ -528,7 +702,7 @@ export default function WorkoutsScreen() {
 
                 {isFolderExpanded('__unassigned__') && (
                   <View style={styles.folderContent}>
-                    {unassignedTemplates.map((item) => renderTemplateCard(item, false))}
+                    {unassignedTemplates.map((item) => renderTemplateCard(item))}
                   </View>
                 )}
               </View>
@@ -536,7 +710,12 @@ export default function WorkoutsScreen() {
 
             {/* If no folders exist yet, render flat list with drag-and-drop */}
             {allFolders.length === 0 && (
-              <View style={styles.list}>
+              <View
+                style={styles.list}
+                onLayout={(e) => {
+                  folderLayouts.current['__unassigned__'] = e.nativeEvent.layout;
+                }}
+              >
                 <View style={styles.emptyFolderHintCard}>
                   <Ionicons name="folder-outline" size={24} color={theme.colors.primary} />
                   <View style={{ flex: 1 }}>
@@ -548,7 +727,7 @@ export default function WorkoutsScreen() {
                     </Text>
                   </View>
                 </View>
-                {templates.map((item) => renderTemplateCard(item, true))}
+                {templates.map((item) => renderTemplateCard(item))}
                 {templates.length === 0 && (
                   <Text style={styles.emptyText}>
                     No templates saved yet. Finish a workout and save it as a template.
@@ -1142,8 +1321,8 @@ const createStyles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: 14,
-      paddingVertical: 14,
+      paddingRight: 14,
+      paddingVertical: 10,
       minHeight: 52,
     },
     folderHeaderLeft: {
@@ -1166,7 +1345,7 @@ const createStyles = (theme: Theme) =>
     folderHeaderRight: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
+      gap: 8,
     },
     folderKebabBtn: {
       minWidth: 32,
@@ -1360,7 +1539,7 @@ const createStyles = (theme: Theme) =>
       fontSize: 15,
     },
     dragHandle: {
-      paddingRight: 4,
+      paddingHorizontal: 6,
       paddingVertical: 12,
       justifyContent: 'center',
       alignItems: 'center',

@@ -17,14 +17,19 @@ import { getDropIndex, moveItem, RowLayout } from '../utils/reorderGeometry';
 export function useMeasuredReorder<T extends { id: string }>(
   items: T[],
   onReorder: (items: T[]) => void,
-  options?: { onDrop?: (item: T, contentY: number) => void },
+  options?: {
+    onDrop?: (item: T, contentY: number) => void;
+    onHoverY?: (contentY: number) => void;
+    scrollViewRef?: React.RefObject<ScrollView | null>;
+  },
 ) {
   const current = useRef({ items, onReorder, options });
   current.current = { items, onReorder, options };
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const itemLayouts = useRef<Record<string, RowLayout>>({});
-  const scrollViewRef = useRef<ScrollView>(null);
+  const internalScrollRef = useRef<ScrollView>(null);
+  const scrollViewRef = options?.scrollViewRef ?? internalScrollRef;
   const scrollYRef = useRef(0);
   const viewport = useRef({ top: 0, height: 0, contentHeight: 0 });
   const dragY = useRef(new Animated.Value(0)).current;
@@ -81,6 +86,11 @@ export function useMeasuredReorder<T extends { id: string }>(
     if (!state?.active || state.settling) return;
     const translation = state.dy + scrollYRef.current - state.startScroll;
     dragY.setValue(translation);
+    if (current.current.options?.onHoverY && state.layouts[state.id]) {
+      current.current.options.onHoverY(
+        state.layouts[state.id]!.y + state.layouts[state.id]!.height / 2 + translation,
+      );
+    }
     const to = getDropIndex(state.ids, state.layouts, state.id, translation);
     if (to === state.to) return;
     state.to = to;

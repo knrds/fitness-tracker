@@ -489,6 +489,7 @@ export interface ProgramState {
   renameFolder: (oldName: string, newName: string) => void;
   deleteFolder: (name: string) => void;
   setTemplateFolder: (templateId: UUID, folder: string | null) => void;
+  updateFoldersOrder: (folders: string[]) => void;
 }
 
 const programPersistedSchema = z.object({
@@ -690,6 +691,11 @@ export const useProgramStore = create<ProgramState>()(
             return t;
           });
           return { customFolders: folders, templates: updatedTemplates };
+        }),
+
+      updateFoldersOrder: (folders: string[]) =>
+        set({
+          customFolders: folders,
         }),
     }),
     {

@@ -6,6 +6,7 @@ import { Image } from 'expo-image';
 import { Exercise } from '@fitness-tracker/domain';
 import { MuscleGroupBadge } from './MuscleGroupBadge';
 import { Link, Href } from 'expo-router';
+import { useI18n } from '../../i18n';
 
 interface Props {
   exercise: Exercise;
@@ -16,6 +17,7 @@ interface Props {
 export const ExerciseCard = ({ exercise, isFavorite, onToggleFavorite }: Props) => {
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
+  const { formatEquipment } = useI18n();
   const [loading, setLoading] = useState(true);
 
   const previewUri = exercise.gifUrl || exercise.imageUrl;
@@ -80,19 +82,12 @@ export const ExerciseCard = ({ exercise, isFavorite, onToggleFavorite }: Props) 
             <MuscleGroupBadge key={m} muscleGroup={m} />
           ))}
           <View style={styles.equipmentBadge}>
-            <Text style={styles.equipmentBadgeText}>{formatEquipmentName(exercise.equipment)}</Text>
+            <Text style={styles.equipmentBadgeText}>{formatEquipment(exercise.equipment)}</Text>
           </View>
         </View>
       </Pressable>
     </Link>
   );
-};
-
-const formatEquipmentName = (eq: string) => {
-  return eq
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
 };
 
 const createStyles = (theme: Theme) =>

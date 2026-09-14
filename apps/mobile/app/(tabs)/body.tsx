@@ -36,6 +36,7 @@ import {
   KeyboardDoneAccessory,
   KEYBOARD_DONE_ID,
 } from '../../src/components/workout/KeyboardDoneAccessory';
+import { useI18n } from '../../src/i18n';
 
 import ExercisesScreen from './exercises';
 
@@ -45,6 +46,7 @@ export default function BodyTrackingScreen() {
   const reducedMotion = useReducedMotion();
   const scrollRef = useFocusScroll();
   const theme = useTheme();
+  const { t, language } = useI18n();
   const { width: screenWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ tab?: BodyTab }>();
@@ -392,7 +394,7 @@ export default function BodyTrackingScreen() {
         <Text
           style={[styles.headerTitle, { color: theme.colors.text, ...theme.typography.heading }]}
         >
-          Body
+          {t('nav.body')}
         </Text>
         {activeBodyTab === 'metrics' ? (
           <Pressable
@@ -408,12 +410,12 @@ export default function BodyTrackingScreen() {
       </View>
 
       <SegmentedControl
-        label="Body views"
+        label={language === 'en' ? 'Body views' : 'Körperansichten'}
         value={activeBodyTab}
         onChange={setActiveBodyTab}
         options={[
-          { value: 'metrics', label: 'Metrics' },
-          { value: 'exercises', label: 'Exercises' },
+          { value: 'metrics', label: language === 'en' ? 'Metrics' : 'Metriken' },
+          { value: 'exercises', label: language === 'en' ? 'Exercises' : 'Übungen' },
         ]}
       />
       {activeBodyTab === 'metrics' ? (
@@ -440,7 +442,7 @@ export default function BodyTrackingScreen() {
                   { color: theme.colors.muted, ...theme.typography.caption },
                 ]}
               >
-                CURRENT WEIGHT
+                {t('body.weight')}
               </Text>
               <Text
                 style={[
@@ -464,7 +466,7 @@ export default function BodyTrackingScreen() {
                   { color: theme.colors.muted, ...theme.typography.caption },
                 ]}
               >
-                BODY FAT
+                {t('body.bodyFat')}
               </Text>
               <Text
                 style={[
@@ -483,7 +485,7 @@ export default function BodyTrackingScreen() {
               { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
             ]}
           >
-            Quick entry
+            {t('body.quickEntry')}
           </Text>
           <Card padding="md" style={styles.quickEntryCard}>
             <View style={styles.quickEntryRow}>
@@ -516,7 +518,7 @@ export default function BodyTrackingScreen() {
                 value={weight}
                 onChangeText={setWeight}
                 keyboardType="numeric"
-                placeholder={`Weight ${isImperial ? 'lbs' : 'kg'}`}
+                placeholder={`${language === 'en' ? 'Weight' : 'Gewicht'} ${isImperial ? 'lbs' : 'kg'}`}
                 placeholderTextColor={theme.colors.muted}
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
               />
@@ -532,7 +534,7 @@ export default function BodyTrackingScreen() {
                 value={bodyFat}
                 onChangeText={setBodyFat}
                 keyboardType="numeric"
-                placeholder="Body fat %"
+                placeholder={`${language === 'en' ? 'Body fat' : 'Körperfett'} %`}
                 placeholderTextColor={theme.colors.muted}
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
               />
@@ -543,7 +545,7 @@ export default function BodyTrackingScreen() {
                 onPress={handleSave}
               >
                 <Text style={[styles.quickSaveText, { color: theme.colors.background }]}>
-                  Save Today
+                  {language === 'en' ? 'Save Today' : 'Heute speichern'}
                 </Text>
               </Pressable>
               <Pressable
@@ -551,7 +553,7 @@ export default function BodyTrackingScreen() {
                 onPress={() => setModalVisible(true)}
               >
                 <Text style={[styles.quickDetailsText, { color: theme.colors.primary }]}>
-                  More Metrics
+                  {language === 'en' ? 'More Metrics' : 'Weitere Messwerte'}
                 </Text>
               </Pressable>
             </View>
@@ -563,13 +565,13 @@ export default function BodyTrackingScreen() {
               { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
             ]}
           >
-            Hydration
+            {t('body.hydration')}
           </Text>
           <Card padding="md" style={styles.hydrationCard}>
             <VoltBackdrop />
             <View style={styles.hydrationHeader}>
               <View>
-                <Text style={[styles.hydrationLabel, { color: theme.colors.muted }]}>TODAY</Text>
+                <Text style={[styles.hydrationLabel, { color: theme.colors.muted }]}>{t('body.today')}</Text>
                 <Text style={[styles.hydrationValue, { color: theme.colors.text }]}>
                   {todayIntakeMl.toLocaleString()} / {dailyGoalMl.toLocaleString()} ml
                 </Text>
@@ -607,7 +609,7 @@ export default function BodyTrackingScreen() {
                 gap: 8,
               }}
             >
-              <Text style={{ color: theme.colors.muted }}>Trinkziel & Korrekturen</Text>
+              <Text style={{ color: theme.colors.muted }}>{t('body.hydrationSettings')}</Text>
               <Ionicons
                 name={hydrationSettingsExpanded ? 'chevron-up' : 'chevron-down'}
                 size={16}
@@ -654,7 +656,7 @@ export default function BodyTrackingScreen() {
                   value={hydrationGoalInput}
                   onChangeText={setHydrationGoalInput}
                   keyboardType="numeric"
-                  placeholder="Goal ml"
+                  placeholder={language === 'en' ? 'Goal ml' : 'Ziel ml'}
                   placeholderTextColor={theme.colors.muted}
                   onSubmitEditing={handleSaveHydrationGoal}
                   returnKeyType="done"
@@ -665,14 +667,14 @@ export default function BodyTrackingScreen() {
                   onPress={handleSaveHydrationGoal}
                 >
                   <Text style={[styles.goalButtonText, { color: theme.colors.primary }]}>
-                    Save Goal
+                    {t('body.saveGoal')}
                   </Text>
                 </Pressable>
               </View>
             </AnimatedDisclosure>
             <View style={[styles.hydrationFactBox, { borderColor: theme.colors.border }]}>
               <Text style={[styles.hydrationFactTitle, { color: theme.colors.primary }]}>
-                Daily note
+                {language === 'en' ? 'Daily note' : 'Tagesnotiz'}
               </Text>
               <Text style={[styles.hydrationFactText, { color: theme.colors.text }]}>
                 {hydrationFact}
@@ -701,7 +703,7 @@ export default function BodyTrackingScreen() {
                   },
                 ]}
               >
-                WEIGHT
+                {t('workout.weight').toUpperCase()}
               </Text>
             </Pressable>
             <Pressable
@@ -723,7 +725,7 @@ export default function BodyTrackingScreen() {
                   },
                 ]}
               >
-                BODY FAT
+                {t('body.bodyFat')}
               </Text>
             </Pressable>
           </View>
@@ -740,7 +742,9 @@ export default function BodyTrackingScreen() {
             }
           >
             <Ionicons name="information-circle-outline" size={20} color={theme.colors.primary} />
-            <Text style={{ color: theme.colors.muted }}>Was bedeutet mein Körperfettanteil?</Text>
+            <Text style={{ color: theme.colors.muted }}>
+              {language === 'en' ? 'What does body fat percentage mean?' : 'Was bedeutet mein Körperfettanteil?'}
+            </Text>
           </Pressable>
           {renderChart()}
 
@@ -755,12 +759,14 @@ export default function BodyTrackingScreen() {
               },
             ]}
           >
-            PROGRESSION HISTORY
+            {language === 'en' ? 'PROGRESSION HISTORY' : 'VERLAUFSHISTORIE'}
           </Text>
           <Card padding="md" style={styles.progressionCard}>
             {recentMetrics.length === 0 ? (
               <Text style={[styles.progressionEmpty, { color: theme.colors.muted }]}>
-                Log today&apos;s metrics to start your progression timeline.
+                {language === 'en'
+                  ? "Log today's metrics to start your progression timeline."
+                  : 'Trage heutige Messwerte ein, um deine Verlaufs-Timeline zu starten.'}
               </Text>
             ) : (
               recentMetrics.map((metric, index) => {
@@ -802,7 +808,7 @@ export default function BodyTrackingScreen() {
                         }).format(metric.recordedAt)}
                       </Text>
                       <Text style={[styles.progressionSub, { color: theme.colors.muted }]}>
-                        {metric.weightKg ? displayWeight(metric.weightKg) : 'No weight'}
+                        {metric.weightKg ? displayWeight(metric.weightKg) : (language === 'en' ? 'No weight' : 'Kein Gewicht')}
                       </Text>
                     </View>
                     <View style={styles.progressionDeltaCol}>
@@ -822,7 +828,7 @@ export default function BodyTrackingScreen() {
                         {displayWeightDelta}
                       </Text>
                       <Text style={[styles.progressionSub, { color: theme.colors.muted }]}>
-                        Fat {displayFatDelta}
+                        {t('body.bodyFat')} {displayFatDelta}
                       </Text>
                     </View>
                   </View>
@@ -838,15 +844,15 @@ export default function BodyTrackingScreen() {
               { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
             ]}
           >
-            LATEST MEASUREMENTS
+            {t('body.circumferences')}
           </Text>
           <Card padding="md" style={styles.measurementsList}>
             {[
-              { label: 'Chest', val: latest?.measurements?.chest },
-              { label: 'Waist', val: latest?.measurements?.waist },
-              { label: 'Hips', val: latest?.measurements?.hips },
-              { label: 'Arms', val: latest?.measurements?.leftArm },
-              { label: 'Legs', val: latest?.measurements?.leftThigh },
+              { label: t('body.chest'), val: latest?.measurements?.chest },
+              { label: t('body.waist'), val: latest?.measurements?.waist },
+              { label: t('body.hips'), val: latest?.measurements?.hips },
+              { label: t('body.arms'), val: latest?.measurements?.leftArm },
+              { label: t('body.legs'), val: latest?.measurements?.leftThigh },
             ].map((item, idx, arr) => (
               <View
                 key={item.label}
@@ -879,16 +885,16 @@ export default function BodyTrackingScreen() {
       {/* Input Modal */}
       <Modal
         visible={modalVisible}
-        title="Log Body Metrics"
+        title={t('body.addMetric')}
         onClose={() => setModalVisible(false)}
-        primaryActionTitle="Save Entry"
+        primaryActionTitle={t('common.save')}
         onPrimaryAction={handleSave}
-        secondaryActionTitle="Cancel"
+        secondaryActionTitle={t('common.cancel')}
         onSecondaryAction={() => setModalVisible(false)}
       >
         <ScrollView style={styles.modalForm} contentContainerStyle={styles.modalFormContent}>
           <Input
-            label="Date (YYYY-MM-DD)"
+            label={language === 'en' ? 'Date (YYYY-MM-DD)' : 'Datum (JJJJ-MM-TT)'}
             value={dateStr}
             onChangeText={setDateStr}
             placeholder="e.g. 2026-06-02"
@@ -898,7 +904,7 @@ export default function BodyTrackingScreen() {
           <View style={styles.inputGrid}>
             <View style={styles.gridField}>
               <Input
-                label={`Weight (${isImperial ? 'lbs' : 'kg'})`}
+                label={`${t('settings.weight')} (${isImperial ? 'lbs' : 'kg'})`}
                 value={weight}
                 onChangeText={setWeight}
                 placeholder="e.g. 80"
@@ -908,7 +914,7 @@ export default function BodyTrackingScreen() {
             </View>
             <View style={styles.gridField}>
               <Input
-                label="Body Fat %"
+                label={`${t('body.bodyFat')} %`}
                 value={bodyFat}
                 onChangeText={setBodyFat}
                 placeholder="e.g. 15"
@@ -924,28 +930,28 @@ export default function BodyTrackingScreen() {
               { color: theme.colors.primary, ...theme.typography.caption },
             ]}
           >
-            CIRCUMFERENCES ({isImperial ? 'INCHES' : 'CM'})
+            {t('body.circumferences')} ({isImperial ? t('body.inches').toUpperCase() : t('body.cm').toUpperCase()})
           </Text>
 
           <MeasurementMap
             unit={isImperial ? 'in' : 'cm'}
             fields={[
-              { label: 'Chest', value: chest, onChange: setChest, muscles: [MuscleGroup.Chest] },
+              { label: t('body.chest'), value: chest, onChange: setChest, muscles: [MuscleGroup.Chest] },
               {
-                label: 'Waist',
+                label: t('body.waist'),
                 value: waist,
                 onChange: setWaist,
                 muscles: [MuscleGroup.Abs, MuscleGroup.Obliques],
               },
-              { label: 'Hips', value: hips, onChange: setHips, muscles: [MuscleGroup.Glutes] },
+              { label: t('body.hips'), value: hips, onChange: setHips, muscles: [MuscleGroup.Glutes] },
               {
-                label: 'Arms',
+                label: t('body.arms'),
                 value: arms,
                 onChange: setArms,
                 muscles: [MuscleGroup.Biceps, MuscleGroup.Triceps],
               },
               {
-                label: 'Legs',
+                label: t('body.legs'),
                 value: legs,
                 onChange: setLegs,
                 muscles: [MuscleGroup.Quads, MuscleGroup.Hamstrings],

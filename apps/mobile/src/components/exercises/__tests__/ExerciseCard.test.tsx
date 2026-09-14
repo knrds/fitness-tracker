@@ -27,7 +27,7 @@ describe('ExerciseCard', () => {
   it('renders correctly', () => {
     const { getByText } = render(<ExerciseCard exercise={mockExercise} />);
     expect(getByText('Test Bench Press')).toBeTruthy();
-    expect(getByText('Barbell')).toBeTruthy();
+    expect(getByText(/Langhantel|Barbell/)).toBeTruthy();
   });
 
   it('shows favorite icon when isFavorite is true', () => {

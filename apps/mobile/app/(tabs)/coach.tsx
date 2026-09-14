@@ -25,8 +25,9 @@ import { CoachSources } from '../../src/components/CoachSources';
 import { useCoachRecorder } from '../../src/hooks/useCoachRecorder';
 import { getStorageScope, isScopeCurrent } from '../../src/data/storageScope';
 import { useFocusEffect } from 'expo-router';
+import { useI18n } from '../../src/i18n';
 
-const SUGGESTIONS = [
+const SUGGESTIONS_EN = [
   'Review recent progress',
   'Check PR readiness',
   'Adjust next session',
@@ -34,9 +35,19 @@ const SUGGESTIONS = [
   'Cardio balance',
 ];
 
+const SUGGESTIONS_DE = [
+  'Fortschritt prüfen',
+  'PR-Bereitschaft testen',
+  'Nächste Session anpassen',
+  'Erholungs-Tipps',
+  'Cardio-Balance',
+];
+
 export default function CoachScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { language } = useI18n();
+  const suggestions = language === 'de' ? SUGGESTIONS_DE : SUGGESTIONS_EN;
   const hasWorkoutBar = useWorkoutStore((state) => state.status !== 'idle' && state.isMinimized);
   const { messages, isSending, error, sendMessage, retryLastMessage, clearChatHistory } =
     useCoachStore();
@@ -135,7 +146,9 @@ export default function CoachScreen() {
             <Text
               style={[styles.subtitle, { color: theme.colors.muted, ...theme.typography.caption }]}
             >
-              Training, progression & recovery
+              {language === 'de'
+                ? 'Training, Progression & Erholung'
+                : 'Training, progression & recovery'}
             </Text>
           </View>
           <Pressable
@@ -146,7 +159,7 @@ export default function CoachScreen() {
             onPress={clearChatHistory}
             disabled={isSending}
             accessibilityRole="button"
-            accessibilityLabel="Clear coach chat"
+            accessibilityLabel={language === 'de' ? 'Chat-Verlauf leeren' : 'Clear coach chat'}
             testID="reset-chat-btn"
           >
             <Ionicons name="trash-outline" size={20} color={theme.colors.muted} />
@@ -242,24 +255,42 @@ export default function CoachScreen() {
                 <Ionicons name="chatbubble-ellipses" size={32} color={theme.colors.primary} />
               </View>
               <Text style={[styles.welcomeTitle, { color: theme.colors.text }]}>
-                Ready when you are
+                {language === 'de' ? 'Bereit, wenn du es bist' : 'Ready when you are'}
               </Text>
-              <Text style={[styles.welcomeText, { color: theme.colors.muted }]}>
-                Deine Frage, die letzten Nachrichten und eine Zusammenfassung deiner Trainingsdaten
-                werden an den KI-Dienst gesendet.{'\n\n'}
-                <Text style={{ color: theme.colors.primary, fontFamily: 'Manrope_700Bold' }}>
-                  Tipp:
-                </Text>{' '}
-                Nutze den standardmäßig aktiven{' '}
-                <Text style={{ color: theme.colors.text, fontFamily: 'Manrope_700Bold' }}>
-                  Plan Mode
-                </Text>{' '}
-                für konkrete, speicherbare Trainingspläne & Workouts. Den{' '}
-                <Text style={{ color: theme.colors.text, fontFamily: 'Manrope_700Bold' }}>
-                  Fast Mode
-                </Text>{' '}
-                kannst du jederzeit für schnelle Fragen und allgemeine Trainingstipps einstellen.
-              </Text>
+              {language === 'de' ? (
+                <Text style={[styles.welcomeText, { color: theme.colors.muted }]}>
+                  Deine Frage, die letzten Nachrichten und eine Zusammenfassung deiner Trainingsdaten
+                  werden an den KI-Dienst gesendet.{'\n\n'}
+                  <Text style={{ color: theme.colors.primary, fontFamily: 'Manrope_700Bold' }}>
+                    Tipp:
+                  </Text>{' '}
+                  Nutze den standardmäßig aktiven{' '}
+                  <Text style={{ color: theme.colors.text, fontFamily: 'Manrope_700Bold' }}>
+                    Plan Mode
+                  </Text>{' '}
+                  für konkrete, speicherbare Trainingspläne & Workouts. Den{' '}
+                  <Text style={{ color: theme.colors.text, fontFamily: 'Manrope_700Bold' }}>
+                    Fast Mode
+                  </Text>{' '}
+                  kannst du jederzeit für schnelle Fragen und allgemeine Trainingstipps einstellen.
+                </Text>
+              ) : (
+                <Text style={[styles.welcomeText, { color: theme.colors.muted }]}>
+                  Your question, recent messages, and a summary of your workout data will be sent to the AI service.{'\n\n'}
+                  <Text style={{ color: theme.colors.primary, fontFamily: 'Manrope_700Bold' }}>
+                    Tip:
+                  </Text>{' '}
+                  Use the default active{' '}
+                  <Text style={{ color: theme.colors.text, fontFamily: 'Manrope_700Bold' }}>
+                    Plan Mode
+                  </Text>{' '}
+                  for concrete, saveable workout plans & workouts. You can switch to{' '}
+                  <Text style={{ color: theme.colors.text, fontFamily: 'Manrope_700Bold' }}>
+                    Fast Mode
+                  </Text>{' '}
+                  anytime for quick questions and general training advice.
+                </Text>
+              )}
             </View>
           }
         />
@@ -271,7 +302,7 @@ export default function CoachScreen() {
           {messages.length === 0 && (
             <View style={styles.suggestionsContainer}>
               <HorizontalFadeScroll contentContainerStyle={styles.suggestionsList}>
-                {SUGGESTIONS.map((suggestion) => (
+                {suggestions.map((suggestion) => (
                   <Pressable
                     key={suggestion}
                     style={[

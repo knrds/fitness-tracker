@@ -42,6 +42,7 @@ import { useHistoryStore } from '../../stores/historyStore';
 import { PlateCalculatorModal } from './PlateCalculatorModal';
 import { useTheme, Card, useDialog, Modal as DetailModal } from '@fitness-tracker/ui';
 import { Ionicons } from '@expo/vector-icons';
+import { useI18n } from '../../i18n';
 
 const secondsToDigitString = (totalSecs?: number) => {
   if (!totalSecs) return '';
@@ -116,6 +117,7 @@ export const SessionExerciseCard = ({
   const { height: windowHeight } = useWindowDimensions();
   const compact = true;
   const router = useRouter();
+  const { language } = useI18n();
   const navigateToInstructions = () => {
     router.push(`/exercise/${sessionExercise.exerciseId}`);
   };
@@ -233,13 +235,16 @@ export const SessionExerciseCard = ({
 
     let donotShowAgain = false;
     const confirmed = await showConfirm({
-      title: 'Remove Exercise',
-      message: 'Are you sure you want to remove this exercise and all its sets?',
-      confirmLabel: 'Remove',
-      cancelLabel: 'Cancel',
+      title: language === 'de' ? 'Übung entfernen' : 'Remove Exercise',
+      message:
+        language === 'de'
+          ? 'Möchtest du diese Übung und alle zugehörigen Sätze wirklich entfernen?'
+          : 'Are you sure you want to remove this exercise and all its sets?',
+      confirmLabel: language === 'de' ? 'Entfernen' : 'Remove',
+      cancelLabel: language === 'de' ? 'Abbrechen' : 'Cancel',
       destructive: true,
       showCheckbox: true,
-      checkboxLabel: "Don't show again",
+      checkboxLabel: language === 'de' ? 'Nicht mehr anzeigen' : "Don't show again",
       onCheckboxToggle: (checked) => {
         donotShowAgain = checked;
       },
@@ -264,11 +269,17 @@ export const SessionExerciseCard = ({
           : Alert.alert;
 
       if (Platform.OS === 'web' && alertFn) {
-        alertFn('Please enter weight in at least one set first.');
+        alertFn(
+          language === 'de'
+            ? 'Bitte trage zuerst bei mindestens einem Satz ein Gewicht ein.'
+            : 'Please enter weight in at least one set first.',
+        );
       } else {
         Alert.alert(
-          'Warmup Calculator',
-          'Please enter weight in at least one set first to use as target working weight.',
+          language === 'de' ? 'Aufwärmrechner' : 'Warmup Calculator',
+          language === 'de'
+            ? 'Bitte trage zuerst bei mindestens einem Satz ein Gewicht ein, um es als Zielgewicht zu nutzen.'
+            : 'Please enter weight in at least one set first to use as target working weight.',
         );
       }
       return;
@@ -287,20 +298,29 @@ export const SessionExerciseCard = ({
 
     if (sessionExercise.supersetGroup) {
       toggleSuperset(sessionExercise.id);
-      Alert.alert('Superset', 'Exercise unlinked from superset.');
+      Alert.alert(
+        'Superset',
+        language === 'de'
+          ? 'Übung wurde vom Supersatz getrennt.'
+          : 'Exercise unlinked from superset.',
+      );
     } else {
       if (currentIdx === totalEx - 1) {
         Alert.alert(
           'Superset',
-          'Supersets link this exercise with the next one. Please add another exercise first to create a superset.',
+          language === 'de'
+            ? 'Ein Supersatz verbindet diese Übung mit der nächsten. Bitte füge zuerst eine weitere Übung hinzu.'
+            : 'Supersets link this exercise with the next one. Please add another exercise first to create a superset.',
         );
       } else {
         toggleSuperset(sessionExercise.id);
         const nextExId = useWorkoutStore.getState().exercises[currentIdx + 1]?.exerciseId;
         const nextEx = exercises.find((e) => e.id === nextExId);
         Alert.alert(
-          'Superset Created',
-          `Linked this exercise with "${nextEx?.name || 'the next exercise'}" as a superset.`,
+          language === 'de' ? 'Supersatz erstellt' : 'Superset Created',
+          language === 'de'
+            ? `Diese Übung wurde mit "${nextEx?.name || 'der nächsten Übung'}" als Supersatz verbunden.`
+            : `Linked this exercise with "${nextEx?.name || 'the next exercise'}" as a superset.`,
         );
       }
     }
@@ -451,8 +471,12 @@ export const SessionExerciseCard = ({
               ]}
             >
               {sessionExercise.sets.filter((s) => s.completed).length > 0
-                ? `${sessionExercise.sets.filter((s) => s.completed).length}/${sessionExercise.sets.length} Sätze abgeschlossen`
-                : `${sessionExercise.sets.length} ${sessionExercise.sets.length === 1 ? 'Satz' : 'Sätze'}`}
+                ? language === 'de'
+                  ? `${sessionExercise.sets.filter((s) => s.completed).length}/${sessionExercise.sets.length} Sätze abgeschlossen`
+                  : `${sessionExercise.sets.filter((s) => s.completed).length}/${sessionExercise.sets.length} sets completed`
+                : language === 'de'
+                  ? `${sessionExercise.sets.length} ${sessionExercise.sets.length === 1 ? 'Satz' : 'Sätze'}`
+                  : `${sessionExercise.sets.length} ${sessionExercise.sets.length === 1 ? 'set' : 'sets'}`}
             </Text>
           )}
           {getHeaderE1rmText() && !collapsed && (
@@ -592,13 +616,13 @@ export const SessionExerciseCard = ({
 
           <View style={styles.headerRow}>
             <Text style={[styles.columnHeader, styles.setCol, { color: theme.colors.muted }]}>
-              Set
+              {language === 'de' ? 'Satz' : 'Set'}
             </Text>
             <Text style={[styles.columnHeader, styles.weightCol, { color: theme.colors.muted }]}>
-              {isCardio ? 'Level' : isImperial ? 'lbs' : 'kg'}
+              {isCardio ? (language === 'de' ? 'Stufe' : 'Level') : isImperial ? 'lbs' : 'kg'}
             </Text>
             <Text style={[styles.columnHeader, styles.repsCol, { color: theme.colors.muted }]}>
-              {isCardio ? 'Min:Sec' : 'Reps'}
+              {isCardio ? 'Min:Sec' : language === 'de' ? 'Wdh.' : 'Reps'}
             </Text>
             {showRpe && !compact && (
               <Text style={[styles.columnHeader, styles.rpeCol, { color: theme.colors.muted }]}>
@@ -732,7 +756,7 @@ export const SessionExerciseCard = ({
             <Text
               style={[styles.modalTitle, { color: theme.colors.text, ...theme.typography.heading }]}
             >
-              Übungs-Optionen
+              {language === 'de' ? 'Übungs-Optionen' : 'Exercise Options'}
             </Text>
             <ScrollView style={{ maxHeight: Math.max(120, windowHeight - 240) }}>
               <Pressable
@@ -748,7 +772,7 @@ export const SessionExerciseCard = ({
                   color={theme.colors.primary}
                 />
                 <Text style={[styles.optionText, { color: theme.colors.text }]}>
-                  Statistik anzeigen
+                  {language === 'de' ? 'Statistik anzeigen' : 'Show Statistics'}
                 </Text>
               </Pressable>
               {!isCardio && (
@@ -761,7 +785,7 @@ export const SessionExerciseCard = ({
                 >
                   <Ionicons name="flame-outline" size={20} color={theme.colors.primary} />
                   <Text style={[styles.optionText, { color: theme.colors.text }]}>
-                    Aufwärmsätze berechnen
+                    {language === 'de' ? 'Aufwärmsätze berechnen' : 'Calculate Warmup Sets'}
                   </Text>
                 </Pressable>
               )}
@@ -775,7 +799,7 @@ export const SessionExerciseCard = ({
                 >
                   <Ionicons name="barbell-outline" size={20} color={theme.colors.primary} />
                   <Text style={[styles.optionText, { color: theme.colors.text }]}>
-                    Scheibenrechner
+                    {language === 'de' ? 'Scheibenrechner' : 'Plate Calculator'}
                   </Text>
                 </Pressable>
               )}
@@ -793,7 +817,9 @@ export const SessionExerciseCard = ({
                   color={theme.colors.primary}
                 />
                 <Text style={[styles.optionText, { color: theme.colors.text }]}>
-                  {showNotes ? 'Notizen ausblenden' : 'Notizen einblenden'}
+                  {showNotes
+                    ? (language === 'de' ? 'Notizen ausblenden' : 'Hide Notes')
+                    : (language === 'de' ? 'Notizen einblenden' : 'Show Notes')}
                 </Text>
               </Pressable>
 
@@ -806,7 +832,7 @@ export const SessionExerciseCard = ({
               >
                 <Ionicons name="book-outline" size={20} color={theme.colors.primary} />
                 <Text style={[styles.optionText, { color: theme.colors.text }]}>
-                  Anleitung anzeigen
+                  {language === 'de' ? 'Anleitung anzeigen' : 'Show Instructions'}
                 </Text>
               </Pressable>
 
@@ -823,7 +849,9 @@ export const SessionExerciseCard = ({
                   color={sessionExercise.supersetGroup ? theme.colors.primary : theme.colors.muted}
                 />
                 <Text style={[styles.optionText, { color: theme.colors.text }]}>
-                  {sessionExercise.supersetGroup ? 'Supersatz trennen' : 'Als Supersatz koppeln'}
+                  {sessionExercise.supersetGroup
+                    ? (language === 'de' ? 'Supersatz trennen' : 'Unlink Superset')
+                    : (language === 'de' ? 'Als Supersatz koppeln' : 'Link as Superset')}
                 </Text>
               </Pressable>
 
@@ -846,7 +874,9 @@ export const SessionExerciseCard = ({
                   color={theme.colors.primary}
                 />
                 <Text style={[styles.optionText, { color: theme.colors.text }]}>
-                  {showRpe ? 'RPE verbergen' : 'RPE anzeigen'}
+                  {showRpe
+                    ? (language === 'de' ? 'RPE verbergen' : 'Hide RPE')
+                    : (language === 'de' ? 'RPE anzeigen' : 'Show RPE')}
                 </Text>
               </Pressable>
 
@@ -869,7 +899,9 @@ export const SessionExerciseCard = ({
                   color={theme.colors.primary}
                 />
                 <Text style={[styles.optionText, { color: theme.colors.text }]}>
-                  {showRir ? 'RIR verbergen' : 'RIR anzeigen'}
+                  {showRir
+                    ? (language === 'de' ? 'RIR verbergen' : 'Hide RIR')
+                    : (language === 'de' ? 'RIR anzeigen' : 'Show RIR')}
                 </Text>
               </Pressable>
 
@@ -888,7 +920,7 @@ export const SessionExerciseCard = ({
                 >
                   <Ionicons name="arrow-up-outline" size={20} color={theme.colors.primary} />
                   <Text style={[styles.optionText, { color: theme.colors.text }]}>
-                    Nach oben verschieben
+                    {language === 'de' ? 'Nach oben verschieben' : 'Move Up'}
                   </Text>
                 </Pressable>
               )}
@@ -908,7 +940,7 @@ export const SessionExerciseCard = ({
                 >
                   <Ionicons name="arrow-down-outline" size={20} color={theme.colors.primary} />
                   <Text style={[styles.optionText, { color: theme.colors.text }]}>
-                    Nach unten verschieben
+                    {language === 'de' ? 'Nach unten verschieben' : 'Move Down'}
                   </Text>
                 </Pressable>
               )}
@@ -922,7 +954,7 @@ export const SessionExerciseCard = ({
               >
                 <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
                 <Text style={[styles.optionText, { color: theme.colors.error }]}>
-                  Übung löschen
+                  {language === 'de' ? 'Übung löschen' : 'Delete Exercise'}
                 </Text>
               </Pressable>
             </ScrollView>
@@ -943,7 +975,7 @@ export const SessionExerciseCard = ({
                   { color: theme.colors.text, ...theme.typography.button },
                 ]}
               >
-                Abbrechen
+                {language === 'de' ? 'Abbrechen' : 'Cancel'}
               </Text>
             </Pressable>
           </Pressable>
@@ -968,14 +1000,14 @@ export const SessionExerciseCard = ({
             <Text
               style={[styles.modalTitle, { color: theme.colors.text, ...theme.typography.heading }]}
             >
-              {exercise.name} Info
+              {exercise.name} {language === 'de' ? 'Info' : 'Info'}
             </Text>
 
             {/* Stats */}
             <View style={styles.infoStatsGrid}>
               <View style={styles.infoStatBox}>
                 <Text style={[styles.infoStatLabel, { color: theme.colors.muted }]}>
-                  Exercise Vol
+                  {language === 'de' ? 'Übungsvolumen' : 'Exercise Vol'}
                 </Text>
                 <Text style={[styles.infoStatValue, { color: theme.colors.primary }]}>
                   {isImperial ? Math.round(sessionVolume * 2.20462) : Math.round(sessionVolume)}{' '}
@@ -983,14 +1015,16 @@ export const SessionExerciseCard = ({
                 </Text>
               </View>
               <View style={styles.infoStatBox}>
-                <Text style={[styles.infoStatLabel, { color: theme.colors.muted }]}>Vs Last</Text>
+                <Text style={[styles.infoStatLabel, { color: theme.colors.muted }]}>
+                  {language === 'de' ? 'Vgl. Letztes' : 'Vs Last'}
+                </Text>
                 <Text style={[styles.infoStatValue, { color: volumeDeltaColor }]}>
                   {volumeDeltaLabel}
                 </Text>
               </View>
               <View style={styles.infoStatBox}>
                 <Text style={[styles.infoStatLabel, { color: theme.colors.muted }]}>
-                  Lifetime Vol
+                  {language === 'de' ? 'Gesamtvolumen' : 'Lifetime Vol'}
                 </Text>
                 <Text style={[styles.infoStatValue, { color: theme.colors.primary }]}>
                   {isImperial
@@ -1001,7 +1035,7 @@ export const SessionExerciseCard = ({
               </View>
               <View style={styles.infoStatBox}>
                 <Text style={[styles.infoStatLabel, { color: theme.colors.muted }]}>
-                  Personal Record
+                  {language === 'de' ? 'Persönlicher Rekord' : 'Personal Record'}
                 </Text>
                 <Text style={[styles.infoStatValue, { color: theme.colors.primary }]}>
                   {stats.maxWeight > 0
@@ -1011,7 +1045,7 @@ export const SessionExerciseCard = ({
               </View>
               <View style={styles.infoStatBox}>
                 <Text style={[styles.infoStatLabel, { color: theme.colors.muted }]}>
-                  Avg Weight
+                  {language === 'de' ? 'Durchschn. Gewicht' : 'Avg Weight'}
                 </Text>
                 <Text style={[styles.infoStatValue, { color: theme.colors.primary }]}>
                   {stats.avgWeight > 0
@@ -1028,7 +1062,7 @@ export const SessionExerciseCard = ({
                 { color: theme.colors.text, marginTop: 16, marginBottom: 8 },
               ]}
             >
-              Previous Sets (No Warmups)
+              {language === 'de' ? 'Vorherige Sätze (ohne Warmup)' : 'Previous Sets (No Warmups)'}
             </Text>
             <ScrollView style={{ maxHeight: 150 }} showsVerticalScrollIndicator={false}>
               {lastPerformance &&
@@ -1045,7 +1079,7 @@ export const SessionExerciseCard = ({
                           key={s.id || sIdx}
                           style={[styles.infoSetRow, { color: theme.colors.text }]}
                         >
-                          Set {sIdx + 1}: Level {s.weight || 0} for {durStr}
+                          {language === 'de' ? 'Satz' : 'Set'} {sIdx + 1}: {language === 'de' ? 'Stufe' : 'Level'} {s.weight || 0} {language === 'de' ? 'für' : 'for'} {durStr}
                         </Text>
                       );
                     }
@@ -1058,7 +1092,7 @@ export const SessionExerciseCard = ({
                         key={s.id || sIdx}
                         style={[styles.infoSetRow, { color: theme.colors.text }]}
                       >
-                        Set {sIdx + 1}: {w} {unit} x {s.reps} reps {s.rpe ? `(RPE ${s.rpe})` : ''}
+                        {language === 'de' ? 'Satz' : 'Set'} {sIdx + 1}: {w} {unit} × {s.reps} {language === 'de' ? 'Wdh.' : 'reps'} {s.rpe ? `(RPE ${s.rpe})` : ''}
                       </Text>
                     );
                   })
@@ -1071,7 +1105,7 @@ export const SessionExerciseCard = ({
                     marginVertical: 10,
                   }}
                 >
-                  No previous working sets.
+                  {language === 'de' ? 'Keine vorherigen Arbeitssätze.' : 'No previous working sets.'}
                 </Text>
               )}
             </ScrollView>
@@ -1098,7 +1132,7 @@ export const SessionExerciseCard = ({
                   { color: theme.colors.primary, ...theme.typography.button },
                 ]}
               >
-                Anleitung anzeigen
+                {language === 'de' ? 'Anleitung anzeigen' : 'Show Instructions'}
               </Text>
             </Pressable>
 
@@ -1119,7 +1153,7 @@ export const SessionExerciseCard = ({
                   { color: theme.colors.background, ...theme.typography.button },
                 ]}
               >
-                Close
+                {language === 'de' ? 'Schließen' : 'Close'}
               </Text>
             </Pressable>
           </Pressable>
@@ -1168,6 +1202,7 @@ const SetRow = ({
 }: SetRowProps) => {
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
+  const { language } = useI18n();
   const isDone = set.completed;
   const reducedMotion = useReducedMotion();
   const [detailsVisible, setDetailsVisible] = useState(false);
@@ -1715,9 +1750,13 @@ const SetRow = ({
                 const mins = Math.floor((s.durationSeconds || 0) / 60);
                 const secs = (s.durationSeconds || 0) % 60;
                 const durStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-                return `Last: Lvl ${s.weight || 0} for ${durStr}`;
+                return language === 'de'
+                  ? `Zuletzt: Stufe ${s.weight || 0} für ${durStr}`
+                  : `Last: Lvl ${s.weight || 0} for ${durStr}`;
               }
-              if (!s.weight) return `Last: ${s.reps} reps`;
+              if (!s.weight) {
+                return language === 'de' ? `Zuletzt: ${s.reps} Wdh.` : `Last: ${s.reps} reps`;
+              }
               const weightDisplay = isImperial ? s.weight * 2.20462 : s.weight;
               const formattedWeight = weightDisplay.toFixed(1).replace(/\.0$/, '');
               const unit = isImperial ? 'lbs' : 'kg';
@@ -1728,7 +1767,9 @@ const SetRow = ({
               if (s.rir !== undefined) {
                 rpeRirStr += ` (RIR ${s.rir})`;
               }
-              return `Last: ${formattedWeight} ${unit} x ${s.reps}${rpeRirStr}`;
+              return language === 'de'
+                ? `Zuletzt: ${formattedWeight} ${unit} × ${s.reps}${rpeRirStr}`
+                : `Last: ${formattedWeight} ${unit} x ${s.reps}${rpeRirStr}`;
             })()}
           </Text>
         </View>

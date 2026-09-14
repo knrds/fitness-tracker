@@ -3,6 +3,7 @@ import { View, Text, Pressable, TextInput } from 'react-native';
 import { MuscleGroup } from '@fitness-tracker/domain';
 import { useTheme } from '@fitness-tracker/ui';
 import { AnatomyFigure } from './anatomy/AnatomyFigure';
+import { useI18n } from '../i18n';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -18,6 +19,7 @@ type Measurement = {
 };
 export function MeasurementMap({ fields, unit }: { fields: Measurement[]; unit: string }) {
   const theme = useTheme();
+  const { language } = useI18n();
   const [selected, setSelected] = useState(0);
   const reduced = useReducedMotion();
   const opacity = useSharedValue(1);
@@ -67,13 +69,15 @@ export function MeasurementMap({ fields, unit }: { fields: Measurement[]; unit: 
           >
             <Text style={{ color: theme.colors.muted, fontSize: 11 }}>{item.label}</Text>
             <Text style={{ color: theme.colors.text, fontSize: 14 }}>
-              {item.value ? `${item.value} ${unit}` : 'Eintragen'}
+              {item.value ? `${item.value} ${unit}` : language === 'en' ? 'Log' : 'Eintragen'}
             </Text>
           </Pressable>
         ))}
       </View>
       <Text style={{ color: theme.colors.muted, fontSize: 12 }}>
-        Umfang messen, nicht Durchmesser. Bei Armen und Beinen gilt der Eintrag für beide Seiten.
+        {language === 'en'
+          ? 'Measure circumference, not diameter. For arms and legs, the value applies to both sides.'
+          : 'Umfang messen, nicht Durchmesser. Bei Armen und Beinen gilt der Eintrag für beide Seiten.'}
       </Text>
       <TextInput
         key={field.label}

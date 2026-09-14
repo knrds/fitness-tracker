@@ -44,12 +44,14 @@ import { useTheme, Card, EmptyState } from '@fitness-tracker/ui';
 import { LevelProgress } from '../../src/components/LevelProgress';
 import { HorizontalFadeScroll } from '../../src/components/HorizontalFadeScroll';
 import { VerticalFadeScroll } from '../../src/components/VerticalFadeScroll';
+import { useI18n } from '../../src/i18n';
 
 export default function HistoryScreen() {
   const [activeTab, setActiveTab] = useState<'history' | 'progress' | 'achievements'>('history');
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
   const insets = useSafeAreaInsets();
+  const { t, language } = useI18n();
 
   return (
     <View
@@ -62,17 +64,17 @@ export default function HistoryScreen() {
         <Text
           style={[styles.headerTitle, { color: theme.colors.text, ...theme.typography.heading }]}
         >
-          Activity
+          {language === 'en' ? 'Activity' : 'Aktivität'}
         </Text>
       </View>
       <SegmentedControl
-        label="Activity views"
+        label={language === 'en' ? 'Activity views' : 'Aktivitätsansichten'}
         value={activeTab}
         onChange={setActiveTab}
         options={[
-          { value: 'history', label: 'History' },
-          { value: 'progress', label: 'Progress' },
-          { value: 'achievements', label: 'Achievements' },
+          { value: 'history', label: t('nav.history') },
+          { value: 'progress', label: language === 'en' ? 'Progress' : 'Fortschritt' },
+          { value: 'achievements', label: language === 'en' ? 'Achievements' : 'Erfolge' },
         ]}
       />
       {activeTab === 'history' ? (
@@ -92,6 +94,7 @@ function HistoryView() {
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
   const insets = useSafeAreaInsets();
+  const { t, language } = useI18n();
   const { exercises: allExercises } = useExerciseStore();
   const profile = useProfileStore((state) => state.profile);
   const isImperial = profile?.preferredUnits === 'imperial';
@@ -403,7 +406,10 @@ function HistoryView() {
     const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
     const today = new Date();
 
-    const daysOfWeekHeaders = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    const daysOfWeekHeaders =
+      language === 'en'
+        ? ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+        : ['M', 'D', 'M', 'D', 'F', 'S', 'S'];
 
     const weekDays = React.useMemo(() => {
       return Array.from({ length: 7 }).map((_, index) => {
@@ -476,7 +482,9 @@ function HistoryView() {
             ]}
           >
             {viewMode === 'week'
-              ? new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(day)
+              ? new Intl.DateTimeFormat(language === 'en' ? 'en-US' : 'de-DE', {
+                  weekday: 'short',
+                }).format(day)
               : day.getDate()}
           </Text>
           <View style={styles.consistencyBlocks}>
@@ -502,10 +510,14 @@ function HistoryView() {
     return (
       <Card padding="md" style={styles.consistencyCard}>
         <View style={styles.consistencyHeader}>
-          <Text style={[styles.consistencyTitle, { color: theme.colors.text }]}>CONSISTENCY</Text>
+          <Text style={[styles.consistencyTitle, { color: theme.colors.text }]}>
+            {t('workout.consistency')}
+          </Text>
           <View style={[styles.consistencyToggle, { borderColor: theme.colors.border }]}>
             {(['week', 'month'] as const).map((mode) => {
               const selected = mode === viewMode;
+              const modeLabel =
+                mode === 'week' ? t('time.week').toUpperCase() : t('time.month').toUpperCase();
               return (
                 <Pressable
                   key={mode}
@@ -521,7 +533,7 @@ function HistoryView() {
                       { color: selected ? theme.colors.background : theme.colors.muted },
                     ]}
                   >
-                    {mode.toUpperCase()}
+                    {modeLabel}
                   </Text>
                 </Pressable>
               );
@@ -551,7 +563,9 @@ function HistoryView() {
         )}
 
         <Text style={[styles.consistencyHint, { color: theme.colors.muted }]}>
-          Tap a filled day to open its workout history.
+          {language === 'en'
+            ? 'Tap a filled day to open its workout history.'
+            : 'Tippe auf einen Tag mit Einheiten, um den Verlauf zu öffnen.'}
         </Text>
       </Card>
     );
@@ -568,8 +582,12 @@ function HistoryView() {
         ListHeaderComponent={ConsistencyGrid}
         ListEmptyComponent={
           <EmptyState
-            title="NO WORKOUTS YET"
-            description="Your completed workouts will appear here."
+            title={language === 'en' ? 'NO WORKOUTS YET' : 'NOCH KEINE WORKOUTS'}
+            description={
+              language === 'en'
+                ? 'Your completed workouts will appear here.'
+                : 'Deine abgeschlossenen Workouts erscheinen hier.'
+            }
           />
         }
       />
@@ -830,6 +848,7 @@ function ProgressView() {
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
   const insets = useSafeAreaInsets();
+  const { language } = useI18n();
   const historyStore = useHistoryStore();
   const { exercises } = useExerciseStore();
   const { profile } = useProfileStore();
@@ -989,10 +1008,12 @@ function ProgressView() {
               theme.typography.heading,
             ]}
           >
-            Not enough data
+            {language === 'de' ? 'Nicht genug Daten' : 'Not enough data'}
           </Text>
           <Text style={[{ color: theme.colors.muted }, theme.typography.body]}>
-            Complete at least 2 sessions.
+            {language === 'de'
+              ? 'Schließe mindestens 2 Einheiten ab.'
+              : 'Complete at least 2 sessions.'}
           </Text>
         </Card>
       );
@@ -1069,7 +1090,9 @@ function ProgressView() {
             { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
           ]}
         >
-          Max Weight History · letzte 24 Trainings
+          {language === 'de'
+            ? 'Max-Gewicht-Verlauf · letzte 24 Trainings'
+            : 'Max Weight History · last 24 workouts'}
         </Text>
 
         {/* Selected Data Point Details */}
@@ -1114,7 +1137,7 @@ function ProgressView() {
               {selectedPoint.isPR && (
                 <Text style={{ color: theme.colors.warning, fontFamily: 'SpaceGrotesk_700Bold' }}>
                   {' '}
-                  (★ Weight PR)
+                  {language === 'de' ? '(★ Gewichts-PR)' : '(★ Weight PR)'}
                 </Text>
               )}
             </Text>
@@ -1133,7 +1156,9 @@ function ProgressView() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2 }}>
             <Ionicons name="information-circle-outline" size={13} color={theme.colors.muted} />
             <Text style={[styles.chartTipText, { color: theme.colors.muted }]}>
-              Slide across chart to view Max Weight, Vol & e1RM
+              {language === 'de'
+                ? 'Über das Diagramm streichen für Max-Gewicht, Vol & e1RM'
+                : 'Slide across chart to view Max Weight, Vol & e1RM'}
             </Text>
           </View>
         )}
@@ -1202,11 +1227,13 @@ function ProgressView() {
           { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
         ]}
       >
-        PERSONAL RECORDS
+        {language === 'de' ? 'PERSÖNLICHE REKORDE' : 'PERSONAL RECORDS'}
       </Text>
       {activeExerciseIds.length === 0 ? (
         <Text style={[{ color: theme.colors.muted, ...theme.typography.body }]}>
-          Complete a workout to see your PRs.
+          {language === 'de'
+            ? 'Schließe ein Workout ab, um deine PRs zu sehen.'
+            : 'Complete a workout to see your PRs.'}
         </Text>
       ) : (
         <>
@@ -1223,7 +1250,7 @@ function ProgressView() {
               ]}
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search exercises..."
+              placeholder={language === 'de' ? 'Übungen suchen...' : 'Search exercises...'}
               placeholderTextColor={theme.colors.muted}
             />
             <Pressable
@@ -1255,7 +1282,9 @@ function ProgressView() {
                 },
               ]}
             >
-              No matching exercises found.
+              {language === 'de'
+                ? 'Keine passenden Übungen gefunden.'
+                : 'No matching exercises found.'}
             </Text>
           ) : (
             <>
@@ -1283,7 +1312,7 @@ function ProgressView() {
                           },
                         ]}
                       >
-                        {ex?.name || 'Unknown'}
+                        {ex?.name || (language === 'de' ? 'Unbekannt' : 'Unknown')}
                       </Text>
                     </Pressable>
                   );
@@ -1297,7 +1326,7 @@ function ProgressView() {
                       { color: theme.colors.muted, ...theme.typography.caption },
                     ]}
                   >
-                    BEST WEIGHT
+                    {language === 'de' ? 'BESTGEWICHT' : 'BEST WEIGHT'}
                   </Text>
                   <Text
                     style={[
@@ -1320,14 +1349,14 @@ function ProgressView() {
               {selectedExId && progressDetails && (
                 <Card style={styles.progressionDetailsCard} padding="md">
                   <Text style={[styles.detailsSectionTitle, { color: theme.colors.text }]}>
-                    PROGRESSION DETAILS
+                    {language === 'de' ? 'PROGRESSIONSDETAILS' : 'PROGRESSION DETAILS'}
                   </Text>
 
                   <View style={styles.detailsGrid}>
                     {/* Weight Row */}
                     <View style={[styles.detailsRow, { borderBottomColor: theme.colors.border }]}>
                       <Text style={[styles.detailLabel, { color: theme.colors.muted }]}>
-                        Weight Progression
+                        {language === 'de' ? 'Gewichtsprogression' : 'Weight Progression'}
                       </Text>
                       <Text style={[styles.detailVal, { color: theme.colors.text }]}>
                         {(() => {
@@ -1347,7 +1376,7 @@ function ProgressView() {
                     {/* e1RM Row */}
                     <View style={[styles.detailsRow, { borderBottomColor: theme.colors.border }]}>
                       <Text style={[styles.detailLabel, { color: theme.colors.muted }]}>
-                        Estimated 1RM
+                        {language === 'de' ? 'Geschätztes 1RM' : 'Estimated 1RM'}
                       </Text>
                       <Text style={[styles.detailVal, { color: theme.colors.text }]}>
                         {(() => {
@@ -1360,7 +1389,9 @@ function ProgressView() {
                           const latVal = isImperial ? lat * 2.20462 : lat;
                           const peakVal = isImperial ? peak * 2.20462 : peak;
 
-                          return `Init: ${initVal.toFixed(1)} | Peak: ${peakVal.toFixed(1)} | Latest: ${latVal.toFixed(1)} ${unit}`;
+                          return language === 'de'
+                            ? `Start: ${initVal.toFixed(1)} | Spitze: ${peakVal.toFixed(1)} | Zuletzt: ${latVal.toFixed(1)} ${unit}`
+                            : `Init: ${initVal.toFixed(1)} | Peak: ${peakVal.toFixed(1)} | Latest: ${latVal.toFixed(1)} ${unit}`;
                         })()}
                       </Text>
                     </View>
@@ -1374,15 +1405,15 @@ function ProgressView() {
                     >
                       <View style={styles.detailHalf}>
                         <Text style={[styles.detailLabel, { color: theme.colors.muted }]}>
-                          Avg Reps/Set
+                          {language === 'de' ? 'Ø Wdh./Satz' : 'Avg Reps/Set'}
                         </Text>
                         <Text style={[styles.detailVal, { color: theme.colors.text }]}>
-                          {progressDetails.avgReps} reps
+                          {progressDetails.avgReps} {language === 'de' ? 'Wdh.' : 'reps'}
                         </Text>
                       </View>
                       <View style={styles.detailHalf}>
                         <Text style={[styles.detailLabel, { color: theme.colors.muted }]}>
-                          Avg Intensity (RPE)
+                          {language === 'de' ? 'Ø Intensität (RPE)' : 'Avg Intensity (RPE)'}
                         </Text>
                         <Text style={[styles.detailVal, { color: theme.colors.text }]}>
                           {progressDetails.avgRpe}
@@ -1393,11 +1424,12 @@ function ProgressView() {
                     {/* Total Sets & Workouts */}
                     <View style={[styles.detailsRow, { borderBottomWidth: 0 }]}>
                       <Text style={[styles.detailLabel, { color: theme.colors.muted }]}>
-                        Training Volume
+                        {language === 'de' ? 'Trainingsvolumen' : 'Training Volume'}
                       </Text>
                       <Text style={[styles.detailVal, { color: theme.colors.text }]}>
-                        {progressDetails.totalSets} sets across {progressDetails.totalWorkouts}{' '}
-                        sessions
+                        {language === 'de'
+                          ? `${progressDetails.totalSets} Sätze in ${progressDetails.totalWorkouts} Workouts`
+                          : `${progressDetails.totalSets} sets across ${progressDetails.totalWorkouts} sessions`}
                       </Text>
                     </View>
                   </View>
@@ -1414,12 +1446,19 @@ function ProgressView() {
 function AchievementBadge({ kind }: { kind: 'one_time' | 'repeatable' }) {
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
+  const { language } = useI18n();
   const color = kind === 'repeatable' ? theme.colors.warning : theme.colors.muted;
   return (
     <View style={[styles.kindBadge, { borderColor: color }]}>
       <Ionicons name={kind === 'repeatable' ? 'repeat' : 'flag-outline'} size={10} color={color} />
       <Text style={[styles.kindBadgeText, { color }]}>
-        {kind === 'repeatable' ? 'REPEATABLE' : 'ONE-TIME'}
+        {kind === 'repeatable'
+          ? language === 'en'
+            ? 'REPEATABLE'
+            : 'WIEDERHOLBAR'
+          : language === 'en'
+          ? 'ONE-TIME'
+          : 'EINMALIG'}
       </Text>
     </View>
   );
@@ -1430,6 +1469,7 @@ function AchievementsView() {
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
   const insets = useSafeAreaInsets();
+  const { language } = useI18n();
   const { xp, level, unlockedAchievements, repeatCounts } = useAchievementStore();
   const { getProgress } = useAchievementCheck();
 
@@ -1452,7 +1492,7 @@ function AchievementsView() {
           { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
         ]}
       >
-        REPEATABLE
+        {language === 'en' ? 'REPEATABLE' : 'WIEDERHOLBAR'}
       </Text>
       {repeatables.map((ach) => {
         const count = repeatCounts[ach.id] || 0;
@@ -1502,7 +1542,7 @@ function AchievementsView() {
                   { color: earned ? theme.colors.warning : theme.colors.muted, fontSize: 12 },
                 ]}
               >
-                {count}× absolviert
+                {language === 'en' ? `${count}× completed` : `${count}× absolviert`}
               </Text>
             </View>
           </Card>
@@ -1522,7 +1562,9 @@ function AchievementsView() {
               },
             ]}
           >
-            UNLOCKED ({unlockedList.length})
+            {language === 'en'
+              ? `UNLOCKED (${unlockedList.length})`
+              : `FREIGESCHALTET (${unlockedList.length})`}
           </Text>
           {unlockedList.map((ach) => (
             <Card
@@ -1548,7 +1590,9 @@ function AchievementsView() {
                     >
                       {ach.name}
                     </Text>
-                    <Text style={{ color: theme.colors.primary, fontSize: 12 }}>✓ Absolviert</Text>
+                    <Text style={{ color: theme.colors.primary, fontSize: 12 }}>
+                      {language === 'en' ? '✓ Completed' : '✓ Absolviert'}
+                    </Text>
                   </View>
                   <Text
                     style={[
@@ -1586,7 +1630,9 @@ function AchievementsView() {
               },
             ]}
           >
-            LOCKED ({lockedList.length})
+            {language === 'en'
+              ? `LOCKED (${lockedList.length})`
+              : `GESPERRT (${lockedList.length})`}
           </Text>
           {lockedList.map((ach) => {
             const prog = getProgress(ach.id);

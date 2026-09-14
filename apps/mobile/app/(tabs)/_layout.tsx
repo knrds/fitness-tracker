@@ -6,9 +6,11 @@ import { useTheme, withAlpha } from '@fitness-tracker/ui';
 import { View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MinimizedWorkoutBar } from '../../src/components/workout/MinimizedWorkoutBar';
+import { useI18n } from '../../src/i18n';
 
 export default function TabLayout() {
   const theme = useTheme();
+  const { t } = useI18n();
   const reducedMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
@@ -60,9 +62,9 @@ export default function TabLayout() {
           <Tabs.Screen
             name="history"
             options={{
-              title: 'History',
-              tabBarLabel: 'History',
-              tabBarAccessibilityLabel: 'History',
+              title: t('nav.history'),
+              tabBarLabel: t('nav.history'),
+              tabBarAccessibilityLabel: t('nav.history'),
               tabBarIcon: ({ color, focused }) => (
                 <TabIcon focused={focused} name={focused ? 'time' : 'time-outline'} color={color} />
               ),
@@ -71,9 +73,9 @@ export default function TabLayout() {
           <Tabs.Screen
             name="workouts"
             options={{
-              title: 'Plans',
-              tabBarLabel: 'Plans',
-              tabBarAccessibilityLabel: 'Plans',
+              title: t('nav.plans'),
+              tabBarLabel: t('nav.plans'),
+              tabBarAccessibilityLabel: t('nav.plans'),
               tabBarIcon: ({ color, focused }) => (
                 <TabIcon
                   name={focused ? 'calendar' : 'calendar-outline'}
@@ -86,9 +88,9 @@ export default function TabLayout() {
           <Tabs.Screen
             name="index"
             options={{
-              title: 'Home',
-              tabBarLabel: 'Home',
-              tabBarAccessibilityLabel: 'Home',
+              title: t('nav.home'),
+              tabBarLabel: t('nav.home'),
+              tabBarAccessibilityLabel: t('nav.home'),
               tabBarIcon: ({ color, focused }) => (
                 <TabIcon name={focused ? 'home' : 'home-outline'} color={color} focused={focused} />
               ),
@@ -103,9 +105,9 @@ export default function TabLayout() {
           <Tabs.Screen
             name="coach"
             options={{
-              title: 'Coach',
-              tabBarLabel: 'Coach',
-              tabBarAccessibilityLabel: 'Coach',
+              title: t('nav.coach'),
+              tabBarLabel: t('nav.coach'),
+              tabBarAccessibilityLabel: t('nav.coach'),
               tabBarIcon: ({ color, focused }) => (
                 <TabIcon
                   name={focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'}
@@ -118,9 +120,9 @@ export default function TabLayout() {
           <Tabs.Screen
             name="body"
             options={{
-              title: 'Body',
-              tabBarLabel: 'Body',
-              tabBarAccessibilityLabel: 'Body',
+              title: t('nav.body'),
+              tabBarLabel: t('nav.body'),
+              tabBarAccessibilityLabel: t('nav.body'),
               tabBarIcon: ({ color, focused }) => (
                 <TabIcon name={focused ? 'body' : 'body-outline'} color={color} focused={focused} />
               ),

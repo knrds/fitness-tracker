@@ -28,6 +28,7 @@ import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { WorkoutTemplate } from '@fitness-tracker/domain';
 import ProgramListScreen from './programs';
+import { useI18n } from '../../src/i18n';
 
 export default function WorkoutsScreen() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function WorkoutsScreen() {
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
   const { showConfirm } = useDialog();
+  const { t, language } = useI18n();
   const insets = useSafeAreaInsets();
 
   const {
@@ -250,10 +252,13 @@ export default function WorkoutsScreen() {
 
   const handleDeleteTemplate = async (templateId: string) => {
     const shouldDelete = await showConfirm({
-      title: 'Vorlage löschen',
-      message: 'Möchtest du diese Trainingsvorlage wirklich löschen?',
-      confirmLabel: 'Löschen',
-      cancelLabel: 'Abbrechen',
+      title: language === 'de' ? 'Vorlage löschen' : 'Delete Template',
+      message:
+        language === 'de'
+          ? 'Möchtest du diese Trainingsvorlage wirklich löschen?'
+          : 'Are you sure you want to delete this workout template?',
+      confirmLabel: language === 'de' ? 'Löschen' : 'Delete',
+      cancelLabel: language === 'de' ? 'Abbrechen' : 'Cancel',
       destructive: true,
     });
     if (shouldDelete) {
@@ -323,12 +328,21 @@ export default function WorkoutsScreen() {
     setFolderMenuName(null);
     const count = folderMap.get(folderName)?.length || 0;
     const shouldDelete = await showConfirm({
-      title: 'Ordner löschen',
-      message: `Möchtest du den Ordner "${folderName}" wirklich löschen?${
-        count > 0 ? ` Die ${count} Vorlage(n) darin bleiben erhalten und werden in "Ohne Ordner" verschoben.` : ''
-      }`,
-      confirmLabel: 'Löschen',
-      cancelLabel: 'Abbrechen',
+      title: language === 'de' ? 'Ordner löschen' : 'Delete Folder',
+      message:
+        language === 'de'
+          ? `Möchtest du den Ordner "${folderName}" wirklich löschen?${
+              count > 0
+                ? ` Die ${count} Vorlage(n) darin bleiben erhalten und werden in "Ohne Ordner" verschoben.`
+                : ''
+            }`
+          : `Are you sure you want to delete the folder "${folderName}"?${
+              count > 0
+                ? ` The ${count} template(s) in it will be preserved and moved to "Unassigned".`
+                : ''
+            }`,
+      confirmLabel: language === 'de' ? 'Löschen' : 'Delete',
+      cancelLabel: language === 'de' ? 'Abbrechen' : 'Cancel',
       destructive: true,
     });
     if (shouldDelete) {
@@ -418,7 +432,7 @@ export default function WorkoutsScreen() {
           { color: theme.colors.text, marginHorizontal: 16, marginBottom: 16 },
         ]}
       >
-        Plans
+        {t('plans.title')}
       </Text>
       <SegmentedControl
         label="Plan views"
@@ -428,8 +442,8 @@ export default function WorkoutsScreen() {
           router.setParams({ tab: value });
         }}
         options={[
-          { value: 'workouts', label: 'Templates' },
-          { value: 'programs', label: 'Programs' },
+          { value: 'workouts', label: t('plans.templates') },
+          { value: 'programs', label: t('plans.programs') },
         ]}
       />
       {activeTab === 'workouts' ? (
@@ -444,12 +458,12 @@ export default function WorkoutsScreen() {
         >
           {/* Quick Start Empty Workout */}
           <View style={styles.quickStart}>
-            <Text style={styles.sectionTitle}>Quick Start</Text>
+            <Text style={styles.sectionTitle}>{t('workout.quickStart')}</Text>
             <Pressable style={styles.emptyWorkoutBtn} onPress={handleStartEmpty}>
               <Text style={styles.emptyWorkoutBtnText}>
                 {status === 'active' || status === 'paused'
-                  ? 'Resume Current Workout'
-                  : '+ Start Empty Workout'}
+                  ? t('workout.resumeWorkout')
+                  : t('workout.startEmptyWorkout')}
               </Text>
             </Pressable>
           </View>
@@ -458,7 +472,7 @@ export default function WorkoutsScreen() {
           {topTemplates.length > 0 && (
             <View style={styles.topWorkoutsSection}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>Workout beginnen</Text>
+                <Text style={styles.sectionTitle}>{t('workout.startWorkout')}</Text>
                 <Text style={styles.sectionBadgeText}>Top {topTemplates.length}</Text>
               </View>
 
@@ -469,8 +483,9 @@ export default function WorkoutsScreen() {
                     .filter(Boolean);
                   const previewText =
                     exSummary.length > 0
-                      ? exSummary.slice(0, 3).join(', ') + (exSummary.length > 3 ? ` & ${exSummary.length - 3} more...` : '')
-                      : `${item.exercises.length} Exercises`;
+                      ? exSummary.slice(0, 3).join(', ') +
+                        (exSummary.length > 3 ? ` & ${exSummary.length - 3} more...` : '')
+                      : `${item.exercises.length} ${language === 'de' ? 'Übungen' : 'Exercises'}`;
 
                   return (
                     <Pressable
@@ -519,15 +534,15 @@ export default function WorkoutsScreen() {
             }}
           >
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Ordner</Text>
+              <Text style={styles.sectionTitle}>{t('plans.folders')}</Text>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Neuen Ordner erstellen"
+                accessibilityLabel={t('plans.newFolder')}
                 style={styles.addFolderBtn}
                 onPress={handleOpenCreateFolder}
               >
                 <Ionicons name="add-circle-outline" size={18} color={theme.colors.primary} />
-                <Text style={styles.addFolderBtnText}>Neuer Ordner</Text>
+                <Text style={styles.addFolderBtnText}>{t('plans.newFolder')}</Text>
               </Pressable>
             </View>
 
@@ -595,7 +610,9 @@ export default function WorkoutsScreen() {
                       {isHoveredTarget && (
                         <View style={styles.dropTargetBadge}>
                           <Ionicons name="arrow-down-circle" size={13} color={theme.colors.primary} />
-                          <Text style={styles.dropTargetBadgeText}>Hier ablegen</Text>
+                          <Text style={styles.dropTargetBadgeText}>
+                            {language === 'de' ? 'Hier ablegen' : 'Drop here'}
+                          </Text>
                         </View>
                       )}
                       <Pressable
@@ -623,10 +640,12 @@ export default function WorkoutsScreen() {
                       {folderItemsInFolder.length === 0 && (
                         <View style={styles.folderEmptyBox}>
                           <Text style={styles.folderEmptyText}>
-                            Keine Vorlagen in diesem Ordner.
+                            {t('plans.noTemplatesInFolder')}
                           </Text>
                           <Text style={styles.folderEmptySubtext}>
-                            Ziehe Vorlagen hierher oder nutze (⋮) &quot;In Ordner verschieben&quot;.
+                            {language === 'de'
+                              ? 'Ziehe Vorlagen hierher oder nutze (⋮) "In Ordner verschieben".'
+                              : 'Drag templates here or use (⋮) "Move to folder".'}
                           </Text>
                         </View>
                       )}
@@ -679,7 +698,7 @@ export default function WorkoutsScreen() {
                         },
                       ]}
                     >
-                      OHNE ORDNER
+                      {t('plans.unassigned')}
                     </Text>
                     <Text style={styles.folderCount}>({unassignedTemplates.length})</Text>
                   </View>
@@ -688,7 +707,9 @@ export default function WorkoutsScreen() {
                     {templateSorter.hoveredTargetFolder === '__unassigned__' && (
                       <View style={styles.dropTargetBadge}>
                         <Ionicons name="arrow-down-circle" size={13} color={theme.colors.primary} />
-                        <Text style={styles.dropTargetBadgeText}>Hier ablegen</Text>
+                        <Text style={styles.dropTargetBadgeText}>
+                          {language === 'de' ? 'Hier ablegen' : 'Drop here'}
+                        </Text>
                       </View>
                     )}
                     <Ionicons
@@ -723,17 +744,17 @@ export default function WorkoutsScreen() {
                   <Ionicons name="folder-outline" size={24} color={theme.colors.primary} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.emptyFolderHintTitle}>
-                      Organisiere deine Pläne in Ordnern
+                      {t('plans.folderHintTitle')}
                     </Text>
                     <Text style={styles.emptyFolderHintText}>
-                      Erstelle Ordner wie &quot;PPL ARNOLD&quot;, &quot;Upper Lower 5 Split&quot; oder &quot;Urlaubs-Workouts&quot;.
+                      {t('plans.folderHintText')}
                     </Text>
                   </View>
                 </View>
                 {templates.map((item) => renderTemplateCard(item))}
                 {templates.length === 0 && (
                   <Text style={styles.emptyText}>
-                    No templates saved yet. Finish a workout and save it as a template.
+                    {t('plans.noTemplatesSaved')}
                   </Text>
                 )}
               </View>
@@ -765,7 +786,7 @@ export default function WorkoutsScreen() {
             >
               <Ionicons name="play-circle-outline" size={20} color={theme.colors.primary} />
               <Text style={[styles.menuItemText, { color: theme.colors.primary }]}>
-                Start Workout
+                {t('workout.startWorkout')}
               </Text>
             </Pressable>
 
@@ -780,7 +801,11 @@ export default function WorkoutsScreen() {
             >
               <Ionicons name="folder-outline" size={20} color={theme.colors.primary} />
               <Text style={styles.menuItemText}>
-                {menuTemplate?.folder ? `Ordner ändern (${menuTemplate.folder})` : 'In Ordner verschieben...'}
+                {menuTemplate?.folder
+                  ? `${language === 'de' ? 'Ordner ändern' : 'Change Folder'} (${menuTemplate.folder})`
+                  : language === 'de'
+                    ? 'In Ordner verschieben...'
+                    : 'Move to folder...'}
               </Text>
             </Pressable>
 
@@ -798,7 +823,7 @@ export default function WorkoutsScreen() {
               }}
             >
               <Ionicons name="create-outline" size={20} color={theme.colors.text} />
-              <Text style={styles.menuItemText}>Edit</Text>
+              <Text style={styles.menuItemText}>{language === 'de' ? 'Bearbeiten' : 'Edit'}</Text>
             </Pressable>
             <Pressable
               style={[
@@ -814,7 +839,7 @@ export default function WorkoutsScreen() {
               }}
             >
               <Ionicons name="arrow-up-outline" size={20} color={theme.colors.text} />
-              <Text style={styles.menuItemText}>Move Up</Text>
+              <Text style={styles.menuItemText}>{language === 'de' ? 'Nach oben' : 'Move Up'}</Text>
             </Pressable>
             <Pressable
               style={[
@@ -834,7 +859,7 @@ export default function WorkoutsScreen() {
               }}
             >
               <Ionicons name="arrow-down-outline" size={20} color={theme.colors.text} />
-              <Text style={styles.menuItemText}>Move Down</Text>
+              <Text style={styles.menuItemText}>{language === 'de' ? 'Nach unten' : 'Move Down'}</Text>
             </Pressable>
             <Pressable
               style={styles.menuItem}
@@ -846,7 +871,7 @@ export default function WorkoutsScreen() {
               }}
             >
               <Ionicons name="share-outline" size={20} color={theme.colors.text} />
-              <Text style={styles.menuItemText}>Share</Text>
+              <Text style={styles.menuItemText}>{language === 'de' ? 'Teilen' : 'Share'}</Text>
             </Pressable>
             <Pressable
               style={styles.menuItem}
@@ -857,7 +882,9 @@ export default function WorkoutsScreen() {
               }}
             >
               <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
-              <Text style={[styles.menuItemText, { color: theme.colors.error }]}>Delete</Text>
+              <Text style={[styles.menuItemText, { color: theme.colors.error }]}>
+                {language === 'de' ? 'Löschen' : 'Delete'}
+              </Text>
             </Pressable>
           </View>
         </Pressable>
@@ -872,7 +899,9 @@ export default function WorkoutsScreen() {
       >
         <Pressable style={styles.menuOverlay} onPress={() => setFolderMenuName(null)}>
           <View style={styles.menuSheet}>
-            <Text style={styles.menuTitle}>ORDNER: {folderMenuName}</Text>
+            <Text style={styles.menuTitle}>
+              {language === 'de' ? 'ORDNER' : 'FOLDER'}: {folderMenuName}
+            </Text>
             <Pressable
               style={styles.menuItem}
               onPress={() => {
@@ -880,7 +909,7 @@ export default function WorkoutsScreen() {
               }}
             >
               <Ionicons name="create-outline" size={20} color={theme.colors.text} />
-              <Text style={styles.menuItemText}>Umbenennen</Text>
+              <Text style={styles.menuItemText}>{language === 'de' ? 'Umbenennen' : 'Rename'}</Text>
             </Pressable>
             <Pressable
               style={styles.menuItem}
@@ -890,7 +919,7 @@ export default function WorkoutsScreen() {
             >
               <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
               <Text style={[styles.menuItemText, { color: theme.colors.error }]}>
-                Ordner löschen
+                {language === 'de' ? 'Ordner löschen' : 'Delete folder'}
               </Text>
             </Pressable>
           </View>
@@ -913,13 +942,23 @@ export default function WorkoutsScreen() {
             onPress={(e) => e.stopPropagation()}
           >
             <Text style={[styles.modalTitle, { color: theme.colors.text, marginBottom: 16 }]}>
-              {editingFolderOriginalName ? 'Ordner umbenennen' : 'Neuer Ordner'}
+              {editingFolderOriginalName
+                ? language === 'de'
+                  ? 'Ordner umbenennen'
+                  : 'Rename folder'
+                : language === 'de'
+                  ? 'Neuer Ordner'
+                  : 'New folder'}
             </Text>
             <TextInput
               autoFocus
               value={folderInputText}
               onChangeText={setFolderInputText}
-              placeholder="z. B. PPL ARNOLD, Home Gym, Urlaubs-Workouts..."
+              placeholder={
+                language === 'de'
+                  ? 'z. B. PPL ARNOLD, Home Gym, Urlaubs-Workouts...'
+                  : 'e.g. PPL ARNOLD, Home Gym, Vacation Workouts...'
+              }
               placeholderTextColor={theme.colors.muted}
               style={[
                 styles.folderInput,
@@ -939,7 +978,7 @@ export default function WorkoutsScreen() {
                 onPress={() => setFolderModalVisible(false)}
               >
                 <Text style={{ color: theme.colors.muted, fontFamily: 'SpaceGrotesk_600SemiBold' }}>
-                  Abbrechen
+                  {t('common.cancel')}
                 </Text>
               </Pressable>
               <Pressable
@@ -959,7 +998,7 @@ export default function WorkoutsScreen() {
                     fontFamily: 'SpaceGrotesk_700Bold',
                   }}
                 >
-                  Speichern
+                  {t('common.save')}
                 </Text>
               </Pressable>
             </View>
@@ -989,7 +1028,7 @@ export default function WorkoutsScreen() {
             <View style={styles.modalHeaderRow}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
-                  Ordner zuweisen
+                  {language === 'de' ? 'Ordner zuweisen' : 'Assign folder'}
                 </Text>
                 <Text style={{ color: theme.colors.muted, fontSize: 12, marginTop: 2 }}>
                   {assignTemplate?.name}
@@ -1027,7 +1066,7 @@ export default function WorkoutsScreen() {
                     },
                   ]}
                 >
-                  Kein Ordner
+                  {language === 'de' ? 'Kein Ordner' : 'No folder'}
                 </Text>
                 {!assignTemplate?.folder && (
                   <Ionicons name="checkmark" size={18} color={theme.colors.primary} />
@@ -1081,7 +1120,7 @@ export default function WorkoutsScreen() {
             >
               <Ionicons name="add-circle-outline" size={18} color={theme.colors.primary} />
               <Text style={[styles.assignNewFolderBtnText, { color: theme.colors.primary }]}>
-                + Neuen Ordner erstellen
+                {language === 'de' ? '+ Neuen Ordner erstellen' : '+ Create new folder'}
               </Text>
             </Pressable>
           </Pressable>
@@ -1129,14 +1168,14 @@ export default function WorkoutsScreen() {
                 <View style={styles.modalStatItem}>
                   <Ionicons name="barbell-outline" size={16} color={theme.colors.primary} />
                   <Text style={[styles.modalStatText, { color: theme.colors.muted }]}>
-                    {summaryTemplate.exercises.length} Exercises
+                    {summaryTemplate.exercises.length} {language === 'de' ? 'Übungen' : 'Exercises'}
                   </Text>
                 </View>
                 <View style={styles.modalStatItem}>
                   <Ionicons name="repeat-outline" size={16} color={theme.colors.primary} />
                   <Text style={[styles.modalStatText, { color: theme.colors.muted }]}>
                     {summaryTemplate.exercises.reduce((acc, curr) => acc + curr.targetSets, 0)}{' '}
-                    Total Sets
+                    {language === 'de' ? 'Sätze gesamt' : 'Total Sets'}
                   </Text>
                 </View>
               </View>
@@ -1150,7 +1189,7 @@ export default function WorkoutsScreen() {
                       style={[styles.summaryExRow, { borderColor: theme.colors.border }]}
                     >
                       <Text style={[styles.summaryExName, { color: theme.colors.text }]}>
-                        {ex?.name || 'Unknown Exercise'}
+                        {ex?.name || (language === 'de' ? 'Unbekannte Übung' : 'Unknown Exercise')}
                       </Text>
                       <Text style={[styles.summaryExDetails, { color: theme.colors.primary }]}>
                         {te.targetSets}s × {te.targetReps ?? '8-10'}r
@@ -1177,7 +1216,7 @@ export default function WorkoutsScreen() {
                     { color: theme.colors.background, ...theme.typography.button },
                   ]}
                 >
-                  Start Workout
+                  {t('workout.startWorkout')}
                 </Text>
               </Pressable>
             </Pressable>

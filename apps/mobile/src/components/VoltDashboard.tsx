@@ -20,6 +20,7 @@ import { SyncIndicator } from './SyncIndicator';
 import voltEmblem from '../../assets/volt-emblem.png';
 import { MuscleHeatmap } from './MuscleHeatmap';
 import { AnimatedDisclosure } from '@fitness-tracker/ui';
+import { useI18n } from '../i18n';
 
 export function VoltDashboard({
   template,
@@ -54,6 +55,7 @@ export function VoltDashboard({
   const wide = useWindowDimensions().width >= 800;
   const [battlePassVisible, setBattlePassVisible] = React.useState(false);
   const { profile } = useProfileStore();
+  const { t, formatMuscle, language } = useI18n();
   const { level, xp } = useAchievementStore();
   const { exercises } = useExerciseStore();
   const history = useHistoryStore();
@@ -94,12 +96,20 @@ export function VoltDashboard({
       .map((e) => exercises.find((x) => x.id === e.exerciseId)?.name)
       .filter(Boolean)
       .join(' · ');
+  const dayInitials =
+    language === 'en'
+      ? ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+      : ['M', 'D', 'M', 'D', 'F', 'S', 'S'];
+  const dayNames =
+    language === 'en'
+      ? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+      : ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
   const weekCard = (
     <Card padding="md" style={{ flex: wide ? 1 : undefined, justifyContent: 'center' }}>
       {panelTitle(
-        'WEEKLY MICROCYCLE'.toUpperCase(),
+        language === 'en' ? 'WEEKLY MICROCYCLE' : 'WOCHEN-MIKROZYKLUS',
         'calendar-outline',
-        `${weekly.length} SESSIONS`,
+        `${weekly.length} ${language === 'en' ? 'SESSIONS' : 'EINHEITEN'}`,
       )}
       <View style={{ flexDirection: 'row', gap: 5 }}>
         {Array.from({ length: 7 }, (_, i) => {
@@ -148,7 +158,7 @@ export function VoltDashboard({
                   },
                 ]}
               >
-                {['M', 'D', 'M', 'D', 'F', 'S', 'S'][i]}
+                {dayInitials[i]}
               </Text>
               <Ionicons
                 name={trained ? 'checkmark-circle' : active ? 'radio-button-on' : 'ellipse-outline'}
@@ -174,7 +184,6 @@ export function VoltDashboard({
         const daySessions = weekly.filter(
           (s) => new Date(s.startedAt).toDateString() === selDate.toDateString(),
         );
-        const dayNames = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
         return (
           <View
             style={{
@@ -203,13 +212,13 @@ export function VoltDashboard({
                   </Text>
                   <Text style={{ color: c.muted, fontSize: 12, fontVariant: ['tabular-nums'] }}>
                     {s.durationSeconds ? `${Math.round(s.durationSeconds / 60)} Min · ` : ''}
-                    {s.exercises.reduce((acc, ex) => acc + ex.sets.filter((st) => st.completed).length, 0)} Sätze
+                    {s.exercises.reduce((acc, ex) => acc + ex.sets.filter((st) => st.completed).length, 0)} {t('workout.sets')}
                   </Text>
                 </View>
               ))
             ) : (
               <Text style={{ color: c.muted, fontSize: 12, fontStyle: 'italic' }}>
-                Ruhetag · Keine Einheit geloggt
+                {language === 'en' ? 'Rest day · No session logged' : 'Ruhetag · Keine Einheit geloggt'}
               </Text>
             )}
           </View>
@@ -244,7 +253,9 @@ export function VoltDashboard({
               letterSpacing: 0.8,
             }}
           >
-            {programName ? `WOCHE ${String(week).padStart(2, '0')} · ${durationWeeks}` : 'DEIN TRAINING'}
+            {programName
+              ? `${language === 'en' ? 'WEEK' : 'WOCHE'} ${String(week).padStart(2, '0')} · ${durationWeeks}`
+              : (language === 'en' ? 'YOUR TRAINING' : 'DEIN TRAINING')}
           </Text>
         </View>
         <Pressable
@@ -252,15 +263,15 @@ export function VoltDashboard({
           accessibilityRole="button"
           style={{ minHeight: 44, justifyContent: 'center' }}
         >
-          <Text style={[label, { color: c.primary }]}>PROGRAMS ↗</Text>
+          <Text style={[label, { color: c.primary }]}>{t('plans.programs').toUpperCase()} ↗</Text>
         </Pressable>
       </View>
       <View style={{ gap: 6 }}>
-        <Text style={[label, { color: c.primary }]}>TODAY’S SESSION</Text>
+        <Text style={[label, { color: c.primary }]}>{language === 'en' ? "TODAY'S SESSION" : 'HEUTIGE EINHEIT'}</Text>
         <Text style={[heading, { fontSize: 26, lineHeight: 31 }]}>
           {resume
-            ? 'CONTINUE YOUR SESSION'
-            : template?.name || (programName ? 'RECOVERY DAY' : 'QUICK WORKOUT')}
+            ? t('workout.resumeWorkout').toUpperCase()
+            : template?.name || (programName ? (language === 'en' ? 'RECOVERY DAY' : 'REGENERATIONSTAG') : 'QUICK WORKOUT')}
         </Text>
         <Text
           numberOfLines={2}
@@ -269,15 +280,15 @@ export function VoltDashboard({
           {template
             ? names(template)
             : programName
-              ? `${programName} · No scheduled workout today.`
-              : 'Your pace. Your exercises. Make the next set count.'}
+              ? `${programName} · ${language === 'en' ? 'No scheduled workout today.' : 'Heute kein geplantes Workout.'}`
+              : (language === 'en' ? 'Your pace. Your exercises. Make the next set count.' : 'Dein Tempo. Deine Übungen. Jeder Satz zählt.')}
         </Text>
       </View>
       {template && (
         <View style={{ flexDirection: 'row', gap: 10 }}>
           {[
-            ['MOVEMENTS', `${template.exercises.length} exercises`],
-            ['WORKING SETS', `${template.exercises.reduce((n, e) => n + e.targetSets, 0)} planned`],
+            [language === 'en' ? 'MOVEMENTS' : 'ÜBUNGEN', `${template.exercises.length} ${t('plans.exercisesCount')}`],
+            [language === 'en' ? 'WORKING SETS' : 'ARBEITSSÄTZE', `${template.exercises.reduce((n, e) => n + e.targetSets, 0)} ${language === 'en' ? 'planned' : 'geplant'}`],
           ].map(([name, value]) => (
             <View
               key={name}
@@ -297,7 +308,7 @@ export function VoltDashboard({
         </View>
       )}
       <Button
-        title={resume ? 'RESUME WORKOUT →' : template ? 'START SESSION →' : 'START WORKOUT →'}
+        title={resume ? `${t('workout.resumeWorkout').toUpperCase()} →` : template ? (language === 'en' ? 'START SESSION →' : 'SESSION STARTEN →') : `${t('workout.startWorkout').toUpperCase()} →`}
         onPress={onStart}
       />
     </Card>
@@ -367,7 +378,7 @@ export function VoltDashboard({
               </Pressable>
             </View>
             <Text style={[label, { color: c.primary, letterSpacing: 0.6 }]}>
-              {history.getStreak()} DAY STREAK · {xp} XP
+              {history.getStreak()} {language === 'en' ? 'DAY STREAK' : 'TAGE STREAK'} · {xp} XP
             </Text>
           </View>
           <Ionicons name="options-outline" size={20} color={c.muted} />
@@ -382,27 +393,27 @@ export function VoltDashboard({
       {templates.length > 0 && (
         <>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            {caption('ACTIVE TEMPLATES')}
+            {caption(language === 'en' ? 'ACTIVE TEMPLATES' : 'AKTIVE VORLAGEN')}
             <Pressable
               accessibilityRole="button"
               onPress={() => router.navigate('/workouts')}
               style={{ minHeight: 44, justifyContent: 'center' }}
             >
-              <Text style={{ color: c.primary, fontSize: 12 }}>View all ↗</Text>
+              <Text style={{ color: c.primary, fontSize: 12 }}>{language === 'en' ? 'View all ↗' : 'Alle ansehen ↗'}</Text>
             </Pressable>
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-            {templates.slice(0, 4).map((t) => (
-              <View key={t.id} style={{ flexBasis: wide ? '22%' : '46%', flexGrow: 1, minWidth: 0 }}>
-                <Card padding="md" onPress={() => onTemplate(t)} style={{ flex: 1, gap: 12 }}>
+            {templates.slice(0, 4).map((tmpl) => (
+              <View key={tmpl.id} style={{ flexBasis: wide ? '22%' : '46%', flexGrow: 1, minWidth: 0 }}>
+                <Card padding="md" onPress={() => onTemplate(tmpl)} style={{ flex: 1, gap: 12 }}>
                   <Ionicons name="barbell-outline" size={24} color={c.primary} />
-                  <Text style={[heading, { fontSize: 16 }]}>{t.name}</Text>
+                  <Text style={[heading, { fontSize: 16 }]}>{tmpl.name}</Text>
                   <Text numberOfLines={2} style={{ color: c.muted, fontSize: 11, lineHeight: 17 }}>
-                    {names(t)}
+                    {names(tmpl)}
                   </Text>
                   <Text style={[label, { color: c.primary, marginTop: 'auto', letterSpacing: 0 }]}>
-                    {t.exercises.length} Exercises · {t.exercises.reduce((n, e) => n + e.targetSets, 0)}{' '}
-                    Sets ↗
+                    {tmpl.exercises.length} {t('plans.exercisesCount')} · {tmpl.exercises.reduce((n, e) => n + e.targetSets, 0)}{' '}
+                    {t('workout.sets')} ↗
                   </Text>
                 </Card>
               </View>
@@ -411,12 +422,12 @@ export function VoltDashboard({
         </>
       )}
       {/* Analytics — after templates */}
-      {caption('WEEKLY LOAD DISTRIBUTION')}
+      {caption(t('muscles.weeklyLoad').toUpperCase())}
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {([
-          ['VOLUME', `${(volume / 1000).toFixed(1)} t`, 'Recorded load', 'volume', 'trending-up-outline'],
-          ['SETS', `${setCount}`, 'Completed', 'sets', 'checkmark-circle-outline'],
-          ['AVG RPE', averageRpe === null ? '—' : averageRpe.toFixed(1), 'Logged effort', 'rpe', 'speedometer-outline'],
+          [t('workout.volume').toUpperCase(), `${(volume / 1000).toFixed(1)} t`, language === 'en' ? 'Recorded load' : 'Erfasste Last', 'volume', 'trending-up-outline'],
+          [t('workout.sets').toUpperCase(), `${setCount}`, language === 'en' ? 'Completed' : 'Abgeschlossen', 'sets', 'checkmark-circle-outline'],
+          ['AVG RPE', averageRpe === null ? '—' : averageRpe.toFixed(1), language === 'en' ? 'Logged effort' : 'Geloggte Intensität', 'rpe', 'speedometer-outline'],
         ] as const).map(([name, value, detail, key, icon]) => {
           const isSelected = activeStatFact === key;
           return (
@@ -540,9 +551,13 @@ export function VoltDashboard({
           style={{ flex: wide ? 1 : undefined, minWidth: 0 }}
         >
           {panelTitle(
-            'MUSCLE DISTRIBUTION',
+            t('muscles.muscleDistribution').toUpperCase(),
             'disc-outline',
-            showMuscleDetails ? 'DETAILS ↗' : '7 DAYS (TIPPEN)',
+            showMuscleDetails
+              ? 'DETAILS ↗'
+              : language === 'en'
+              ? '7 DAYS (TAP)'
+              : '7 TAGE (TIPPEN)',
           )}
           <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
             <View style={{ width: 124, height: 124 }}>
@@ -581,7 +596,7 @@ export function VoltDashboard({
                 }}
               >
                 <Ionicons name="flash" color={c.primary} size={20} />
-                {caption('SETS')}
+                {caption(t('workout.sets').toUpperCase())}
               </View>
             </View>
             <View style={{ flex: 1, minWidth: 0, gap: 14 }}>
@@ -589,7 +604,7 @@ export function VoltDashboard({
                 topMuscles.map(([name, value], i) => (
                   <View key={name} style={{ gap: 5 }}>
                     <Text style={{ color: c.text, fontSize: 11 }}>
-                      {name.replaceAll('_', ' ')} · {Math.round((value / totalActivity) * 100)}%
+                      {formatMuscle(name)} · {Math.round((value / totalActivity) * 100)}%
                     </Text>
                     <View
                       style={{ height: 5, backgroundColor: c.surfaceElevated, borderRadius: 3 }}
@@ -606,7 +621,11 @@ export function VoltDashboard({
                   </View>
                 ))
               ) : (
-                <Text style={{ color: c.muted }}>Complete a workout to see your distribution.</Text>
+                <Text style={{ color: c.muted }}>
+                  {language === 'en'
+                    ? 'Complete a workout to see your distribution.'
+                    : 'Absolviere ein Workout, um deine Verteilung zu sehen.'}
+                </Text>
               )}
             </View>
           </View>
@@ -620,22 +639,31 @@ export function VoltDashboard({
                 gap: 6,
               }}
             >
-              <Text style={[label, { color: c.primary }]}>FOKUS-AUFTEILUNG DIESE WOCHE</Text>
+              <Text style={[label, { color: c.primary }]}>
+                {language === 'en' ? 'FOCUS DISTRIBUTION THIS WEEK' : 'FOKUS-AUFTEILUNG DIESE WOCHE'}
+              </Text>
               <Text style={{ color: c.text, fontSize: 12, lineHeight: 18 }}>
-                Gesamt: {totalActivity} dokumentierte Arbeitssätze aufgeteilt auf die führenden
-                Muskelpartien. Tippe erneut, um die Aktivitätsringe neu zu animieren.
+                {language === 'en'
+                  ? `Total: ${totalActivity} recorded working sets across primary muscle groups. Tap again to re-animate rings.`
+                  : `Gesamt: ${totalActivity} dokumentierte Arbeitssätze aufgeteilt auf die führenden Muskelpartien. Tippe erneut, um die Aktivitätsringe neu zu animieren.`}
               </Text>
             </View>
           )}
           <Text style={[label, { marginTop: 14, letterSpacing: 0 }]}>
-            Share of recorded primary-muscle set assignments.
+            {language === 'en'
+              ? 'Share of recorded primary-muscle set assignments.'
+              : 'Anteil der erfassten Hauptmuskel-Satzzuordnungen.'}
           </Text>
         </Card>
         <Card
           padding="md"
           style={{ flex: wide ? 1 : undefined, minWidth: 0, borderColor: c.borderActive }}
         >
-          {panelTitle('MUSCLE ACTIVITY', 'body-outline', '7 DAYS')}
+          {panelTitle(
+            language === 'en' ? 'MUSCLE ACTIVITY' : 'MUSKELAKTIVITÄT',
+            'body-outline',
+            language === 'en' ? '7 DAYS' : '7 TAGE',
+          )}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Explore muscle activity"
@@ -664,12 +692,18 @@ export function VoltDashboard({
               {topMuscles.length ? (
                 topMuscles.map(([name, value]) => (
                   <View key={name}>
-                    <Text style={{ color: c.text, fontSize: 12 }}>{name.replaceAll('_', ' ')}</Text>
-                    <Text style={[label, { color: c.primary }]}>{value} SETS</Text>
+                    <Text style={{ color: c.text, fontSize: 12 }}>{formatMuscle(name)}</Text>
+                    <Text style={[label, { color: c.primary }]}>
+                      {value} {t('workout.sets').toUpperCase()}
+                    </Text>
                   </View>
                 ))
               ) : (
-                <Text style={{ color: c.muted }}>Your training, mapped to muscle groups.</Text>
+                <Text style={{ color: c.muted }}>
+                  {language === 'en'
+                    ? 'Your training, mapped to muscle groups.'
+                    : 'Dein Training, zugeordnet nach Muskelgruppen.'}
+                </Text>
               )}
             </View>
           </Pressable>

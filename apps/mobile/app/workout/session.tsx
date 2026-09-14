@@ -36,12 +36,14 @@ import {
   useCaffeineStore,
 } from '../../src/stores/caffeineStore';
 import { useTheme, useDialog, Button, Card } from '@fitness-tracker/ui';
+import { useI18n } from '../../src/i18n';
 
 export default function WorkoutSessionScreen() {
   const router = useRouter();
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
   const { showConfirm } = useDialog();
+  const { t, language } = useI18n();
   const insets = useSafeAreaInsets();
   const {
     status,
@@ -86,9 +88,9 @@ export default function WorkoutSessionScreen() {
     return (
       <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
         <Text style={{ color: theme.colors.muted, ...theme.typography.body, marginBottom: 16 }}>
-          No active workout.
+          {t('workout.noActiveWorkout')}
         </Text>
-        <Button title="GO BACK" onPress={() => router.back()} />
+        <Button title={t('common.goBack')} onPress={() => router.back()} />
       </View>
     );
   }
@@ -103,8 +105,10 @@ export default function WorkoutSessionScreen() {
     } catch {
       setIsFinishing(false);
       Alert.alert(
-        'Speichern fehlgeschlagen',
-        'Dein Training bleibt geöffnet. Bitte prüfe den freien Speicher und versuche den Abschluss erneut.',
+        language === 'de' ? 'Speichern fehlgeschlagen' : 'Saving failed',
+        language === 'de'
+          ? 'Dein Training bleibt geöffnet. Bitte prüfe den freien Speicher und versuche den Abschluss erneut.'
+          : 'Your workout remains open. Please check free space and try finishing again.',
       );
       return;
     }
@@ -124,10 +128,13 @@ export default function WorkoutSessionScreen() {
     const hasCompletedSet = exercises.some((ex) => ex.sets.some((set) => set.completed));
     if (!hasCompletedSet) {
       const discard = await showConfirm({
-        title: 'Noch kein Satz abgeschlossen',
-        message: 'Möchtest du dieses Training verwerfen oder weitertrainieren?',
-        confirmLabel: 'Training verwerfen',
-        cancelLabel: 'Weitertrainieren',
+        title: language === 'de' ? 'Noch kein Satz abgeschlossen' : 'No sets completed yet',
+        message:
+          language === 'de'
+            ? 'Möchtest du dieses Training verwerfen oder weitertrainieren?'
+            : 'Do you want to discard this workout or continue training?',
+        confirmLabel: language === 'de' ? 'Training verwerfen' : 'Discard workout',
+        cancelLabel: language === 'de' ? 'Weitertrainieren' : 'Continue training',
         destructive: true,
       });
       if (discard && isScopeCurrent(scope)) {
@@ -187,10 +194,13 @@ export default function WorkoutSessionScreen() {
   const handleBackAction = async () => {
     const scope = getStorageScope();
     const shouldDiscard = await showConfirm({
-      title: 'Training abbrechen',
-      message: 'Möchtest du das aktuelle Training wirklich abbrechen und verwerfen?',
-      confirmLabel: 'Training abbrechen',
-      cancelLabel: 'Weitertrainieren',
+      title: language === 'de' ? 'Training abbrechen' : 'Cancel workout',
+      message:
+        language === 'de'
+          ? 'Möchtest du das aktuelle Training wirklich abbrechen und verwerfen?'
+          : 'Are you sure you want to cancel and discard the current workout?',
+      confirmLabel: language === 'de' ? 'Training abbrechen' : 'Cancel workout',
+      cancelLabel: language === 'de' ? 'Weitertrainieren' : 'Continue training',
       destructive: true,
     });
     if (shouldDiscard && isScopeCurrent(scope)) {
@@ -308,7 +318,7 @@ export default function WorkoutSessionScreen() {
             </View>
           </View>
           <Button
-            title="FINISH"
+            title={t('workout.finish')}
             variant="primary"
             onPress={handleFinish}
             style={{ minHeight: 48, paddingHorizontal: 12 }}
@@ -445,7 +455,7 @@ export default function WorkoutSessionScreen() {
                   onPress={handleAddCustomCaffeine}
                 >
                   <Text style={[styles.caffeineSmallButtonText, { color: theme.colors.primary }]}>
-                    Add
+                    {language === 'de' ? 'Hinzufügen' : 'Add'}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -453,7 +463,7 @@ export default function WorkoutSessionScreen() {
                   onPress={() => setCurrentWorkoutMg(0)}
                 >
                   <Text style={[styles.caffeineSmallButtonText, { color: theme.colors.muted }]}>
-                    Clear
+                    {language === 'de' ? 'Leeren' : 'Clear'}
                   </Text>
                 </Pressable>
               </View>
@@ -469,7 +479,7 @@ export default function WorkoutSessionScreen() {
                 { color: theme.colors.text, ...theme.typography.heading },
               ]}
             >
-              Übungen ({exercises.length})
+              {t('workout.exercises')} ({exercises.length})
             </Text>
             {exercises.length > 1 && (
               <Pressable
@@ -499,7 +509,7 @@ export default function WorkoutSessionScreen() {
                     },
                   ]}
                 >
-                  {isReorderMode ? 'Fertig' : 'Sortieren'}
+                  {isReorderMode ? t('workout.done') : t('workout.reorder')}
                 </Text>
               </Pressable>
             )}
@@ -518,7 +528,9 @@ export default function WorkoutSessionScreen() {
           >
             <Ionicons name="information-circle-outline" size={16} color={theme.colors.primary} />
             <Text style={[styles.reorderBannerText, { color: theme.colors.muted }]}>
-              Sortiermodus aktiv: Ziehe die Übungen an den Griffen in die gewünschte Reihenfolge.
+              {language === 'de'
+                ? 'Sortiermodus aktiv: Ziehe die Übungen an den Griffen in die gewünschte Reihenfolge.'
+                : 'Reorder mode active: Drag exercises by their handles into the desired order.'}
             </Text>
           </View>
         )}
@@ -550,7 +562,7 @@ export default function WorkoutSessionScreen() {
         })}
 
         <Button
-          title="+ ADD EXERCISE"
+          title={`+ ${t('workout.addExercise')}`}
           variant="secondary"
           onPress={handleAddExercise}
           style={{ marginBottom: 24 }}
@@ -567,13 +579,13 @@ export default function WorkoutSessionScreen() {
               },
             ]}
           >
-            WORKOUT NOTES
+            {t('workout.workoutNotes')}
           </Text>
           <TextInput
             style={[styles.notesInput, { color: theme.colors.text, ...theme.typography.body }]}
             value={notes}
             onChangeText={updateWorkoutNotes}
-            placeholder="Write a general note about your workout..."
+            placeholder={t('workout.notesPlaceholder')}
             placeholderTextColor={theme.colors.muted}
             multiline
             numberOfLines={3}

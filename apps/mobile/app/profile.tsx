@@ -5,17 +5,17 @@ import { AppearanceSettings } from '../src/components/AppearanceSettings';
 import { useAchievementStore } from '../src/stores/achievementStore';
 import { getStorageScope, isScopeCurrent } from '../src/data/storageScope';
 import { scopedAlert as Alert } from '../src/utils/scopedAlert';
+import { useI18n } from '../src/i18n';
 import React, { useState } from 'react';
 
 const GOAL_OPTIONS: {
   id: FitnessGoal;
-  label: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
 }[] = [
-  { id: 'build_muscle', label: 'Build Muscle', icon: 'barbell-outline' },
-  { id: 'gain_strength', label: 'Gain Strength', icon: 'flash-outline' },
-  { id: 'lose_fat', label: 'Lose Fat', icon: 'flame-outline' },
-  { id: 'general_fitness', label: 'General Fitness', icon: 'heart-outline' },
+  { id: 'build_muscle', icon: 'barbell-outline' },
+  { id: 'gain_strength', icon: 'flash-outline' },
+  { id: 'lose_fat', icon: 'flame-outline' },
+  { id: 'general_fitness', icon: 'heart-outline' },
 ];
 import {
   View,
@@ -54,6 +54,7 @@ export default function ProfileScreen() {
   const { profile, updateProfile, getStatistics, clearAllData, exportData } = useProfileStore();
   const { isConfigured: isAuthConfigured, signOut } = useAuthStore();
   const { isEnabled: caffeineEnabled, setEnabled: setCaffeineEnabled } = useCaffeineStore();
+  const { t, formatGoal, formatLevel, formatSex } = useI18n();
 
   const [name, setName] = useState(profile.displayName);
   const [goal, setGoal] = useState<FitnessGoal | ''>(profile.fitnessGoal || '');
@@ -308,7 +309,7 @@ export default function ProfileScreen() {
         <Pressable onPress={() => router.back()} hitSlop={15} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Profile & Settings</Text>
+        <Text style={styles.headerTitle}>{t('settings.profileAndSettings')}</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -343,14 +344,14 @@ export default function ProfileScreen() {
         <View style={styles.sectionCard}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <Ionicons name="person-outline" size={16} color={theme.colors.primary} />
-            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>ATHLETE IDENTITY</Text>
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>{t('settings.athleteIdentity')}</Text>
           </View>
-          <Text style={styles.inputLabel}>Display Name</Text>
+          <Text style={styles.inputLabel}>{t('settings.displayName')}</Text>
           <TextInput
             style={styles.input}
             value={name}
             onChangeText={setName}
-            placeholder="Name"
+            placeholder={t('settings.displayName')}
             placeholderTextColor={theme.colors.muted}
             inputAccessoryViewID={KEYBOARD_DONE_ID}
             onSubmitEditing={() => Keyboard.dismiss()}
@@ -359,9 +360,9 @@ export default function ProfileScreen() {
         <View style={styles.sectionCard}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <Ionicons name="fitness-outline" size={16} color={theme.colors.primary} />
-            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>TRAINING &amp; PHYSIQUE</Text>
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>{t('settings.trainingTargets')}</Text>
           </View>
-          <Text style={styles.inputLabel}>Training Goal</Text>
+          <Text style={styles.inputLabel}>{t('settings.fitnessGoal')}</Text>
           <View style={styles.goalsGrid}>
             {GOAL_OPTIONS.map((g) => {
               const isSelected = goal === g.id;
@@ -377,14 +378,14 @@ export default function ProfileScreen() {
                     color={isSelected ? theme.colors.primary : theme.colors.muted}
                   />
                   <Text style={[styles.goalCardText, isSelected && styles.goalCardTextActive]}>
-                    {g.label}
+                    {formatGoal(g.id)}
                   </Text>
                 </Pressable>
               );
             })}
           </View>
 
-          <Text style={styles.inputLabel}>Lifting Experience</Text>
+          <Text style={styles.inputLabel}>{t('settings.experienceLevel')}</Text>
           <View style={styles.segmentedRow}>
             {(['beginner', 'intermediate', 'advanced'] as ExperienceLevel[]).map((l) => {
               const isSelected = level === l;
@@ -395,22 +396,22 @@ export default function ProfileScreen() {
                   onPress={() => setLevel(isSelected ? '' : l)}
                 >
                   <Text style={[styles.segmentedTabText, isSelected && styles.segmentedTabTextActive]}>
-                    {l.charAt(0).toUpperCase() + l.slice(1)}
+                    {formatLevel(l)}
                   </Text>
                 </Pressable>
               );
             })}
           </View>
 
-          <Text style={styles.inputLabel}>Biological Sex</Text>
+          <Text style={styles.inputLabel}>{t('settings.biologicalSex')}</Text>
           <View style={styles.sexGrid}>
             {(
               [
-                { value: 'male', label: 'Male' },
-                { value: 'female', label: 'Female' },
-                { value: 'other', label: 'Other' },
-                { value: 'prefer_not_to_say', label: 'Prefer not to say' },
-              ] as { value: BiologicalSex; label: string }[]
+                { value: 'male' },
+                { value: 'female' },
+                { value: 'other' },
+                { value: 'prefer_not_to_say' },
+              ] as { value: BiologicalSex }[]
             ).map((s) => {
               const isSelected = sex === s.value;
               return (
@@ -420,7 +421,7 @@ export default function ProfileScreen() {
                   onPress={() => setSex(isSelected ? '' : s.value)}
                 >
                   <Text style={[styles.sexCardText, isSelected && styles.sexCardTextActive]}>
-                    {s.label}
+                    {formatSex(s.value)}
                   </Text>
                 </Pressable>
               );
@@ -430,7 +431,7 @@ export default function ProfileScreen() {
           <View style={styles.inputGrid}>
             <View style={styles.gridField}>
               <Text style={styles.inputLabel}>
-                Height ({profile.preferredUnits === 'imperial' ? 'in' : 'cm'})
+                {t('settings.height')} ({profile.preferredUnits === 'imperial' ? 'in' : 'cm'})
               </Text>
               <TextInput
                 style={styles.input}
@@ -445,7 +446,7 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.gridField}>
               <Text style={styles.inputLabel}>
-                Weight ({profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'})
+                {t('settings.weight')} ({profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'})
               </Text>
               <TextInput
                 style={styles.input}
@@ -461,12 +462,12 @@ export default function ProfileScreen() {
           </View>
 
           <Text style={styles.sectionDivider}>
-            Key Lift Maxes ({profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'})
+            {t('settings.biometrics')} ({profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'})
           </Text>
 
           <View style={styles.inputGrid}>
             <View style={styles.gridField}>
-              <Text style={styles.inputLabel}>Bench Press</Text>
+              <Text style={styles.inputLabel}>{t('settings.benchPressMax')}</Text>
               <TextInput
                 style={styles.input}
                 value={benchPressMax}
@@ -479,7 +480,7 @@ export default function ProfileScreen() {
               />
             </View>
             <View style={styles.gridField}>
-              <Text style={styles.inputLabel}>Squat</Text>
+              <Text style={styles.inputLabel}>{t('settings.squatMax')}</Text>
               <TextInput
                 style={styles.input}
                 value={squatMax}
@@ -492,7 +493,7 @@ export default function ProfileScreen() {
               />
             </View>
             <View style={styles.gridField}>
-              <Text style={styles.inputLabel}>Deadlift</Text>
+              <Text style={styles.inputLabel}>{t('settings.deadliftMax')}</Text>
               <TextInput
                 style={styles.input}
                 value={deadliftMax}
@@ -507,45 +508,76 @@ export default function ProfileScreen() {
           </View>
 
           <Pressable style={styles.saveBtn} onPress={handleSaveProfile}>
-            <Text style={styles.saveBtnText}>Save Profile</Text>
+            <Text style={styles.saveBtnText}>{t('settings.saveProfile')}</Text>
           </Pressable>
         </View>
 
         {/* Statistics Grid */}
-        <Text style={styles.listSectionTitle}>Lifetime Stats</Text>
+        <Text style={styles.listSectionTitle}>{t('settings.lifetimeStats')}</Text>
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Workouts</Text>
+            <Text style={styles.statLabel}>{t('workout.workout')}</Text>
             <Text style={styles.statValue}>{stats.totalWorkouts}</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Volume</Text>
+            <Text style={styles.statLabel}>{t('workout.volume')}</Text>
             <Text style={styles.statValue}>
               {stats.totalVolume.toLocaleString()}{' '}
               {profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'}
             </Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Longest Streak</Text>
-            <Text style={styles.statValue}>{stats.longestStreak} days</Text>
+            <Text style={styles.statLabel}>{t('workout.longestStreak')}</Text>
+            <Text style={styles.statValue}>{stats.longestStreak} {t('time.days')}</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Current Streak</Text>
-            <Text style={styles.statValue}>{stats.currentStreak} days</Text>
+            <Text style={styles.statLabel}>{t('workout.currentStreak')}</Text>
+            <Text style={styles.statValue}>{stats.currentStreak} {t('time.days')}</Text>
           </View>
         </View>
 
         {/* Settings options */}
-        <Text style={styles.listSectionTitle}>Preferences</Text>
+        <Text style={styles.listSectionTitle}>{t('settings.preferences')}</Text>
         <View style={styles.sectionCard}>
+          {/* Language Selector */}
+          <View style={styles.settingsRowVertical}>
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="language-outline" size={22} color={theme.colors.muted} />
+              <Text style={styles.settingsLabel}>{t('settings.language')}</Text>
+            </View>
+            <View style={styles.chipRow}>
+              {(
+                [
+                  { value: 'de', label: t('settings.languageGerman') },
+                  { value: 'en', label: t('settings.languageEnglish') },
+                ] as const
+              ).map((opt) => {
+                const isActive = (profile.language || 'de') === opt.value;
+                return (
+                  <Pressable
+                    key={opt.value}
+                    style={[styles.chip, isActive && styles.chipActive]}
+                    onPress={() => updateProfile({ language: opt.value })}
+                  >
+                    <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
           <Pressable style={styles.settingsRow} onPress={handleToggleUnits}>
             <View style={styles.settingsRowLeft}>
               <Ionicons name="options-outline" size={22} color={theme.colors.muted} />
-              <Text style={styles.settingsLabel}>Measurement Units</Text>
+              <Text style={styles.settingsLabel}>{t('settings.measurementUnits')}</Text>
             </View>
             <View style={styles.settingsRowRight}>
               <Text style={styles.settingsValue}>
-                {profile.preferredUnits === 'metric' ? 'Metric (kg/cm)' : 'Imperial (lbs/in)'}
+                {profile.preferredUnits === 'metric'
+                  ? t('settings.metricUnits')
+                  : t('settings.imperialUnits')}
               </Text>
               <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
             </View>
@@ -557,10 +589,12 @@ export default function ProfileScreen() {
           >
             <View style={styles.settingsRowLeft}>
               <Ionicons name="flash-outline" size={22} color={theme.colors.muted} />
-              <Text style={styles.settingsLabel}>Caffeine Tracker</Text>
+              <Text style={styles.settingsLabel}>{t('settings.caffeineTracker')}</Text>
             </View>
             <View style={styles.settingsRowRight}>
-              <Text style={styles.settingsValue}>{caffeineEnabled ? 'On' : 'Off'}</Text>
+              <Text style={styles.settingsValue}>
+                {caffeineEnabled ? t('settings.on') : t('settings.off')}
+              </Text>
               <View
                 style={[
                   styles.togglePill,
@@ -587,11 +621,13 @@ export default function ProfileScreen() {
           >
             <View style={styles.settingsRowLeft}>
               <Ionicons name="alert-circle-outline" size={22} color={theme.colors.muted} />
-              <Text style={styles.settingsLabel}>Confirm Exercise Deletion</Text>
+              <Text style={styles.settingsLabel}>{t('settings.confirmDelete')}</Text>
             </View>
             <View style={styles.settingsRowRight}>
               <Text style={styles.settingsValue}>
-                {profile.showExerciseDeleteConfirmation !== false ? 'On' : 'Off'}
+                {profile.showExerciseDeleteConfirmation !== false
+                  ? t('settings.on')
+                  : t('settings.off')}
               </Text>
               <View
                 style={[
@@ -616,14 +652,14 @@ export default function ProfileScreen() {
           <View style={styles.settingsRowVertical}>
             <View style={styles.settingsRowLeft}>
               <Ionicons name="eye-outline" size={22} color={theme.colors.muted} />
-              <Text style={styles.settingsLabel}>RPE Column Tracking</Text>
+              <Text style={styles.settingsLabel}>{t('settings.rpeTracking')}</Text>
             </View>
             <View style={styles.chipRow}>
               {(
                 [
-                  { value: 'always_on', label: 'Always Show' },
-                  { value: 'always_off', label: 'Always Hide' },
-                  { value: 'selected_exercises', label: 'For Selected' },
+                  { value: 'always_on', label: t('settings.alwaysShow') },
+                  { value: 'always_off', label: t('settings.alwaysHide') },
+                  { value: 'selected_exercises', label: t('settings.forSelected') },
                 ] as const
               ).map((opt) => {
                 const isActive = (profile.rpeMode || 'always_on') === opt.value;
@@ -644,12 +680,12 @@ export default function ProfileScreen() {
               <View style={styles.selectedExercisesContainer}>
                 <Pressable style={styles.selectBtn} onPress={() => setRpePickerVisible(true)}>
                   <Text style={styles.selectBtnText}>
-                    Select Exercises ({profile.rpeEnabledExerciseIds?.length || 0} selected)
+                    {t('settings.selectExercises')} ({profile.rpeEnabledExerciseIds?.length || 0})
                   </Text>
                 </Pressable>
                 {profile.rpeEnabledExerciseIds && profile.rpeEnabledExerciseIds.length > 0 && (
                   <Text style={styles.selectedExercisesText}>
-                    Selected:{' '}
+                    {t('workout.completed')}:{' '}
                     {profile.rpeEnabledExerciseIds
                       .map((id) => exercises.find((e) => e.id === id)?.name)
                       .filter(Boolean)
@@ -663,14 +699,14 @@ export default function ProfileScreen() {
           <View style={styles.settingsRowVertical}>
             <View style={styles.settingsRowLeft}>
               <Ionicons name="eye-outline" size={22} color={theme.colors.muted} />
-              <Text style={styles.settingsLabel}>RIR Column Tracking</Text>
+              <Text style={styles.settingsLabel}>{t('settings.rirTracking')}</Text>
             </View>
             <View style={styles.chipRow}>
               {(
                 [
-                  { value: 'always_on', label: 'Always Show' },
-                  { value: 'always_off', label: 'Always Hide' },
-                  { value: 'selected_exercises', label: 'For Selected' },
+                  { value: 'always_on', label: t('settings.alwaysShow') },
+                  { value: 'always_off', label: t('settings.alwaysHide') },
+                  { value: 'selected_exercises', label: t('settings.forSelected') },
                 ] as const
               ).map((opt) => {
                 const isActive = (profile.rirMode || 'always_on') === opt.value;
@@ -691,12 +727,12 @@ export default function ProfileScreen() {
               <View style={styles.selectedExercisesContainer}>
                 <Pressable style={styles.selectBtn} onPress={() => setRirPickerVisible(true)}>
                   <Text style={styles.selectBtnText}>
-                    Select Exercises ({profile.rirEnabledExerciseIds?.length || 0} selected)
+                    {t('settings.selectExercises')} ({profile.rirEnabledExerciseIds?.length || 0})
                   </Text>
                 </Pressable>
                 {profile.rirEnabledExerciseIds && profile.rirEnabledExerciseIds.length > 0 && (
                   <Text style={styles.selectedExercisesText}>
-                    Selected:{' '}
+                    {t('workout.completed')}:{' '}
                     {profile.rirEnabledExerciseIds
                       .map((id) => exercises.find((e) => e.id === id)?.name)
                       .filter(Boolean)
@@ -711,12 +747,14 @@ export default function ProfileScreen() {
         <View style={styles.sectionCard}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <Ionicons name="server-outline" size={16} color={theme.colors.primary} />
-            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>DATA &amp; EXPORT</Text>
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>
+              {t('settings.dataAndBackup')}
+            </Text>
           </View>
           <Pressable style={styles.settingsRow} onPress={handleExport}>
             <View style={styles.settingsRowLeft}>
               <Ionicons name="download-outline" size={22} color={theme.colors.muted} />
-              <Text style={styles.settingsLabel}>Export Data (JSON)</Text>
+              <Text style={styles.settingsLabel}>{t('settings.exportBackup')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
           </Pressable>
@@ -724,7 +762,9 @@ export default function ProfileScreen() {
           <Pressable style={[styles.settingsRow, styles.lastRow]} onPress={handleResetData}>
             <View style={styles.settingsRowLeft}>
               <Ionicons name="trash-outline" size={22} color={theme.colors.error} />
-              <Text style={[styles.settingsLabel, styles.dangerText]}>Reset local data</Text>
+              <Text style={[styles.settingsLabel, styles.dangerText]}>
+                {t('settings.resetAllData')}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
           </Pressable>
@@ -732,18 +772,22 @@ export default function ProfileScreen() {
         <View style={styles.sectionCard}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <Ionicons name="shield-checkmark-outline" size={16} color={theme.colors.primary} />
-            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>ACCOUNT &amp; SYNC</Text>
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>
+              {t('settings.accountAndSync')}
+            </Text>
           </View>
           {!isAuthConfigured && (
             <Text style={{ color: theme.colors.muted, lineHeight: 22 }}>
-              Local profile · Your training is stored on this device.
+              {profile.language === 'en'
+                ? 'Local profile · Your training is stored on this device.'
+                : 'Lokales Profil · Dein Training wird auf diesem Gerät gespeichert.'}
             </Text>
           )}
           {isAuthConfigured && (
             <Pressable style={styles.settingsRow} onPress={handleSignOut}>
               <View style={styles.settingsRowLeft}>
                 <Ionicons name="log-out-outline" size={22} color={theme.colors.muted} />
-                <Text style={styles.settingsLabel}>Sign Out</Text>
+                <Text style={styles.settingsLabel}>{t('settings.signOut')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
             </Pressable>
@@ -753,39 +797,78 @@ export default function ProfileScreen() {
         <View style={styles.sectionCard}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <Ionicons name="document-text-outline" size={16} color={theme.colors.primary} />
-            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>RECHTLICHES &amp; DATENSCHUTZ</Text>
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>{t('legal.title')}</Text>
           </View>
           <View style={{ gap: 10 }}>
             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
-              <Ionicons name="shield-outline" size={18} color={theme.colors.muted} style={{ marginTop: 2 }} />
+              <Ionicons
+                name="shield-outline"
+                size={18}
+                color={theme.colors.muted}
+                style={{ marginTop: 2 }}
+              />
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: 'SpaceGrotesk_600SemiBold', fontSize: 13, color: theme.colors.text }}>
-                  DSGVO &amp; Lokale Datenhoheit
+                <Text
+                  style={{
+                    fontFamily: 'SpaceGrotesk_600SemiBold',
+                    fontSize: 13,
+                    color: theme.colors.text,
+                  }}
+                >
+                  {t('legal.gdprTitle')}
                 </Text>
-                <Text style={{ fontSize: 12, color: theme.colors.muted, lineHeight: 18, marginTop: 2 }}>
-                  Deine Trainings-, Körper- und Profildaten verbleiben offline-first auf deinem Gerät. Eine Übertragung an externe Server erfolgt nur bei explizit aktiviertem Cloud-Sync oder bei Nutzung des KI-Coaches.
+                <Text
+                  style={{ fontSize: 12, color: theme.colors.muted, lineHeight: 18, marginTop: 2 }}
+                >
+                  {t('legal.gdprDesc')}
                 </Text>
               </View>
             </View>
 
             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
-              <Ionicons name="medkit-outline" size={18} color={theme.colors.muted} style={{ marginTop: 2 }} />
+              <Ionicons
+                name="medkit-outline"
+                size={18}
+                color={theme.colors.muted}
+                style={{ marginTop: 2 }}
+              />
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: 'SpaceGrotesk_600SemiBold', fontSize: 13, color: theme.colors.text }}>
-                  Medizinischer Haftungsausschluss
+                <Text
+                  style={{
+                    fontFamily: 'SpaceGrotesk_600SemiBold',
+                    fontSize: 13,
+                    color: theme.colors.text,
+                  }}
+                >
+                  {t('legal.disclaimerTitle')}
                 </Text>
-                <Text style={{ fontSize: 12, color: theme.colors.muted, lineHeight: 18, marginTop: 2 }}>
-                  VOLT und die Empfehlungen des KI-Coaches dienen ausschließlich sportlicher Orientierung und ersetzen keine ärztliche, sportmedizinische oder physiotherapeutische Diagnose und Beratung. Training erfolgt stets auf eigene Verantwortung.
+                <Text
+                  style={{ fontSize: 12, color: theme.colors.muted, lineHeight: 18, marginTop: 2 }}
+                >
+                  {t('legal.disclaimerDesc')}
                 </Text>
               </View>
             </View>
 
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTopWidth: 1, borderTopColor: theme.colors.border }}>
-              <Text style={{ fontSize: 11, color: theme.colors.muted }}>
-                VOLT Fitness Tracker
-              </Text>
-              <Text style={{ fontFamily: 'SpaceGrotesk_700Bold', fontSize: 11, color: theme.colors.primary }}>
-                v0.1.0 Beta
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingTop: 6,
+                borderTopWidth: 1,
+                borderTopColor: theme.colors.border,
+              }}
+            >
+              <Text style={{ fontSize: 11, color: theme.colors.muted }}>VOLT Fitness Tracker</Text>
+              <Text
+                style={{
+                  fontFamily: 'SpaceGrotesk_700Bold',
+                  fontSize: 11,
+                  color: theme.colors.primary,
+                }}
+              >
+                {t('legal.version')}
               </Text>
             </View>
           </View>

@@ -49,6 +49,7 @@ export type CelebrationEffect =
 
 export interface Profile {
   displayName: string;
+  language?: 'de' | 'en';
   colorway?: Colorway;
   celebrationEffect?: CelebrationEffect;
   fitnessGoal?: FitnessGoal;
@@ -87,6 +88,7 @@ export interface ProfileState {
 
 const defaultProfile: Profile = {
   displayName: 'User',
+  language: 'de',
   celebrationEffect: 'classic',
   preferredUnits: 'metric',
   showRpe: true,
@@ -102,6 +104,7 @@ const defaultProfile: Profile = {
 
 const profileStateSchema = z.object({
   displayName: z.string(),
+  language: z.enum(['de', 'en']).optional(),
   colorway: z
     .enum([
       'glacier',

@@ -4,7 +4,7 @@
 **Rolle:** Supporting Mobile/Backend Release Preparation Agent (Gemini)  
 **Lead Architect / Next Agent:** ChatGPT-Astra  
 **Branch:** `main` (nach Integration von `gemini/release-preparation`)  
-**Commit:** *Aktueller Stand nach Vorbereitung und Cleanups*  
+**Commit:** `29ae2fa`  
 **Working Tree:** Sauber  
 
 ---

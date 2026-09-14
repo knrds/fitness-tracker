@@ -175,8 +175,8 @@ NOT VERIFIED ON PHYSICAL DEVICE (Aufgrund fehlender Apple/Google-Credentials und
 
 ## Git Stand
 
-**Branch:** `main` (nach Merge von `gemini/release-preparation`)  
-**Commit:** *Wird nach Merge & Push finalisiert*  
-**origin/main:** Synchronisiert  
+**Branch:** `main`  
+**Commit:** `29ae2fa` (sowie Documentation Sync `e24ebca`)  
+**origin/main:** `29ae2fa` (Synchronisiert)  
 **Working Tree:** Sauber  
-**Letzter Push:** *Wird im Rahmen dieses Blocks ausgeführt*  
+**Letzter Push:** Erfolgreich ausgeführt (`0f6ea50..29ae2fa`)  

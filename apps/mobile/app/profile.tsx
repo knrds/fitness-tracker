@@ -267,7 +267,7 @@ export default function ProfileScreen() {
             onPress: async () => {
               await Share.share({
                 message: dataStr,
-                title: 'Fitness Tracker Backup',
+                title: 'EVARO Backup',
               });
             },
           },

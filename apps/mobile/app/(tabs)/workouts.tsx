@@ -278,7 +278,7 @@ export default function WorkoutsScreen() {
       })
       .join('\n');
 
-    const message = `${template.name}\n\n${exerciseLines}\n\n— Shared from Volt Performance`;
+    const message = `${template.name}\n\n${exerciseLines}\n\n— Shared from EVARO`;
 
     try {
       await Share.share({ message, title: template.name });

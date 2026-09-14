@@ -201,7 +201,7 @@ module.exports = async function handler(req, res) {
           headers: {
             Authorization: 'Bearer ' + OPENROUTER_API_KEY,
             'Content-Type': 'application/json',
-            'X-OpenRouter-Title': 'Volt Fitness Tracker',
+            'X-OpenRouter-Title': 'EVARO',
           },
           body: JSON.stringify(
             audio

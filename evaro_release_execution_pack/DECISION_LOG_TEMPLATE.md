@@ -6,7 +6,7 @@ Nutze diese Datei für irreversible oder geschäftskritische Entscheidungen.
 
 | Thema | Entscheidung |
 | --- | --- |
-| Brand | Volt vs Volt Performance; finaler Display Name; Domain/Support URLs. |
+| Brand | EVARO festgelegt; finaler Display Name im Store; Domain/Support URLs. |
 | Publisher identity | Privater Developer-Account vs Organization/Unternehmensauftritt. |
 | Freemium | Welche Kernfunktionen bleiben dauerhaft kostenlos? Empfehlung: Tracking, Library, Basis-History/Measurements; Pro: AI, Cloud, Advanced Analytics/Programs. |
 | Pricing | Start-Hypothese aus Audit: ca. 9,99 EUR monatlich und 59,99-69,99 EUR jährlich mit 7 Tagen Trial. Vor Anlage im Store final entscheiden. |

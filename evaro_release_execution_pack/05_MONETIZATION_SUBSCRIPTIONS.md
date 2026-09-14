@@ -14,9 +14,9 @@
 
 | ID | Prio | Aufwand | Task | Konkrete Maßnahme | Definition of Done |
 | --- | --- | --- | --- | --- | --- |
-| 05.01 | P0 | S | Produktmodell festlegen | Free vs Volt Pro finalisieren; Export/Delete/Privacy niemals paywallen. | Eine eindeutige Feature-Matrix existiert. |
+| 05.01 | P0 | S | Produktmodell festlegen | Free vs EVARO Pro finalisieren; Export/Delete/Privacy niemals paywallen. | Eine eindeutige Feature-Matrix existiert. |
 | 05.02 | P0 | S | Produkte definieren | Monat und Jahr, Trial, Product IDs, Länder/Preise und Intro Eligibility. | Store-Produkte in App Store Connect/Play Console angelegt. |
-| 05.03 | P0 | M | RevenueCat oder äquivalente Abstraktion integrieren | Entitlement volt_pro; Apple/Google Produkte mappen; keine geheimen Serverkeys im Client. | Purchase-/Restore-Flows funktionieren in Sandbox/Test. |
+| 05.03 | P0 | M | RevenueCat oder äquivalente Abstraktion integrieren | Entitlement evaro_pro (bzw. volt_pro Mapping); Apple/Google Produkte mappen; keine geheimen Serverkeys im Client. | Purchase-/Restore-Flows funktionieren in Sandbox/Test. |
 | 05.04 | P0 | M | Serverseitige Entitlements spiegeln | Webhook -> Backend/Supabase; Status, Expiry, Product, Platform, Original Transaction/User Mapping. | Coach und Premium-API vertrauen serverseitigem Entitlement. |
 | 05.05 | P0 | M | Subscription Lifecycle testen | Trial, Purchase, Restore, Renewal, Cancel, Expiry, Billing Retry/Grace, Refund und Accountwechsel. | Testmatrix vollständig dokumentiert. |
 | 05.06 | P0 | M | Manage Subscription & Restore | Native Links/SDK-Flows in Settings und Paywall. | Nutzer können Käufe wiederherstellen und Aboverwaltung öffnen. |

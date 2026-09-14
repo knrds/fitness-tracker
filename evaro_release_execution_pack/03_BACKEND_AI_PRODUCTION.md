@@ -18,7 +18,7 @@
 | 03.02 | P0 | M | Serverseitige Auth erzwingen | Jeder Request validiert Supabase Session; keine anonyme Provider-Nutzung. | Ungültige/abgelaufene Tokens führen zu 401/403 ohne Providerkosten. |
 | 03.03 | P0 | L | Distributed Rate Limiting | Zentralen Counter via Redis/Upstash oder Postgres/RPC statt process-local Map. | Mehrere Serverinstanzen teilen Limits korrekt. |
 | 03.04 | P0 | L | AI Usage Ledger & Budget Guard | Text/Vision/Audio getrennt zählen, geschätzte Kosten persistieren, User-/Tages-/Monats-/Globalbudgets. | Ein einzelner Account kann kein unkontrolliertes Kostenereignis auslösen. |
-| 03.05 | P0 | M | Premium Entitlement Gate | Backend prüft aktives Volt-Pro-Entitlement bevor kostenintensive Premium-AI ausgeführt wird. | Manipuliertes lokales isPremium reicht nicht aus. |
+| 03.05 | P0 | M | Premium Entitlement Gate | Backend prüft aktives EVARO-Pro-Entitlement bevor kostenintensive Premium-AI ausgeführt wird. | Manipuliertes lokales isPremium reicht nicht aus. |
 | 03.06 | P0 | M | Provider Policy Lock | Freigegebene Provider/Modelle explizit konfigurieren; Datenschutz-/Retention-Entscheidungen dokumentieren; kein ungeprüftes Random-Routing. | Jeder produktive Modellpfad ist rechtlich/technisch freigegeben. |
 | 03.07 | P0 | M | Context Minimization | Pro Query nur notwendige Profile/Workouts/Measurements senden. | Tokenkosten und Datenexposition sind messbar reduziert. |
 | 03.08 | P0 | M | Sensitive Logging entfernen | Keine Prompts, Body Measurements, Tokens, Bilder oder komplette Coach-Texte in Standardlogs. | Logs enthalten technische IDs/Latency/Errorcodes ohne sensitive Payload. |

@@ -2,7 +2,7 @@
 
 ## Mission
 
-Bringe Volt Performance vom funktionierenden Beta-Stand in einen kommerziell belastbaren iOS-first Release, ohne unnötiges Rewriting und ohne den bestehenden Tracker-Core zu destabilisieren.
+Bringe EVARO vom funktionierenden Beta-Stand in einen kommerziell belastbaren iOS-first Release, ohne unnötiges Rewriting und ohne den bestehenden Tracker-Core zu destabilisieren.
 
 ## Harte Regeln für den Agenten
 

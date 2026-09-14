@@ -123,7 +123,7 @@ export default function WorkoutDetailScreen() {
     if (session.notes) {
       shareMessage += `${isDe ? 'Notiz' : 'Note'}: ${session.notes}\n`;
     }
-    shareMessage += `\n${isDe ? 'Getrackt mit Fitness Tracker App!' : 'Tracked with Fitness Tracker App!'}`;
+    shareMessage += `\n${isDe ? 'Getrackt mit EVARO!' : 'Tracked with EVARO!'}`;
 
     try {
       await Share.share({ message: shareMessage });

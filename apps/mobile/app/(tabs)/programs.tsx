@@ -325,7 +325,7 @@ export default function ProgramListScreen() {
       .filter(Boolean)
       .join('\n\n');
 
-    const message = `📋 ${program.name}\n${program.description ? `${program.description}\n\n` : ''}${weeksText}\n\n— Shared from Volt Performance`;
+    const message = `📋 ${program.name}\n${program.description ? `${program.description}\n\n` : ''}${weeksText}\n\n— Shared from EVARO`;
 
     try {
       await Share.share({ message, title: program.name });

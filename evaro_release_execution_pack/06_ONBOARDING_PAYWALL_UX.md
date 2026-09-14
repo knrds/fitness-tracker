@@ -16,7 +16,7 @@
 | --- | --- | --- | --- | --- | --- |
 | 06.01 | P0 | M | Onboarding State Machine | Versioniertes, resumierbares Onboarding mit Skip/Back und migrationssicherem completed_version-Feld. | Onboarding kann abgebrochen und korrekt fortgesetzt werden. |
 | 06.02 | P0 | M | Goal/Experience/Frequency/Equipment erfassen | Nur produktrelevante Felder; sensible Körperdaten optional und mit Zweckhinweis. | Datensparsame Profileingabe ohne unnötige Zwangsfelder. |
-| 06.03 | P0 | M | Personalized Result Screen | Aus Eingaben konkreten Nutzen zeigen, bevor Paywall erscheint. | Nutzer versteht, wie Volt seine Auswahl nutzt. |
+| 06.03 | P0 | M | Personalized Result Screen | Aus Eingaben konkreten Nutzen zeigen, bevor Paywall erscheint. | Nutzer versteht, wie EVARO seine Auswahl nutzt. |
 | 06.04 | P0 | M | Paywall nach Value Reveal | Jahresabo primär, Monatsabo sekundär, Trial klar, Continue Free sichtbar falls Freemium-Strategie gewählt. | Paywall ist transparent und Store-konform. |
 | 06.05 | P0 | M | Guest Mode erhalten | Lokales Tracking ohne erzwungenen Account; Account erst für Sync/Backup/Coach/Premium wenn Produktstrategie so bleibt. | First workout ist ohne unnötigen Login möglich. |
 | 06.06 | P1 | M | Contextual Permissions | Notifications/Microphone/Photos erst unmittelbar vor Nutzen erklären und dann Systemdialog öffnen. | Keine Permission Wall beim ersten Start. |

@@ -2,6 +2,7 @@ import { useReducedMotion } from 'react-native-reanimated';
 import {
   SET_DELETE_WIDTH,
   shouldCaptureSetSwipe,
+  shouldDeleteSetSwipe,
   setSwipeOffset,
   shouldOpenSetSwipe,
 } from '../../utils/setSwipe';
@@ -1143,6 +1144,7 @@ const SetRow = ({
   };
   const swipeX = React.useRef(new Animated.Value(0)).current;
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
+  const [measuredWidth, setMeasuredWidth] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const rowHeight = React.useRef(new Animated.Value(0)).current;
   const rowOpacity = React.useRef(new Animated.Value(1)).current;
@@ -1150,6 +1152,7 @@ const SetRow = ({
   const handleLayout = (e: LayoutChangeEvent) => {
     if (!isDeleting) {
       setMeasuredHeight(e.nativeEvent.layout.height);
+      setMeasuredWidth(e.nativeEvent.layout.width);
     }
   };
 
@@ -1158,6 +1161,11 @@ const SetRow = ({
     setIsDeleting(true);
     rowHeight.setValue(measuredHeight || 52);
     Animated.parallel([
+      Animated.timing(swipeX, {
+        toValue: -measuredWidth,
+        duration: reducedMotion ? 0 : 180,
+        useNativeDriver: false,
+      }),
       Animated.timing(rowHeight, {
         toValue: 0,
         duration: reducedMotion ? 0 : 200,
@@ -1165,7 +1173,7 @@ const SetRow = ({
       }),
       Animated.timing(rowOpacity, {
         toValue: 0,
-        duration: 200,
+        duration: reducedMotion ? 0 : 200,
         useNativeDriver: false,
       }),
     ]).start(() => {
@@ -1175,7 +1183,7 @@ const SetRow = ({
       rowOpacity.setValue(1);
       swipeX.setValue(0);
     });
-  }, [onDelete, measuredHeight, rowHeight, rowOpacity, swipeX, reducedMotion]);
+  }, [onDelete, measuredHeight, measuredWidth, rowHeight, rowOpacity, swipeX, reducedMotion]);
 
   const [swipeOpen, setSwipeOpen] = useState(false);
   const swipeOrigin = React.useRef(false);
@@ -1186,7 +1194,7 @@ const SetRow = ({
       Animated.timing(swipeX, {
         toValue: open ? -SET_DELETE_WIDTH : 0,
         duration: reducedMotion ? 0 : 180,
-        useNativeDriver: Platform.OS !== 'web',
+        useNativeDriver: false,
       }).start();
     },
     [swipeX, reducedMotion],
@@ -1203,10 +1211,17 @@ const SetRow = ({
           onSwipeStart?.();
         },
         onPanResponderMove: (_, gesture) =>
-          swipeX.setValue(setSwipeOffset(gesture.dx, swipeOrigin.current)),
+          swipeX.setValue(
+            setSwipeOffset(gesture.dx, swipeOrigin.current, measuredWidth || SET_DELETE_WIDTH),
+          ),
         onPanResponderTerminationRequest: () => true,
         onPanResponderRelease: (_, gesture) => {
-          snapSwipe(shouldOpenSetSwipe(gesture.dx, gesture.vx, swipeOrigin.current));
+          if (shouldDeleteSetSwipe(gesture.dx, swipeOrigin.current, measuredWidth)) {
+            setSwipeOpen(false);
+            handleDeleteSet();
+          } else {
+            snapSwipe(shouldOpenSetSwipe(gesture.dx, gesture.vx, swipeOrigin.current));
+          }
           onSwipeEnd?.();
         },
         onPanResponderTerminate: () => {
@@ -1214,7 +1229,17 @@ const SetRow = ({
           onSwipeEnd?.();
         },
       }),
-    [swipeX, swipeOpen, isDeleting, snapSwipe, closeSwipe, onSwipeStart, onSwipeEnd],
+    [
+      swipeX,
+      swipeOpen,
+      isDeleting,
+      measuredWidth,
+      handleDeleteSet,
+      snapSwipe,
+      closeSwipe,
+      onSwipeStart,
+      onSwipeEnd,
+    ],
   );
 
   // Format Level (unconverted weight for cardio) or normal weight
@@ -1748,7 +1773,7 @@ const createStyles = (theme: Theme) =>
       top: 0,
       right: 0,
       bottom: 0,
-      width: SET_DELETE_WIDTH,
+      width: '100%',
       justifyContent: 'center',
       alignItems: 'flex-end',
     },

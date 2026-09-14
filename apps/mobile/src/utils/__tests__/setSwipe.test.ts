@@ -2,6 +2,7 @@ import {
   SET_DELETE_WIDTH,
   setSwipeOffset,
   shouldCaptureSetSwipe,
+  shouldDeleteSetSwipe,
   shouldOpenSetSwipe,
 } from '../setSwipe';
 
@@ -20,7 +21,7 @@ it('never exposes a gap beyond the anchored delete action', () => {
   expect(setSwipeOffset(30, true)).toBe(-58);
   expect(setSwipeOffset(500, true)).toBe(0);
 });
-it('snaps in either direction without deleting on a long or fast swipe', () => {
+it('chooses the reveal snap independently of the full-swipe decision', () => {
   expect(shouldOpenSetSwipe(-20, 0, false)).toBe(false);
   expect(shouldOpenSetSwipe(-50, 0, false)).toBe(true);
   expect(shouldOpenSetSwipe(-500, -2, false)).toBe(true);
@@ -28,4 +29,18 @@ it('snaps in either direction without deleting on a long or fast swipe', () => {
   expect(shouldOpenSetSwipe(55, 0, true)).toBe(false);
   expect(shouldOpenSetSwipe(20, 0.5, true)).toBe(false);
   expect(shouldOpenSetSwipe(5, 0, true)).toBe(true);
+});
+
+it('deletes only after deliberate full travel relative to row width', () => {
+  expect(shouldDeleteSetSwipe(-90, false, 320)).toBe(false);
+  expect(shouldDeleteSetSwipe(-223, false, 320)).toBe(false);
+  expect(shouldDeleteSetSwipe(-224, false, 320)).toBe(true);
+  expect(shouldDeleteSetSwipe(-500, false, 320)).toBe(true);
+  expect(shouldDeleteSetSwipe(-224, false, 600)).toBe(false);
+  expect(shouldDeleteSetSwipe(-420, false, 600)).toBe(true);
+  expect(shouldDeleteSetSwipe(-136, true, 320)).toBe(true);
+  expect(shouldDeleteSetSwipe(40, true, 320)).toBe(false);
+  expect(shouldDeleteSetSwipe(-500, false, 0)).toBe(false);
+  expect(setSwipeOffset(-250, false, 320)).toBe(-250);
+  expect(setSwipeOffset(-500, false, 320)).toBe(-320);
 });

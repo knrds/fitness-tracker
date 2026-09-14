@@ -91,6 +91,7 @@ const formatSecondsToDisplay = (totalSecs?: number) => {
 interface Props {
   sessionExercise: SessionExercise;
   collapsed?: boolean;
+  onToggleCollapse?: () => void;
   dragHandlers?: ViewProps;
   onDragStart?: () => void;
   onDragEnd?: () => void;
@@ -102,6 +103,7 @@ interface Props {
 export const SessionExerciseCard = ({
   sessionExercise,
   collapsed = false,
+  onToggleCollapse,
   dragHandlers,
   onDragStart,
   onDragEnd,
@@ -399,7 +401,7 @@ export const SessionExerciseCard = ({
           </View>
         </View>
       )}
-      <View style={styles.titleRow}>
+      <View style={[styles.titleRow, collapsed && { marginBottom: 0, alignItems: 'center' }]}>
         {dragHandlers && (
           <View
             {...dragHandlers}
@@ -437,6 +439,22 @@ export const SessionExerciseCard = ({
           >
             {exercise.name}
           </Text>
+          {collapsed && (
+            <Text
+              style={[
+                styles.prevText,
+                {
+                  color: theme.colors.muted,
+                  ...theme.typography.caption,
+                  fontFamily: 'SpaceGrotesk_700Bold',
+                },
+              ]}
+            >
+              {sessionExercise.sets.filter((s) => s.completed).length > 0
+                ? `${sessionExercise.sets.filter((s) => s.completed).length}/${sessionExercise.sets.length} Sätze abgeschlossen`
+                : `${sessionExercise.sets.length} ${sessionExercise.sets.length === 1 ? 'Satz' : 'Sätze'}`}
+            </Text>
+          )}
           {getHeaderE1rmText() && !collapsed && (
             <Text
               style={[
@@ -452,8 +470,8 @@ export const SessionExerciseCard = ({
             </Text>
           )}
         </Pressable>
-        {!collapsed && (
-          <View style={styles.headerIcons}>
+        <View style={styles.headerIcons}>
+          {!collapsed && (
             <Pressable
               onPress={() => setOptionsVisible(true)}
               style={styles.iconBtn}
@@ -463,8 +481,23 @@ export const SessionExerciseCard = ({
             >
               <Ionicons name="ellipsis-horizontal" size={24} color={theme.colors.muted} />
             </Pressable>
-          </View>
-        )}
+          )}
+          {onToggleCollapse && (
+            <Pressable
+              onPress={onToggleCollapse}
+              style={styles.iconBtn}
+              accessibilityRole="button"
+              accessibilityLabel={collapsed ? 'Übung ausklappen' : 'Übung einklappen'}
+              testID="exercise-collapse-btn"
+            >
+              <Ionicons
+                name={collapsed ? 'chevron-down' : 'chevron-up'}
+                size={20}
+                color={theme.colors.muted}
+              />
+            </Pressable>
+          )}
+        </View>
       </View>
 
       {!collapsed && (

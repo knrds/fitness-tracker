@@ -63,6 +63,8 @@ export default function WorkoutSessionScreen() {
   const [isFinishing, setIsFinishing] = useState(false);
   const [customCaffeineMg, setCustomCaffeineMg] = useState('');
   const [caffeineExpanded, setCaffeineExpanded] = useState(false);
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  const [collapsedExerciseIds, setCollapsedExerciseIds] = useState<Record<string, boolean>>({});
 
   const sorter = useMeasuredReorder(exercises, reorderExercises);
   const {
@@ -456,6 +458,68 @@ export default function WorkoutSessionScreen() {
           </Card>
         )}
 
+        {exercises.length > 0 && (
+          <View style={styles.exerciseSectionHeader}>
+            <Text
+              style={[
+                styles.exerciseSectionTitle,
+                { color: theme.colors.text, ...theme.typography.heading },
+              ]}
+            >
+              Übungen ({exercises.length})
+            </Text>
+            {exercises.length > 1 && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={isReorderMode ? 'Sortieren beenden' : 'Übungen sortieren'}
+                onPress={() => setIsReorderMode((prev) => !prev)}
+                style={[
+                  styles.reorderToggleBtn,
+                  {
+                    backgroundColor: isReorderMode ? theme.colors.primary : theme.colors.surface,
+                    borderColor: isReorderMode ? theme.colors.primary : theme.colors.border,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={isReorderMode ? 'checkmark' : 'swap-vertical'}
+                  size={16}
+                  color={isReorderMode ? theme.colors.background : theme.colors.primary}
+                />
+                <Text
+                  style={[
+                    styles.reorderToggleText,
+                    {
+                      color: isReorderMode ? theme.colors.background : theme.colors.primary,
+                      ...theme.typography.caption,
+                      fontFamily: 'SpaceGrotesk_700Bold',
+                    },
+                  ]}
+                >
+                  {isReorderMode ? 'Fertig' : 'Sortieren'}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+
+        {isReorderMode && (
+          <View
+            style={[
+              styles.reorderBanner,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.primary,
+              },
+            ]}
+          >
+            <Ionicons name="information-circle-outline" size={16} color={theme.colors.primary} />
+            <Text style={[styles.reorderBannerText, { color: theme.colors.muted }]}>
+              Sortiermodus aktiv: Ziehe die Übungen an den Griffen in die gewünschte Reihenfolge.
+            </Text>
+          </View>
+        )}
+
         {exercises.map((ex) => {
           return (
             <Animated.View
@@ -467,6 +531,13 @@ export default function WorkoutSessionScreen() {
             >
               <SessionExerciseCard
                 sessionExercise={ex}
+                collapsed={isReorderMode || !!collapsedExerciseIds[ex.id]}
+                onToggleCollapse={() => {
+                  setCollapsedExerciseIds((prev) => ({
+                    ...prev,
+                    [ex.id]: !prev[ex.id],
+                  }));
+                }}
                 dragHandlers={sorter.getHandleProps(ex.id)}
               />
             </Animated.View>
@@ -772,5 +843,44 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.primary,
       fontSize: 10,
       fontFamily: 'SpaceGrotesk_700Bold',
+    },
+    exerciseSectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+      marginTop: 4,
+    },
+    exerciseSectionTitle: {
+      fontSize: 16,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    reorderToggleBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 8,
+      borderWidth: 1,
+    },
+    reorderToggleText: {
+      fontSize: 13,
+    },
+    reorderBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      padding: 10,
+      borderRadius: 8,
+      borderWidth: 1,
+      marginBottom: 12,
+    },
+    reorderBannerText: {
+      fontSize: 12,
+      flex: 1,
+      fontFamily: 'Manrope_500Medium',
     },
   });

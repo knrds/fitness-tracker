@@ -51,6 +51,8 @@ export default function WorkoutTemplateBuilderScreen() {
   );
 
   const [isExerciseModalVisible, setExerciseModalVisible] = useState(false);
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  const [collapsedExercises, setCollapsedExercises] = useState<Record<string, boolean>>({});
 
   const sorter = useMeasuredReorder(templateExercises, (items) =>
     setTemplateExercises(items.map((item, order) => ({ ...item, order }))),
@@ -216,9 +218,64 @@ export default function WorkoutTemplateBuilderScreen() {
           onSubmitEditing={() => Keyboard.dismiss()}
         />
 
-        <Text style={styles.sectionTitle}>Exercises</Text>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>
+            Exercises {templateExercises.length > 0 ? `(${templateExercises.length})` : ''}
+          </Text>
+          {templateExercises.length > 1 && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={isReorderMode ? 'Sortieren beenden' : 'Übungen sortieren'}
+              onPress={() => setIsReorderMode((prev) => !prev)}
+              style={[
+                styles.reorderToggleBtn,
+                {
+                  backgroundColor: isReorderMode ? theme.colors.primary : theme.colors.surface,
+                  borderColor: isReorderMode ? theme.colors.primary : theme.colors.border,
+                },
+              ]}
+            >
+              <Ionicons
+                name={isReorderMode ? 'checkmark' : 'swap-vertical'}
+                size={16}
+                color={isReorderMode ? theme.colors.background : theme.colors.primary}
+              />
+              <Text
+                style={[
+                  styles.reorderToggleText,
+                  {
+                    color: isReorderMode ? theme.colors.background : theme.colors.primary,
+                    ...theme.typography.caption,
+                    fontFamily: 'SpaceGrotesk_700Bold',
+                  },
+                ]}
+              >
+                {isReorderMode ? 'Fertig' : 'Sortieren'}
+              </Text>
+            </Pressable>
+          )}
+        </View>
+
+        {isReorderMode && (
+          <View
+            style={[
+              styles.reorderBanner,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.primary,
+              },
+            ]}
+          >
+            <Ionicons name="information-circle-outline" size={16} color={theme.colors.primary} />
+            <Text style={[styles.reorderBannerText, { color: theme.colors.muted }]}>
+              Sortiermodus aktiv: Ziehe die Übungen an den Griffen in die gewünschte Reihenfolge.
+            </Text>
+          </View>
+        )}
+
         {templateExercises.map((te, index) => {
           const ex = exercises.find((e) => e.id === te.exerciseId);
+          const isCollapsed = isReorderMode || !!collapsedExercises[te.id];
 
           return (
             <Animated.View
@@ -228,25 +285,38 @@ export default function WorkoutTemplateBuilderScreen() {
               }}
               style={[sorter.getRowStyle(te.id)]}
             >
-              <Card padding="md" style={styles.exerciseCard}>
-                <Text
-                  style={[
-                    styles.exName,
-                    { color: theme.colors.text, ...theme.typography.heading, fontSize: 18 },
-                  ]}
-                >
-                  {index + 1}. {ex?.name || 'Unknown'}
-                </Text>
-                <View style={styles.exHeader}>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 8,
-                      flex: 1,
-                      minWidth: 0,
+              <Card
+                padding={isCollapsed ? 'sm' : 'md'}
+                style={[styles.exerciseCard, isCollapsed && styles.exerciseCardCollapsed]}
+              >
+                <View style={[styles.exCardHeader, isCollapsed && styles.exCardHeaderCollapsed]}>
+                  <Pressable
+                    style={styles.exTitleContainer}
+                    onPress={() => {
+                      if (!isReorderMode) {
+                        setCollapsedExercises((prev) => ({ ...prev, [te.id]: !prev[te.id] }));
+                      }
                     }}
                   >
+                    <Text
+                      style={[
+                        styles.exName,
+                        { color: theme.colors.text, ...theme.typography.heading, fontSize: 17 },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {index + 1}. {ex?.name || 'Unknown'}
+                    </Text>
+                    {isCollapsed && (
+                      <Text style={[styles.exSummary, { color: theme.colors.muted }]}>
+                        {te.targetSets} {te.targetSets === 1 ? 'Satz' : 'Sätze'}
+                        {te.targetWeight ? ` • ${te.targetWeight} kg` : ''}
+                        {te.targetReps ? ` • ${te.targetReps} Reps` : ''}
+                      </Text>
+                    )}
+                  </Pressable>
+
+                  <View style={styles.exHeaderRight}>
                     <View
                       style={[
                         styles.dragHandle,
@@ -264,7 +334,9 @@ export default function WorkoutTemplateBuilderScreen() {
                     </View>
                     {index > 0 && (
                       <Pressable
-                        style={{ padding: 4 }}
+                        style={styles.arrowBtn}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${ex?.name || 'Übung'} nach oben`}
                         onPress={() => {
                           const reordered = [...templateExercises];
                           const temp = reordered[index];
@@ -283,7 +355,9 @@ export default function WorkoutTemplateBuilderScreen() {
                     )}
                     {index < templateExercises.length - 1 && (
                       <Pressable
-                        style={{ padding: 4 }}
+                        style={styles.arrowBtn}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${ex?.name || 'Übung'} nach unten`}
                         onPress={() => {
                           const reordered = [...templateExercises];
                           const temp = reordered[index];
@@ -300,25 +374,39 @@ export default function WorkoutTemplateBuilderScreen() {
                         <Ionicons name="chevron-down" size={20} color={theme.colors.primary} />
                       </Pressable>
                     )}
+                    {!isReorderMode && (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${ex?.name || 'Übung'} entfernen`}
+                        style={styles.actionIconBtn}
+                        onPress={() => removeExercise(te.id)}
+                        hitSlop={10}
+                      >
+                        <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
+                      </Pressable>
+                    )}
+                    {!isReorderMode && (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={isCollapsed ? 'Übung ausklappen' : 'Übung einklappen'}
+                        style={styles.actionIconBtn}
+                        onPress={() => {
+                          setCollapsedExercises((prev) => ({ ...prev, [te.id]: !prev[te.id] }));
+                        }}
+                        hitSlop={10}
+                      >
+                        <Ionicons
+                          name={isCollapsed ? 'chevron-down' : 'chevron-up'}
+                          size={20}
+                          color={theme.colors.muted}
+                        />
+                      </Pressable>
+                    )}
                   </View>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`${ex?.name || 'Übung'} entfernen`}
-                    style={{
-                      minWidth: 44,
-                      minHeight: 44,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                    onPress={() => removeExercise(te.id)}
-                    hitSlop={10}
-                  >
-                    <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
-                  </Pressable>
                 </View>
 
-                {/* Table Column Headers */}
-                {true && (
+                {/* Table Column Headers and Sets only when not collapsed */}
+                {!isCollapsed && (
                   <>
                     <View style={styles.tableHeaderRow}>
                       <Text
@@ -569,23 +657,89 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.text,
       marginBottom: 16,
     },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
     sectionTitle: {
       fontSize: 18,
       fontFamily: 'SpaceGrotesk_700Bold',
       color: theme.colors.primary,
-      marginBottom: 16,
       textTransform: 'uppercase',
+    },
+    reorderToggleBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 8,
+      borderWidth: 1,
+    },
+    reorderToggleText: {
+      fontSize: 13,
+    },
+    reorderBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      padding: 10,
+      borderRadius: 8,
+      borderWidth: 1,
+      marginBottom: 16,
+    },
+    reorderBannerText: {
+      fontSize: 12,
+      flex: 1,
+      fontFamily: 'Manrope_500Medium',
     },
     exerciseCard: {
       marginBottom: 16,
     },
-    exHeader: {
+    exerciseCardCollapsed: {
+      paddingVertical: 10,
+    },
+    exCardHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginBottom: 16,
       alignItems: 'center',
+      marginBottom: 12,
     },
-    exName: { minWidth: 0, marginBottom: 8, fontSize: 16, fontFamily: 'SpaceGrotesk_700Bold' },
+    exCardHeaderCollapsed: {
+      marginBottom: 0,
+    },
+    exTitleContainer: {
+      flex: 1,
+      minWidth: 0,
+      paddingRight: 8,
+    },
+    exSummary: {
+      fontSize: 12,
+      fontFamily: 'Manrope_500Medium',
+      marginTop: 2,
+    },
+    exHeaderRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    arrowBtn: {
+      minWidth: 36,
+      minHeight: 36,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 4,
+    },
+    actionIconBtn: {
+      minWidth: 36,
+      minHeight: 36,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 4,
+    },
+    exName: { minWidth: 0, marginBottom: 2, fontSize: 16, fontFamily: 'SpaceGrotesk_700Bold' },
 
     tableHeaderRow: {
       flexDirection: 'row',

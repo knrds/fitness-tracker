@@ -7,6 +7,10 @@ jest.mock('expo-router', () => ({
   Link: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+jest.mock('@expo/vector-icons', () => ({
+  Ionicons: () => null,
+}));
+
 const mockExercise = {
   id: 'test-id',
   name: 'Test Bench Press',

@@ -92,7 +92,7 @@ export default function CoachScreen() {
     };
   }, [messages.length, isSending]);
 
-  const handleSend = async (text: string, mode: 'fast' | 'plan' = 'fast') => {
+  const handleSend = async (text: string, mode: 'fast' | 'plan' = 'plan') => {
     if (isSending || recorder.busy || recorder.recording || (!text.trim() && !image)) return;
     setInputText('');
     const attachment = image;
@@ -104,7 +104,7 @@ export default function CoachScreen() {
   };
 
   const handleSuggestionPress = (suggestion: string) => {
-    void handleSend(suggestion);
+    void handleSend(suggestion, 'plan');
   };
 
   return (
@@ -179,7 +179,7 @@ export default function CoachScreen() {
           </View>
         ) : null}
 
-        <CoachTrainingContext onAsk={(question) => void handleSend(question)} />
+        <CoachTrainingContext onAsk={(question) => void handleSend(question, 'plan')} />
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -246,7 +246,19 @@ export default function CoachScreen() {
               </Text>
               <Text style={[styles.welcomeText, { color: theme.colors.muted }]}>
                 Deine Frage, die letzten Nachrichten und eine Zusammenfassung deiner Trainingsdaten
-                werden an den KI-Dienst gesendet.
+                werden an den KI-Dienst gesendet.{'\n\n'}
+                <Text style={{ color: theme.colors.primary, fontFamily: 'Manrope_700Bold' }}>
+                  Tipp:
+                </Text>{' '}
+                Nutze den standardmäßig aktiven{' '}
+                <Text style={{ color: theme.colors.text, fontFamily: 'Manrope_700Bold' }}>
+                  Plan Mode
+                </Text>{' '}
+                für konkrete, speicherbare Trainingspläne & Workouts. Den{' '}
+                <Text style={{ color: theme.colors.text, fontFamily: 'Manrope_700Bold' }}>
+                  Fast Mode
+                </Text>{' '}
+                kannst du jederzeit für schnelle Fragen und allgemeine Trainingstipps einstellen.
               </Text>
             </View>
           }

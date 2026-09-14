@@ -117,6 +117,8 @@ export async function* streamCoachResponse(
     if (!response.ok) {
       const data: unknown = await response.json().catch(() => null);
       const providerErrors: Record<string, string> = {
+        DAILY_LIMIT_REACHED:
+          'Tägliches Limit erreicht: Als Prototyp sind maximal 6 Anfragen pro Tag möglich. Morgen stehen dir wieder neue Anfragen zur Verfügung.',
         INCOMPLETE_RESPONSE:
           'Der Anbieter konnte die Antwort nicht vollständig erzeugen. Bitte erneut senden; es wurde kein unvollständiger Plan gespeichert.',
         INVALID_PLAN:
@@ -134,6 +136,8 @@ export async function* streamCoachResponse(
       };
       if (isRecord(data) && typeof data.code === 'string' && providerErrors[data.code])
         throw new Error(providerErrors[data.code]);
+      if (isRecord(data) && typeof data.error === 'string' && data.error.trim())
+        throw new Error(data.error.trim());
       const errors: Record<number, string> = {
         402: 'Das OpenRouter-Guthaben reicht nicht aus. Bitte Guthaben oder API-Schlüssel-Limit prüfen.',
         401: 'Bitte anmelden, um den KI-Coach zu verwenden.',

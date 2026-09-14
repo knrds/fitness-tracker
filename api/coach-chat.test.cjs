@@ -340,3 +340,83 @@ test('allows prototype access without Supabase when ALLOW_PROTOTYPE_COACH is tru
   delete process.env.ALLOW_PROTOTYPE_COACH;
 });
 
+test('preserves multi-turn conversation memory and clean message order', async () => {
+  process.env.OPENROUTER_API_KEY = 'test-key';
+  process.env.OPENROUTER_MODEL = 'test-model';
+  let passedMessages = null;
+  global.fetch = async (_url, init) => {
+    passedMessages = JSON.parse(init.body).messages;
+    return {
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: 'Updated plan answer' } }] }),
+    };
+  };
+  const req = request();
+  req.body.messages = [
+    { role: 'user', content: 'Erstelle mir einen Plan' },
+    { role: 'assistant', content: 'Hier ist dein Plan' },
+    { role: 'user', content: 'Passe die Sätze an' },
+  ];
+  const r = res();
+  await handler({ ...req, localCoachUser: 'loopback-development' }, r);
+  assert.equal(r.code, 200);
+  assert.equal(passedMessages.length, 4); // 1 system + 3 conversation turns
+  assert.equal(passedMessages[0].role, 'system');
+  assert.equal(passedMessages[1].role, 'user');
+  assert.equal(passedMessages[1].content, 'Erstelle mir einen Plan');
+  assert.equal(passedMessages[2].role, 'assistant');
+  assert.equal(passedMessages[2].content, 'Hier ist dein Plan');
+  assert.equal(passedMessages[3].role, 'user');
+  assert.equal(passedMessages[3].content, 'Passe die Sätze an');
+});
+
+test('uses configured or default fast model in fast mode', async () => {
+  process.env.OPENROUTER_API_KEY = 'test-key';
+  process.env.OPENROUTER_MODEL = 'test-plan-model';
+  delete process.env.OPENROUTER_FAST_MODEL;
+  let passedModel = null;
+  global.fetch = async (_url, init) => {
+    passedModel = JSON.parse(init.body).model;
+    return {
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: 'Fast answer' } }] }),
+    };
+  };
+  const req = request();
+  req.body.mode = 'fast';
+  const r = res();
+  await handler({ ...req, localCoachUser: 'loopback-development' }, r);
+  assert.equal(r.code, 200);
+  assert.equal(passedModel, 'openai/gpt-4o-mini');
+});
+
+test('enforces 6 requests per day limit for prototype coach access', async () => {
+  process.env.OPENROUTER_API_KEY = 'test-key';
+  process.env.OPENROUTER_MODEL = 'test-model';
+  process.env.ALLOW_PROTOTYPE_COACH = 'true';
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ({ choices: [{ message: { content: 'Answer' } }] }),
+  });
+  const protoReq = {
+    ...request(),
+    headers: { 'x-forwarded-for': '192.168.1.99' },
+  };
+
+  // First 6 requests should succeed
+  for (let i = 1; i <= 6; i++) {
+    const response = res();
+    await handler(protoReq, response);
+    assert.equal(response.code, 200, `Request ${i} should succeed`);
+  }
+
+  // 7th request should be rate-limited with 429 and DAILY_LIMIT_REACHED
+  const blockedResponse = res();
+  await handler(protoReq, blockedResponse);
+  assert.equal(blockedResponse.code, 429);
+  assert.equal(blockedResponse.body.code, 'DAILY_LIMIT_REACHED');
+  delete process.env.ALLOW_PROTOTYPE_COACH;
+});
+
+
+

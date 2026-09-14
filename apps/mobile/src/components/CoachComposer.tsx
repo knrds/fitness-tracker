@@ -33,7 +33,7 @@ export function CoachComposer(props: Props) {
   const [focused, setFocused] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [mode, setMode] = useState<'fast' | 'plan'>('fast');
+  const [mode, setMode] = useState<'fast' | 'plan'>('plan');
   const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -167,6 +167,44 @@ export function CoachComposer(props: Props) {
             <View style={styles.collapsedActions}>
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel="Modus umschalten"
+                disabled={locked}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  toggleMode();
+                }}
+                hitSlop={6}
+                style={[
+                  styles.collapsedModeChip,
+                  {
+                    backgroundColor:
+                      mode === 'plan'
+                        ? withAlpha(theme.colors.primary, 0.12)
+                        : theme.colors.surfaceElevated,
+                    borderColor:
+                      mode === 'plan'
+                        ? withAlpha(theme.colors.primary, 0.4)
+                        : theme.colors.border,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={mode === 'plan' ? 'calendar' : 'flash-outline'}
+                  size={12}
+                  color={mode === 'plan' ? theme.colors.primary : theme.colors.secondary}
+                />
+                <Text
+                  style={[
+                    styles.collapsedModeText,
+                    { color: mode === 'plan' ? theme.colors.primary : theme.colors.muted },
+                  ]}
+                >
+                  {mode === 'plan' ? 'Plan' : 'Fast'}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                accessibilityRole="button"
                 accessibilityLabel="Trainingsplan als Bild anhängen"
                 disabled={locked}
                 onPress={(e) => {
@@ -200,6 +238,33 @@ export function CoachComposer(props: Props) {
         ) : (
           /* Expanded Card State: High-polish card with model chip, mode toggle and send button */
           <View style={styles.expandedContent}>
+            {mode === 'fast' ? (
+              <Pressable
+                onPress={() => setMode('plan')}
+                accessibilityRole="button"
+                accessibilityLabel="Zu Plan Mode wechseln"
+                style={[
+                  styles.fastModeBanner,
+                  {
+                    backgroundColor: withAlpha(theme.colors.accent, 0.08),
+                    borderColor: withAlpha(theme.colors.accent, 0.3),
+                  },
+                ]}
+              >
+                <Ionicons name="information-circle-outline" size={15} color={theme.colors.accent} />
+                <Text style={[styles.fastModeText, { color: theme.colors.text }]}>
+                  <Text style={{ fontFamily: 'Manrope_700Bold', color: theme.colors.accent }}>
+                    Fast Mode:
+                  </Text>{' '}
+                  Gibt nur allgemeine Tipps. Für konkrete Trainingspläne & Workouts nutze den{' '}
+                  <Text style={{ color: theme.colors.primary, fontFamily: 'Manrope_700Bold', textDecorationLine: 'underline' }}>
+                    Plan Mode
+                  </Text>
+                  .
+                </Text>
+              </Pressable>
+            ) : null}
+
             {props.image ? (
               <View
                 style={[
@@ -241,7 +306,11 @@ export function CoachComposer(props: Props) {
               ref={inputRef}
               accessibilityLabel="Coach message"
               style={[styles.inputExpanded, { color: theme.colors.text }]}
-              placeholder="Frag deinen Coach …"
+              placeholder={
+                mode === 'plan'
+                  ? 'Erstelle einen Trainingsplan, splitte Workouts, passe Übungen an …'
+                  : 'Frag deinen Coach nach schnellen Tipps …'
+              }
               placeholderTextColor={theme.colors.muted}
               value={props.value}
               onChangeText={props.onChangeText}
@@ -294,32 +363,42 @@ export function CoachComposer(props: Props) {
                 {/* Mode Toggle Chip */}
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Modus umschalten"
+                  accessibilityLabel={
+                    mode === 'plan'
+                      ? 'Plan Mode aktiv. Tippen für Fast Mode.'
+                      : 'Fast Mode aktiv. Tippen für Plan Mode.'
+                  }
                   onPress={toggleMode}
                   hitSlop={4}
                   style={[
                     styles.metaChip,
                     {
-                      backgroundColor: theme.colors.surfaceElevated,
+                      backgroundColor:
+                        mode === 'plan'
+                          ? withAlpha(theme.colors.primary, 0.14)
+                          : withAlpha(theme.colors.accent, 0.08),
                       borderColor:
                         mode === 'plan'
-                          ? withAlpha(theme.colors.primary, 0.4)
-                          : theme.colors.border,
+                          ? withAlpha(theme.colors.primary, 0.5)
+                          : withAlpha(theme.colors.accent, 0.35),
                     },
                   ]}
                 >
                   <Ionicons
-                    name={mode === 'plan' ? 'calendar-outline' : 'flash-outline'}
+                    name={mode === 'plan' ? 'calendar' : 'flash-outline'}
                     size={12}
-                    color={mode === 'plan' ? theme.colors.primary : theme.colors.secondary}
+                    color={mode === 'plan' ? theme.colors.primary : theme.colors.accent}
                   />
                   <Text
                     style={[
                       styles.metaChipText,
-                      { color: mode === 'plan' ? theme.colors.primary : theme.colors.muted },
+                      {
+                        color: mode === 'plan' ? theme.colors.primary : theme.colors.accent,
+                        fontFamily: mode === 'plan' ? 'SpaceGrotesk_700Bold' : 'SpaceGrotesk_600SemiBold',
+                      },
                     ]}
                   >
-                    {mode === 'plan' ? 'Plan Mode' : 'Fast'}
+                    {mode === 'plan' ? 'Plan Mode' : 'Fast (Nur Tipps)'}
                   </Text>
                 </Pressable>
 
@@ -421,8 +500,8 @@ export function CoachComposer(props: Props) {
       >
         <Text style={{ color: theme.colors.muted, fontSize: 11, textAlign: 'center' }}>
           {showInfo
-            ? 'Text, Trainingskontext, Bilder und Sprachmemos werden verarbeitet. Transkripte vor dem Senden prüfen. KI kann Fehler machen.'
-            : 'KI kann Fehler machen · Hinweise zu Anhängen'}
+            ? 'Prototyp: Max. 6 Anfragen pro Tag. Text, Trainingskontext, Bilder und Sprachmemos werden verarbeitet. Transkripte vor dem Senden prüfen. KI kann Fehler machen.'
+            : 'Prototyp (max. 6 Anfragen/Tag) · KI kann Fehler machen · Info'}
         </Text>
       </Pressable>
     </View>
@@ -606,5 +685,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  collapsedModeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  collapsedModeText: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 11,
+  },
+  fastModeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 4,
+  },
+  fastModeText: {
+    flex: 1,
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 12,
+    lineHeight: 16,
   },
 });

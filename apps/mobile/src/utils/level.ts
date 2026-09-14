@@ -41,7 +41,7 @@ export const LEVEL_RANKS: LevelRankConfig[] = [
   { rank: 7, minLevel: 31, maxLevel: 35, title: 'Mastery Candidate' },
   { rank: 8, minLevel: 36, maxLevel: 40, title: 'Iron Veteran' },
   { rank: 9, minLevel: 41, maxLevel: 45, title: 'Elite Lifter' },
-  { rank: 10, minLevel: 46, maxLevel: 50, title: 'VOLT Master' },
+  { rank: 10, minLevel: 46, maxLevel: 50, title: 'EVARO Master' },
 ];
 
 export interface UserRankInfo {

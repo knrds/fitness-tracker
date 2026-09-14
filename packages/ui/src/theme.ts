@@ -23,9 +23,9 @@ export const colorways: {
   // Dark Themes
   { id: 'glacier', name: 'Glacier Core', description: 'Cyan · Kühles Graphit' },
   { id: 'crimson', name: 'Crimson Neon', description: 'Neon Magenta · Velvet Obsidian' },
-  { id: 'verde', name: 'Volt Verde', description: 'Mint Bio-Signal · Obsidian' },
+  { id: 'verde', name: 'EVARO Verde', description: 'Mint Bio-Signal · Obsidian' },
   { id: 'telemetry', name: 'Telemetry Cyber', description: 'Electric Lime · Midnight Navy' },
-  { id: 'ember', name: 'Volt Ember', description: 'Ember Orange · Deep Carbon' },
+  { id: 'ember', name: 'EVARO Ember', description: 'Ember Orange · Deep Carbon' },
   { id: 'avionics', name: 'Avionics Stealth', description: 'Zinc Matrix · Acid Lime' },
   { id: 'titanium', name: 'Royal Titanium', description: 'Champagne Gold · Luxury' },
   // Light Themes

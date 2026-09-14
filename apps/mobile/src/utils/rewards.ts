@@ -40,7 +40,7 @@ export const COLORWAY_REWARDS: RewardColorwayConfig[] = [
   },
   {
     id: 'verde',
-    name: 'Volt Verde',
+    name: 'EVARO Verde',
     subtitle: 'Mint Bio-Signal · Obsidian',
     isLight: false,
     requiredLevel: 21,
@@ -56,7 +56,7 @@ export const COLORWAY_REWARDS: RewardColorwayConfig[] = [
   },
   {
     id: 'ember',
-    name: 'Volt Ember',
+    name: 'EVARO Ember',
     subtitle: 'Ember Orange · Deep Carbon',
     isLight: false,
     requiredLevel: 36,

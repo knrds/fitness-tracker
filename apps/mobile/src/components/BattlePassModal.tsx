@@ -57,8 +57,8 @@ const RANK_REWARDS: Record<
   },
   5: {
     badgeTitle: 'Smaragd Medaillon',
-    perk: 'Neues Theme: Volt Verde (Dark)',
-    rewardTag: 'Theme: Volt Verde',
+    perk: 'Neues Theme: EVARO Verde (Dark)',
+    rewardTag: 'Theme: EVARO Verde',
     description: 'Bio-Signal Mint Farbwelt auf tiefem Obsidian-Schwarz auf Level 21.',
   },
   6: {
@@ -75,8 +75,8 @@ const RANK_REWARDS: Record<
   },
   8: {
     badgeTitle: 'Obsidian Veteran',
-    perk: 'Theme: Volt Ember (Dark) + Veteran Status',
-    rewardTag: 'Theme: Volt Ember',
+    perk: 'Theme: EVARO Ember (Dark) + Veteran Status',
+    rewardTag: 'Theme: EVARO Ember',
     description: 'Kupfernes Flammen-Design für gestählte Athleten auf Level 36.',
   },
   9: {
@@ -86,8 +86,8 @@ const RANK_REWARDS: Record<
     description: 'Militärisches Zink-Stealth-Design (L41) und galaktische Diamant-Sterne auf Level 43!',
   },
   10: {
-    badgeTitle: 'VOLT Master',
-    perk: 'Theme: Royal Titanium (Dark) + VOLT Master Medaillon',
+    badgeTitle: 'EVARO Master',
+    perk: 'Theme: Royal Titanium (Dark) + EVARO Master Medaillon',
     rewardTag: 'Theme & Master Medaillon',
     description: 'Champagner-Goldenes Luxus-Design und die ultimative Meisterschaft des Eisens.',
   },
@@ -153,7 +153,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
               <View style={styles.passHeaderTag}>
                 <Ionicons name="flash" size={13} color={c.primary} />
                 <Text style={[styles.passHeaderTagText, { color: c.primary }]}>
-                  VOLT SEASON 1: ASCEND
+                  EVARO SEASON 1: ASCEND
                 </Text>
               </View>
               <Text style={[styles.modalTitle, { color: c.text }]}>LEVEL-PASS</Text>

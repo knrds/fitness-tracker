@@ -137,7 +137,7 @@ export function LevelProgress({
             >
               {rankInfo.nextRankLevel !== null
                 ? `Rank ${rankInfo.rank} (Lvl ${rankInfo.minLevel}–${rankInfo.maxLevel}) · Nächster Rank bei Level ${rankInfo.nextRankLevel}`
-                : `Max Rank ${rankInfo.rank} (VOLT Master) erreicht`}
+                : `Max Rank ${rankInfo.rank} (EVARO Master) erreicht`}
             </Text>
           </View>
         )}

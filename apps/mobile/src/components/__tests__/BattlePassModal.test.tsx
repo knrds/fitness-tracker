@@ -30,7 +30,7 @@ describe('BattlePassModal', () => {
 
     // Title and tag
     expect(getByText('LEVEL-PASS')).toBeTruthy();
-    expect(getByText('VOLT SEASON 1: ASCEND')).toBeTruthy();
+    expect(getByText('EVARO SEASON 1: ASCEND')).toBeTruthy();
 
     // Current status
     expect(getByText('LEVEL 4')).toBeTruthy();
@@ -39,7 +39,7 @@ describe('BattlePassModal', () => {
     // Ranks rendered in the roadmap (and current rank header)
     expect(getAllByText('Novice Lifter').length).toBeGreaterThanOrEqual(1);
     expect(getAllByText('Building Strength').length).toBeGreaterThanOrEqual(1);
-    expect(getAllByText('VOLT Master').length).toBeGreaterThanOrEqual(1);
+    expect(getAllByText('EVARO Master').length).toBeGreaterThanOrEqual(1);
 
     // Close button triggers onClose
     const closeBtn = getByLabelText('Schließen');

@@ -21,6 +21,7 @@ import * as Crypto from 'expo-crypto';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useHistoryStore } from '../../src/stores/historyStore';
+import { useI18n } from '../../src/i18n';
 import {
   WorkoutTemplate,
   TemplateExercise,
@@ -36,6 +37,7 @@ export default function ProgramBuilderScreen() {
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
   const { showConfirm } = useDialog();
+  const { language } = useI18n();
   const { id, week } = useLocalSearchParams<{ id?: string; week?: string }>();
   const { programs, updateProgram, templates, createTemplate } = useProgramStore();
   const { sessions } = useHistoryStore();
@@ -132,10 +134,13 @@ export default function ProgramBuilderScreen() {
 
     if (activeWorkoutStatus === 'active' || activeWorkoutStatus === 'paused') {
       const shouldDiscard = await showConfirm({
-        title: 'Laufendes Training',
-        message: 'Ein Training ist bereits aktiv. Möchtest du es verwerfen und stattdessen diese Vorlage starten?',
-        confirmLabel: 'Verwerfen & Starten',
-        cancelLabel: 'Abbrechen',
+        title: language === 'de' ? 'Laufendes Training' : 'Active Workout',
+        message:
+          language === 'de'
+            ? 'Ein Training ist bereits aktiv. Möchtest du es verwerfen und stattdessen diese Vorlage starten?'
+            : 'A workout is already active. Do you want to discard it and start this template instead?',
+        confirmLabel: language === 'de' ? 'Verwerfen & Starten' : 'Discard & Start',
+        cancelLabel: language === 'de' ? 'Abbrechen' : 'Cancel',
         destructive: true,
       });
       if (shouldDiscard) {
@@ -153,18 +158,26 @@ export default function ProgramBuilderScreen() {
         localProgram.durationWeeks < 1 ||
         localProgram.durationWeeks > 104
       ) {
-        Alert.alert('Programmdauer prüfen', 'Bitte 1 bis 104 Wochen eintragen.');
+        Alert.alert(
+          language === 'de' ? 'Programmdauer prüfen' : 'Check Program Duration',
+          language === 'de' ? 'Bitte 1 bis 104 Wochen eintragen.' : 'Please enter 1 to 104 weeks.',
+        );
         return;
       }
       if (localProgram.workouts.some((workout) => workout.week > localProgram.durationWeeks)) {
         Alert.alert(
-          'Wochen noch belegt',
-          'In späteren Wochen sind noch Trainings geplant. Verschiebe oder entferne diese zuerst, bevor du das Programm verkürzt.',
+          language === 'de' ? 'Wochen noch belegt' : 'Weeks Still Occupied',
+          language === 'de'
+            ? 'In späteren Wochen sind noch Trainings geplant. Verschiebe oder entferne diese zuerst, bevor du das Programm verkürzt.'
+            : 'There are still workouts scheduled in later weeks. Move or remove them first before shortening the program.',
         );
         return;
       }
       updateProgram(program.id, localProgram);
-      Alert.alert('Success', 'Plan saved successfully!');
+      Alert.alert(
+        language === 'de' ? 'Erfolg' : 'Success',
+        language === 'de' ? 'Plan erfolgreich gespeichert!' : 'Plan saved successfully!',
+      );
       router.back();
     }
   };
@@ -179,10 +192,13 @@ export default function ProgramBuilderScreen() {
 
       if (isChanged) {
         const shouldDiscard = await showConfirm({
-          title: 'Ungespeicherte Änderungen',
-          message: 'Möchtest du deine ungespeicherten Änderungen wirklich verwerfen?',
-          confirmLabel: 'Verwerfen',
-          cancelLabel: 'Weiter bearbeiten',
+          title: language === 'de' ? 'Ungespeicherte Änderungen' : 'Unsaved Changes',
+          message:
+            language === 'de'
+              ? 'Möchtest du deine ungespeicherten Änderungen wirklich verwerfen?'
+              : 'Do you really want to discard your unsaved changes?',
+          confirmLabel: language === 'de' ? 'Verwerfen' : 'Discard',
+          cancelLabel: language === 'de' ? 'Weiter bearbeiten' : 'Keep Editing',
           destructive: true,
         });
         if (shouldDiscard) {
@@ -227,7 +243,9 @@ export default function ProgramBuilderScreen() {
   if (!activeProgram) {
     return (
       <View style={styles.centered}>
-        <Text style={{ color: theme.colors.text }}>Program not found.</Text>
+        <Text style={{ color: theme.colors.text }}>
+          {language === 'de' ? 'Programm nicht gefunden.' : 'Program not found.'}
+        </Text>
       </View>
     );
   }
@@ -242,7 +260,12 @@ export default function ProgramBuilderScreen() {
 
   const handleDeleteWeek = async (weekToDelete: number) => {
     if (!activeProgram || activeProgram.durationWeeks <= 1) {
-      Alert.alert('Hinweis', 'Ein Programm muss mindestens eine Woche enthalten.');
+      Alert.alert(
+        language === 'de' ? 'Hinweis' : 'Notice',
+        language === 'de'
+          ? 'Ein Programm muss mindestens eine Woche enthalten.'
+          : 'A program must contain at least one week.',
+      );
       return;
     }
 
@@ -270,10 +293,13 @@ export default function ProgramBuilderScreen() {
 
     if (workoutsInWeek.length > 0) {
       const shouldDelete = await showConfirm({
-        title: `Woche ${weekToDelete} löschen`,
-        message: `Möchtest du Woche ${weekToDelete} und alle darin enthaltenen ${workoutsInWeek.length} Einheiten wirklich entfernen?`,
-        confirmLabel: 'Löschen',
-        cancelLabel: 'Abbrechen',
+        title: language === 'de' ? `Woche ${weekToDelete} löschen` : `Delete Week ${weekToDelete}`,
+        message:
+          language === 'de'
+            ? `Möchtest du Woche ${weekToDelete} und alle darin enthaltenen ${workoutsInWeek.length} Einheiten wirklich entfernen?`
+            : `Do you really want to remove Week ${weekToDelete} and all ${workoutsInWeek.length} workouts in it?`,
+        confirmLabel: language === 'de' ? 'Löschen' : 'Delete',
+        cancelLabel: language === 'de' ? 'Abbrechen' : 'Cancel',
         destructive: true,
       });
       if (shouldDelete) {
@@ -312,8 +338,10 @@ export default function ProgramBuilderScreen() {
   };
 
   const getDayName = (day: number) => {
-    const days = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
-    return days[day - 1] ?? `Tag ${day}`;
+    const daysDe = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+    const daysEn = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const list = language === 'de' ? daysDe : daysEn;
+    return list[day - 1] ?? (language === 'de' ? `Tag ${day}` : `Day ${day}`);
   };
 
   const removeWorkout = (workoutId: string) => {
@@ -337,7 +365,7 @@ export default function ProgramBuilderScreen() {
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Abbrechen"
+          accessibilityLabel={language === 'de' ? 'Abbrechen' : 'Cancel'}
           onPress={handleCancel}
           hitSlop={8}
           style={[
@@ -356,7 +384,7 @@ export default function ProgramBuilderScreen() {
               },
             ]}
           >
-            Abbrechen
+            {language === 'de' ? 'Abbrechen' : 'Cancel'}
           </Text>
         </Pressable>
 
@@ -369,12 +397,12 @@ export default function ProgramBuilderScreen() {
             },
           ]}
         >
-          Programm bearbeiten
+          {language === 'de' ? 'Programm bearbeiten' : 'Edit Program'}
         </Text>
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Speichern"
+          accessibilityLabel={language === 'de' ? 'Speichern' : 'Save'}
           onPress={handleSave}
           hitSlop={8}
           style={[
@@ -392,7 +420,7 @@ export default function ProgramBuilderScreen() {
               },
             ]}
           >
-            Speichern
+            {language === 'de' ? 'Speichern' : 'Save'}
           </Text>
         </Pressable>
       </View>
@@ -405,7 +433,7 @@ export default function ProgramBuilderScreen() {
         onScroll={sorter.onScroll}
         scrollEventThrottle={16}
       >
-        <Text style={styles.label}>Program Name</Text>
+        <Text style={styles.label}>{language === 'de' ? 'Programm-Name' : 'Program Name'}</Text>
         <TextInput
           style={[
             styles.input,
@@ -417,11 +445,11 @@ export default function ProgramBuilderScreen() {
           ]}
           value={activeProgram.name}
           onChangeText={(text) => handleChange({ name: text })}
-          placeholder="e.g. 5/3/1 Boring But Big"
+          placeholder={language === 'de' ? 'z. B. 5/3/1 Boring But Big' : 'e.g. 5/3/1 Boring But Big'}
           placeholderTextColor={theme.colors.muted}
         />
 
-        <Text style={styles.label}>Description</Text>
+        <Text style={styles.label}>{language === 'de' ? 'Beschreibung' : 'Description'}</Text>
         <TextInput
           style={[
             styles.input,
@@ -434,12 +462,12 @@ export default function ProgramBuilderScreen() {
           ]}
           value={activeProgram.description || ''}
           onChangeText={(text) => handleChange({ description: text })}
-          placeholder="Optional description"
+          placeholder={language === 'de' ? 'Optionale Beschreibung' : 'Optional description'}
           placeholderTextColor={theme.colors.muted}
           multiline
         />
 
-        <Text style={styles.label}>Duration (Weeks)</Text>
+        <Text style={styles.label}>{language === 'de' ? 'Dauer (Wochen)' : 'Duration (Weeks)'}</Text>
         <TextInput
           style={[
             styles.input,
@@ -457,7 +485,7 @@ export default function ProgramBuilderScreen() {
           placeholderTextColor={theme.colors.muted}
         />
 
-        <Text style={styles.sectionTitle}>Weekly Schedule</Text>
+        <Text style={styles.sectionTitle}>{language === 'de' ? 'Wochenplan' : 'Weekly Schedule'}</Text>
 
         {/* Week Selector Tabs */}
         <View style={{ flexDirection: 'row', gap: 10, marginVertical: 12, flexWrap: 'wrap' }}>
@@ -491,7 +519,7 @@ export default function ProgramBuilderScreen() {
                 fontSize: 13,
               }}
             >
-              Leere Woche
+              {language === 'de' ? 'Leere Woche' : 'Empty Week'}
             </Text>
           </Pressable>
           <Pressable
@@ -531,13 +559,13 @@ export default function ProgramBuilderScreen() {
                 fontSize: 13,
               }}
             >
-              Woche {selectedWeek} duplizieren
+              {language === 'de' ? `Woche ${selectedWeek} duplizieren` : `Duplicate Week ${selectedWeek}`}
             </Text>
           </Pressable>
           {activeProgram.durationWeeks > 1 && (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Woche ${selectedWeek} löschen`}
+              accessibilityLabel={language === 'de' ? `Woche ${selectedWeek} löschen` : `Delete Week ${selectedWeek}`}
               onPress={() => handleDeleteWeek(selectedWeek)}
               style={{
                 minHeight: 38,
@@ -560,13 +588,15 @@ export default function ProgramBuilderScreen() {
                   fontSize: 13,
                 }}
               >
-                Woche {selectedWeek} löschen
+                {language === 'de' ? `Woche ${selectedWeek} löschen` : `Delete Week ${selectedWeek}`}
               </Text>
             </Pressable>
           )}
         </View>
         <Text style={{ color: theme.colors.muted, fontSize: 11, marginBottom: 8 }}>
-          Neue Wochen werden angehängt. Änderungen werden mit Speichern gesichert.
+          {language === 'de'
+            ? 'Neue Wochen werden angehängt. Änderungen werden mit Speichern gesichert.'
+            : 'New weeks are appended. Save changes before leaving.'}
         </Text>
         <ScrollView
           ref={weekTabsRef}
@@ -606,12 +636,12 @@ export default function ProgramBuilderScreen() {
                     },
                   ]}
                 >
-                  Woche {w}
+                  {language === 'de' ? `Woche ${w}` : `Week ${w}`}
                 </Text>
                 {isSelected && activeProgram.durationWeeks > 1 && (
                   <Pressable
                     hitSlop={8}
-                    accessibilityLabel={`Woche ${w} löschen`}
+                    accessibilityLabel={language === 'de' ? `Woche ${w} löschen` : `Delete Week ${w}`}
                     onPress={(e) => {
                       e.stopPropagation();
                       handleDeleteWeek(w);
@@ -681,7 +711,9 @@ export default function ProgramBuilderScreen() {
                   >
                     {dayWorkouts.length > 0
                       ? `${dayWorkouts.length} ${dayWorkouts.length === 1 ? 'Workout' : 'Workouts'}`
-                      : 'Ruhetag'}
+                      : language === 'de'
+                      ? 'Ruhetag'
+                      : 'Rest Day'}
                   </Text>
                 </View>
               </View>
@@ -732,10 +764,13 @@ export default function ProgramBuilderScreen() {
                           numberOfLines={1}
                           style={[styles.workoutName, { color: theme.colors.text }]}
                         >
-                          {template?.name || 'Unbekanntes Workout'}
+                          {template?.name ||
+                            (language === 'de' ? 'Unbekanntes Workout' : 'Unknown Workout')}
                         </Text>
                         <Text style={{ fontSize: 11, color: theme.colors.muted, marginTop: 1 }}>
-                          {exerciseCount} {exerciseCount === 1 ? 'Übung' : 'Übungen'}
+                          {language === 'de'
+                            ? `${exerciseCount} ${exerciseCount === 1 ? 'Übung' : 'Übungen'}`
+                            : `${exerciseCount} ${exerciseCount === 1 ? 'Exercise' : 'Exercises'}`}
                         </Text>
                       </View>
                     </View>
@@ -783,7 +818,7 @@ export default function ProgramBuilderScreen() {
                       >
                         <Ionicons name="create-outline" size={13} color={theme.colors.text} />
                         <Text style={[styles.actionPillText, { color: theme.colors.text }]}>
-                          Bearbeiten
+                          {language === 'de' ? 'Bearbeiten' : 'Edit'}
                         </Text>
                       </Pressable>
 
@@ -804,7 +839,7 @@ export default function ProgramBuilderScreen() {
                           color={theme.colors.muted}
                         />
                         <Text style={[styles.actionPillText, { color: theme.colors.muted }]}>
-                          Verschieben
+                          {language === 'de' ? 'Verschieben' : 'Move'}
                         </Text>
                       </Pressable>
 
@@ -812,7 +847,9 @@ export default function ProgramBuilderScreen() {
                         style={styles.deletePill}
                         onPress={() => removeWorkout(w.id)}
                         hitSlop={6}
-                        accessibilityLabel="Workout entfernen"
+                        accessibilityLabel={
+                          language === 'de' ? 'Workout entfernen' : 'Remove Workout'
+                        }
                       >
                         <Ionicons name="trash-outline" size={14} color={theme.colors.error} />
                       </Pressable>
@@ -842,8 +879,12 @@ export default function ProgramBuilderScreen() {
                 <Ionicons name="add" size={16} color={theme.colors.primary} />
                 <Text style={[styles.addWorkoutText, { color: theme.colors.text }]}>
                   {dayWorkouts.length === 0
-                    ? 'Workout hinzufügen'
-                    : 'Weiteres Workout hinzufügen'}
+                    ? language === 'de'
+                      ? 'Workout hinzufügen'
+                      : 'Add Workout'
+                    : language === 'de'
+                    ? 'Weiteres Workout hinzufügen'
+                    : 'Add Another Workout'}
                 </Text>
               </Pressable>
             </View>
@@ -882,11 +923,12 @@ export default function ProgramBuilderScreen() {
                     { color: theme.colors.text, ...theme.typography.heading },
                   ]}
                 >
-                  Add Workout
+                  {language === 'de' ? 'Workout hinzufügen' : 'Add Workout'}
                 </Text>
                 <Text style={[styles.modalSub, { color: theme.colors.muted }]}>
-                  Select how you want to add a workout for{' '}
-                  {activeDay !== null ? getDayName(activeDay) : ''}:
+                  {language === 'de'
+                    ? `Wähle, wie du ein Workout für ${activeDay !== null ? getDayName(activeDay) : ''} hinzufügen möchtest:`
+                    : `Select how you want to add a workout for ${activeDay !== null ? getDayName(activeDay) : ''}:`}
                 </Text>
 
                 <Pressable
@@ -909,7 +951,7 @@ export default function ProgramBuilderScreen() {
                       { color: theme.colors.background, ...theme.typography.button },
                     ]}
                   >
-                    Create Custom Workout
+                    {language === 'de' ? 'Eigenes Workout erstellen' : 'Create Custom Workout'}
                   </Text>
                 </Pressable>
 
@@ -934,7 +976,9 @@ export default function ProgramBuilderScreen() {
                       { color: theme.colors.text, ...theme.typography.button },
                     ]}
                   >
-                    Use Existing Template / History
+                    {language === 'de'
+                      ? 'Vorlage / Verlauf verwenden'
+                      : 'Use Existing Template / History'}
                   </Text>
                 </Pressable>
               </>
@@ -946,10 +990,12 @@ export default function ProgramBuilderScreen() {
                     { color: theme.colors.text, ...theme.typography.heading },
                   ]}
                 >
-                  Choose Workout
+                  {language === 'de' ? 'Workout auswählen' : 'Choose Workout'}
                 </Text>
                 <Text style={[styles.modalSub, { color: theme.colors.muted }]}>
-                  Select a template or past workout to copy into this day:
+                  {language === 'de'
+                    ? 'Wähle eine Vorlage oder ein vergangenes Workout:'
+                    : 'Select a template or past workout to copy into this day:'}
                 </Text>
 
                 <View style={styles.tabContainer}>
@@ -968,7 +1014,7 @@ export default function ProgramBuilderScreen() {
                         },
                       ]}
                     >
-                      Templates
+                      {language === 'de' ? 'Vorlagen' : 'Templates'}
                     </Text>
                   </Pressable>
                   <Pressable
@@ -984,7 +1030,7 @@ export default function ProgramBuilderScreen() {
                         { color: pickerTab === 'history' ? theme.colors.text : theme.colors.muted },
                       ]}
                     >
-                      History
+                      {language === 'de' ? 'Verlauf' : 'History'}
                     </Text>
                   </Pressable>
                 </View>
@@ -1001,7 +1047,9 @@ export default function ProgramBuilderScreen() {
                           {t.name}
                         </Text>
                         <Text style={[styles.templateItemCount, { color: theme.colors.muted }]}>
-                          {t.exercises.length} exercise{t.exercises.length !== 1 ? 's' : ''}
+                          {language === 'de'
+                            ? `${t.exercises.length} ${t.exercises.length === 1 ? 'Übung' : 'Übungen'}`
+                            : `${t.exercises.length} exercise${t.exercises.length !== 1 ? 's' : ''}`}
                         </Text>
                       </Pressable>
                     ))}
@@ -1013,7 +1061,7 @@ export default function ProgramBuilderScreen() {
                           marginVertical: 20,
                         }}
                       >
-                        No templates available.
+                        {language === 'de' ? 'Keine Vorlagen verfügbar.' : 'No templates available.'}
                       </Text>
                     )}
                   </ScrollView>
@@ -1029,8 +1077,15 @@ export default function ProgramBuilderScreen() {
                           {s.name}
                         </Text>
                         <Text style={[styles.templateItemCount, { color: theme.colors.muted }]}>
-                          {s.completedAt ? new Date(s.completedAt).toLocaleDateString() : ''} •{' '}
-                          {s.exercises.length} exercise{s.exercises.length !== 1 ? 's' : ''}
+                          {s.completedAt
+                            ? new Date(s.completedAt).toLocaleDateString(
+                                language === 'de' ? 'de-DE' : 'en-US',
+                              )
+                            : ''}{' '}
+                          •{' '}
+                          {language === 'de'
+                            ? `${s.exercises.length} ${s.exercises.length === 1 ? 'Übung' : 'Übungen'}`
+                            : `${s.exercises.length} exercise${s.exercises.length !== 1 ? 's' : ''}`}
                         </Text>
                       </Pressable>
                     ))}
@@ -1042,7 +1097,7 @@ export default function ProgramBuilderScreen() {
                           marginVertical: 20,
                         }}
                       >
-                        No history available.
+                        {language === 'de' ? 'Kein Verlauf verfügbar.' : 'No history available.'}
                       </Text>
                     )}
                   </ScrollView>
@@ -1053,7 +1108,9 @@ export default function ProgramBuilderScreen() {
                   onPress={() => setModalMode('options')}
                 >
                   <Ionicons name="arrow-back" size={16} color={theme.colors.primary} />
-                  <Text style={[styles.backOptionText, { color: theme.colors.primary }]}>Back</Text>
+                  <Text style={[styles.backOptionText, { color: theme.colors.primary }]}>
+                    {language === 'de' ? 'Zurück' : 'Back'}
+                  </Text>
                 </Pressable>
               </>
             )}
@@ -1066,7 +1123,7 @@ export default function ProgramBuilderScreen() {
               }}
             >
               <Text style={{ color: theme.colors.accent, fontFamily: 'SpaceGrotesk_700Bold' }}>
-                Cancel
+                {language === 'de' ? 'Abbrechen' : 'Cancel'}
               </Text>
             </Pressable>
           </Pressable>
@@ -1092,12 +1149,12 @@ export default function ProgramBuilderScreen() {
             <Text
               style={[styles.modalTitle, { color: theme.colors.text, ...theme.typography.heading }]}
             >
-              Move Workout
+              {language === 'de' ? 'Workout verschieben' : 'Move Workout'}
             </Text>
             <Text style={[styles.modalSub, { color: theme.colors.muted }]}>
-              Select target day for &quot;
-              {templates.find((t) => t.id === rescheduleWorkout?.templateId)?.name || 'Workout'}
-              &quot;:
+              {language === 'de'
+                ? `Ziel-Tag für „${templates.find((t) => t.id === rescheduleWorkout?.templateId)?.name || 'Workout'}“ wählen:`
+                : `Select target day for "${templates.find((t) => t.id === rescheduleWorkout?.templateId)?.name || 'Workout'}":`}
             </Text>
             <ScrollView style={{ maxHeight: 240 }}>
               {[1, 2, 3, 4, 5, 6, 7].map((dayNum) => (
@@ -1120,7 +1177,11 @@ export default function ProgramBuilderScreen() {
                   <Ionicons name="calendar-outline" size={18} color={theme.colors.primary} />
                   <Text style={[styles.menuItemText, { color: theme.colors.text }]}>
                     {getDayName(dayNum)}{' '}
-                    {rescheduleWorkout?.dayOfWeek === dayNum ? '(Current)' : ''}
+                    {rescheduleWorkout?.dayOfWeek === dayNum
+                      ? language === 'de'
+                        ? '(Aktuell)'
+                        : '(Current)'
+                      : ''}
                   </Text>
                 </Pressable>
               ))}
@@ -1140,7 +1201,7 @@ export default function ProgramBuilderScreen() {
               onPress={() => setRescheduleWorkout(null)}
             >
               <Text style={{ color: theme.colors.text, fontFamily: 'SpaceGrotesk_700Bold' }}>
-                Cancel
+                {language === 'de' ? 'Abbrechen' : 'Cancel'}
               </Text>
             </Pressable>
           </Pressable>

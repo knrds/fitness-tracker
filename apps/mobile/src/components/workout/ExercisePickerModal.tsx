@@ -22,6 +22,7 @@ import { matchesExerciseSearch } from '../../utils/exerciseSearch';
 import { useHistoryStore } from '../../stores/historyStore';
 import { CustomExerciseModal } from '../exercises/CustomExerciseModal';
 import { KeyboardDoneAccessory, KEYBOARD_DONE_ID } from './KeyboardDoneAccessory';
+import { useI18n } from '../../i18n';
 
 interface Props {
   visible: boolean;
@@ -59,6 +60,7 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
   const router = useRouter();
+  const { language, formatMuscle, formatEquipment } = useI18n();
   const { exercises } = useExerciseStore();
   const { sessions } = useHistoryStore();
   const [search, setSearch] = useState('');
@@ -67,6 +69,16 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
   const [customExVisible, setCustomExVisible] = useState(false);
 
   const categories = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core'];
+
+  const categoryLabels: Record<string, string> = {
+    All: language === 'de' ? 'Alle' : 'All',
+    Chest: language === 'de' ? 'Brust' : 'Chest',
+    Back: language === 'de' ? 'Rücken' : 'Back',
+    Legs: language === 'de' ? 'Beine' : 'Legs',
+    Shoulders: language === 'de' ? 'Schultern' : 'Shoulders',
+    Arms: language === 'de' ? 'Arme' : 'Arms',
+    Core: language === 'de' ? 'Bauch/Rumpf' : 'Core',
+  };
 
   useEffect(() => {
     if (!visible) {
@@ -148,12 +160,18 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
     }
 
     return [
-      { type: 'header' as const, name: 'Popular Exercises' },
+      {
+        type: 'header' as const,
+        name: language === 'de' ? 'Beliebte Übungen' : 'Popular Exercises',
+      },
       ...popularExercises,
-      { type: 'header' as const, name: 'All Exercises' },
+      {
+        type: 'header' as const,
+        name: language === 'de' ? 'Alle Übungen' : 'All Exercises',
+      },
       ...otherExercises,
     ];
-  }, [search, selectedCategory, sortedExercises, popularExercises, otherExercises]);
+  }, [search, selectedCategory, sortedExercises, popularExercises, otherExercises, language]);
 
   const toggleSelection = (id: UUID) => {
     setSelectedIds((prev) => {
@@ -197,7 +215,7 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
             {ex.name}
           </Text>
           <Text style={[styles.exerciseMeta, { color: theme.colors.muted }]} numberOfLines={1}>
-            {ex.primaryMuscles.join(', ').replace(/_/g, ' ')} • {ex.equipment.replace(/_/g, ' ')}
+            {ex.primaryMuscles.map((m) => formatMuscle(m)).join(', ')} • {formatEquipment(ex.equipment)}
           </Text>
         </View>
 
@@ -237,7 +255,7 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
           <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
-            Add Exercises
+            {language === 'de' ? 'Übungen hinzufügen' : 'Add Exercises'}
           </Text>
           <View style={styles.headerRight}>
             <Pressable
@@ -263,7 +281,7 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
             <Ionicons name="search" size={18} color={theme.colors.muted} />
             <TextInput
               style={[styles.searchInput, { color: theme.colors.text }]}
-              placeholder="Search exercises..."
+              placeholder={language === 'de' ? 'Übungen suchen...' : 'Search exercises...'}
               value={search}
               onChangeText={setSearch}
               placeholderTextColor={theme.colors.muted}
@@ -296,7 +314,7 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
                       { color: isSelected ? theme.colors.primary : theme.colors.muted },
                     ]}
                   >
-                    {cat.toUpperCase()}
+                    {(categoryLabels[cat] ?? cat).toUpperCase()}
                   </Text>
                 </Pressable>
               );
@@ -336,7 +354,9 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
                   { color: theme.colors.background, ...theme.typography.button },
                 ]}
               >
-                Add {selectedIds.size} Exercise{selectedIds.size > 1 ? 's' : ''}
+                {language === 'de'
+                  ? `${selectedIds.size} ${selectedIds.size === 1 ? 'Übung' : 'Übungen'} hinzufügen`
+                  : `Add ${selectedIds.size} Exercise${selectedIds.size > 1 ? 's' : ''}`}
               </Text>
             </Pressable>
           </View>

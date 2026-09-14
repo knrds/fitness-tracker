@@ -175,7 +175,7 @@ function HistoryView() {
   };
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat(language === 'de' ? 'de-DE' : 'en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
@@ -361,7 +361,7 @@ function HistoryView() {
           numberOfLines={2}
           ellipsizeMode="tail"
         >
-          {exerciseNames || `${item.exercises.length} Exercises`}
+          {exerciseNames || `${item.exercises.length} ${language === 'de' ? 'Übungen' : 'Exercises'}`}
         </Text>
         <View style={styles.stats}>
           <View style={styles.statItem}>
@@ -376,7 +376,7 @@ function HistoryView() {
             <Text
               style={[styles.statLabel, { color: theme.colors.muted, ...theme.typography.caption }]}
             >
-              Time
+              {language === 'de' ? 'Zeit' : 'Time'}
             </Text>
           </View>
           <View style={styles.statItem}>
@@ -391,7 +391,7 @@ function HistoryView() {
             <Text
               style={[styles.statLabel, { color: theme.colors.muted, ...theme.typography.caption }]}
             >
-              Volume ({volumeUnit})
+              {language === 'de' ? 'Volumen' : 'Volume'} ({volumeUnit})
             </Text>
           </View>
           <View style={styles.statItem}>
@@ -406,7 +406,7 @@ function HistoryView() {
             <Text
               style={[styles.statLabel, { color: theme.colors.muted, ...theme.typography.caption }]}
             >
-              Sets
+              {language === 'de' ? 'Sätze' : 'Sets'}
             </Text>
           </View>
         </View>
@@ -664,7 +664,9 @@ function HistoryView() {
                 </Text>
 
                 <Text style={[styles.modalSubtitle, { color: theme.colors.muted }]}>
-                  Completed on {formatDate(selectedSession.startedAt)}
+                  {language === 'de'
+                    ? `Abgeschlossen am ${formatDate(selectedSession.startedAt)}`
+                    : `Completed on ${formatDate(selectedSession.startedAt)}`}
                 </Text>
 
                 <View style={styles.modalStatsRow}>
@@ -677,7 +679,9 @@ function HistoryView() {
                     >
                       {formatDuration(selectedSession.durationSeconds)}
                     </Text>
-                    <Text style={[styles.modalStatLabel, { color: theme.colors.muted }]}>TIME</Text>
+                    <Text style={[styles.modalStatLabel, { color: theme.colors.muted }]}>
+                      {language === 'de' ? 'ZEIT' : 'TIME'}
+                    </Text>
                   </View>
                   <View style={styles.modalStatBox}>
                     <Text
@@ -688,7 +692,9 @@ function HistoryView() {
                     >
                       {summaryTotalSets}
                     </Text>
-                    <Text style={[styles.modalStatLabel, { color: theme.colors.muted }]}>SETS</Text>
+                    <Text style={[styles.modalStatLabel, { color: theme.colors.muted }]}>
+                      {language === 'de' ? 'SÄTZE' : 'SETS'}
+                    </Text>
                   </View>
                   <View style={styles.modalStatBox}>
                     <Text
@@ -744,7 +750,7 @@ function HistoryView() {
                       { color: theme.colors.background, ...theme.typography.button },
                     ]}
                   >
-                    VIEW FULL DETAILS
+                    {language === 'de' ? 'VOLLSTÄNDIGE DETAILS ANZEIGEN' : 'VIEW FULL DETAILS'}
                   </Text>
                 </Pressable>
               </>
@@ -780,11 +786,11 @@ function HistoryView() {
                     { color: theme.colors.text, ...theme.typography.heading },
                   ]}
                 >
-                  DAY HISTORY
+                  {language === 'de' ? 'TAGESVERLAUF' : 'DAY HISTORY'}
                 </Text>
                 <Text style={[styles.modalSubtitleSmall, { color: theme.colors.muted }]}>
                   {selectedDateSessions[0]
-                    ? new Intl.DateTimeFormat('en-US', {
+                    ? new Intl.DateTimeFormat(language === 'de' ? 'de-DE' : 'en-US', {
                         weekday: 'long',
                         month: 'long',
                         day: 'numeric',
@@ -814,7 +820,7 @@ function HistoryView() {
                     )
                     .filter(Boolean)
                     .slice(0, 3)
-                    .join(', ') || `${session.exercises.length} exercises`;
+                    .join(', ') || `${session.exercises.length} ${language === 'de' ? 'Übungen' : 'exercises'}`;
 
                 return (
                   <Pressable
@@ -849,8 +855,9 @@ function HistoryView() {
                       {exerciseNames}
                     </Text>
                     <Text style={[styles.daySessionMeta, { color: theme.colors.primary }]}>
-                      {formatDuration(summary.durationSeconds)} | {summary.setCount} sets |{' '}
-                      {displayVolume.toLocaleString()} {volumeUnit}
+                      {formatDuration(summary.durationSeconds)} | {summary.setCount}{' '}
+                      {language === 'de' ? 'Sätze' : 'sets'} | {displayVolume.toLocaleString()}{' '}
+                      {volumeUnit}
                     </Text>
                   </Pressable>
                 );
@@ -1490,7 +1497,7 @@ function AchievementsView() {
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
   const insets = useSafeAreaInsets();
-  const { language } = useI18n();
+  const { language, formatAchievement } = useI18n();
   const { xp, level, unlockedAchievements, repeatCounts } = useAchievementStore();
   const { getProgress } = useAchievementCheck();
 
@@ -1518,6 +1525,7 @@ function AchievementsView() {
       {repeatables.map((ach) => {
         const count = repeatCounts[ach.id] || 0;
         const earned = count > 0;
+        const localized = formatAchievement(ach);
         return (
           <Card
             key={ach.id}
@@ -1543,7 +1551,7 @@ function AchievementsView() {
                       { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' },
                     ]}
                   >
-                    {ach.name}
+                    {localized.name}
                   </Text>
                   <AchievementBadge kind="repeatable" />
                 </View>
@@ -1553,7 +1561,7 @@ function AchievementsView() {
                     { color: theme.colors.muted, ...theme.typography.caption },
                   ]}
                 >
-                  {ach.description}
+                  {localized.description}
                 </Text>
               </View>
               <Text
@@ -1587,54 +1595,57 @@ function AchievementsView() {
               ? `UNLOCKED (${unlockedList.length})`
               : `FREIGESCHALTET (${unlockedList.length})`}
           </Text>
-          {unlockedList.map((ach) => (
-            <Card
-              key={ach.id}
-              style={[styles.achCard, { borderColor: theme.colors.primary, borderWidth: 1 }]}
-              padding="md"
-            >
-              <View style={styles.achRow}>
-                <View style={[styles.achIconContainer, { backgroundColor: theme.colors.surface }]}>
-                  <Ionicons
-                    name={ach.icon as React.ComponentProps<typeof Ionicons>['name']}
-                    size={24}
-                    color={theme.colors.primary}
-                  />
-                </View>
-                <View style={styles.achInfo}>
-                  <View style={styles.achNameRow}>
+          {unlockedList.map((ach) => {
+            const localized = formatAchievement(ach);
+            return (
+              <Card
+                key={ach.id}
+                style={[styles.achCard, { borderColor: theme.colors.primary, borderWidth: 1 }]}
+                padding="md"
+              >
+                <View style={styles.achRow}>
+                  <View style={[styles.achIconContainer, { backgroundColor: theme.colors.surface }]}>
+                    <Ionicons
+                      name={ach.icon as React.ComponentProps<typeof Ionicons>['name']}
+                      size={24}
+                      color={theme.colors.primary}
+                    />
+                  </View>
+                  <View style={styles.achInfo}>
+                    <View style={styles.achNameRow}>
+                      <Text
+                        style={[
+                          styles.achName,
+                          { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' },
+                        ]}
+                      >
+                        {localized.name}
+                      </Text>
+                      <Text style={{ color: theme.colors.primary, fontSize: 12 }}>
+                        {language === 'en' ? '✓ Completed' : '✓ Absolviert'}
+                      </Text>
+                    </View>
                     <Text
                       style={[
-                        styles.achName,
-                        { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' },
+                        theme.typography.caption,
+                        { color: theme.colors.muted, marginBottom: 6 },
                       ]}
                     >
-                      {ach.name}
+                      {new Date(unlockedAchievements[ach.id]!).toLocaleDateString()}
                     </Text>
-                    <Text style={{ color: theme.colors.primary, fontSize: 12 }}>
-                      {language === 'en' ? '✓ Completed' : '✓ Absolviert'}
+                    <Text
+                      style={[
+                        styles.achDesc,
+                        { color: theme.colors.muted, ...theme.typography.caption },
+                      ]}
+                    >
+                      {localized.description}
                     </Text>
                   </View>
-                  <Text
-                    style={[
-                      theme.typography.caption,
-                      { color: theme.colors.muted, marginBottom: 6 },
-                    ]}
-                  >
-                    {new Date(unlockedAchievements[ach.id]!).toLocaleDateString()}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.achDesc,
-                      { color: theme.colors.muted, ...theme.typography.caption },
-                    ]}
-                  >
-                    {ach.description}
-                  </Text>
                 </View>
-              </View>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </>
       )}
 
@@ -1657,6 +1668,7 @@ function AchievementsView() {
           </Text>
           {lockedList.map((ach) => {
             const prog = getProgress(ach.id);
+            const localized = formatAchievement(ach);
             return (
               <Card key={ach.id} style={styles.achCard} padding="md">
                 <View style={styles.achRow}>
@@ -1681,7 +1693,7 @@ function AchievementsView() {
                           },
                         ]}
                       >
-                        {ach.name}
+                        {localized.name}
                       </Text>
                       <AchievementBadge kind="one_time" />
                     </View>
@@ -1691,7 +1703,7 @@ function AchievementsView() {
                         { color: theme.colors.muted, ...theme.typography.caption },
                       ]}
                     >
-                      {ach.description}
+                      {localized.description}
                     </Text>
                     <View style={styles.achProgressRow}>
                       <View

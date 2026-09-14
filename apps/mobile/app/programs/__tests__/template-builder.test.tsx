@@ -92,7 +92,7 @@ describe('WorkoutTemplateBuilderScreen - Reorder Mode & Collapsible Cards', () =
     expect(getByText('1. Barbell Bench Press')).toBeTruthy();
     expect(getByText('2. Incline Dumbbell Press')).toBeTruthy();
     expect(getByText('Sortieren')).toBeTruthy();
-    expect(getAllByText('ADD SET').length).toBe(2);
+    expect(getAllByText(/ADD SET|SATZ HINZUFÜGEN/i).length).toBe(2);
   });
 
   it('collapses all exercise cards and hides set rows when entering Reorder Mode', () => {
@@ -116,13 +116,13 @@ describe('WorkoutTemplateBuilderScreen - Reorder Mode & Collapsible Cards', () =
     // Sets are collapsed:
     expect(getByText('3 Sätze • 80 kg • 10 Reps')).toBeTruthy();
     expect(getByText('4 Sätze • 30 kg • 12 Reps')).toBeTruthy();
-    expect(queryAllByText('ADD SET').length).toBe(0);
+    expect(queryAllByText(/ADD SET|SATZ HINZUFÜGEN/i).length).toBe(0);
 
     // Clicking Fertig restores normal mode:
     const doneBtn = getByLabelText('Sortieren beenden');
     fireEvent.press(doneBtn);
     expect(getByText('Sortieren')).toBeTruthy();
-    expect(queryAllByText('ADD SET').length).toBe(2);
+    expect(queryAllByText(/ADD SET|SATZ HINZUFÜGEN/i).length).toBe(2);
   });
 
   it('renders drag handles accessible on the left of each exercise card in normal mode', () => {

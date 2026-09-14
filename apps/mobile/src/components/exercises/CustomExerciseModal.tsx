@@ -16,6 +16,7 @@ import { useTheme } from '@fitness-tracker/ui';
 import { KEYBOARD_DONE_ID } from '../workout/KeyboardDoneAccessory';
 
 import { useExerciseStore } from '../../stores/exerciseStore';
+import { useI18n } from '../../i18n';
 
 interface Props {
   visible: boolean;
@@ -24,6 +25,7 @@ interface Props {
 
 export const CustomExerciseModal = ({ visible, onClose }: Props) => {
   const theme = useTheme();
+  const { t, language, formatMuscle, formatEquipment } = useI18n();
   const { addCustomExercise } = useExerciseStore();
   const [name, setName] = useState('');
   const [instructions, setInstructions] = useState('');
@@ -42,9 +44,22 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
   }, [visible]);
 
   const handleSave = () => {
-    if (!name.trim()) return Alert.alert('Error', 'Name is required');
-    if (!muscle) return Alert.alert('Error', 'Muscle group is required');
-    if (!equipment) return Alert.alert('Error', 'Equipment is required');
+    const errTitle = t('common.error');
+    if (!name.trim())
+      return Alert.alert(
+        errTitle,
+        language === 'de' ? 'Name ist erforderlich' : 'Name is required',
+      );
+    if (!muscle)
+      return Alert.alert(
+        errTitle,
+        language === 'de' ? 'Muskelgruppe ist erforderlich' : 'Muscle group is required',
+      );
+    if (!equipment)
+      return Alert.alert(
+        errTitle,
+        language === 'de' ? 'Equipment ist erforderlich' : 'Equipment is required',
+      );
 
     try {
       addCustomExercise({
@@ -63,7 +78,12 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
       setTrackMode('reps');
       onClose();
     } catch {
-      Alert.alert('Error', 'Could not create exercise.');
+      Alert.alert(
+        errTitle,
+        language === 'de'
+          ? 'Übung konnte nicht erstellt werden.'
+          : 'Could not create exercise.',
+      );
     }
   };
 
@@ -91,10 +111,12 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
           <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
-            New Exercise
+            {language === 'de' ? 'Neue Übung' : 'New Exercise'}
           </Text>
           <Pressable onPress={onClose} hitSlop={15} style={styles.cancelBtn}>
-            <Text style={[styles.cancelText, { color: theme.colors.muted }]}>Cancel</Text>
+            <Text style={[styles.cancelText, { color: theme.colors.muted }]}>
+              {t('common.cancel')}
+            </Text>
           </Pressable>
         </View>
 
@@ -106,7 +128,9 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets={true}
         >
-          <Text style={[styles.label, { color: theme.colors.muted }]}>Name</Text>
+          <Text style={[styles.label, { color: theme.colors.muted }]}>
+            {language === 'de' ? 'Name' : 'Name'}
+          </Text>
           <TextInput
             style={[
               styles.input,
@@ -118,41 +142,51 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
             ]}
             value={name}
             onChangeText={setName}
-            placeholder="e.g. My Custom Lift"
+            placeholder={language === 'de' ? 'z. B. Meine eigene Übung' : 'e.g. My Custom Lift'}
             placeholderTextColor={theme.colors.muted}
             inputAccessoryViewID={KEYBOARD_DONE_ID}
             onSubmitEditing={() => Keyboard.dismiss()}
           />
 
-          <Text style={[styles.label, { color: theme.colors.muted }]}>Tracking Mode</Text>
+          <Text style={[styles.label, { color: theme.colors.muted }]}>
+            {language === 'de' ? 'Erfassungsmodus' : 'Tracking Mode'}
+          </Text>
           <View style={styles.chipContainer}>
             {renderChip(
               trackMode === 'reps',
-              'Reps & Weight',
+              language === 'de' ? 'Wdh. & Gewicht' : 'Reps & Weight',
               () => setTrackMode('reps'),
               'mode-reps',
             )}
             {renderChip(
               trackMode === 'duration',
-              'Duration & Level',
+              language === 'de' ? 'Dauer & Stufe' : 'Duration & Level',
               () => setTrackMode('duration'),
               'mode-duration',
             )}
           </View>
 
-          <Text style={[styles.label, { color: theme.colors.muted }]}>Muscle Group</Text>
+          <Text style={[styles.label, { color: theme.colors.muted }]}>
+            {language === 'de' ? 'Muskelgruppe' : 'Muscle Group'}
+          </Text>
           <View style={styles.chipContainer}>
             {Object.values(MuscleGroup).map((m) =>
-              renderChip(muscle === m, m, () => setMuscle(m), m),
+              renderChip(muscle === m, formatMuscle(m), () => setMuscle(m), m),
             )}
           </View>
 
-          <Text style={[styles.label, { color: theme.colors.muted }]}>Equipment</Text>
+          <Text style={[styles.label, { color: theme.colors.muted }]}>
+            {language === 'de' ? 'Equipment' : 'Equipment'}
+          </Text>
           <View style={styles.chipContainer}>
-            {Object.values(Equipment).map((e) => renderChip(equipment === e, e, () => setEq(e), e))}
+            {Object.values(Equipment).map((e) =>
+              renderChip(equipment === e, formatEquipment(e), () => setEq(e), e),
+            )}
           </View>
 
-          <Text style={[styles.label, { color: theme.colors.muted }]}>Instructions (Optional)</Text>
+          <Text style={[styles.label, { color: theme.colors.muted }]}>
+            {language === 'de' ? 'Anleitung / Notizen (Optional)' : 'Instructions (Optional)'}
+          </Text>
           <TextInput
             style={[
               styles.input,
@@ -165,7 +199,7 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
             ]}
             value={instructions}
             onChangeText={setInstructions}
-            placeholder="Add notes..."
+            placeholder={language === 'de' ? 'Notizen hinzufügen...' : 'Add notes...'}
             placeholderTextColor={theme.colors.muted}
             multiline
             inputAccessoryViewID={KEYBOARD_DONE_ID}
@@ -184,7 +218,7 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
                 { color: theme.colors.background, ...theme.typography.button },
               ]}
             >
-              Create Exercise
+              {language === 'de' ? 'Übung erstellen' : 'Create Exercise'}
             </Text>
           </Pressable>
         </ScrollView>

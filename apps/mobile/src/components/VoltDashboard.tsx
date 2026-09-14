@@ -754,9 +754,9 @@ export function VoltDashboard({
               gap: 8,
             }}
           >
-            <Text style={[label, { color: c.primary }]}>COACH INTEL ↗</Text>
+            <Text style={[label, { color: c.primary }]}>{t('coach.intelTitle')}</Text>
             <Text style={{ color: c.text, fontSize: 13, lineHeight: 20 }}>
-              Review your training and plan your next session with your coach.
+              {t('coach.intelDesc')}
             </Text>
           </Pressable>
         </Card>

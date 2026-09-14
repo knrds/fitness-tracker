@@ -9,8 +9,12 @@ import {
   BiologicalSex,
 } from '@fitness-tracker/domain';
 
+import { getLocalizedAchievement } from './achievementTranslations';
+
 export type { Language } from './translations';
 export { translations } from './translations';
+export { getLocalizedAchievement, GERMAN_ACHIEVEMENTS } from './achievementTranslations';
+export type { LocalizedAchievement } from './achievementTranslations';
 
 /** Resolves a dotted path like 'workout.startWorkout' against the translations object */
 export function getTranslation(lang: Language, path: string, fallback?: string): string {
@@ -149,5 +153,7 @@ export function useI18n() {
     formatGoal: (goal: FitnessGoal | string | undefined | null) => formatGoal(goal, language),
     formatLevel: (level: ExperienceLevel | string | undefined | null) => formatLevel(level, language),
     formatSex: (sex: BiologicalSex | string | undefined | null) => formatSex(sex, language),
+    formatAchievement: (ach: { id: string; name: string; description: string }) =>
+      getLocalizedAchievement(ach, language),
   };
 }

@@ -44,11 +44,14 @@ describe('CustomExerciseModal', () => {
       </ThemeProvider>,
     );
 
-    fireEvent.changeText(getByPlaceholderText('e.g. My Custom Lift'), 'Sled Push');
-    fireEvent.press(getByText('DURATION & LEVEL'));
-    fireEvent.press(getByText(MuscleGroup.FullBody.replace(/_/g, ' ').toUpperCase()));
-    fireEvent.press(getByText(Equipment.Cardio.replace(/_/g, ' ').toUpperCase()));
-    fireEvent.press(getByText('Create Exercise'));
+    fireEvent.changeText(
+      getByPlaceholderText(/e\.g\. My Custom Lift|z\. B\. Meine eigene Übung/i),
+      'Sled Push',
+    );
+    fireEvent.press(getByText(/DURATION & LEVEL|DAUER & STUFE/i));
+    fireEvent.press(getByText(/Full Body|Ganzkörper/i));
+    fireEvent.press(getByText(/Cardio|Cardio-Gerät/i));
+    fireEvent.press(getByText(/Create Exercise|Übung erstellen/i));
 
     const customExercise = useExerciseStore.getState().customExercises[0];
     expect(customExercise?.name).toBe('Sled Push');

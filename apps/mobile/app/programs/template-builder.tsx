@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { ExercisePickerModal } from '../../src/components/workout/ExercisePickerModal';
+import { useI18n } from '../../src/i18n';
 import { useTheme, Card } from '@fitness-tracker/ui';
 import { TemplateExercise } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
@@ -30,6 +31,7 @@ export default function WorkoutTemplateBuilderScreen() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
+  const { language } = useI18n();
   const { programId, templateId, dayOfWeek, week } = useLocalSearchParams<{
     programId?: string;
     templateId?: string;
@@ -65,7 +67,9 @@ export default function WorkoutTemplateBuilderScreen() {
   if (programId && !program) {
     return (
       <View style={styles.centered}>
-        <Text style={{ color: theme.colors.text }}>Program not found.</Text>
+        <Text style={{ color: theme.colors.text }}>
+          {language === 'de' ? 'Programm nicht gefunden.' : 'Program not found.'}
+        </Text>
       </View>
     );
   }
@@ -138,7 +142,7 @@ export default function WorkoutTemplateBuilderScreen() {
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Zurück"
+          accessibilityLabel={language === 'de' ? 'Zurück' : 'Back'}
           onPress={() => router.back()}
           hitSlop={15}
           style={styles.backBtn}
@@ -149,10 +153,17 @@ export default function WorkoutTemplateBuilderScreen() {
           numberOfLines={1}
           style={[styles.headerTitle, { color: theme.colors.text, flex: 1, marginHorizontal: 8 }]}
         >
-          {existingTemplate ? 'Edit Workout' : 'New Workout'}
+          {existingTemplate
+            ? language === 'de'
+              ? 'Workout bearbeiten'
+              : 'Edit Workout'
+            : language === 'de'
+            ? 'Neues Workout'
+            : 'New Workout'}
         </Text>
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={language === 'de' ? 'Speichern' : 'Save'}
           onPress={handleSave}
           style={[
             styles.saveBtn,
@@ -165,7 +176,9 @@ export default function WorkoutTemplateBuilderScreen() {
             },
           ]}
         >
-          <Text style={[styles.saveBtnText, { color: theme.colors.background }]}>Speichern</Text>
+          <Text style={[styles.saveBtnText, { color: theme.colors.background }]}>
+            {language === 'de' ? 'Speichern' : 'Save'}
+          </Text>
         </Pressable>
       </View>
 
@@ -190,34 +203,44 @@ export default function WorkoutTemplateBuilderScreen() {
         keyboardDismissMode="on-drag"
         automaticallyAdjustKeyboardInsets={true}
       >
-        <Text style={styles.label}>Workout Name</Text>
+        <Text style={styles.label}>{language === 'de' ? 'Workout-Name' : 'Workout Name'}</Text>
         <TextInput
           style={styles.input}
           value={name}
           onChangeText={setName}
-          placeholder="e.g. Push Day"
+          placeholder={language === 'de' ? 'z. B. Push Day' : 'e.g. Push Day'}
           placeholderTextColor={theme.colors.muted}
           inputAccessoryViewID={KEYBOARD_DONE_ID}
           onSubmitEditing={() => Keyboard.dismiss()}
         />
 
-        <Text style={styles.label}>Description</Text>
+        <Text style={styles.label}>{language === 'de' ? 'Beschreibung' : 'Description'}</Text>
         <TextInput
           style={styles.input}
           value={description}
           onChangeText={setDescription}
-          placeholder="e.g. Focused on chest and triceps"
+          placeholder={
+            language === 'de'
+              ? 'z. B. Fokus auf Brust und Trizeps'
+              : 'e.g. Focused on chest and triceps'
+          }
           placeholderTextColor={theme.colors.muted}
           inputAccessoryViewID={KEYBOARD_DONE_ID}
           onSubmitEditing={() => Keyboard.dismiss()}
         />
 
-        <Text style={styles.label}>Ordner / Folder (Optional)</Text>
+        <Text style={styles.label}>
+          {language === 'de' ? 'Ordner (Optional)' : 'Folder (Optional)'}
+        </Text>
         <TextInput
           style={styles.input}
           value={folder}
           onChangeText={setFolder}
-          placeholder="z. B. PPL ARNOLD, Urlaubs-Workouts, Home Gym"
+          placeholder={
+            language === 'de'
+              ? 'z. B. PPL ARNOLD, Urlaubs-Workouts, Home Gym'
+              : 'e.g. PPL ARNOLD, Vacation Workouts, Home Gym'
+          }
           placeholderTextColor={theme.colors.muted}
           inputAccessoryViewID={KEYBOARD_DONE_ID}
           onSubmitEditing={() => Keyboard.dismiss()}
@@ -225,12 +248,21 @@ export default function WorkoutTemplateBuilderScreen() {
 
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>
-            Exercises {templateExercises.length > 0 ? `(${templateExercises.length})` : ''}
+            {language === 'de' ? 'Übungen' : 'Exercises'}{' '}
+            {templateExercises.length > 0 ? `(${templateExercises.length})` : ''}
           </Text>
           {templateExercises.length > 1 && (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={isReorderMode ? 'Sortieren beenden' : 'Übungen sortieren'}
+              accessibilityLabel={
+                isReorderMode
+                  ? language === 'de'
+                    ? 'Sortieren beenden'
+                    : 'End reordering'
+                  : language === 'de'
+                  ? 'Übungen sortieren'
+                  : 'Reorder exercises'
+              }
               onPress={() => setIsReorderMode((prev) => !prev)}
               style={[
                 styles.reorderToggleBtn,
@@ -255,7 +287,13 @@ export default function WorkoutTemplateBuilderScreen() {
                   },
                 ]}
               >
-                {isReorderMode ? 'Fertig' : 'Sortieren'}
+                {isReorderMode
+                  ? language === 'de'
+                    ? 'Fertig'
+                    : 'Done'
+                  : language === 'de'
+                  ? 'Sortieren'
+                  : 'Reorder'}
               </Text>
             </Pressable>
           )}
@@ -273,7 +311,9 @@ export default function WorkoutTemplateBuilderScreen() {
           >
             <Ionicons name="information-circle-outline" size={16} color={theme.colors.primary} />
             <Text style={[styles.reorderBannerText, { color: theme.colors.muted }]}>
-              Sortiermodus aktiv: Ziehe die Übungen an den Griffen in die gewünschte Reihenfolge.
+              {language === 'de'
+                ? 'Sortiermodus aktiv: Ziehe die Übungen an den Griffen in die gewünschte Reihenfolge.'
+                : 'Reorder mode active: Drag exercises by the handle into the desired order.'}
             </Text>
           </View>
         )}
@@ -328,11 +368,18 @@ export default function WorkoutTemplateBuilderScreen() {
                       ]}
                       numberOfLines={1}
                     >
-                      {index + 1}. {ex?.name || 'Unknown'}
+                      {index + 1}. {ex?.name || (language === 'de' ? 'Unbekannt' : 'Unknown')}
                     </Text>
                     {isCollapsed && (
                       <Text style={[styles.exSummary, { color: theme.colors.muted }]}>
-                        {te.targetSets} {te.targetSets === 1 ? 'Satz' : 'Sätze'}
+                        {te.targetSets}{' '}
+                        {te.targetSets === 1
+                          ? language === 'de'
+                            ? 'Satz'
+                            : 'Set'
+                          : language === 'de'
+                          ? 'Sätze'
+                          : 'Sets'}
                         {te.targetWeight ? ` • ${te.targetWeight} kg` : ''}
                         {te.targetReps ? ` • ${te.targetReps} Reps` : ''}
                       </Text>
@@ -344,7 +391,11 @@ export default function WorkoutTemplateBuilderScreen() {
                       <Pressable
                         style={styles.arrowBtn}
                         accessibilityRole="button"
-                        accessibilityLabel={`${ex?.name || 'Übung'} nach oben`}
+                        accessibilityLabel={
+                          language === 'de'
+                            ? `${ex?.name || 'Übung'} nach oben`
+                            : `Move ${ex?.name || 'exercise'} up`
+                        }
                         onPress={() => {
                           const reordered = [...templateExercises];
                           const temp = reordered[index];
@@ -365,7 +416,11 @@ export default function WorkoutTemplateBuilderScreen() {
                       <Pressable
                         style={styles.arrowBtn}
                         accessibilityRole="button"
-                        accessibilityLabel={`${ex?.name || 'Übung'} nach unten`}
+                        accessibilityLabel={
+                          language === 'de'
+                            ? `${ex?.name || 'Übung'} nach unten`
+                            : `Move ${ex?.name || 'exercise'} down`
+                        }
                         onPress={() => {
                           const reordered = [...templateExercises];
                           const temp = reordered[index];
@@ -385,7 +440,11 @@ export default function WorkoutTemplateBuilderScreen() {
                     {!isReorderMode && (
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel={`${ex?.name || 'Übung'} entfernen`}
+                        accessibilityLabel={
+                          language === 'de'
+                            ? `${ex?.name || 'Übung'} entfernen`
+                            : `Remove ${ex?.name || 'exercise'}`
+                        }
                         style={styles.actionIconBtn}
                         onPress={() => removeExercise(te.id)}
                         hitSlop={10}
@@ -396,7 +455,15 @@ export default function WorkoutTemplateBuilderScreen() {
                     {!isReorderMode && (
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel={isCollapsed ? 'Übung ausklappen' : 'Übung einklappen'}
+                        accessibilityLabel={
+                          isCollapsed
+                            ? language === 'de'
+                              ? 'Übung ausklappen'
+                              : 'Expand exercise'
+                            : language === 'de'
+                            ? 'Übung einklappen'
+                            : 'Collapse exercise'
+                        }
                         style={styles.actionIconBtn}
                         onPress={() => {
                           setCollapsedExercises((prev) => ({ ...prev, [te.id]: !prev[te.id] }));
@@ -424,7 +491,7 @@ export default function WorkoutTemplateBuilderScreen() {
                           { color: theme.colors.muted },
                         ]}
                       >
-                        Set
+                        {language === 'de' ? 'Satz' : 'Set'}
                       </Text>
                       <Text
                         style={[
@@ -442,7 +509,7 @@ export default function WorkoutTemplateBuilderScreen() {
                           { color: theme.colors.muted },
                         ]}
                       >
-                        Reps
+                        {language === 'de' ? 'Wdh.' : 'Reps'}
                       </Text>
                       <Text
                         style={[
@@ -570,7 +637,7 @@ export default function WorkoutTemplateBuilderScreen() {
                     >
                       <Ionicons name="add" size={18} color={theme.colors.primary} />
                       <Text style={[styles.addSetRowText, { color: theme.colors.primary }]}>
-                        ADD SET
+                        {language === 'de' ? 'SATZ HINZUFÜGEN' : 'ADD SET'}
                       </Text>
                     </Pressable>
                   </>
@@ -584,7 +651,9 @@ export default function WorkoutTemplateBuilderScreen() {
           style={[styles.addExBtn, { borderColor: theme.colors.border }]}
           onPress={() => setExerciseModalVisible(true)}
         >
-          <Text style={[styles.addExText, { color: theme.colors.primary }]}>+ Add Exercise</Text>
+          <Text style={[styles.addExText, { color: theme.colors.primary }]}>
+            {language === 'de' ? '+ Übung hinzufügen' : '+ Add Exercise'}
+          </Text>
         </Pressable>
       </ScrollView>
 

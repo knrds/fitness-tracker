@@ -16,6 +16,7 @@ import {
   matchesMuscleRegion,
 } from '@fitness-tracker/domain';
 import { HorizontalFadeScroll } from '../../src/components/HorizontalFadeScroll';
+import { useI18n } from '../../src/i18n';
 
 const MUSCLE_FILTERS = [
   { id: 'all', label: 'All Muscles' },
@@ -127,6 +128,7 @@ interface ExercisesScreenProps {
 export default function ExercisesScreen({ embedded = false }: ExercisesScreenProps) {
   const scrollRef = useFocusScroll<FlatList<import('@fitness-tracker/domain').Exercise>>();
   const theme = useTheme();
+  const { language, formatMuscle } = useI18n();
   const params = useLocalSearchParams<{ muscle?: string }>();
   const insets = useSafeAreaInsets();
   const { filteredExercises, favoriteIds, toggleFavorite, searchQuery, setSearchQuery } =
@@ -134,6 +136,22 @@ export default function ExercisesScreen({ embedded = false }: ExercisesScreenPro
   const historyStore = useHistoryStore();
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
+
+  const getFilterLabel = (id: string) => {
+    if (id === 'all') return language === 'de' ? 'Alle Muskeln' : 'All Muscles';
+    if (id === 'favorites') return language === 'de' ? 'Favoriten' : 'Favorites';
+    if (id === 'powerlifting') return language === 'de' ? 'Kraftdreikampf' : 'Powerlifting';
+    if (id === 'calisthenics') return language === 'de' ? 'Calisthenics' : 'Calisthenics';
+    if (id === 'warmup') return language === 'de' ? 'Aufwärmen' : 'Warmup';
+    if (id === 'warmup_cardio') return language === 'de' ? 'Aufwärm-Cardio' : 'Warmup Cardio';
+    if (id === 'strength') return language === 'de' ? 'Krafttraining' : 'Strength';
+    if (id === MuscleGroup.UpperBack) return language === 'de' ? 'Rücken' : 'Back';
+    if (id === MuscleGroup.Quads) return language === 'de' ? 'Beine' : 'Legs';
+    if (id === MuscleGroup.FrontDelts) return language === 'de' ? 'Schultern' : 'Shoulders';
+    if (id === MuscleGroup.Biceps) return language === 'de' ? 'Arme' : 'Arms';
+    if (id === MuscleGroup.Abs) return language === 'de' ? 'Bauch/Rumpf' : 'Core';
+    return formatMuscle(id);
+  };
 
   React.useEffect(() => {
     if (params.muscle) {
@@ -238,7 +256,7 @@ export default function ExercisesScreen({ embedded = false }: ExercisesScreenPro
         <Text
           style={[styles.headerTitle, { color: theme.colors.text, ...theme.typography.heading }]}
         >
-          EXERCISE LIBRARY
+          {language === 'de' ? 'ÜBUNGSBIBLIOTHEK' : 'EXERCISE LIBRARY'}
         </Text>
         <Pressable style={styles.createBtn} onPress={() => setShowCustomModal(true)}>
           <Ionicons name="add" size={24} color={theme.colors.primary} />
@@ -261,7 +279,7 @@ export default function ExercisesScreen({ embedded = false }: ExercisesScreenPro
             />
             <TextInput
               style={[styles.searchInput, { color: theme.colors.text, ...theme.typography.body }]}
-              placeholder="Search exercises..."
+              placeholder={language === 'de' ? 'Übungen suchen...' : 'Search exercises...'}
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholderTextColor={theme.colors.muted}
@@ -290,8 +308,16 @@ export default function ExercisesScreen({ embedded = false }: ExercisesScreenPro
               [
                 { id: 'name_asc', label: 'Name (A-Z)', icon: 'text' },
                 { id: 'name_desc', label: 'Name (Z-A)', icon: 'text' },
-                { id: 'most_used', label: 'Most Used', icon: 'barbell' },
-                { id: 'recently_used', label: 'Recently Used', icon: 'time' },
+                {
+                  id: 'most_used',
+                  label: language === 'de' ? 'Meistgenutzt' : 'Most Used',
+                  icon: 'barbell',
+                },
+                {
+                  id: 'recently_used',
+                  label: language === 'de' ? 'Zuletzt genutzt' : 'Recently Used',
+                  icon: 'time',
+                },
               ] as const as ReadonlyArray<{
                 id: typeof sortBy;
                 label: string;
@@ -365,7 +391,7 @@ export default function ExercisesScreen({ embedded = false }: ExercisesScreenPro
                     },
                   ]}
                 >
-                  {item.label}
+                  {getFilterLabel(item.id)}
                 </Text>
               </Pressable>
             );
@@ -390,8 +416,12 @@ export default function ExercisesScreen({ embedded = false }: ExercisesScreenPro
         )}
         ListEmptyComponent={
           <EmptyState
-            title="0 EXERCISES FOUND"
-            description="Adjust your search or filters to find what you're looking for."
+            title={language === 'de' ? '0 ÜBUNGEN GEFUNDEN' : '0 EXERCISES FOUND'}
+            description={
+              language === 'de'
+                ? 'Passe deine Suche oder Filter an, um passende Übungen zu finden.'
+                : "Adjust your search or filters to find what you're looking for."
+            }
           />
         }
       />

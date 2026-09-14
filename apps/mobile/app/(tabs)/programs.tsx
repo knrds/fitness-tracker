@@ -28,12 +28,14 @@ import { Program, WorkoutTemplate } from '@fitness-tracker/domain';
 
 import { useProgramStore } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
+import { useI18n } from '../../src/i18n';
 
 export default function ProgramListScreen() {
   const router = useRouter();
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
   const { showConfirm } = useDialog();
+  const { t, language } = useI18n();
   const {
     programs,
     templates,
@@ -57,13 +59,17 @@ export default function ProgramListScreen() {
 
   const handleCreateProgram = () => {
     if (!name.trim()) {
+      const msg =
+        language === 'de'
+          ? 'Der Programmname ist erforderlich.'
+          : 'Program name is required.';
       if (Platform.OS === 'web') {
         if (typeof globalThis !== 'undefined' && 'alert' in globalThis) {
           const alertFn = (globalThis as { alert?: (msg: string) => void }).alert;
-          alertFn?.('Program name is required.');
+          alertFn?.(msg);
         }
       } else {
-        Alert.alert('Error', 'Program name is required.');
+        Alert.alert(t('common.error'), msg);
       }
       return;
     }
@@ -98,10 +104,13 @@ export default function ProgramListScreen() {
 
     if (activeWorkoutStatus === 'active' || activeWorkoutStatus === 'paused') {
       const shouldDiscard = await showConfirm({
-        title: 'Laufendes Training',
-        message: 'Ein Training ist bereits aktiv. Möchtest du es verwerfen und stattdessen diese Vorlage starten?',
-        confirmLabel: 'Verwerfen & Starten',
-        cancelLabel: 'Abbrechen',
+        title: language === 'de' ? 'Laufendes Training' : 'Active Workout',
+        message:
+          language === 'de'
+            ? 'Ein Training ist bereits aktiv. Möchtest du es verwerfen und stattdessen diese Vorlage starten?'
+            : 'A workout is currently active. Do you want to discard it and start this template instead?',
+        confirmLabel: language === 'de' ? 'Verwerfen & Starten' : 'Discard & Start',
+        cancelLabel: t('common.cancel'),
         destructive: true,
       });
       if (shouldDiscard) {
@@ -116,8 +125,11 @@ export default function ProgramListScreen() {
     if (!activeProgram) return null;
 
     const getDayName = (d: number) => {
-      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-      return days[d - 1];
+      const days =
+        language === 'de'
+          ? ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
+          : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      return days[d - 1] ?? `Tag ${d}`;
     };
 
     return (
@@ -134,20 +146,28 @@ export default function ProgramListScreen() {
                 marginBottom: 8,
               }}
             >
-              <Text style={styles.activeBadge}>ACTIVE PROGRAM</Text>{' '}
+              <Text style={styles.activeBadge}>
+                {language === 'de' ? 'AKTIVES PROGRAMM' : 'ACTIVE PROGRAM'}
+              </Text>{' '}
               <Pressable
                 accessibilityRole="button"
                 style={styles.deactivateBtn}
                 onPress={confirmDeactivate}
               >
-                <Text style={styles.deactivateBtnText}>Deactivate</Text>
+                <Text style={styles.deactivateBtnText}>
+                  {language === 'de' ? 'Deaktivieren' : 'Deactivate'}
+                </Text>
               </Pressable>
             </View>
             <Text style={styles.activeTitle}>{activeProgram.name}</Text>
             {activeProgram.description ? (
               <Text style={styles.activeDesc}>{activeProgram.description}</Text>
             ) : null}
-            <Text style={styles.activeDuration}>Duration: {activeProgram.durationWeeks} Weeks</Text>
+            <Text style={styles.activeDuration}>
+              {language === 'de'
+                ? `Dauer: ${activeProgram.durationWeeks} Wochen`
+                : `Duration: ${activeProgram.durationWeeks} Weeks`}
+            </Text>
           </View>
         </View>
 
@@ -160,7 +180,9 @@ export default function ProgramListScreen() {
             gap: 12,
           }}
         >
-          <Text style={styles.calendarTitle}>Weekly Schedule</Text>
+          <Text style={styles.calendarTitle}>
+            {language === 'de' ? 'Wochenplan' : 'Weekly Schedule'}
+          </Text>
           <Pressable
             accessibilityRole="button"
             style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 }}
@@ -171,7 +193,9 @@ export default function ProgramListScreen() {
               })
             }
           >
-            <Text style={{ color: theme.colors.primary }}>Woche bearbeiten</Text>
+            <Text style={{ color: theme.colors.primary }}>
+              {language === 'de' ? 'Woche bearbeiten' : 'Edit week'}
+            </Text>
           </Pressable>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.weekTabsScroll}>
@@ -190,7 +214,7 @@ export default function ProgramListScreen() {
                 onPress={() => setSelectedWeek(w)}
               >
                 <Text style={[styles.weekTabText, isSelected && styles.weekTabTextSelected]}>
-                  Week {w}
+                  {language === 'de' ? `Woche ${w}` : `Week ${w}`}
                 </Text>
               </Pressable>
             );
@@ -214,19 +238,23 @@ export default function ProgramListScreen() {
                       return (
                         <View key={w.id} style={styles.scheduledWorkout}>
                           <Text style={styles.workoutTemplateName}>
-                            {template?.name || 'Unknown Template'}
+                            {template?.name || (language === 'de' ? 'Unbekannte Vorlage' : 'Unknown Template')}
                           </Text>
                           <Pressable
                             style={styles.startWorkoutBtn}
                             onPress={() => handleStartTemplate(template, activeProgram.id)}
                           >
-                            <Text style={styles.startWorkoutBtnText}>Start</Text>
+                            <Text style={styles.startWorkoutBtnText}>
+                              {language === 'de' ? 'Starten' : 'Start'}
+                            </Text>
                           </Pressable>
                         </View>
                       );
                     })
                   ) : (
-                    <Text style={styles.restDayText}>Rest day</Text>
+                    <Text style={styles.restDayText}>
+                      {language === 'de' ? 'Ruhetag' : 'Rest day'}
+                    </Text>
                   )}
                 </View>
               </View>
@@ -235,17 +263,22 @@ export default function ProgramListScreen() {
         </View>
 
         <View style={styles.divider} />
-        <Text style={styles.sectionHeaderTitle}>PROGRAMMKATALOG</Text>
+        <Text style={styles.sectionHeaderTitle}>
+          {language === 'de' ? 'PROGRAMMKATALOG' : 'PROGRAM CATALOG'}
+        </Text>
       </View>
     );
   };
 
   const confirmDeactivate = async () => {
     const shouldDeactivate = await showConfirm({
-      title: 'Programm deaktivieren',
-      message: 'Möchtest du das aktuelle Trainingsprogramm wirklich deaktivieren?',
-      confirmLabel: 'Deaktivieren',
-      cancelLabel: 'Abbrechen',
+      title: language === 'de' ? 'Programm deaktivieren' : 'Deactivate Program',
+      message:
+        language === 'de'
+          ? 'Möchtest du das aktuelle Trainingsprogramm wirklich deaktivieren?'
+          : 'Do you really want to deactivate the active training program?',
+      confirmLabel: language === 'de' ? 'Deaktivieren' : 'Deactivate',
+      cancelLabel: t('common.cancel'),
       destructive: true,
     });
     if (shouldDeactivate) {
@@ -255,10 +288,13 @@ export default function ProgramListScreen() {
 
   const confirmDelete = async (id: string, programName: string) => {
     const shouldDelete = await showConfirm({
-      title: 'Programm löschen',
-      message: `Möchtest du "${programName}" wirklich löschen? Dies kann nicht rückgängig gemacht werden.`,
-      confirmLabel: 'Löschen',
-      cancelLabel: 'Abbrechen',
+      title: language === 'de' ? 'Programm löschen' : 'Delete Program',
+      message:
+        language === 'de'
+          ? `Möchtest du "${programName}" wirklich löschen? Dies kann nicht rückgängig gemacht werden.`
+          : `Do you really want to delete "${programName}"? This cannot be undone.`,
+      confirmLabel: t('common.delete'),
+      cancelLabel: t('common.cancel'),
       destructive: true,
     });
     if (shouldDelete) {
@@ -275,21 +311,16 @@ export default function ProgramListScreen() {
         const workoutsText = weekWorkouts
           .map((ww) => {
             const template = templates.find((t) => t.id === ww.templateId);
-            const days = [
-              'Monday',
-              'Tuesday',
-              'Wednesday',
-              'Thursday',
-              'Friday',
-              'Saturday',
-              'Sunday',
-            ];
-            const dayName = days[ww.dayOfWeek - 1] || `Day ${ww.dayOfWeek}`;
-            return `  • ${dayName}: ${template?.name || 'Workout'}`;
+            const days =
+              language === 'de'
+                ? ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
+                : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const dayName = days[ww.dayOfWeek - 1] || (language === 'de' ? `Tag ${ww.dayOfWeek}` : `Day ${ww.dayOfWeek}`);
+            return `  • ${dayName}: ${template?.name || (language === 'de' ? 'Training' : 'Workout')}`;
           })
           .filter(Boolean)
           .join('\n');
-        return `Week ${week}:\n${workoutsText}`;
+        return `${language === 'de' ? `Woche ${week}` : `Week ${week}`}:\n${workoutsText}`;
       })
       .filter(Boolean)
       .join('\n\n');
@@ -330,7 +361,7 @@ export default function ProgramListScreen() {
         scrollEventThrottle={16}
       >
         <Button
-          title="Create program"
+          title={language === 'de' ? 'Programm erstellen' : 'Create program'}
           variant="secondary"
           onPress={() => setCreateModalVisible(true)}
           style={{ marginBottom: 16 }}
@@ -368,7 +399,9 @@ export default function ProgramListScreen() {
                   onPress={() => router.push(`/programs/builder?id=${item.id}`)}
                 >
                   <Text style={styles.cardTitle}>{item.name}</Text>
-                  <Text style={styles.cardSubtitle}>{item.durationWeeks} Weeks</Text>
+                  <Text style={styles.cardSubtitle}>
+                    {item.durationWeeks} {language === 'de' ? 'Wochen' : 'Weeks'}
+                  </Text>
                 </Pressable>
 
                 <View style={styles.cardRightActions}>
@@ -388,7 +421,7 @@ export default function ProgramListScreen() {
                     >
                       <Ionicons name="checkmark-circle" size={13} color={theme.colors.primary} />
                       <Text style={[styles.smallActiveBtnText, { color: theme.colors.primary }]}>
-                        ACTIVE
+                        {language === 'de' ? 'AKTIV' : 'ACTIVE'}
                       </Text>
                     </Pressable>
                   ) : (
@@ -403,7 +436,7 @@ export default function ProgramListScreen() {
                       }}
                     >
                       <Text style={[styles.smallActivateBtnText, { color: theme.colors.text }]}>
-                        ACTIVATE
+                        {language === 'de' ? 'AKTIVIEREN' : 'ACTIVATE'}
                       </Text>
                     </Pressable>
                   )}
@@ -426,7 +459,11 @@ export default function ProgramListScreen() {
           );
         })}
         {programs.length === 0 && (
-          <Text style={styles.empty}>No programs found. Click + to create one.</Text>
+          <Text style={styles.empty}>
+            {language === 'de'
+              ? 'Keine Programme gefunden. Klicke auf „Programm erstellen“, um anzufangen.'
+              : 'No programs found. Click Create program to start.'}
+          </Text>
         )}
       </ScrollView>
 
@@ -438,28 +475,40 @@ export default function ProgramListScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Create Program</Text>
+            <Text style={styles.modalTitle}>
+              {language === 'de' ? 'Programm erstellen' : 'Create Program'}
+            </Text>
 
-            <Text style={styles.label}>Program Name</Text>
+            <Text style={styles.label}>
+              {language === 'de' ? 'Programmname' : 'Program Name'}
+            </Text>
             <TextInput
               style={styles.input}
               value={name}
               onChangeText={setName}
-              placeholder="e.g. Hypertrophy Plan"
+              placeholder={language === 'de' ? 'z. B. Hypertrophie-Plan' : 'e.g. Hypertrophy Plan'}
               placeholderTextColor={theme.colors.muted}
             />
 
-            <Text style={styles.label}>Description (Optional)</Text>
+            <Text style={styles.label}>
+              {language === 'de' ? 'Beschreibung (Optional)' : 'Description (Optional)'}
+            </Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={description}
               onChangeText={setDescription}
-              placeholder="e.g. 4-day split focusing on upper/lower body"
+              placeholder={
+                language === 'de'
+                  ? 'z. B. 4-Tage-Split für Ober-/Unterkörper'
+                  : 'e.g. 4-day split focusing on upper/lower body'
+              }
               placeholderTextColor={theme.colors.muted}
               multiline
             />
 
-            <Text style={styles.label}>Duration (Weeks)</Text>
+            <Text style={styles.label}>
+              {language === 'de' ? 'Dauer (Wochen)' : 'Duration (Weeks)'}
+            </Text>
             <TextInput
               style={styles.input}
               value={durationWeeks}
@@ -476,10 +525,12 @@ export default function ProgramListScreen() {
                 style={[styles.modalBtn, styles.cancelBtn]}
                 onPress={() => setCreateModalVisible(false)}
               >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+                <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
               </Pressable>
               <Pressable style={[styles.modalBtn, styles.createBtn]} onPress={handleCreateProgram}>
-                <Text style={styles.createBtnText}>Create</Text>
+                <Text style={styles.createBtnText}>
+                  {language === 'de' ? 'Erstellen' : 'Create'}
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -506,7 +557,7 @@ export default function ProgramListScreen() {
               }}
             >
               <Ionicons name="create-outline" size={20} color={theme.colors.text} />
-              <Text style={styles.menuItemText}>Edit</Text>
+              <Text style={styles.menuItemText}>{t('common.edit')}</Text>
             </Pressable>
             <Pressable
               style={[
@@ -522,7 +573,9 @@ export default function ProgramListScreen() {
               }}
             >
               <Ionicons name="arrow-up-outline" size={20} color={theme.colors.text} />
-              <Text style={styles.menuItemText}>Move Up</Text>
+              <Text style={styles.menuItemText}>
+                {language === 'de' ? 'Nach oben' : 'Move Up'}
+              </Text>
             </Pressable>
             <Pressable
               style={[
@@ -540,7 +593,9 @@ export default function ProgramListScreen() {
               }}
             >
               <Ionicons name="arrow-down-outline" size={20} color={theme.colors.text} />
-              <Text style={styles.menuItemText}>Move Down</Text>
+              <Text style={styles.menuItemText}>
+                {language === 'de' ? 'Nach unten' : 'Move Down'}
+              </Text>
             </Pressable>
             <Pressable
               style={styles.menuItem}
@@ -551,7 +606,7 @@ export default function ProgramListScreen() {
               }}
             >
               <Ionicons name="share-outline" size={20} color={theme.colors.text} />
-              <Text style={styles.menuItemText}>Share</Text>
+              <Text style={styles.menuItemText}>{t('common.share')}</Text>
             </Pressable>
             <Pressable
               style={styles.menuItem}
@@ -562,7 +617,7 @@ export default function ProgramListScreen() {
               }}
             >
               <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
-              <Text style={[styles.menuItemText, { color: theme.colors.error }]}>Delete</Text>
+              <Text style={[styles.menuItemText, { color: theme.colors.error }]}>{t('common.delete')}</Text>
             </Pressable>
           </View>
         </Pressable>

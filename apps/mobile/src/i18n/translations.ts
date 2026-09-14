@@ -293,6 +293,8 @@ export const translations = {
       fastMode: 'Schnell-Modus',
       savePlan: 'Plan speichern',
       savePlanSuccess: 'Plan wurde als Vorlage gespeichert!',
+      intelTitle: 'COACH-BERATER ↗',
+      intelDesc: 'Analysiere dein Training und plane die nächste Einheit mit deinem Coach.',
     },
     legal: {
       title: 'RECHTLICHES & DATENSCHUTZ',
@@ -595,6 +597,8 @@ export const translations = {
       fastMode: 'Fast Mode',
       savePlan: 'Save Plan',
       savePlanSuccess: 'Plan saved as template!',
+      intelTitle: 'COACH INTEL ↗',
+      intelDesc: 'Review your training and plan your next session with your coach.',
     },
     legal: {
       title: 'LEGAL & PRIVACY',

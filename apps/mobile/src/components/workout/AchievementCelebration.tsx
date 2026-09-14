@@ -18,6 +18,7 @@ import * as Haptics from 'expo-haptics';
 
 import { useAchievementStore } from '../../stores/achievementStore';
 import { useWorkoutStore } from '../../stores/workoutStore';
+import { useI18n } from '../../i18n';
 
 const ConfettiParticle = ({ index }: { index: number }) => {
   const theme = useTheme();
@@ -83,6 +84,7 @@ export const AchievementCelebration = () => {
   const reducedMotion = useReducedMotion();
   const { newlyUnlocked, levelUpTo, clearCelebrations } = useAchievementStore();
   const { lastFinishedSession } = useWorkoutStore();
+  const { language, formatAchievement } = useI18n();
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
 
@@ -118,24 +120,16 @@ export const AchievementCelebration = () => {
           >
             {levelUpTo !== null && (
               <View style={styles.levelUpContainer}>
-                <View
-                  style={[
-                    styles.iconBadge,
-                    {
-                      backgroundColor: theme.colors.primarySubtle,
-                      borderColor: theme.colors.primary,
-                    },
-                  ]}
-                >
+                <View style={styles.emblemWrapper}>
                   <LevelEmblem level={levelUpTo} size={80} />
                 </View>
                 <Text
                   style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}
                 >
-                  Level Up
+                  {language === 'de' ? 'Levelaufstieg!' : 'Level Up'}
                 </Text>
                 <Text style={[styles.levelValue, { color: theme.colors.primary }]}>
-                  LEVEL {levelUpTo}
+                  {language === 'de' ? `STUFE ${levelUpTo}` : `LEVEL ${levelUpTo}`}
                 </Text>
                 <Text
                   style={{
@@ -146,10 +140,12 @@ export const AchievementCelebration = () => {
                     marginBottom: 4,
                   }}
                 >
-                  Rank {getRankForLevel(levelUpTo).rank} · {getRankForLevel(levelUpTo).title}
+                  {language === 'de' ? 'Rang' : 'Rank'} {getRankForLevel(levelUpTo).rank} · {getRankForLevel(levelUpTo).title}
                 </Text>
                 <Text style={[styles.desc, { color: theme.colors.muted }]}>
-                  Your dedication is paying off. Keep crushing it.
+                  {language === 'de'
+                    ? 'Deine Hingabe zahlt sich aus. Weiter so!'
+                    : 'Your dedication is paying off. Keep crushing it.'}
                 </Text>
               </View>
             )}
@@ -163,11 +159,12 @@ export const AchievementCelebration = () => {
                 <Text
                   style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}
                 >
-                  Achievement Unlocked
+                  {language === 'de' ? 'Erfolg freigeschaltet' : 'Achievement Unlocked'}
                 </Text>
                 {newlyUnlocked.map((id) => {
                   const ach = ACHIEVEMENTS.find((a) => a.id === id);
                   if (!ach) return null;
+                  const localized = formatAchievement(ach);
                   return (
                     <View
                       key={id}
@@ -193,10 +190,10 @@ export const AchievementCelebration = () => {
                       </View>
                       <View style={styles.achInfo}>
                         <Text style={[styles.achName, { color: theme.colors.text }]}>
-                          {ach.name}
+                          {localized.name}
                         </Text>
                         <Text style={[styles.achDesc, { color: theme.colors.muted }]}>
-                          {ach.description}
+                          {localized.description}
                         </Text>
                         <Text style={[styles.achReward, { color: theme.colors.warning }]}>
                           +{ach.xpReward} XP
@@ -210,7 +207,7 @@ export const AchievementCelebration = () => {
           </ScrollView>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Erfolge schließen"
+            accessibilityLabel={language === 'de' ? 'Erfolge schließen' : 'Close celebrations'}
             style={[
               styles.button,
               { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md },
@@ -223,7 +220,7 @@ export const AchievementCelebration = () => {
                 { color: theme.colors.onPrimary, ...theme.typography.button },
               ]}
             >
-              Let&apos;s Go
+              {language === 'de' ? 'Weiter' : "Let's Go"}
             </Text>
           </Pressable>
         </Pressable>
@@ -254,6 +251,9 @@ const createStyles = (theme: Theme) =>
     levelUpContainer: {
       alignItems: 'center',
       paddingVertical: 8,
+    },
+    emblemWrapper: {
+      marginBottom: 16,
     },
     iconBadge: {
       width: 88,

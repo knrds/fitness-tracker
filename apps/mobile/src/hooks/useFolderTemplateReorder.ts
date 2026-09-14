@@ -162,11 +162,13 @@ export function useFolderTemplateReorder({
     // Calculate current pointer position in ScrollView content coordinates
     const currentContentY = state.pointerY - viewport.current.top + scrollYRef.current;
 
-    // Check which folder the pointer is currently inside
+    // Check which folder the pointer is currently inside (with 8px tolerance for seamless card boundaries)
     const folderEntries = Object.entries(folderLayouts.current);
-    const matched = folderEntries.find(([, l]) => {
-      const top = foldersSectionY.current + l.y;
-      const bottom = top + l.height;
+    const matched = folderEntries.find(([name, l]) => {
+      const isKnown = name === '__unassigned__' || current.current.allFolders.includes(name);
+      if (!isKnown) return false;
+      const top = foldersSectionY.current + l.y - 8;
+      const bottom = foldersSectionY.current + l.y + l.height + 8;
       return currentContentY >= top && currentContentY <= bottom;
     });
 
@@ -203,37 +205,59 @@ export function useFolderTemplateReorder({
         }).start();
       });
     } else {
-      // Inside origin folder or not over any other folder
+      // Not hovering over another folder
       clearHoverTimer();
       if (lastHoveredFolderRef.current !== null) {
         lastHoveredFolderRef.current = null;
         setHoveredTargetFolder(null);
       }
 
-      // Run intra-folder smooth sibling reordering (identical to programs.tsx)
-      const to = getDropIndex(state.siblingIds, state.layouts, state.id, translation);
-      if (to !== state.to) {
-        state.to = to;
-      }
+      // Determine if pointer is genuinely inside the origin folder bounds
+      const originLayout = folderLayouts.current[state.originFolder];
+      const isInsideOrigin = originLayout
+        ? currentContentY >= foldersSectionY.current + originLayout.y - 12 &&
+          currentContentY <= foldersSectionY.current + originLayout.y + originLayout.height + 12
+        : targetFolderKey === state.originFolder;
 
-      const from = state.siblingIds.indexOf(state.id);
-      const layout = state.layouts[state.id];
-      if (layout) {
-        const next = state.layouts[state.siblingIds[from + 1] ?? ''];
-        const previous = state.layouts[state.siblingIds[from - 1] ?? ''];
-        const gap = next
-          ? next.y - layout.y - layout.height
-          : previous
-            ? layout.y - previous.y - previous.height
-            : 0;
-        const shift = layout.height + Math.max(0, gap);
+      if (isInsideOrigin) {
+        // Run intra-folder smooth sibling reordering (identical to programs.tsx)
+        const to = getDropIndex(state.siblingIds, state.layouts, state.id, translation);
+        if (to !== state.to) {
+          state.to = to;
+        }
 
-        state.siblingIds.forEach((id, index) => {
+        const from = state.siblingIds.indexOf(state.id);
+        const layout = state.layouts[state.id];
+        if (layout) {
+          const next = state.layouts[state.siblingIds[from + 1] ?? ''];
+          const previous = state.layouts[state.siblingIds[from - 1] ?? ''];
+          const gap = next
+            ? next.y - layout.y - layout.height
+            : previous
+              ? layout.y - previous.y - previous.height
+              : 0;
+          const shift = layout.height + Math.max(0, gap);
+
+          state.siblingIds.forEach((id, index) => {
+            if (id === state.id) return;
+            const offset =
+              index > from && index <= to ? -shift : index < from && index >= to ? shift : 0;
+            Animated.spring(valueFor(id), {
+              toValue: offset,
+              useNativeDriver: Platform.OS !== 'web',
+              speed: 28,
+              bounciness: 0,
+            }).start();
+          });
+        }
+      } else {
+        // In dead space between folders or outside: do not reorder origin folder
+        const from = state.siblingIds.indexOf(state.id);
+        state.to = from;
+        state.siblingIds.forEach((id) => {
           if (id === state.id) return;
-          const offset =
-            index > from && index <= to ? -shift : index < from && index >= to ? shift : 0;
           Animated.spring(valueFor(id), {
-            toValue: offset,
+            toValue: 0,
             useNativeDriver: Platform.OS !== 'web',
             speed: 28,
             bounciness: 0,
@@ -289,8 +313,18 @@ export function useFolderTemplateReorder({
     clearHoverTimer();
 
     if (targetFolderKey && targetFolderKey !== state.originFolder) {
-      const newFolder = targetFolderKey === '__unassigned__' ? undefined : targetFolderKey;
-      current.current.onMoveTemplateToFolder(state.id, newFolder);
+      const isValid =
+        targetFolderKey === '__unassigned__' ||
+        current.current.allFolders.some((f) => f.toLowerCase() === targetFolderKey.toLowerCase());
+      if (isValid) {
+        const canonicalFolder =
+          targetFolderKey === '__unassigned__'
+            ? undefined
+            : current.current.allFolders.find(
+                (f) => f.toLowerCase() === targetFolderKey.toLowerCase(),
+              ) || targetFolderKey;
+        current.current.onMoveTemplateToFolder(state.id, canonicalFolder);
+      }
       reset();
       return;
     }
@@ -301,7 +335,13 @@ export function useFolderTemplateReorder({
     const active = state.layouts[state.id];
 
     if (!target || !active || from === state.to) {
-      reset();
+      Animated.timing(dragY, {
+        toValue: 0,
+        duration: 140,
+        useNativeDriver: Platform.OS !== 'web',
+      }).start(() => {
+        reset();
+      });
       return;
     }
 

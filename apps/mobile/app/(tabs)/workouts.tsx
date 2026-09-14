@@ -41,7 +41,6 @@ export default function WorkoutsScreen() {
     templates,
     customFolders = [],
     deleteTemplate,
-    updateTemplate,
     updateTemplatesOrder,
     createFolder,
     renameFolder,
@@ -71,29 +70,21 @@ export default function WorkoutsScreen() {
   const sharedScrollViewRef = useRef<ScrollView>(null);
   useFocusScroll(sharedScrollViewRef);
 
-  // Distinct folders: customFolders union template.folder
+  // Distinct folders strictly derived from customFolders (case-insensitive deduplication)
   const allFolders = useMemo(() => {
     const list: string[] = [];
     const seen = new Set<string>();
 
     for (const f of customFolders) {
       const trimmed = f.trim();
-      if (trimmed && !seen.has(trimmed)) {
-        seen.add(trimmed);
+      const lower = trimmed.toLowerCase();
+      if (trimmed && !seen.has(lower)) {
+        seen.add(lower);
         list.push(trimmed);
       }
     }
-    for (const t of templates) {
-      if (t.folder?.trim()) {
-        const trimmed = t.folder.trim();
-        if (!seen.has(trimmed)) {
-          seen.add(trimmed);
-          list.push(trimmed);
-        }
-      }
-    }
     return list;
-  }, [customFolders, templates]);
+  }, [customFolders]);
 
   const folderItems = useMemo(
     () => allFolders.map((name) => ({ id: name, name })),
@@ -114,12 +105,23 @@ export default function WorkoutsScreen() {
     const template = templates.find((t) => t.id === templateId);
     if (!template) return;
 
-    updateTemplate(templateId, { folder: targetFolder });
+    // Validate target folder: only allow moving into a folder that actually exists, or unassigned (undefined)
+    const validTargetFolder = targetFolder
+      ? allFolders.find((f) => f.toLowerCase() === targetFolder.toLowerCase())
+      : undefined;
+
+    if (targetFolder !== undefined && !validTargetFolder) {
+      // Target folder does not exist - cancel cleanly
+      return;
+    }
+
+    const finalFolder = validTargetFolder ?? undefined;
+    setTemplateFolder(templateId, finalFolder ?? null);
 
     const remaining = templates.filter((t) => t.id !== templateId);
-    const updatedTemplate = { ...template, folder: targetFolder };
+    const updatedTemplate = { ...template, folder: finalFolder };
 
-    const targetGroupKey = targetFolder || '__unassigned__';
+    const targetGroupKey = finalFolder || '__unassigned__';
     const lastIndexInTarget = remaining
       .map((t) => t.folder || '__unassigned__')
       .lastIndexOf(targetGroupKey);
@@ -133,8 +135,8 @@ export default function WorkoutsScreen() {
 
     updateTemplatesOrder(newTemplates);
 
-    if (targetFolder) {
-      setExpandedFolders((prev) => ({ ...prev, [targetFolder]: true }));
+    if (finalFolder) {
+      setExpandedFolders((prev) => ({ ...prev, [finalFolder]: true }));
     }
 
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -193,8 +195,12 @@ export default function WorkoutsScreen() {
     const unassigned: WorkoutTemplate[] = [];
 
     for (const t of templates) {
-      if (t.folder && map.has(t.folder)) {
-        map.get(t.folder)!.push(t);
+      const tFolder = t.folder?.trim();
+      const matchedFolder = tFolder
+        ? allFolders.find((f) => f.toLowerCase() === tFolder.toLowerCase())
+        : null;
+      if (matchedFolder && map.has(matchedFolder)) {
+        map.get(matchedFolder)!.push(t);
       } else {
         unassigned.push(t);
       }

@@ -15,6 +15,7 @@ import { AnatomyFigure } from './anatomy/AnatomyFigure';
 import { VoltBackdrop } from './VoltBackdrop';
 import { LevelProgress } from './LevelProgress';
 import { LevelRankBadge } from './LevelRankBadge';
+import { BattlePassModal } from './BattlePassModal';
 import { SyncIndicator } from './SyncIndicator';
 import voltEmblem from '../../assets/volt-emblem.png';
 import { MuscleHeatmap } from './MuscleHeatmap';
@@ -51,6 +52,7 @@ export function VoltDashboard({
   const [ringAnimationKey, setRingAnimationKey] = React.useState(0);
   const [showMuscleDetails, setShowMuscleDetails] = React.useState(false);
   const wide = useWindowDimensions().width >= 800;
+  const [battlePassVisible, setBattlePassVisible] = React.useState(false);
   const { profile } = useProfileStore();
   const { level, xp } = useAchievementStore();
   const { exercises } = useExerciseStore();
@@ -351,10 +353,18 @@ export function VoltDashboard({
               <Text style={[heading, { fontSize: 17 }]} numberOfLines={1}>
                 {profile.displayName || 'ATHLETE'}
               </Text>
-              <LevelRankBadge level={level} size={28} />
-              <Text style={{ color: c.primary, fontSize: 12, fontFamily: 'SpaceGrotesk_600SemiBold' }}>
-                LVL {level}
-              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Level ${level} Pass öffnen`}
+                onPress={() => setBattlePassVisible(true)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2, paddingHorizontal: 4, borderRadius: 6 }}
+              >
+                <LevelRankBadge level={level} size={28} />
+                <Text style={{ color: c.primary, fontSize: 12, fontFamily: 'SpaceGrotesk_600SemiBold' }}>
+                  LVL {level}
+                </Text>
+                <Ionicons name="chevron-forward" size={14} color={c.primary} />
+              </Pressable>
             </View>
             <Text style={[label, { color: c.primary, letterSpacing: 0.6 }]}>
               {history.getStreak()} DAY STREAK · {xp} XP
@@ -363,7 +373,7 @@ export function VoltDashboard({
           <Ionicons name="options-outline" size={20} color={c.muted} />
         </View>
       </Card>
-      <LevelProgress level={level} xp={xp} compact />
+      <LevelProgress level={level} xp={xp} compact onPress={() => setBattlePassVisible(true)} />
       <View style={{ flexDirection: wide ? 'row' : 'column', gap: 18, alignItems: 'stretch' }}>
         <View style={{ flex: wide ? 1 : undefined, minWidth: 0 }}>{weekCard}</View>
         <View style={{ flex: wide ? 1.4 : undefined, minWidth: 0 }}>{hero}</View>
@@ -689,6 +699,12 @@ export function VoltDashboard({
           </Pressable>
         </Card>
       </View>
+      <BattlePassModal
+        visible={battlePassVisible}
+        onClose={() => setBattlePassVisible(false)}
+        level={level}
+        xp={xp}
+      />
     </View>
   );
 }

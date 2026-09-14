@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, StyleProp, ViewStyle, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -20,11 +21,13 @@ export function LevelProgress({
   xp,
   compact = false,
   style: customStyle,
+  onPress,
 }: {
   level: number;
   xp: number;
   compact?: boolean;
   style?: StyleProp<ViewStyle>;
+  onPress?: () => void;
 }) {
   const theme = useTheme();
   const reduced = useReducedMotion();
@@ -37,7 +40,7 @@ export function LevelProgress({
 
   const barStyle = useAnimatedStyle(() => ({ width: `${progress.value * 100}%` }));
 
-  return (
+  const cardContent = (
     <View
       style={[
         {
@@ -75,15 +78,20 @@ export function LevelProgress({
             Level {level} · Rank {rankInfo.rank} ({rankInfo.title})
           </Text>
           {compact && (
-            <Text
-              style={{
-                color: theme.colors.muted,
-                fontSize: 10,
-                fontVariant: ['tabular-nums'],
-              }}
-            >
-              {xp % 500} / 500 XP
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text
+                style={{
+                  color: theme.colors.muted,
+                  fontSize: 10,
+                  fontVariant: ['tabular-nums'],
+                }}
+              >
+                {xp % 500} / 500 XP
+              </Text>
+              {onPress && (
+                <Ionicons name="chevron-forward" size={12} color={theme.colors.muted} />
+              )}
+            </View>
           )}
         </View>
         <View
@@ -136,4 +144,18 @@ export function LevelProgress({
       </View>
     </View>
   );
+
+  if (onPress) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Level ${level} ${rankInfo.title}, Level-Pass ansehen`}
+        onPress={onPress}
+      >
+        {cardContent}
+      </Pressable>
+    );
+  }
+
+  return cardContent;
 }

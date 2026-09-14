@@ -25,7 +25,7 @@ describe('programStore', () => {
   beforeEach(() => {
     mockUuidCounter = 0;
     // reset state manually since we don't have a reset function
-    useProgramStore.setState({ programs: [], templates: [] });
+    useProgramStore.setState({ programs: [], templates: [], customFolders: [] });
   });
 
   it('creates a new program', () => {
@@ -146,5 +146,37 @@ describe('programStore', () => {
     useProgramStore.getState().deleteFolder('Arnold Classic Split');
     expect(useProgramStore.getState().customFolders).not.toContain('Arnold Classic Split');
     expect(useProgramStore.getState().templates.find((t) => t.id === 't-arnold-1')?.folder).toBeUndefined();
+  });
+
+  it('handles folder creation, deletion, and renaming case-insensitively without leaving ghost folders', () => {
+    const store = useProgramStore.getState();
+    store.createFolder('Test');
+    expect(useProgramStore.getState().customFolders).toEqual(['Test']);
+
+    // Prevent duplicate folder creation regardless of case or whitespace
+    store.createFolder(' test ');
+    store.createFolder('TEST');
+    expect(useProgramStore.getState().customFolders).toEqual(['Test']);
+
+    // Assign template to 'test'
+    store.createTemplate({ id: 't-test-1', name: 'Workout 1', folder: 'test' });
+    expect(useProgramStore.getState().templates.find((t) => t.id === 't-test-1')?.folder).toBe('Test');
+
+    // Delete folder with different casing and whitespace
+    store.deleteFolder('  test  ');
+    expect(useProgramStore.getState().customFolders).toEqual([]);
+    expect(useProgramStore.getState().templates.find((t) => t.id === 't-test-1')?.folder).toBeUndefined();
+
+    // Re-create folder 'Test' and rename with case variation
+    store.createFolder('Test');
+    store.setTemplateFolder('t-test-1', 'Test');
+    store.renameFolder('test', 'Test 2');
+    expect(useProgramStore.getState().customFolders).toEqual(['Test 2']);
+    expect(useProgramStore.getState().templates.find((t) => t.id === 't-test-1')?.folder).toBe('Test 2');
+
+    // Clean up
+    store.deleteFolder('TEST 2');
+    expect(useProgramStore.getState().customFolders).toEqual([]);
+    expect(useProgramStore.getState().templates.find((t) => t.id === 't-test-1')?.folder).toBeUndefined();
   });
 });

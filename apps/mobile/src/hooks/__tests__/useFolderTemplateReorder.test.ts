@@ -53,13 +53,25 @@ beforeEach(() => {
 
 afterEach(() => jest.restoreAllMocks());
 
+const mockDate = new Date('2026-01-01');
+const createMockTemplate = (
+  partial: Partial<WorkoutTemplate> & { id: string; name: string },
+): WorkoutTemplate => ({
+  userId: 'user-1',
+  isArchived: false,
+  createdAt: mockDate,
+  updatedAt: mockDate,
+  exercises: [],
+  ...partial,
+});
+
 describe('buildReorderedTemplates', () => {
   it('replaces only templates belonging to the target folder', () => {
     const templates: WorkoutTemplate[] = [
-      { id: 't1', name: 'T1', folder: 'PushPull', exercises: [] },
-      { id: 't2', name: 'T2', folder: 'Legs', exercises: [] },
-      { id: 't3', name: 'T3', folder: 'PushPull', exercises: [] },
-      { id: 't4', name: 'T4', exercises: [] },
+      createMockTemplate({ id: 't1', name: 'T1', folder: 'PushPull' }),
+      createMockTemplate({ id: 't2', name: 'T2', folder: 'Legs' }),
+      createMockTemplate({ id: 't3', name: 'T3', folder: 'PushPull' }),
+      createMockTemplate({ id: 't4', name: 'T4' }),
     ];
 
     const reorderedInPushPull = [templates[2]!, templates[0]!]; // t3, t1
@@ -70,10 +82,10 @@ describe('buildReorderedTemplates', () => {
 });
 
 describe('useFolderTemplateReorder', () => {
-  const t1: WorkoutTemplate = { id: 't1', name: 'Bench', folder: 'Chest', exercises: [] };
-  const t2: WorkoutTemplate = { id: 't2', name: 'Incline', folder: 'Chest', exercises: [] };
-  const t3: WorkoutTemplate = { id: 't3', name: 'Squat', folder: 'Legs', exercises: [] };
-  const t4: WorkoutTemplate = { id: 't4', name: 'Abs', exercises: [] };
+  const t1 = createMockTemplate({ id: 't1', name: 'Bench', folder: 'Chest' });
+  const t2 = createMockTemplate({ id: 't2', name: 'Incline', folder: 'Chest' });
+  const t3 = createMockTemplate({ id: 't3', name: 'Squat', folder: 'Legs' });
+  const t4 = createMockTemplate({ id: 't4', name: 'Abs' });
 
   function setup() {
     const onMoveTemplateToFolder = jest.fn();

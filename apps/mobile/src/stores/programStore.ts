@@ -585,8 +585,15 @@ export const useProgramStore = create<ProgramState>()(
           const now = new Date();
           const folder = templatePartial.folder?.trim() || undefined;
           let folders = state.customFolders || [];
-          if (folder && !folders.includes(folder)) {
-            folders = [...folders, folder];
+          let canonicalFolder: string | undefined = undefined;
+          if (folder) {
+            const match = folders.find((f) => f.trim().toLowerCase() === folder.toLowerCase());
+            if (match) {
+              canonicalFolder = match;
+            } else {
+              folders = [...folders, folder];
+              canonicalFolder = folder;
+            }
           }
           const newTemplate = {
             ...templatePartial,
@@ -595,7 +602,7 @@ export const useProgramStore = create<ProgramState>()(
             name: templatePartial.name || 'New Template',
             exercises: templatePartial.exercises || [],
             isArchived: templatePartial.isArchived ?? false,
-            folder,
+            folder: canonicalFolder,
             createdAt: templatePartial.createdAt || now,
             updatedAt: now,
           } as WorkoutTemplate;
@@ -634,7 +641,7 @@ export const useProgramStore = create<ProgramState>()(
           const trimmed = name.trim();
           if (!trimmed) return state;
           const existing = state.customFolders || [];
-          if (existing.some((f) => f.toLowerCase() === trimmed.toLowerCase())) {
+          if (existing.some((f) => f.trim().toLowerCase() === trimmed.toLowerCase())) {
             return state;
           }
           return { customFolders: [...existing, trimmed] };
@@ -642,15 +649,25 @@ export const useProgramStore = create<ProgramState>()(
 
       renameFolder: (oldName: string, newName: string) =>
         set((state) => {
+          const trimmedOld = oldName.trim().toLowerCase();
           const trimmedNew = newName.trim();
-          if (!trimmedNew || oldName === trimmedNew) return state;
+          if (!trimmedNew || trimmedOld === trimmedNew.toLowerCase()) return state;
           const existing = state.customFolders || [];
-          const updatedFolders = existing.map((f) => (f === oldName ? trimmedNew : f));
-          if (!updatedFolders.includes(trimmedNew)) {
+          const updatedFolders: string[] = [];
+          for (const f of existing) {
+            if (f.trim().toLowerCase() === trimmedOld) {
+              if (!updatedFolders.some((x) => x.toLowerCase() === trimmedNew.toLowerCase())) {
+                updatedFolders.push(trimmedNew);
+              }
+            } else if (!updatedFolders.some((x) => x.toLowerCase() === f.trim().toLowerCase())) {
+              updatedFolders.push(f.trim());
+            }
+          }
+          if (!updatedFolders.some((x) => x.toLowerCase() === trimmedNew.toLowerCase())) {
             updatedFolders.push(trimmedNew);
           }
           const updatedTemplates = state.templates.map((t) => {
-            if (t.folder === oldName) {
+            if (t.folder?.trim().toLowerCase() === trimmedOld) {
               const updated = { ...t, folder: trimmedNew, updatedAt: new Date() };
               useSyncStore.getState().addToQueue('workout_templates', 'INSERT', updated);
               return updated;
@@ -662,10 +679,11 @@ export const useProgramStore = create<ProgramState>()(
 
       deleteFolder: (name: string) =>
         set((state) => {
+          const trimmedTarget = name.trim().toLowerCase();
           const existing = state.customFolders || [];
-          const updatedFolders = existing.filter((f) => f !== name);
+          const updatedFolders = existing.filter((f) => f.trim().toLowerCase() !== trimmedTarget);
           const updatedTemplates = state.templates.map((t) => {
-            if (t.folder === name) {
+            if (t.folder?.trim().toLowerCase() === trimmedTarget) {
               const updated = { ...t, folder: undefined, updatedAt: new Date() };
               useSyncStore.getState().addToQueue('workout_templates', 'INSERT', updated);
               return updated;
@@ -679,12 +697,21 @@ export const useProgramStore = create<ProgramState>()(
         set((state) => {
           const trimmedFolder = folder?.trim() || undefined;
           let folders = state.customFolders || [];
-          if (trimmedFolder && !folders.includes(trimmedFolder)) {
-            folders = [...folders, trimmedFolder];
+          let canonicalFolder: string | undefined = undefined;
+
+          if (trimmedFolder) {
+            const match = folders.find((f) => f.trim().toLowerCase() === trimmedFolder.toLowerCase());
+            if (match) {
+              canonicalFolder = match;
+            } else {
+              folders = [...folders, trimmedFolder];
+              canonicalFolder = trimmedFolder;
+            }
           }
+
           const updatedTemplates = state.templates.map((t) => {
             if (t.id === templateId) {
-              const updated = { ...t, folder: trimmedFolder, updatedAt: new Date() };
+              const updated = { ...t, folder: canonicalFolder, updatedAt: new Date() };
               useSyncStore.getState().addToQueue('workout_templates', 'INSERT', updated);
               return updated;
             }
@@ -695,7 +722,7 @@ export const useProgramStore = create<ProgramState>()(
 
       updateFoldersOrder: (folders: string[]) =>
         set({
-          customFolders: folders,
+          customFolders: folders.map((f) => f.trim()).filter(Boolean),
         }),
     }),
     {
@@ -716,6 +743,36 @@ export const useProgramStore = create<ProgramState>()(
         if (state) {
           if (!state.customFolders) {
             state.customFolders = [];
+          } else {
+            // Deduplicate customFolders case-insensitively
+            const seen = new Set<string>();
+            const cleanFolders: string[] = [];
+            for (const f of state.customFolders) {
+              const trimmed = f?.trim();
+              if (trimmed && !seen.has(trimmed.toLowerCase())) {
+                seen.add(trimmed.toLowerCase());
+                cleanFolders.push(trimmed);
+              }
+            }
+            state.customFolders = cleanFolders;
+
+            // Clear orphaned folder assignments from templates whose folder does not exist in cleanFolders
+            if (state.templates) {
+              state.templates = state.templates.map((t) => {
+                if (t.folder) {
+                  const match = cleanFolders.find(
+                    (f) => f.toLowerCase() === t.folder?.trim().toLowerCase(),
+                  );
+                  if (!match) {
+                    return { ...t, folder: undefined };
+                  }
+                  if (t.folder !== match) {
+                    return { ...t, folder: match };
+                  }
+                }
+                return t;
+              });
+            }
           }
           const defaultTemplates = getDefaultTemplates();
           const existingNames = new Set((state.templates || []).map((t) => t.name));

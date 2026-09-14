@@ -356,7 +356,7 @@ export function CoachComposer(props: Props) {
                 >
                   <Ionicons name="hardware-chip-outline" size={12} color={theme.colors.primary} />
                   <Text style={[styles.metaChipText, { color: theme.colors.text }]}>
-                    Volt Coach
+                    EVARO Coach
                   </Text>
                 </View>
 

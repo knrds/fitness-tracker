@@ -205,7 +205,7 @@ Im Code und in der Dokumentation wurden alle sichtbaren Alt-Namen bereinigt:
 
 **Version:** `0.1.0-beta.1`  
 **Tag:** `v0.1.0-beta.1`  
-**Commit:** *Finaler Commit dieses Blocks*  
+**Commit:** `4cc3303` (bzw. finaler Sync-Commit)  
 **Date:** 15. September 2026  
 **Typecheck:** PASS (0 Fehler über alle Pakete)  
 **Lint:** PASS (0 Fehler, 0 Warnungen)  

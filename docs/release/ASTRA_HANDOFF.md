@@ -126,7 +126,7 @@ Astra kann direkt mit den Aufgaben aus `READY_FOR_ASTRA` fortfahren.
 Astra soll alle kommenden größeren Arbeiten von folgendem Safepoint aus betrachten:
 
 - **Tag:** `v0.1.0-beta.1`
-- **Commit:** *Finaler Commit dieses Checkpoints*
+- **Commit:** `4cc3303` (bzw. finaler Sync-Commit)
 - **Version:** `0.1.0-beta.1`
 
 Dieser Stand wurde vor den großen Architektur-, Sicherheits-, Monetarisierungs- und Production-Arbeiten vollständig getestet (315/315 Tests PASS, 0 Typecheck-Fehler, 0 Lint-Fehler, Coach Preflight PASS).

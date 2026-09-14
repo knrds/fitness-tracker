@@ -69,5 +69,5 @@ Stabiler Pre-Production-Checkpoint vor größeren Release-, Security-, Subscript
 ## Safe Return Point
 
 - **Git Tag:** `v0.1.0-beta.1`
-- **Commit:** *Aktueller Main-Commit*
+- **Commit:** `4cc3303` (bzw. finaler Sync-Commit)
 - **Zweck:** Garantierter, voll funktionsfähiger Rückkehrpunkt vor allen anstehenden Architektur-, Sicherheits- und Store-Umbauten.

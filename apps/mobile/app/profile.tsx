@@ -890,6 +890,43 @@ export default function ProfileScreen() {
               <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
             </Pressable>
           )}
+
+          <Pressable
+            style={styles.settingsRow}
+            onPress={() => {
+              // TODO: Final subscription management pending.
+              // ASTRA_REVIEW_REQUIRED: Connect to RevenueCat / StoreKit manage subscription flow.
+              Alert.alert(t('legal.manageSubscription'), t('legal.pendingPlaceholder'));
+            }}
+          >
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="card-outline" size={22} color={theme.colors.muted} />
+              <Text style={styles.settingsLabel}>{t('legal.manageSubscription')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
+          </Pressable>
+
+          <Pressable
+            style={[styles.settingsRow, styles.lastRow]}
+            onPress={() => {
+              // TODO: Final account deletion backend / flow pending.
+              // ASTRA_REVIEW_REQUIRED: Needs Supabase user deletion + cloud purge.
+              Alert.alert(
+                t('legal.deleteAccount'),
+                profile.language === 'en'
+                  ? 'Account deletion requires cloud backend integration. Use "Reset All Data" under Data & Backup to clear local device data.'
+                  : 'Die vollständige Account-Löschung erfordert ein Cloud-Backend. Nutze "Alle Daten zurücksetzen" unter Daten & Backup zum Löschen lokaler Gerätedaten.',
+              );
+            }}
+          >
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="person-remove-outline" size={22} color={theme.colors.error} />
+              <Text style={[styles.settingsLabel, styles.dangerText]}>
+                {t('legal.deleteAccount')}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
+          </Pressable>
         </View>
 
         <View style={styles.sectionCard}>
@@ -897,6 +934,67 @@ export default function ProfileScreen() {
             <Ionicons name="document-text-outline" size={16} color={theme.colors.primary} />
             <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>{t('legal.title')}</Text>
           </View>
+
+          {/* Legal navigation entries */}
+          <Pressable
+            style={styles.settingsRow}
+            onPress={() => {
+              // TODO: Final legal content / URL pending.
+              // LEGAL_REVIEW_REQUIRED / ASTRA_REVIEW_REQUIRED
+              Alert.alert(t('legal.impressum'), t('legal.pendingPlaceholder'));
+            }}
+          >
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="business-outline" size={22} color={theme.colors.muted} />
+              <Text style={styles.settingsLabel}>{t('legal.impressum')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
+          </Pressable>
+
+          <Pressable
+            style={styles.settingsRow}
+            onPress={() => {
+              // TODO: Final legal content / URL pending.
+              // LEGAL_REVIEW_REQUIRED / ASTRA_REVIEW_REQUIRED
+              Alert.alert(t('legal.privacyPolicy'), t('legal.pendingPlaceholder'));
+            }}
+          >
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="shield-checkmark-outline" size={22} color={theme.colors.muted} />
+              <Text style={styles.settingsLabel}>{t('legal.privacyPolicy')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
+          </Pressable>
+
+          <Pressable
+            style={styles.settingsRow}
+            onPress={() => {
+              // TODO: Final legal content / URL pending.
+              // LEGAL_REVIEW_REQUIRED / ASTRA_REVIEW_REQUIRED
+              Alert.alert(t('legal.termsOfService'), t('legal.pendingPlaceholder'));
+            }}
+          >
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="document-outline" size={22} color={theme.colors.muted} />
+              <Text style={styles.settingsLabel}>{t('legal.termsOfService')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
+          </Pressable>
+
+          <Pressable
+            style={[styles.settingsRow, { marginBottom: 16 }]}
+            onPress={() => {
+              // TODO: Final legal content / URL pending.
+              // ASTRA_REVIEW_REQUIRED: Support contact / FAQ URL.
+              Alert.alert(t('legal.support'), t('legal.pendingPlaceholder'));
+            }}
+          >
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="help-circle-outline" size={22} color={theme.colors.muted} />
+              <Text style={styles.settingsLabel}>{t('legal.support')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
+          </Pressable>
           <View style={{ gap: 10 }}>
             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
               <Ionicons

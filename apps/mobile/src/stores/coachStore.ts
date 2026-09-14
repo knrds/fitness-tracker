@@ -177,6 +177,19 @@ export const useCoachStore = create<CoachState>()(
                 ? { experienceLevel: profile.experienceLevel }
                 : {}),
               ...(profile.fitnessGoal !== undefined ? { fitnessGoal: profile.fitnessGoal } : {}),
+              ...(profile.biologicalSex !== undefined
+                ? { biologicalSex: profile.biologicalSex }
+                : {}),
+              ...(profile.heightCm !== undefined ? { heightCm: profile.heightCm } : {}),
+              ...(profile.weightKg !== undefined ? { weightKg: profile.weightKg } : {}),
+              ...(profile.benchPressMaxKg !== undefined
+                ? { benchPressMaxKg: profile.benchPressMaxKg }
+                : {}),
+              ...(profile.squatMaxKg !== undefined ? { squatMaxKg: profile.squatMaxKg } : {}),
+              ...(profile.deadliftMaxKg !== undefined
+                ? { deadliftMaxKg: profile.deadliftMaxKg }
+                : {}),
+              ...(profile.language !== undefined ? { language: profile.language } : {}),
             },
             stats: {
               totalWorkouts: stats.totalWorkouts || 0,

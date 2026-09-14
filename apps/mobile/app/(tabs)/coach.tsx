@@ -25,6 +25,7 @@ import { CoachSources } from '../../src/components/CoachSources';
 import { useCoachRecorder } from '../../src/hooks/useCoachRecorder';
 import { getStorageScope, isScopeCurrent } from '../../src/data/storageScope';
 import { useFocusEffect } from 'expo-router';
+import { useProfileStore } from '../../src/stores/profileStore';
 import { useI18n } from '../../src/i18n';
 
 const SUGGESTIONS_EN = [
@@ -47,7 +48,41 @@ export default function CoachScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { language } = useI18n();
-  const suggestions = language === 'de' ? SUGGESTIONS_DE : SUGGESTIONS_EN;
+  const { profile } = useProfileStore();
+
+  const suggestions = React.useMemo(() => {
+    const list: string[] = [];
+    if (profile.benchPressMaxKg) {
+      list.push(
+        language === 'de'
+          ? `Bankdrücken (${profile.benchPressMaxKg} kg) steigern`
+          : `Improve Bench Press (${profile.benchPressMaxKg} kg)`,
+      );
+    } else if (profile.squatMaxKg) {
+      list.push(
+        language === 'de'
+          ? `Kniebeuge (${profile.squatMaxKg} kg) optimieren`
+          : `Optimize Squat (${profile.squatMaxKg} kg)`,
+      );
+    }
+
+    if (profile.fitnessGoal === 'gain_strength') {
+      list.push(language === 'de' ? 'Kraft-Trainingsplan' : 'Strength training plan');
+    } else if (profile.fitnessGoal === 'build_muscle') {
+      list.push(language === 'de' ? 'Hypertrophie-Trainingsplan' : 'Hypertrophy workout plan');
+    }
+
+    if (profile.weightKg) {
+      list.push(
+        language === 'de'
+          ? `Makro-Bedarf für ${profile.weightKg.toFixed(0)} kg`
+          : `Macro targets for ${profile.weightKg.toFixed(0)} kg`,
+      );
+    }
+
+    const base = language === 'de' ? SUGGESTIONS_DE : SUGGESTIONS_EN;
+    return [...list, ...base].slice(0, 6);
+  }, [profile, language]);
   const hasWorkoutBar = useWorkoutStore((state) => state.status !== 'idle' && state.isMinimized);
   const { messages, isSending, error, sendMessage, retryLastMessage, clearChatHistory } =
     useCoachStore();

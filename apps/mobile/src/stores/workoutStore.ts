@@ -18,6 +18,12 @@ import { useHistoryStore } from './historyStore';
 import { useAchievementStore } from './achievementStore';
 import { useExerciseStore } from './exerciseStore';
 import { useCaffeineStore } from './caffeineStore';
+import { useProfileStore } from './profileStore';
+import {
+  extractBigThreeMaxesFromSession,
+  getBigThreeCategory,
+  calculateSuggestedWorkingSet,
+} from '../utils/bigThree';
 import { getCurrentUserId } from './local-user';
 import { createHydratedStorage } from './storage';
 import { useSyncStore } from './syncStore';
@@ -256,6 +262,40 @@ export const useWorkoutStore = create<WorkoutStore>()(
               history.addSession(session);
               achievements.awardXpAndCheckAchievements(session);
               caffeine.captureFinishedWorkout();
+
+              // Automatically transfer broken PRs in Big 3 (Bench, Squat, Deadlift) to user profile
+              try {
+                const profileStore = useProfileStore.getState();
+                const exercises = useExerciseStore.getState().exercises;
+                const sessionBigThree = extractBigThreeMaxesFromSession(session, exercises);
+                const currentProfile = profileStore.profile;
+
+                const profileUpdates: Partial<typeof currentProfile> = {};
+                if (
+                  sessionBigThree.benchPressMaxKg &&
+                  sessionBigThree.benchPressMaxKg > (currentProfile.benchPressMaxKg || 0)
+                ) {
+                  profileUpdates.benchPressMaxKg = sessionBigThree.benchPressMaxKg;
+                }
+                if (
+                  sessionBigThree.squatMaxKg &&
+                  sessionBigThree.squatMaxKg > (currentProfile.squatMaxKg || 0)
+                ) {
+                  profileUpdates.squatMaxKg = sessionBigThree.squatMaxKg;
+                }
+                if (
+                  sessionBigThree.deadliftMaxKg &&
+                  sessionBigThree.deadliftMaxKg > (currentProfile.deadliftMaxKg || 0)
+                ) {
+                  profileUpdates.deadliftMaxKg = sessionBigThree.deadliftMaxKg;
+                }
+                if (Object.keys(profileUpdates).length > 0) {
+                  profileStore.updateProfile(profileUpdates);
+                }
+              } catch {
+                // Safeguard against non-blocking profile update failure
+              }
+
               set({
                 ...defaultState,
                 status: 'finished',
@@ -290,23 +330,36 @@ export const useWorkoutStore = create<WorkoutStore>()(
               previousPerformance?.sets.map((set, index) =>
                 createSetFromPreviousPerformance(set, index),
               ) ?? [];
+
+            let initialSets: ExerciseSet[] = previousSets;
+            if (initialSets.length === 0) {
+              // If no prior history, check if user has a profile 1RM to suggest a sensible starting working set
+              const exercise = useExerciseStore.getState().exercises.find((e) => e.id === exerciseId);
+              const profile = useProfileStore.getState().profile;
+              const category = exercise ? getBigThreeCategory(exercise.name) : null;
+              let oneRepMax = 0;
+              if (category === 'bench') oneRepMax = profile.benchPressMaxKg || 0;
+              if (category === 'squat') oneRepMax = profile.squatMaxKg || 0;
+              if (category === 'deadlift') oneRepMax = profile.deadliftMaxKg || 0;
+
+              const suggested = calculateSuggestedWorkingSet(oneRepMax, profile.fitnessGoal);
+              initialSets = [
+                {
+                  id: Crypto.randomUUID(),
+                  setNumber: 1,
+                  type: 'working',
+                  completed: false,
+                  weight: suggested.weight,
+                  reps: suggested.reps,
+                },
+              ];
+            }
+
             const newExercise: SessionExercise = {
               id: Crypto.randomUUID(),
               exerciseId,
               order: state.exercises.length,
-              sets:
-                previousSets.length > 0
-                  ? previousSets
-                  : [
-                      {
-                        id: Crypto.randomUUID(),
-                        setNumber: 1,
-                        type: 'working',
-                        completed: false,
-                        weight: 0,
-                        reps: 0,
-                      },
-                    ],
+              sets: initialSets,
             };
             return {
               exercises: [...state.exercises, newExercise],

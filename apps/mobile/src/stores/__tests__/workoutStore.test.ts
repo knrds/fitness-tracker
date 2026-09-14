@@ -1,8 +1,17 @@
 import { useWorkoutStore } from '../workoutStore';
 import { useHistoryStore } from '../historyStore';
-import { WorkoutTemplate, WorkoutSession } from '@fitness-tracker/domain';
+import {
+  WorkoutTemplate,
+  WorkoutSession,
+  Exercise,
+  Equipment,
+  MovementPattern,
+  MuscleGroup,
+} from '@fitness-tracker/domain';
 import { LOCAL_USER_ID } from '../local-user';
 import { useCaffeineStore } from '../caffeineStore';
+import { useProfileStore } from '../profileStore';
+import { useExerciseStore } from '../exerciseStore';
 
 jest.mock('react-native-mmkv', () => ({
   MMKV: jest.fn().mockImplementation(() => ({
@@ -420,5 +429,109 @@ describe('workoutStore', () => {
     const sets = useWorkoutStore.getState().exercises[0]!.sets;
     expect(sets.map((set) => set.id)).toEqual(['set-1', 'set-3']);
     expect(sets.map((set) => set.setNumber)).toEqual([1, 2]);
+  });
+
+const createMockExercise = (
+  id: string,
+  name: string,
+  movementPattern: MovementPattern = MovementPattern.HorizontalPush,
+): Exercise => ({
+  id,
+  name,
+  primaryMuscles: [MuscleGroup.Chest],
+  secondaryMuscles: [],
+  equipment: Equipment.Barbell,
+  movementPattern,
+  isCustom: false,
+});
+
+  it('should automatically transfer broken Big 3 PRs to profileStore when finishing workout', () => {
+    useProfileStore.setState({
+      profile: {
+        displayName: 'Athlete',
+        preferredUnits: 'metric',
+        benchPressMaxKg: 100,
+        squatMaxKg: 130,
+      },
+    });
+
+    useExerciseStore.setState({
+      exercises: [
+        createMockExercise('bench-id', 'Barbell Bench Press', MovementPattern.HorizontalPush),
+        createMockExercise('squat-id', 'Barbell Squat', MovementPattern.Squat),
+      ],
+      filteredExercises: [],
+      selectedMuscleGroup: null,
+      selectedEquipment: null,
+      searchQuery: '',
+      favoriteIds: [],
+      customExercises: [],
+      exerciseRestDurations: {},
+      persistentNotes: {},
+    });
+
+    useWorkoutStore.setState({
+      status: 'active',
+      name: 'Heavy Day',
+      startedAt: new Date(),
+      exercises: [
+        {
+          id: 'se-1',
+          exerciseId: 'bench-id',
+          order: 0,
+          sets: [
+            { id: 'set-1', setNumber: 1, type: 'working', weight: 107.5, reps: 3, completed: true },
+          ],
+        },
+        {
+          id: 'se-2',
+          exerciseId: 'squat-id',
+          order: 1,
+          sets: [
+            { id: 'set-2', setNumber: 1, type: 'working', weight: 120, reps: 5, completed: true }, // Not a PR (< 130)
+          ],
+        },
+      ],
+    });
+
+    useWorkoutStore.getState().finishWorkout();
+
+    const updatedProfile = useProfileStore.getState().profile;
+    expect(updatedProfile.benchPressMaxKg).toBe(107.5);
+    expect(updatedProfile.squatMaxKg).toBe(130); // Kept existing higher value
+  });
+
+  it('should suggest working set weight based on profile 1RM when adding exercise without prior history', () => {
+    useProfileStore.setState({
+      profile: {
+        displayName: 'Athlete',
+        preferredUnits: 'metric',
+        fitnessGoal: 'gain_strength',
+        benchPressMaxKg: 100,
+      },
+    });
+
+    useExerciseStore.setState({
+      exercises: [
+        createMockExercise('bench-id', 'Barbell Bench Press', MovementPattern.HorizontalPush),
+      ],
+      filteredExercises: [],
+      selectedMuscleGroup: null,
+      selectedEquipment: null,
+      searchQuery: '',
+      favoriteIds: [],
+      customExercises: [],
+      exerciseRestDurations: {},
+      persistentNotes: {},
+    });
+
+    useWorkoutStore.getState().startWorkout();
+    useWorkoutStore.getState().addExercise('bench-id');
+
+    const exercise = useWorkoutStore.getState().exercises[0];
+    expect(exercise).toBeDefined();
+    // 80% of 100kg = 80kg, 5 reps for strength
+    expect(exercise!.sets[0]!.weight).toBe(80);
+    expect(exercise!.sets[0]!.reps).toBe(5);
   });
 });

@@ -35,8 +35,10 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useProfileStore } from '../src/stores/profileStore';
 import { useBodyMetricStore } from '../src/stores/bodyMetricStore';
+import { useHistoryStore } from '../src/stores/historyStore';
 import { FitnessGoal, ExperienceLevel, UnitSystem, BiologicalSex } from '@fitness-tracker/domain';
 import { useExerciseStore } from '../src/stores/exerciseStore';
+import { extractBigThreePRsFromHistory } from '../src/utils/bigThree';
 import { useAuthStore } from '../src/stores/authStore';
 import { useCaffeineStore } from '../src/stores/caffeineStore';
 import { ExercisePickerModal } from '../src/components/workout/ExercisePickerModal';
@@ -54,7 +56,8 @@ export default function ProfileScreen() {
   const { profile, updateProfile, getStatistics, clearAllData, exportData } = useProfileStore();
   const { isConfigured: isAuthConfigured, signOut } = useAuthStore();
   const { isEnabled: caffeineEnabled, setEnabled: setCaffeineEnabled } = useCaffeineStore();
-  const { t, formatGoal, formatLevel, formatSex } = useI18n();
+  const { t, language, formatGoal, formatLevel, formatSex } = useI18n();
+  const isImperial = profile.preferredUnits === 'imperial';
 
   const [name, setName] = useState(profile.displayName);
   const [goal, setGoal] = useState<FitnessGoal | ''>(profile.fitnessGoal || '');
@@ -68,6 +71,14 @@ export default function ProfileScreen() {
       : profile.heightCm.toFixed(1);
   });
 
+  const { exercises } = useExerciseStore();
+  const historySessions = useHistoryStore((state) => state.sessions);
+  const historyPRs = React.useMemo(
+    () => extractBigThreePRsFromHistory(historySessions, exercises),
+    [historySessions, exercises],
+  );
+  const [saveToast, setSaveToast] = useState(false);
+
   const [weight, setWeight] = useState(() => {
     if (profile.weightKg === undefined) return '';
     return profile.preferredUnits === 'imperial'
@@ -76,37 +87,42 @@ export default function ProfileScreen() {
   });
 
   const [benchPressMax, setBenchPressMax] = useState(() => {
-    if (profile.benchPressMaxKg === undefined) return '';
+    const val = profile.benchPressMaxKg ?? historyPRs.benchPressMaxKg;
+    if (val === undefined) return '';
     return profile.preferredUnits === 'imperial'
-      ? (profile.benchPressMaxKg * 2.20462).toFixed(1)
-      : profile.benchPressMaxKg.toFixed(1);
+      ? (val * 2.20462).toFixed(1)
+      : val.toFixed(1);
   });
 
   const [squatMax, setSquatMax] = useState(() => {
-    if (profile.squatMaxKg === undefined) return '';
+    const val = profile.squatMaxKg ?? historyPRs.squatMaxKg;
+    if (val === undefined) return '';
     return profile.preferredUnits === 'imperial'
-      ? (profile.squatMaxKg * 2.20462).toFixed(1)
-      : profile.squatMaxKg.toFixed(1);
+      ? (val * 2.20462).toFixed(1)
+      : val.toFixed(1);
   });
 
   const [deadliftMax, setDeadliftMax] = useState(() => {
-    if (profile.deadliftMaxKg === undefined) return '';
+    const val = profile.deadliftMaxKg ?? historyPRs.deadliftMaxKg;
+    if (val === undefined) return '';
     return profile.preferredUnits === 'imperial'
-      ? (profile.deadliftMaxKg * 2.20462).toFixed(1)
-      : profile.deadliftMaxKg.toFixed(1);
+      ? (val * 2.20462).toFixed(1)
+      : val.toFixed(1);
   });
 
   const [jsonModalVisible, setJsonModalVisible] = useState(false);
   const [exportedJson, setExportedJson] = useState('');
 
-  const { exercises } = useExerciseStore();
   const [isRpePickerVisible, setRpePickerVisible] = useState(false);
   const [isRirPickerVisible, setRirPickerVisible] = useState(false);
   const stats = getStatistics();
 
   const handleSaveProfile = () => {
     if (!name.trim()) {
-      return Alert.alert('Error', 'Display Name cannot be empty.');
+      return Alert.alert(
+        language === 'de' ? 'Fehler' : 'Error',
+        language === 'de' ? 'Anzeigename darf nicht leer sein.' : 'Display Name cannot be empty.',
+      );
     }
     const updates: Partial<typeof profile> = {
       displayName: name.trim(),
@@ -124,14 +140,20 @@ export default function ProfileScreen() {
     if (height.trim()) {
       const hVal = parseDecimalInput(height);
       if (isNaN(hVal) || hVal <= 0)
-        return Alert.alert('Error', 'Height must be a positive number.');
+        return Alert.alert(
+          language === 'de' ? 'Fehler' : 'Error',
+          language === 'de' ? 'Größe muss eine positive Zahl sein.' : 'Height must be a positive number.',
+        );
       updates.heightCm = profile.preferredUnits === 'imperial' ? hVal * 2.54 : hVal;
     }
 
     if (weight.trim()) {
       const wVal = parseDecimalInput(weight);
       if (isNaN(wVal) || wVal <= 0)
-        return Alert.alert('Error', 'Weight must be a positive number.');
+        return Alert.alert(
+          language === 'de' ? 'Fehler' : 'Error',
+          language === 'de' ? 'Gewicht muss eine positive Zahl sein.' : 'Weight must be a positive number.',
+        );
       const canonicalWeight = profile.preferredUnits === 'imperial' ? wVal / 2.20462 : wVal;
       updates.weightKg = canonicalWeight;
 
@@ -145,26 +167,46 @@ export default function ProfileScreen() {
     if (benchPressMax.trim()) {
       const val = parseDecimalInput(benchPressMax);
       if (isNaN(val) || val <= 0)
-        return Alert.alert('Error', 'Bench Press Max must be a positive number.');
+        return Alert.alert(
+          language === 'de' ? 'Fehler' : 'Error',
+          language === 'de'
+            ? 'Bankdrücken-Max muss eine positive Zahl sein.'
+            : 'Bench Press Max must be a positive number.',
+        );
       updates.benchPressMaxKg = profile.preferredUnits === 'imperial' ? val / 2.20462 : val;
     }
 
     if (squatMax.trim()) {
       const val = parseDecimalInput(squatMax);
       if (isNaN(val) || val <= 0)
-        return Alert.alert('Error', 'Squat Max must be a positive number.');
+        return Alert.alert(
+          language === 'de' ? 'Fehler' : 'Error',
+          language === 'de'
+            ? 'Kniebeuge-Max muss eine positive Zahl sein.'
+            : 'Squat Max must be a positive number.',
+        );
       updates.squatMaxKg = profile.preferredUnits === 'imperial' ? val / 2.20462 : val;
     }
 
     if (deadliftMax.trim()) {
       const val = parseDecimalInput(deadliftMax);
       if (isNaN(val) || val <= 0)
-        return Alert.alert('Error', 'Deadlift Max must be a positive number.');
+        return Alert.alert(
+          language === 'de' ? 'Fehler' : 'Error',
+          language === 'de'
+            ? 'Kreuzheben-Max muss eine positive Zahl sein.'
+            : 'Deadlift Max must be a positive number.',
+        );
       updates.deadliftMaxKg = profile.preferredUnits === 'imperial' ? val / 2.20462 : val;
     }
 
     updateProfile(updates);
-    Alert.alert('Success', 'Profile updated successfully!');
+    setSaveToast(true);
+    setTimeout(() => setSaveToast(false), 3500);
+    Alert.alert(
+      language === 'de' ? 'Erfolg' : 'Success',
+      language === 'de' ? 'Profil gespeichert' : 'Profile saved successfully!',
+    );
   };
 
   const handleToggleUnits = () => {
@@ -478,6 +520,14 @@ export default function ProfileScreen() {
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
                 onSubmitEditing={() => Keyboard.dismiss()}
               />
+              {historyPRs.benchPressMaxKg ? (
+                <Text style={styles.prHintText} numberOfLines={1}>
+                  ★ {language === 'de' ? 'Training PR:' : 'Gym PR:'}{' '}
+                  {(isImperial ? historyPRs.benchPressMaxKg * 2.20462 : historyPRs.benchPressMaxKg)
+                    .toFixed(1)
+                    .replace(/\.0$/, '')}
+                </Text>
+              ) : null}
             </View>
             <View style={styles.gridField}>
               <Text style={styles.inputLabel}>{t('settings.squatMax')}</Text>
@@ -491,6 +541,14 @@ export default function ProfileScreen() {
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
                 onSubmitEditing={() => Keyboard.dismiss()}
               />
+              {historyPRs.squatMaxKg ? (
+                <Text style={styles.prHintText} numberOfLines={1}>
+                  ★ {language === 'de' ? 'Training PR:' : 'Gym PR:'}{' '}
+                  {(isImperial ? historyPRs.squatMaxKg * 2.20462 : historyPRs.squatMaxKg)
+                    .toFixed(1)
+                    .replace(/\.0$/, '')}
+                </Text>
+              ) : null}
             </View>
             <View style={styles.gridField}>
               <Text style={styles.inputLabel}>{t('settings.deadliftMax')}</Text>
@@ -504,8 +562,25 @@ export default function ProfileScreen() {
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
                 onSubmitEditing={() => Keyboard.dismiss()}
               />
+              {historyPRs.deadliftMaxKg ? (
+                <Text style={styles.prHintText} numberOfLines={1}>
+                  ★ {language === 'de' ? 'Training PR:' : 'Gym PR:'}{' '}
+                  {(isImperial ? historyPRs.deadliftMaxKg * 2.20462 : historyPRs.deadliftMaxKg)
+                    .toFixed(1)
+                    .replace(/\.0$/, '')}
+                </Text>
+              ) : null}
             </View>
           </View>
+
+          {saveToast && (
+            <View style={styles.saveToast}>
+              <Ionicons name="checkmark-circle" size={18} color={theme.colors.success} />
+              <Text style={styles.saveToastText}>
+                {language === 'de' ? 'Profil gespeichert' : 'Profile saved'}
+              </Text>
+            </View>
+          )}
 
           <Pressable style={styles.saveBtn} onPress={handleSaveProfile}>
             <Text style={styles.saveBtnText}>{t('settings.saveProfile')}</Text>
@@ -963,6 +1038,29 @@ const createStyles = (theme: Theme) =>
       borderWidth: 1,
       borderColor: theme.colors.border,
       marginBottom: 20,
+    },
+    saveToast: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: withAlpha(theme.colors.success, 0.15),
+      borderWidth: 1,
+      borderColor: theme.colors.success,
+      borderRadius: 12,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      marginBottom: 16,
+    },
+    saveToastText: {
+      color: theme.colors.success,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 14,
+    },
+    prHintText: {
+      fontSize: 11,
+      color: theme.colors.primary,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      marginTop: 4,
     },
     sectionTitle: {
       fontSize: 14,

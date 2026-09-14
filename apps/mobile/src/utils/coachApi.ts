@@ -6,6 +6,7 @@ import {
   ExperienceLevel,
   FitnessGoal,
   UnitSystem,
+  BiologicalSex,
 } from '@fitness-tracker/domain';
 import { supabase, isSupabaseConfigured } from './supabase';
 
@@ -29,6 +30,13 @@ export interface CoachContext {
     experienceLevel?: ExperienceLevel;
     preferredUnits: UnitSystem;
     fitnessGoal?: FitnessGoal;
+    biologicalSex?: BiologicalSex;
+    heightCm?: number;
+    weightKg?: number;
+    benchPressMaxKg?: number;
+    squatMaxKg?: number;
+    deadliftMaxKg?: number;
+    language?: 'de' | 'en';
   };
   stats: {
     totalWorkouts: number;

@@ -43,6 +43,7 @@ import { PlateCalculatorModal } from './PlateCalculatorModal';
 import { useTheme, Card, useDialog, Modal as DetailModal } from '@fitness-tracker/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../../i18n';
+import { getBigThreeCategory } from '../../utils/bigThree';
 
 const secondsToDigitString = (totalSecs?: number) => {
   if (!totalSecs) return '';
@@ -175,12 +176,24 @@ export const SessionExerciseCard = ({
     return maxE1rm;
   }, [sessionExercise.sets, isImperial, isCardio, exercise.name]);
 
+  const bigThreeCategory = getBigThreeCategory(exercise.name);
+  const profileOneRepMaxKg = React.useMemo(() => {
+    if (bigThreeCategory === 'bench') return profile.benchPressMaxKg || 0;
+    if (bigThreeCategory === 'squat') return profile.squatMaxKg || 0;
+    if (bigThreeCategory === 'deadlift') return profile.deadliftMaxKg || 0;
+    return 0;
+  }, [bigThreeCategory, profile.benchPressMaxKg, profile.squatMaxKg, profile.deadliftMaxKg]);
+
   const getHeaderE1rmText = () => {
     if (isCardio) return null;
-    if (peakE1RM > 0) {
-      return `Best Est. 1RM: ${peakE1RM.toFixed(1)} ${isImperial ? 'lbs' : 'kg'}`;
+    const parts: string[] = [];
+    if (profileOneRepMaxKg > 0) {
+      const disp = isImperial ? profileOneRepMaxKg * 2.20462 : profileOneRepMaxKg;
+      parts.push(`1RM: ${disp.toFixed(0)} ${isImperial ? 'lbs' : 'kg'}`);
     }
-    if (lastPerformance) {
+    if (peakE1RM > 0) {
+      parts.push(`Best Est.: ${peakE1RM.toFixed(1)} ${isImperial ? 'lbs' : 'kg'}`);
+    } else if (lastPerformance) {
       let lastMaxE1rm = 0;
       lastPerformance.sets.forEach((set) => {
         if (!set.completed || set.type === 'warmup') return;
@@ -193,10 +206,10 @@ export const SessionExerciseCard = ({
         }
       });
       if (lastMaxE1rm > 0) {
-        return `Last Est. 1RM: ${lastMaxE1rm.toFixed(1)} ${isImperial ? 'lbs' : 'kg'}`;
+        parts.push(`Last Est.: ${lastMaxE1rm.toFixed(1)} ${isImperial ? 'lbs' : 'kg'}`);
       }
     }
-    return null;
+    return parts.length > 0 ? parts.join(' · ') : null;
   };
 
   const [noteType, setNoteType] = useState<'one_time' | 'permanent'>(() => {
@@ -1043,6 +1056,19 @@ export const SessionExerciseCard = ({
                     : '-'}
                 </Text>
               </View>
+              {profileOneRepMaxKg > 0 && (
+                <View style={styles.infoStatBox}>
+                  <Text style={[styles.infoStatLabel, { color: theme.colors.muted }]}>
+                    {language === 'de' ? 'Profil 1RM' : 'Profile 1RM'}
+                  </Text>
+                  <Text style={[styles.infoStatValue, { color: theme.colors.primary }]}>
+                    {(isImperial ? profileOneRepMaxKg * 2.20462 : profileOneRepMaxKg)
+                      .toFixed(1)
+                      .replace(/\.0$/, '')}{' '}
+                    {isImperial ? 'lbs' : 'kg'}
+                  </Text>
+                </View>
+              )}
               <View style={styles.infoStatBox}>
                 <Text style={[styles.infoStatLabel, { color: theme.colors.muted }]}>
                   {language === 'de' ? 'Durchschn. Gewicht' : 'Avg Weight'}

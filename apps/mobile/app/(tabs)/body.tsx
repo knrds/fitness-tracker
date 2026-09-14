@@ -98,6 +98,7 @@ export default function BodyTrackingScreen() {
 
   // Form states
   const [weight, setWeight] = useState('');
+  const [height, setHeight] = useState('');
   const [bodyFat, setBodyFat] = useState('');
   const [chest, setChest] = useState('');
   const [waist, setWaist] = useState('');
@@ -109,6 +110,14 @@ export default function BodyTrackingScreen() {
 
   const latest = getLatestMetric();
   const recentMetrics = metrics.slice(0, 8);
+  const currentWeightKg = latest?.weightKg ?? profile.weightKg;
+  const currentHeightCm = profile.heightCm;
+  const bmi = React.useMemo(() => {
+    if (!currentWeightKg || !currentHeightCm || currentHeightCm <= 0) return null;
+    const hM = currentHeightCm / 100;
+    return (currentWeightKg / (hM * hM)).toFixed(1);
+  }, [currentWeightKg, currentHeightCm]);
+
   const hydrationProgress = dailyGoalMl > 0 ? Math.min(1, todayIntakeMl / dailyGoalMl) : 0;
   const hydrationPercent = Math.round(hydrationProgress * 100);
   const hydrationFact =
@@ -132,6 +141,7 @@ export default function BodyTrackingScreen() {
   const handleSave = () => {
     if (
       !weight.trim() &&
+      !height.trim() &&
       !bodyFat.trim() &&
       !chest.trim() &&
       !waist.trim() &&
@@ -151,12 +161,23 @@ export default function BodyTrackingScreen() {
       recordedAt: parsedDate,
     };
 
-    // Weight conversion: store canonically in kg
+    // Height conversion: update profile canonically in cm
+    if (height.trim()) {
+      const hVal = parseDecimalInput(height);
+      if (isNaN(hVal) || hVal <= 0)
+        return Alert.alert('Error', 'Height must be a positive number.');
+      const canonicalHeight = isImperial ? hVal * 2.54 : hVal;
+      useProfileStore.getState().updateProfile({ heightCm: canonicalHeight });
+    }
+
+    // Weight conversion: store canonically in kg and keep profileStore in sync
     if (weight.trim()) {
       const wVal = parseDecimalInput(weight);
       if (isNaN(wVal) || wVal <= 0)
         return Alert.alert('Error', 'Weight must be a positive number.');
-      updates.weightKg = isImperial ? wVal / 2.20462 : wVal;
+      const canonicalWeight = isImperial ? wVal / 2.20462 : wVal;
+      updates.weightKg = canonicalWeight;
+      useProfileStore.getState().updateProfile({ weightKg: canonicalWeight });
     }
 
     // Body fat %
@@ -206,10 +227,13 @@ export default function BodyTrackingScreen() {
       }
     }
 
-    addMetric(updates);
+    if (updates.weightKg !== undefined || updates.bodyFatPercentage !== undefined || updates.measurements !== undefined) {
+      addMetric(updates);
+    }
 
     // Clear form and close modal
     setWeight('');
+    setHeight('');
     setBodyFat('');
     setChest('');
     setWaist('');
@@ -450,9 +474,40 @@ export default function BodyTrackingScreen() {
                   { color: theme.colors.text, ...theme.typography.heading, fontSize: 24 },
                 ]}
               >
-                {displayWeight(latest?.weightKg)}
+                {displayWeight(currentWeightKg)}
               </Text>
             </Card>
+            <Card style={styles.overviewCard} padding="md">
+              <Ionicons
+                name="body-outline"
+                size={24}
+                color={theme.colors.muted}
+                style={styles.cardIcon}
+              />
+              <Text
+                style={[
+                  styles.cardLabel,
+                  { color: theme.colors.muted, ...theme.typography.caption },
+                ]}
+              >
+                {language === 'en' ? 'Height' : 'Größe'}
+              </Text>
+              <Text
+                style={[
+                  styles.cardValue,
+                  { color: theme.colors.text, ...theme.typography.heading, fontSize: 24 },
+                ]}
+              >
+                {currentHeightCm
+                  ? isImperial
+                    ? `${(currentHeightCm / 2.54).toFixed(1)} in`
+                    : `${currentHeightCm.toFixed(0)} cm`
+                  : '--'}
+              </Text>
+            </Card>
+          </View>
+
+          <View style={[styles.overviewRow, { marginTop: -10 }]}>
             <Card style={styles.overviewCard} padding="md">
               <Ionicons
                 name="water-outline"
@@ -475,6 +530,30 @@ export default function BodyTrackingScreen() {
                 ]}
               >
                 {latest?.bodyFatPercentage ? latest.bodyFatPercentage.toFixed(1) + '%' : '--'}
+              </Text>
+            </Card>
+            <Card style={styles.overviewCard} padding="md">
+              <Ionicons
+                name="pulse-outline"
+                size={24}
+                color={theme.colors.muted}
+                style={styles.cardIcon}
+              />
+              <Text
+                style={[
+                  styles.cardLabel,
+                  { color: theme.colors.muted, ...theme.typography.caption },
+                ]}
+              >
+                BMI
+              </Text>
+              <Text
+                style={[
+                  styles.cardValue,
+                  { color: theme.colors.text, ...theme.typography.heading, fontSize: 24 },
+                ]}
+              >
+                {bmi !== null ? bmi : '--'}
               </Text>
             </Card>
           </View>
@@ -912,6 +991,25 @@ export default function BodyTrackingScreen() {
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
               />
             </View>
+            <View style={styles.gridField}>
+              <Input
+                label={`${language === 'en' ? 'Height' : 'Größe'} (${isImperial ? 'in' : 'cm'})`}
+                value={height}
+                onChangeText={setHeight}
+                placeholder={
+                  profile.heightCm
+                    ? isImperial
+                      ? (profile.heightCm / 2.54).toFixed(1)
+                      : profile.heightCm.toFixed(0)
+                    : 'e.g. 180'
+                }
+                keyboardType="numeric"
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputGrid}>
             <View style={styles.gridField}>
               <Input
                 label={`${t('body.bodyFat')} %`}

@@ -8,17 +8,26 @@ export type Colorway =
   | 'telemetry'
   | 'titanium'
   | 'ember'
-  | 'verde';
+  | 'verde'
+  | 'solar'
+  | 'alpine';
 
-export const colorways: { id: Colorway; name: string; description: string }[] = [
-  { id: 'glacier', name: 'Glacier', description: 'Cyan · kühles Graphit' },
-  { id: 'amber', name: 'Amber', description: 'Bernstein · warmes Graphit' },
-  { id: 'arctic', name: 'Arctic Lab (Light)', description: 'Clean White · Ocean Cyan · Precision Light Mode' },
-  { id: 'avionics', name: 'Avionics', description: 'Electric Lime · Zinc · Monolith Void' },
-  { id: 'telemetry', name: 'Telemetry', description: 'Electric Chartreuse · Mint · Midnight Navy' },
-  { id: 'titanium', name: 'Titanium', description: 'Champagne Gold · Warm Charcoal · Luxury' },
-  { id: 'ember', name: 'Volt Ember', description: 'Ember Orange · Burnt Copper · Deep Carbon' },
-  { id: 'verde', name: 'Volt Verde', description: 'Mint Bio-Signal · Emerald · Obsidian Forest' },
+export const colorways: {
+  id: Colorway;
+  name: string;
+  description: string;
+  isLight?: boolean;
+}[] = [
+  { id: 'glacier', name: 'Glacier Core', description: 'Cyan · Kühles Graphit' },
+  { id: 'amber', name: 'Amber Forge', description: 'Bernstein · Warmes Graphit' },
+  { id: 'verde', name: 'Volt Verde', description: 'Mint Bio-Signal · Obsidian' },
+  { id: 'telemetry', name: 'Telemetry Cyber', description: 'Electric Lime · Midnight Navy' },
+  { id: 'ember', name: 'Volt Ember', description: 'Ember Orange · Deep Carbon' },
+  { id: 'avionics', name: 'Avionics Stealth', description: 'Zinc Matrix · Acid Lime' },
+  { id: 'titanium', name: 'Royal Titanium', description: 'Champagne Gold · Luxury' },
+  { id: 'arctic', name: 'Arctic Lab (Light)', description: 'Clean White · Ocean Cyan', isLight: true },
+  { id: 'solar', name: 'Solar Dune (Light)', description: 'Warm Sand · Amber Gold', isLight: true },
+  { id: 'alpine', name: 'Alpine Mist (Light)', description: 'Studio Snow · Electric Indigo', isLight: true },
 ];
 
 export function withAlpha(hex: string, opacity: number) {
@@ -135,6 +144,28 @@ const palettes: Record<
     muted: '#8B9D93',
     border: '#1A2F25',
   },
+  solar: {
+    background: '#FBF9F5',
+    surface: '#FFFFFF',
+    surfaceElevated: '#F4EFE6',
+    primary: '#D97706',
+    secondary: '#B45309',
+    tertiary: '#F59E0B',
+    text: '#1C1917',
+    muted: '#78716C',
+    border: '#E7E0D3',
+  },
+  alpine: {
+    background: '#F8FAFC',
+    surface: '#FFFFFF',
+    surfaceElevated: '#F1F5F9',
+    primary: '#4F46E5',
+    secondary: '#6366F1',
+    tertiary: '#818CF8',
+    text: '#0F172A',
+    muted: '#64748B',
+    border: '#CBD5E1',
+  },
 };
 export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 };
 export const radius = { sm: 6, md: 10, lg: 14, full: 9999 };
@@ -158,15 +189,16 @@ export const typography: Record<string, TextStyle> = {
 };
 export function createTheme(colorway: Colorway) {
   const palette = palettes[colorway];
-  const isDark = colorway !== 'arctic';
+  const isLight = colorway === 'arctic' || colorway === 'solar' || colorway === 'alpine';
+  const isDark = !isLight;
   const colors = {
     ...palette,
     textPrimary: palette.text,
     textSecondary: palette.muted,
     textMuted: withAlpha(palette.muted, 0.82),
-    onPrimary: colorway === 'arctic' ? '#FFFFFF' : palette.background,
+    onPrimary: isLight ? '#FFFFFF' : palette.background,
     borderActive: withAlpha(palette.primary, 0.5),
-    primarySubtle: withAlpha(palette.primary, colorway === 'arctic' ? 0.12 : 0.1),
+    primarySubtle: withAlpha(palette.primary, isLight ? 0.12 : 0.1),
     success: '#57DFAB',
     warning: '#FFC266',
     onWarning: '#211500',
@@ -175,7 +207,7 @@ export function createTheme(colorway: Colorway) {
     // Existing destructive usages retain their semantics; new code uses error.
     accent: '#FF6686',
     transparent: 'transparent',
-    overlay: colorway === 'arctic' ? 'rgba(15, 23, 42, 0.65)' : 'rgba(0, 0, 0, 0.72)',
+    overlay: isLight ? 'rgba(15, 23, 42, 0.65)' : 'rgba(0, 0, 0, 0.72)',
     shadow: '#000000',
     white: '#FFFFFF',
   };

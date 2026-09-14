@@ -39,9 +39,12 @@ function snapshotStore<T extends object>(store: {
   return () => store.setState(previous);
 }
 
+export type CelebrationEffect = 'classic' | 'neon' | 'gold' | 'cosmic';
+
 export interface Profile {
   displayName: string;
   colorway?: Colorway;
+  celebrationEffect?: CelebrationEffect;
   fitnessGoal?: FitnessGoal;
   experienceLevel?: ExperienceLevel;
   preferredUnits: UnitSystem;
@@ -78,6 +81,7 @@ export interface ProfileState {
 
 const defaultProfile: Profile = {
   displayName: 'User',
+  celebrationEffect: 'classic',
   preferredUnits: 'metric',
   showRpe: true,
   showRir: true,
@@ -93,8 +97,20 @@ const defaultProfile: Profile = {
 const profileStateSchema = z.object({
   displayName: z.string(),
   colorway: z
-    .enum(['glacier', 'amber', 'arctic', 'avionics', 'telemetry', 'titanium', 'ember', 'verde'])
+    .enum([
+      'glacier',
+      'amber',
+      'arctic',
+      'avionics',
+      'telemetry',
+      'titanium',
+      'ember',
+      'verde',
+      'solar',
+      'alpine',
+    ])
     .optional(),
+  celebrationEffect: z.enum(['classic', 'neon', 'gold', 'cosmic']).optional(),
   fitnessGoal: FitnessGoalSchema.optional(),
   experienceLevel: ExperienceLevelSchema.optional(),
   preferredUnits: UnitSystemSchema,

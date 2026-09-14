@@ -22,55 +22,68 @@ export interface BattlePassModalProps {
   xp: number;
 }
 
-const RANK_REWARDS: Record<number, { perk: string; badgeTitle: string; description: string }> = {
+const RANK_REWARDS: Record<
+  number,
+  { perk: string; badgeTitle: string; description: string; rewardTag: string }
+> = {
   1: {
     badgeTitle: 'Bronze Medaillon',
-    perk: 'Basis Medaillon · Standard Trainingspläne',
-    description: 'Dein Einstieg in das VOLT-Universum. Schließe deine ersten Workouts ab.',
+    perk: 'Glacier Core & Amber Forge Themes',
+    rewardTag: '2x Themes & Basis Konfetti',
+    description: 'Dein Einstieg: 2 Farbwelten und der klassische Workout-Konfetti-Effekt.',
   },
   2: {
     badgeTitle: 'Silber Medaillon',
-    perk: 'Silber Medaillon · Erweiterte Workout-Statistiken',
-    description: 'Präzise Volumen- und RPE-Auswertungen für messbare Kraftsteigerungen.',
+    perk: 'Neues Theme: Arctic Lab (Light Mode)',
+    rewardTag: 'Light Mode I',
+    description: 'Schaltet das strahlend weiße, reflexionsarme Arctic-Design für dein Training frei.',
   },
   3: {
     badgeTitle: 'Gold Medaillon',
-    perk: 'Gold Medaillon · Streak Booster & Plateau-Erkennung',
-    description: 'Erkenne Stagnation frühzeitig und halte deine Trainingsserie aufrecht.',
+    perk: 'Theme: Volt Verde + Feier-Effekt: Cyber Neon',
+    rewardTag: 'Theme & Effekt',
+    description: 'Bio-Signal Mint Farbwelt und futuristischer Laser-Rain-Effekt beim Workout-Abschluss.',
   },
   4: {
     badgeTitle: 'Platin Medaillon',
-    perk: 'Platin Medaillon · KI-Coach Plan Generator',
-    description: 'Schalte personalisierte Trainingspläne mit dem intelligenten KI-Coach frei.',
+    perk: 'Neues Theme: Solar Dune (Light Mode)',
+    rewardTag: 'Light Mode II',
+    description: 'Warmes Sandstein- und Bernsteingold-Design mit perfektem Lesekomfort bei Sonnenlicht.',
   },
   5: {
     badgeTitle: 'Smaragd Medaillon',
-    perk: 'Smaragd Medaillon · Erweiterte Supersätze & Drop-Sets',
-    description: 'Fortgeschrittene Satz-Konfigurationen für maximale Hypertrophie-Reize.',
+    perk: 'Neues Theme: Telemetry Cyber',
+    rewardTag: 'Dark Cyber Theme',
+    description: 'Elektrisierendes Chartreuse auf tiefem Midnight Navy.',
   },
   6: {
     badgeTitle: 'Rubin Medaillon',
-    perk: 'Rubin Medaillon · Periodisierungs-Tools & Mikrozyklen',
-    description: 'Plane Deloads und Periodisierungsblöcke wie professionelle Kraftsportler.',
+    perk: 'Theme: Volt Ember + Feier-Effekt: Champion Gold',
+    rewardTag: 'Theme & Effekt',
+    description: 'Kupfernes Flammen-Design und glänzender Goldmünzen-Regen bei Workout-Abschluss.',
   },
   7: {
     badgeTitle: 'Saphir Medaillon',
-    perk: 'Saphir Medaillon · Elite Leistungsmetriken & 1RM-Prognosen',
-    description: 'Echtzeit-1RM-Kalkulation und Ermüdungssteuerung für Spitzenleistungen.',
+    perk: 'Neues Theme: Alpine Mist (Light Mode)',
+    rewardTag: 'Light Mode III',
+    description: 'Kristallklares Studio-Weiß mit kontraststarkem Electric-Indigo-Akzent.',
   },
   8: {
     badgeTitle: 'Obsidian Veteran',
-    perk: 'Obsidian Medaillon · Iron Veteran Abzeichen & Themes',
-    description: 'Exklusiver Veteran-Status und Zugriff auf limitierte App-Colorways.',
+    perk: 'Theme: Avionics Stealth + Veteran Status',
+    rewardTag: 'Stealth Theme',
+    description: 'Militärisches Zink- und Säure-Lime-Design für gestählte Athleten.',
   },
   9: {
     badgeTitle: 'Titan Champion',
-    perk: 'Titan Medaillon · Champion Profil-Emblem',
-    description: 'Gehöre zu den Top 1% aller Athleten mit dem leuchtenden Champion-Emblem.',
+    perk: 'Theme: Royal Titanium + Feier-Effekt: Supernova Starlight',
+    rewardTag: 'Theme & Effekt',
+    description: 'Champagner-Goldenes Luxus-Design und galaktische Diamant-Sterne bei Workout-Abschluss.',
   },
   10: {
     badgeTitle: 'VOLT Master',
-    perk: 'VOLT Master Medaillon · Höchster Legenden-Status',
+    perk: 'VOLT Master Medaillon + Höchster Legenden-Status',
+    rewardTag: 'Höchste Auszeichnung',
     description: 'Die ultimative Meisterschaft. Du hast die Spitze des Eisens erklommen.',
   },
 };
@@ -379,19 +392,55 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                         ]}
                       >
                         <View style={styles.rewardHeader}>
-                          <Ionicons
-                            name={isCompletedRank ? 'ribbon' : isCurrentRank ? 'gift' : 'ribbon-outline'}
-                            size={16}
-                            color={isCurrentRank ? c.primary : isCompletedRank ? c.primary : c.muted}
-                          />
-                          <Text
-                            style={[
-                              styles.rewardTitle,
-                              { color: isLockedRank ? c.muted : c.text },
-                            ]}
-                          >
-                            {rewards.perk}
-                          </Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                            <Ionicons
+                              name={isCompletedRank ? 'checkmark-circle' : isCurrentRank ? 'gift' : 'ribbon-outline'}
+                              size={16}
+                              color={isCurrentRank ? c.primary : isCompletedRank ? '#57DFAB' : c.muted}
+                            />
+                            <Text
+                              style={[
+                                styles.rewardTitle,
+                                { color: isLockedRank ? c.muted : c.text },
+                              ]}
+                            >
+                              {rewards.perk}
+                            </Text>
+                          </View>
+                          {rewards.rewardTag && (
+                            <View
+                              style={[
+                                styles.rewardTagBadge,
+                                {
+                                  backgroundColor: isCompletedRank
+                                    ? '#57DFAB20'
+                                    : isCurrentRank
+                                    ? c.primary + '20'
+                                    : c.surfaceElevated || c.background,
+                                  borderColor: isCompletedRank
+                                    ? '#57DFAB'
+                                    : isCurrentRank
+                                    ? c.primary
+                                    : c.border,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.rewardTagText,
+                                  {
+                                    color: isCompletedRank
+                                      ? '#57DFAB'
+                                      : isCurrentRank
+                                      ? c.primary
+                                      : c.muted,
+                                  },
+                                ]}
+                              >
+                                {isCompletedRank ? `${rewards.rewardTag} ✓` : rewards.rewardTag}
+                              </Text>
+                            </View>
+                          )}
                         </View>
                         <Text style={[styles.rewardDesc, { color: c.muted }]}>
                           {rewards.description}
@@ -692,6 +741,17 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 6,
     borderWidth: 1,
+  },
+  rewardTagBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5,
+    borderWidth: 1,
+  },
+  rewardTagText: {
+    fontSize: 9,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    letterSpacing: 0.4,
   },
   levelStepText: {
     fontSize: 11,

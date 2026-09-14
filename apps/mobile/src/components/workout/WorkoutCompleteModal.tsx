@@ -1,8 +1,6 @@
 import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import React from 'react';
 import {
-  Animated,
-  Dimensions,
   Modal,
   Pressable,
   ScrollView,
@@ -11,7 +9,6 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useReducedMotion } from 'react-native-reanimated';
 
 import { summarizeSessionExercise, summarizeWorkout } from '@fitness-tracker/domain';
 import { useTheme } from '@fitness-tracker/ui';
@@ -20,98 +17,9 @@ import { getCaffeineWarningLevel, useCaffeineStore } from '../../stores/caffeine
 import { useExerciseStore } from '../../stores/exerciseStore';
 import { useProfileStore } from '../../stores/profileStore';
 import { useWorkoutStore } from '../../stores/workoutStore';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-interface ConfettiParticle {
-  id: number;
-  x: number;
-  size: number;
-  color: string;
-  delay: number;
-  duration: number;
-  animY: Animated.Value;
-  animX: Animated.Value;
-  animRotate: Animated.Value;
-}
-
-const SubtleConfetti = () => {
-  const theme = useTheme();
-  const styles = useThemeStyles(createStyles);
-  const CONFETTI_COLORS = theme.chart.series;
-  const particles = React.useRef<ConfettiParticle[]>(
-    Array.from({ length: 16 }).map((_, i) => ({
-      id: i,
-      x: Math.random() * SCREEN_WIDTH,
-      size: Math.random() * 8 + 6,
-      color:
-        CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)] || theme.colors.primary,
-      delay: Math.random() * 1200,
-      duration: Math.random() * 1500 + 2000,
-      animY: new Animated.Value(-20),
-      animX: new Animated.Value(0),
-      animRotate: new Animated.Value(0),
-    })),
-  ).current;
-
-  React.useEffect(() => {
-    particles.forEach((p) => {
-      Animated.sequence([
-        Animated.delay(p.delay),
-        Animated.parallel([
-          Animated.timing(p.animY, {
-            toValue: SCREEN_HEIGHT + 20,
-            duration: p.duration,
-            useNativeDriver: true,
-          }),
-          Animated.timing(p.animX, {
-            toValue: (Math.random() - 0.5) * 120,
-            duration: p.duration,
-            useNativeDriver: true,
-          }),
-          Animated.timing(p.animRotate, {
-            toValue: Math.random() * 360,
-            duration: p.duration,
-            useNativeDriver: true,
-          }),
-        ]),
-      ]).start();
-    });
-  }, [particles]);
-
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {particles.map((p) => (
-        <Animated.View
-          key={p.id}
-          style={[
-            styles.confettiParticle,
-            {
-              left: p.x,
-              width: p.size,
-              height: p.size,
-              borderRadius: p.size / 2,
-              backgroundColor: p.color,
-              transform: [
-                { translateY: p.animY },
-                { translateX: p.animX },
-                {
-                  rotate: p.animRotate.interpolate({
-                    inputRange: [0, 360],
-                    outputRange: ['0deg', '360deg'],
-                  }),
-                },
-              ],
-            },
-          ]}
-        />
-      ))}
-    </View>
-  );
-};
+import { WorkoutCelebrationOverlay } from './WorkoutCelebrationOverlay';
 
 export const WorkoutCompleteModal = () => {
-  const reducedMotion = useReducedMotion();
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
   const { lastFinishedSession, clearLastFinishedSession } = useWorkoutStore();
@@ -305,7 +213,7 @@ export const WorkoutCompleteModal = () => {
   return (
     <Modal visible animationType="slide" transparent onRequestClose={clearLastFinishedSession}>
       <Pressable style={styles.overlay} onPress={clearLastFinishedSession}>
-        {!reducedMotion && <SubtleConfetti />}
+        <WorkoutCelebrationOverlay />
         <Pressable
           style={[
             styles.card,

@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { AnatomyFigure } from './anatomy/AnatomyFigure';
 import { VoltBackdrop } from './VoltBackdrop';
 import { LevelProgress } from './LevelProgress';
+import { LevelRankBadge } from './LevelRankBadge';
 import { SyncIndicator } from './SyncIndicator';
 import voltEmblem from '../../assets/volt-emblem.png';
 import { MuscleHeatmap } from './MuscleHeatmap';
@@ -346,10 +347,15 @@ export function VoltDashboard({
             </View>
           )}
           <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-            <Text style={[heading, { fontSize: 17 }]}>
-              {profile.displayName || 'ATHLETE'}{' '}
-              <Text style={{ color: c.primary, fontSize: 11 }}>LVL {level}</Text>
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={[heading, { fontSize: 17 }]} numberOfLines={1}>
+                {profile.displayName || 'ATHLETE'}
+              </Text>
+              <LevelRankBadge level={level} size={28} />
+              <Text style={{ color: c.primary, fontSize: 12, fontFamily: 'SpaceGrotesk_600SemiBold' }}>
+                LVL {level}
+              </Text>
+            </View>
             <Text style={[label, { color: c.primary, letterSpacing: 0.6 }]}>
               {history.getStreak()} DAY STREAK · {xp} XP
             </Text>

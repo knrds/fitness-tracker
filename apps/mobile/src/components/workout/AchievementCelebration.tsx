@@ -1,5 +1,6 @@
 import { Theme, useThemeStyles, withAlpha } from '@fitness-tracker/ui';
 import { LevelEmblem } from '../LevelProgress';
+import { getRankForLevel } from '../../utils/level';
 import React, { useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -135,6 +136,17 @@ export const AchievementCelebration = () => {
                 </Text>
                 <Text style={[styles.levelValue, { color: theme.colors.primary }]}>
                   LEVEL {levelUpTo}
+                </Text>
+                <Text
+                  style={{
+                    color: theme.colors.text,
+                    fontSize: 14,
+                    fontFamily: 'SpaceGrotesk_600SemiBold',
+                    marginTop: 2,
+                    marginBottom: 4,
+                  }}
+                >
+                  Rank {getRankForLevel(levelUpTo).rank} · {getRankForLevel(levelUpTo).title}
                 </Text>
                 <Text style={[styles.desc, { color: theme.colors.muted }]}>
                   Your dedication is paying off. Keep crushing it.

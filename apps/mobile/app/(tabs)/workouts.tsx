@@ -2,7 +2,7 @@ import { SegmentedControl } from '@fitness-tracker/ui';
 import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { useFocusScroll } from '../../src/hooks/useFocusScroll';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Share,
   ScrollView,
   Animated,
+  TextInput,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
@@ -22,6 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
+import { useHistoryStore } from '../../src/stores/historyStore';
 import { WorkoutTemplate } from '@fitness-tracker/domain';
 import ProgramListScreen from './programs';
 
@@ -32,16 +34,108 @@ export default function WorkoutsScreen() {
   const styles = useThemeStyles(createStyles);
   const { showConfirm } = useDialog();
   const insets = useSafeAreaInsets();
-  const { templates, deleteTemplate, updateTemplatesOrder } = useProgramStore();
+
+  const {
+    templates,
+    customFolders = [],
+    deleteTemplate,
+    updateTemplatesOrder,
+    createFolder,
+    renameFolder,
+    deleteFolder,
+    setTemplateFolder,
+  } = useProgramStore();
+
   const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
   const { exercises } = useExerciseStore();
+  const { sessions } = useHistoryStore();
+
   const [menuTemplateId, setMenuTemplateId] = useState<string | null>(null);
   const [summaryTemplateId, setSummaryTemplateId] = useState<string | null>(null);
+
+  // Folder UI state
+  const [folderModalVisible, setFolderModalVisible] = useState(false);
+  const [editingFolderOriginalName, setEditingFolderOriginalName] = useState<string | null>(null);
+  const [folderInputText, setFolderInputText] = useState('');
+
+  const [folderMenuName, setFolderMenuName] = useState<string | null>(null);
+  const [assignFolderTemplateId, setAssignFolderTemplateId] = useState<string | null>(null);
+
+  // Track expanded/collapsed folders (default to all expanded)
+  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
 
   const sorter = useMeasuredReorder(templates, updateTemplatesOrder);
   useFocusScroll(sorter.scrollViewRef);
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     sorter.onScroll(event);
+  };
+
+  // Compute top 4 workouts based on session history (falling back to template order)
+  const topTemplates = useMemo(() => {
+    if (templates.length === 0) return [];
+    const countMap = new Map<string, number>();
+
+    for (const s of sessions) {
+      if (s.templateId) {
+        countMap.set(s.templateId, (countMap.get(s.templateId) || 0) + 1);
+      } else if (s.name) {
+        const match = templates.find((t) => t.name.toLowerCase() === s.name.toLowerCase());
+        if (match) {
+          countMap.set(match.id, (countMap.get(match.id) || 0) + 1);
+        }
+      }
+    }
+
+    const sorted = [...templates].sort((a, b) => {
+      const countA = countMap.get(a.id) || 0;
+      const countB = countMap.get(b.id) || 0;
+      if (countB !== countA) return countB - countA;
+      return 0;
+    });
+
+    return sorted.slice(0, 4);
+  }, [templates, sessions]);
+
+  // Distinct folders: customFolders union template.folder
+  const allFolders = useMemo(() => {
+    const set = new Set<string>();
+    for (const f of customFolders) {
+      if (f.trim()) set.add(f.trim());
+    }
+    for (const t of templates) {
+      if (t.folder?.trim()) set.add(t.folder.trim());
+    }
+    return Array.from(set);
+  }, [customFolders, templates]);
+
+  // Group templates by folder
+  const { folderMap, unassignedTemplates } = useMemo(() => {
+    const map = new Map<string, WorkoutTemplate[]>();
+    for (const f of allFolders) {
+      map.set(f, []);
+    }
+    const unassigned: WorkoutTemplate[] = [];
+
+    for (const t of templates) {
+      if (t.folder && map.has(t.folder)) {
+        map.get(t.folder)!.push(t);
+      } else {
+        unassigned.push(t);
+      }
+    }
+    return { folderMap: map, unassignedTemplates: unassigned };
+  }, [allFolders, templates]);
+
+  const toggleFolder = (name: string) => {
+    setExpandedFolders((prev) => ({
+      ...prev,
+      // Default to open (true) if undefined, so click flips to false
+      [name]: prev[name] === false ? true : false,
+    }));
+  };
+
+  const isFolderExpanded = (name: string) => {
+    return expandedFolders[name] !== false; // default open
   };
 
   const handleStartEmpty = () => {
@@ -117,13 +211,114 @@ export default function WorkoutsScreen() {
     updateTemplatesOrder(reordered);
   };
 
+  const handleOpenCreateFolder = () => {
+    setEditingFolderOriginalName(null);
+    setFolderInputText('');
+    setFolderModalVisible(true);
+  };
+
+  const handleOpenRenameFolder = (folderName: string) => {
+    setFolderMenuName(null);
+    setEditingFolderOriginalName(folderName);
+    setFolderInputText(folderName);
+    setFolderModalVisible(true);
+  };
+
+  const handleSaveFolderModal = () => {
+    const trimmed = folderInputText.trim();
+    if (!trimmed) return;
+
+    if (editingFolderOriginalName) {
+      renameFolder(editingFolderOriginalName, trimmed);
+    } else {
+      createFolder(trimmed);
+    }
+    setFolderModalVisible(false);
+    setFolderInputText('');
+    setEditingFolderOriginalName(null);
+  };
+
+  const handleDeleteFolderPrompt = async (folderName: string) => {
+    setFolderMenuName(null);
+    const count = folderMap.get(folderName)?.length || 0;
+    const shouldDelete = await showConfirm({
+      title: 'Ordner löschen',
+      message: `Möchtest du den Ordner "${folderName}" wirklich löschen?${
+        count > 0 ? ` Die ${count} Vorlage(n) darin bleiben erhalten und werden in "Ohne Ordner" verschoben.` : ''
+      }`,
+      confirmLabel: 'Löschen',
+      cancelLabel: 'Abbrechen',
+      destructive: true,
+    });
+    if (shouldDelete) {
+      deleteFolder(folderName);
+    }
+  };
+
   const menuTemplate = templates.find((t) => t.id === menuTemplateId) || null;
   const summaryTemplate = templates.find((t) => t.id === summaryTemplateId) || null;
+  const assignTemplate = templates.find((t) => t.id === assignFolderTemplateId) || null;
 
   const [activeTab, setActiveTab] = useState<'workouts' | 'programs'>('workouts');
   useEffect(() => {
     if (tab === 'programs' || tab === 'workouts') setActiveTab(tab);
   }, [tab]);
+
+  // Helper to render template card row
+  const renderTemplateCard = (item: WorkoutTemplate, isDraggable: boolean = true) => {
+    const exerciseNames = item.exercises
+      .map((te) => exercises.find((e) => e.id === te.exerciseId)?.name)
+      .filter(Boolean)
+      .join(', ');
+
+    return (
+      <Animated.View
+        key={item.id}
+        onLayout={(e) => {
+          if (isDraggable && !sorter.activeDragId) {
+            sorter.itemLayouts.current[item.id] = e.nativeEvent.layout;
+          }
+        }}
+        style={[styles.card, isDraggable && sorter.getRowStyle(item.id)]}
+      >
+        {isDraggable && (
+          <View
+            style={[
+              styles.dragHandle,
+              sorter.handleStyle,
+              {
+                minWidth: 40,
+                minHeight: 44,
+                alignItems: 'center',
+                justifyContent: 'center',
+              },
+            ]}
+            {...sorter.getHandleProps(item.id)}
+          >
+            <Ionicons name="reorder-two" size={24} color={theme.colors.primary} />
+          </View>
+        )}
+
+        <Pressable
+          style={[styles.cardInfo, isDraggable && { marginLeft: 8 }]}
+          onPress={() => setSummaryTemplateId(item.id)}
+        >
+          <Text style={styles.cardTitle}>{item.name}</Text>
+          <Text style={styles.cardSubtitle} numberOfLines={2} ellipsizeMode="tail">
+            {exerciseNames || `${item.exercises.length} Exercises`}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.kebabBtn}
+          hitSlop={10}
+          onPress={() => setMenuTemplateId(item.id)}
+        >
+          <Ionicons name="ellipsis-vertical" size={20} color={theme.colors.muted} />
+        </Pressable>
+      </Animated.View>
+    );
+  };
 
   return (
     <View
@@ -162,6 +357,7 @@ export default function WorkoutsScreen() {
           onScroll={handleScroll}
           scrollEventThrottle={16}
         >
+          {/* Quick Start Empty Workout */}
           <View style={styles.quickStart}>
             <Text style={styles.sectionTitle}>Quick Start</Text>
             <Pressable style={styles.emptyWorkoutBtn} onPress={handleStartEmpty}>
@@ -173,63 +369,192 @@ export default function WorkoutsScreen() {
             </Pressable>
           </View>
 
-          <Text style={[styles.sectionTitle, { paddingHorizontal: 16 }]}>My Templates</Text>
-          <View style={styles.list}>
-            {templates.map((item) => {
-              const exerciseNames = item.exercises
-                .map((te) => exercises.find((e) => e.id === te.exerciseId)?.name)
-                .filter(Boolean)
-                .join(', ');
+          {/* 2x2 Top Workouts Grid (Strong-Style) */}
+          {topTemplates.length > 0 && (
+            <View style={styles.topWorkoutsSection}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitle}>Workout beginnen</Text>
+                <Text style={styles.sectionBadgeText}>Top {topTemplates.length}</Text>
+              </View>
+
+              <View style={styles.topGrid}>
+                {topTemplates.map((item) => {
+                  const exSummary = item.exercises
+                    .map((te) => exercises.find((e) => e.id === te.exerciseId)?.name)
+                    .filter(Boolean);
+                  const previewText =
+                    exSummary.length > 0
+                      ? exSummary.slice(0, 3).join(', ') + (exSummary.length > 3 ? ` & ${exSummary.length - 3} more...` : '')
+                      : `${item.exercises.length} Exercises`;
+
+                  return (
+                    <Pressable
+                      key={`top-${item.id}`}
+                      style={styles.gridCard}
+                      onPress={() => setSummaryTemplateId(item.id)}
+                    >
+                      <View style={styles.gridCardHeader}>
+                        <Text style={styles.gridCardTitle} numberOfLines={1}>
+                          {item.name}
+                        </Text>
+                        <Pressable
+                          style={styles.gridCardKebab}
+                          hitSlop={10}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            setMenuTemplateId(item.id);
+                          }}
+                        >
+                          <Ionicons name="ellipsis-horizontal" size={18} color={theme.colors.muted} />
+                        </Pressable>
+                      </View>
+                      <Text style={styles.gridCardSubtitle} numberOfLines={3} ellipsizeMode="tail">
+                        {previewText}
+                      </Text>
+                      {item.folder && (
+                        <View style={styles.gridFolderTag}>
+                          <Ionicons name="folder-outline" size={11} color={theme.colors.primary} />
+                          <Text style={styles.gridFolderTagText} numberOfLines={1}>
+                            {item.folder}
+                          </Text>
+                        </View>
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* Folders Section */}
+          <View style={styles.foldersSection}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Ordner</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Neuen Ordner erstellen"
+                style={styles.addFolderBtn}
+                onPress={handleOpenCreateFolder}
+              >
+                <Ionicons name="add-circle-outline" size={18} color={theme.colors.primary} />
+                <Text style={styles.addFolderBtnText}>Neuer Ordner</Text>
+              </Pressable>
+            </View>
+
+            {/* Render each folder */}
+            {allFolders.map((folderName) => {
+              const folderItems = folderMap.get(folderName) || [];
+              const expanded = isFolderExpanded(folderName);
 
               return (
-                <Animated.View
-                  key={item.id}
-                  onLayout={(e) => {
-                    if (!sorter.activeDragId)
-                      sorter.itemLayouts.current[item.id] = e.nativeEvent.layout;
-                  }}
-                  style={[styles.card, sorter.getRowStyle(item.id)]}
-                >
-                  <View
-                    style={[
-                      styles.dragHandle,
-                      sorter.handleStyle,
-                      {
-                        minWidth: 44,
-                        minHeight: 44,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      },
-                    ]}
-                    {...sorter.getHandleProps(item.id)}
-                  >
-                    <Ionicons name="reorder-two" size={24} color={theme.colors.primary} />
-                  </View>
-
+                <View key={folderName} style={styles.folderGroup}>
                   <Pressable
-                    style={[styles.cardInfo, { marginLeft: 12 }]}
-                    onPress={() => setSummaryTemplateId(item.id)}
+                    style={styles.folderHeader}
+                    onPress={() => toggleFolder(folderName)}
                   >
-                    <Text style={styles.cardTitle}>{item.name}</Text>
-                    <Text style={styles.cardSubtitle} numberOfLines={2} ellipsizeMode="tail">
-                      {exerciseNames || `${item.exercises.length} Exercises`}
-                    </Text>
+                    <View style={styles.folderHeaderLeft}>
+                      <Ionicons
+                        name={expanded ? 'folder-open' : 'folder'}
+                        size={20}
+                        color={theme.colors.primary}
+                      />
+                      <Text style={styles.folderTitle}>{folderName.toUpperCase()}</Text>
+                      <Text style={styles.folderCount}>({folderItems.length})</Text>
+                    </View>
+
+                    <View style={styles.folderHeaderRight}>
+                      <Pressable
+                        style={styles.folderKebabBtn}
+                        hitSlop={10}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          setFolderMenuName(folderName);
+                        }}
+                      >
+                        <Ionicons name="ellipsis-horizontal" size={18} color={theme.colors.muted} />
+                      </Pressable>
+                      <Ionicons
+                        name={expanded ? 'chevron-down' : 'chevron-forward'}
+                        size={18}
+                        color={theme.colors.muted}
+                      />
+                    </View>
                   </Pressable>
 
-                  <Pressable
-                    style={styles.kebabBtn}
-                    hitSlop={10}
-                    onPress={() => setMenuTemplateId(item.id)}
-                  >
-                    <Ionicons name="ellipsis-vertical" size={20} color={theme.colors.muted} />
-                  </Pressable>
-                </Animated.View>
+                  {/* Folder Items when expanded */}
+                  {expanded && (
+                    <View style={styles.folderContent}>
+                      {folderItems.map((item) => renderTemplateCard(item, false))}
+                      {folderItems.length === 0 && (
+                        <View style={styles.folderEmptyBox}>
+                          <Text style={styles.folderEmptyText}>
+                            Keine Vorlagen in diesem Ordner.
+                          </Text>
+                          <Text style={styles.folderEmptySubtext}>
+                            Tippe bei einer Vorlage auf (⋮) und wähle &quot;In Ordner verschieben&quot;.
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </View>
               );
             })}
-            {templates.length === 0 && (
-              <Text style={styles.emptyText}>
-                No templates saved yet. Finish a workout and save it as a template.
-              </Text>
+
+            {/* Unassigned Templates Section */}
+            {allFolders.length > 0 && unassignedTemplates.length > 0 && (
+              <View style={styles.folderGroup}>
+                <Pressable
+                  style={styles.folderHeader}
+                  onPress={() => toggleFolder('__unassigned__')}
+                >
+                  <View style={styles.folderHeaderLeft}>
+                    <Ionicons
+                      name="layers-outline"
+                      size={20}
+                      color={theme.colors.muted}
+                    />
+                    <Text style={[styles.folderTitle, { color: theme.colors.muted }]}>
+                      OHNE ORDNER
+                    </Text>
+                    <Text style={styles.folderCount}>({unassignedTemplates.length})</Text>
+                  </View>
+                  <Ionicons
+                    name={isFolderExpanded('__unassigned__') ? 'chevron-down' : 'chevron-forward'}
+                    size={18}
+                    color={theme.colors.muted}
+                  />
+                </Pressable>
+
+                {isFolderExpanded('__unassigned__') && (
+                  <View style={styles.folderContent}>
+                    {unassignedTemplates.map((item) => renderTemplateCard(item, false))}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* If no folders exist yet, render flat list with drag-and-drop */}
+            {allFolders.length === 0 && (
+              <View style={styles.list}>
+                <View style={styles.emptyFolderHintCard}>
+                  <Ionicons name="folder-outline" size={24} color={theme.colors.primary} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.emptyFolderHintTitle}>
+                      Organisiere deine Pläne in Ordnern
+                    </Text>
+                    <Text style={styles.emptyFolderHintText}>
+                      Erstelle Ordner wie &quot;PPL ARNOLD&quot;, &quot;Upper Lower 5 Split&quot; oder &quot;Urlaubs-Workouts&quot;.
+                    </Text>
+                  </View>
+                </View>
+                {templates.map((item) => renderTemplateCard(item, true))}
+                {templates.length === 0 && (
+                  <Text style={styles.emptyText}>
+                    No templates saved yet. Finish a workout and save it as a template.
+                  </Text>
+                )}
+              </View>
             )}
           </View>
         </ScrollView>
@@ -261,6 +586,22 @@ export default function WorkoutsScreen() {
                 Start Workout
               </Text>
             </Pressable>
+
+            {/* Move to Folder Action */}
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                const id = menuTemplate?.id;
+                setMenuTemplateId(null);
+                if (id) setAssignFolderTemplateId(id);
+              }}
+            >
+              <Ionicons name="folder-outline" size={20} color={theme.colors.primary} />
+              <Text style={styles.menuItemText}>
+                {menuTemplate?.folder ? `Ordner ändern (${menuTemplate.folder})` : 'In Ordner verschieben...'}
+              </Text>
+            </Pressable>
+
             <Pressable
               style={styles.menuItem}
               onPress={() => {
@@ -340,6 +681,232 @@ export default function WorkoutsScreen() {
         </Pressable>
       </Modal>
 
+      {/* Folder Action Menu (Rename / Delete) */}
+      <Modal
+        visible={folderMenuName !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFolderMenuName(null)}
+      >
+        <Pressable style={styles.menuOverlay} onPress={() => setFolderMenuName(null)}>
+          <View style={styles.menuSheet}>
+            <Text style={styles.menuTitle}>ORDNER: {folderMenuName}</Text>
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                if (folderMenuName) handleOpenRenameFolder(folderMenuName);
+              }}
+            >
+              <Ionicons name="create-outline" size={20} color={theme.colors.text} />
+              <Text style={styles.menuItemText}>Umbenennen</Text>
+            </Pressable>
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                if (folderMenuName) handleDeleteFolderPrompt(folderMenuName);
+              }}
+            >
+              <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
+              <Text style={[styles.menuItemText, { color: theme.colors.error }]}>
+                Ordner löschen
+              </Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Create / Rename Folder Modal */}
+      <Modal
+        visible={folderModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFolderModalVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setFolderModalVisible(false)}>
+          <Pressable
+            style={[
+              styles.modalCard,
+              { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={[styles.modalTitle, { color: theme.colors.text, marginBottom: 16 }]}>
+              {editingFolderOriginalName ? 'Ordner umbenennen' : 'Neuer Ordner'}
+            </Text>
+            <TextInput
+              autoFocus
+              value={folderInputText}
+              onChangeText={setFolderInputText}
+              placeholder="z. B. PPL ARNOLD, Home Gym, Urlaubs-Workouts..."
+              placeholderTextColor={theme.colors.muted}
+              style={[
+                styles.folderInput,
+                {
+                  color: theme.colors.text,
+                  backgroundColor: theme.colors.background,
+                  borderColor: theme.colors.border,
+                },
+              ]}
+              maxLength={50}
+              returnKeyType="done"
+              onSubmitEditing={handleSaveFolderModal}
+            />
+            <View style={styles.folderModalButtonsRow}>
+              <Pressable
+                style={[styles.folderModalBtn, { borderColor: theme.colors.border, borderWidth: 1 }]}
+                onPress={() => setFolderModalVisible(false)}
+              >
+                <Text style={{ color: theme.colors.muted, fontFamily: 'SpaceGrotesk_600SemiBold' }}>
+                  Abbrechen
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.folderModalBtn,
+                  {
+                    backgroundColor: theme.colors.primary,
+                    opacity: folderInputText.trim().length === 0 ? 0.5 : 1,
+                  },
+                ]}
+                disabled={folderInputText.trim().length === 0}
+                onPress={handleSaveFolderModal}
+              >
+                <Text
+                  style={{
+                    color: theme.colors.background,
+                    fontFamily: 'SpaceGrotesk_700Bold',
+                  }}
+                >
+                  Speichern
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Assign Template to Folder Modal */}
+      <Modal
+        visible={assignFolderTemplateId !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAssignFolderTemplateId(null)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setAssignFolderTemplateId(null)}>
+          <Pressable
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+                maxHeight: '80%',
+              },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+                  Ordner zuweisen
+                </Text>
+                <Text style={{ color: theme.colors.muted, fontSize: 12, marginTop: 2 }}>
+                  {assignTemplate?.name}
+                </Text>
+              </View>
+              <Pressable onPress={() => setAssignFolderTemplateId(null)} hitSlop={10}>
+                <Ionicons name="close" size={24} color={theme.colors.muted} />
+              </Pressable>
+            </View>
+
+            <ScrollView style={{ maxHeight: 300, width: '100%', marginVertical: 12 }}>
+              {/* Option: None / Remove Folder */}
+              <Pressable
+                style={[
+                  styles.assignFolderOption,
+                  !assignTemplate?.folder && styles.assignFolderOptionActive,
+                ]}
+                onPress={() => {
+                  if (assignTemplate) {
+                    setTemplateFolder(assignTemplate.id, null);
+                    setAssignFolderTemplateId(null);
+                  }
+                }}
+              >
+                <Ionicons
+                  name="close-circle-outline"
+                  size={20}
+                  color={!assignTemplate?.folder ? theme.colors.primary : theme.colors.muted}
+                />
+                <Text
+                  style={[
+                    styles.assignFolderOptionText,
+                    {
+                      color: !assignTemplate?.folder ? theme.colors.primary : theme.colors.text,
+                    },
+                  ]}
+                >
+                  Kein Ordner
+                </Text>
+                {!assignTemplate?.folder && (
+                  <Ionicons name="checkmark" size={18} color={theme.colors.primary} />
+                )}
+              </Pressable>
+
+              {/* List of existing folders */}
+              {allFolders.map((fName) => {
+                const isSelected = assignTemplate?.folder === fName;
+                return (
+                  <Pressable
+                    key={`assign-${fName}`}
+                    style={[
+                      styles.assignFolderOption,
+                      isSelected && styles.assignFolderOptionActive,
+                    ]}
+                    onPress={() => {
+                      if (assignTemplate) {
+                        setTemplateFolder(assignTemplate.id, fName);
+                        setAssignFolderTemplateId(null);
+                      }
+                    }}
+                  >
+                    <Ionicons
+                      name="folder"
+                      size={20}
+                      color={isSelected ? theme.colors.primary : theme.colors.muted}
+                    />
+                    <Text
+                      style={[
+                        styles.assignFolderOptionText,
+                        { color: isSelected ? theme.colors.primary : theme.colors.text },
+                      ]}
+                    >
+                      {fName}
+                    </Text>
+                    {isSelected && (
+                      <Ionicons name="checkmark" size={18} color={theme.colors.primary} />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            <Pressable
+              style={styles.assignNewFolderBtn}
+              onPress={() => {
+                setAssignFolderTemplateId(null);
+                handleOpenCreateFolder();
+              }}
+            >
+              <Ionicons name="add-circle-outline" size={18} color={theme.colors.primary} />
+              <Text style={[styles.assignNewFolderBtnText, { color: theme.colors.primary }]}>
+                + Neuen Ordner erstellen
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Template Summary Modal */}
       {summaryTemplate && (
         <Modal
           visible={summaryTemplateId !== null}
@@ -356,14 +923,21 @@ export default function WorkoutsScreen() {
               onPress={(e) => e.stopPropagation()}
             >
               <View style={styles.modalHeaderRow}>
-                <Text
-                  style={[
-                    styles.modalTitle,
-                    { color: theme.colors.text, ...theme.typography.heading },
-                  ]}
-                >
-                  {summaryTemplate.name}
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[
+                      styles.modalTitle,
+                      { color: theme.colors.text, ...theme.typography.heading },
+                    ]}
+                  >
+                    {summaryTemplate.name}
+                  </Text>
+                  {summaryTemplate.folder && (
+                    <Text style={{ color: theme.colors.primary, fontSize: 12, marginTop: 2 }}>
+                      📁 {summaryTemplate.folder}
+                    </Text>
+                  )}
+                </View>
                 <Pressable onPress={() => setSummaryTemplateId(null)} hitSlop={10}>
                   <Ionicons name="close" size={24} color={theme.colors.muted} />
                 </Pressable>
@@ -435,56 +1009,201 @@ export default function WorkoutsScreen() {
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.colors.background },
-    tabToggleHeader: {
-      flexDirection: 'row',
-      borderWidth: 1,
-      borderRadius: 10,
-      marginHorizontal: 24,
-      marginVertical: 16,
-      padding: 3,
-      gap: 3,
-    },
-    tabToggleBtn: {
-      flex: 1,
-      minHeight: 36,
-      borderRadius: 7,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 6,
-    },
-    tabToggleBtnText: {
-      fontFamily: 'SpaceGrotesk_700Bold',
-      fontSize: 12,
-      textTransform: 'uppercase',
-    },
     quickStart: {
-      padding: 16,
-      marginBottom: 8,
+      paddingHorizontal: 16,
+      marginBottom: 16,
     },
     sectionTitle: {
-      fontSize: 20,
+      fontSize: 18,
       fontFamily: 'SpaceGrotesk_700Bold',
       color: theme.colors.text,
+    },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
       marginBottom: 12,
+    },
+    sectionBadgeText: {
+      fontSize: 12,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      color: theme.colors.primary,
+      backgroundColor: theme.colors.surface,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
     },
     emptyWorkoutBtn: {
       backgroundColor: theme.colors.primary,
-      paddingVertical: 16,
+      paddingVertical: 14,
       borderRadius: 12,
       alignItems: 'center',
+      marginTop: 8,
     },
     emptyWorkoutBtnText: {
       color: theme.colors.background,
-      fontSize: 16,
+      fontSize: 15,
       fontFamily: 'SpaceGrotesk_700Bold',
     },
-    list: { padding: 16 },
+
+    // 2x2 Top Grid (Strong Style)
+    topWorkoutsSection: {
+      paddingHorizontal: 16,
+      marginBottom: 20,
+    },
+    topGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    gridCard: {
+      width: '48.5%',
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      padding: 12,
+      minHeight: 110,
+      justifyContent: 'space-between',
+    },
+    gridCardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    gridCardTitle: {
+      flex: 1,
+      fontSize: 14,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.text,
+      marginRight: 4,
+    },
+    gridCardKebab: {
+      minWidth: 28,
+      minHeight: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    gridCardSubtitle: {
+      fontSize: 11,
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.muted,
+      lineHeight: 16,
+      marginTop: 4,
+      marginBottom: 6,
+    },
+    gridFolderTag: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      alignSelf: 'flex-start',
+      backgroundColor: theme.colors.background,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 6,
+    },
+    gridFolderTagText: {
+      fontSize: 10,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      color: theme.colors.primary,
+    },
+
+    // Folders Section
+    foldersSection: {
+      paddingHorizontal: 16,
+    },
+    addFolderBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      borderRadius: 8,
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    addFolderBtnText: {
+      fontSize: 13,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      color: theme.colors.primary,
+    },
+    folderGroup: {
+      marginBottom: 10,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface,
+      overflow: 'hidden',
+    },
+    folderHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+      minHeight: 52,
+    },
+    folderHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      flex: 1,
+    },
+    folderTitle: {
+      fontSize: 14,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.text,
+      letterSpacing: 0.5,
+    },
+    folderCount: {
+      fontSize: 13,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      color: theme.colors.muted,
+    },
+    folderHeaderRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    folderKebabBtn: {
+      minWidth: 32,
+      minHeight: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    folderContent: {
+      paddingHorizontal: 10,
+      paddingBottom: 10,
+      paddingTop: 4,
+    },
+    folderEmptyBox: {
+      paddingVertical: 14,
+      paddingHorizontal: 12,
+      alignItems: 'center',
+    },
+    folderEmptyText: {
+      color: theme.colors.muted,
+      fontSize: 12,
+      fontFamily: 'Manrope_500Medium',
+      textAlign: 'center',
+    },
+    folderEmptySubtext: {
+      color: theme.colors.muted,
+      fontSize: 11,
+      textAlign: 'center',
+      marginTop: 4,
+      opacity: 0.8,
+    },
+
+    list: { paddingVertical: 8 },
     card: {
       backgroundColor: theme.colors.surface,
-      borderRadius: theme.radius.lg,
-      padding: 16,
-      marginBottom: 12,
+      borderRadius: theme.radius.md,
+      padding: 14,
+      marginBottom: 8,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -492,14 +1211,14 @@ const createStyles = (theme: Theme) =>
       borderColor: theme.colors.border,
     },
     cardInfo: { flex: 1 },
-    cardTitle: { fontSize: 16, fontFamily: 'SpaceGrotesk_700Bold', color: theme.colors.text },
+    cardTitle: { fontSize: 15, fontFamily: 'SpaceGrotesk_700Bold', color: theme.colors.text },
     cardSubtitle: {
-      fontSize: 14,
+      fontSize: 13,
       fontFamily: 'Manrope_500Medium',
       color: theme.colors.muted,
-      marginTop: 4,
+      marginTop: 3,
     },
-    kebabBtn: { minHeight: 44, padding: 4 },
+    kebabBtn: { minWidth: 40, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
     menuOverlay: {
       flex: 1,
       backgroundColor: theme.colors.overlay,
@@ -528,14 +1247,14 @@ const createStyles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 14,
-      paddingVertical: 16,
+      paddingVertical: 14,
       paddingHorizontal: 12,
       borderRadius: 12,
     },
     menuItemText: {
       color: theme.colors.text,
       fontFamily: 'SpaceGrotesk_600SemiBold',
-      fontSize: 16,
+      fontSize: 15,
     },
     emptyText: {
       color: theme.colors.muted,
@@ -544,6 +1263,28 @@ const createStyles = (theme: Theme) =>
       marginTop: 24,
       paddingHorizontal: 20,
       lineHeight: 22,
+    },
+    emptyFolderHintCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.radius.md,
+      padding: 14,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    emptyFolderHintTitle: {
+      fontSize: 13,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.text,
+    },
+    emptyFolderHintText: {
+      fontSize: 12,
+      fontFamily: 'Manrope_500Medium',
+      color: theme.colors.muted,
+      marginTop: 2,
     },
 
     modalOverlay: {
@@ -568,9 +1309,8 @@ const createStyles = (theme: Theme) =>
       width: '100%',
     },
     modalTitle: {
-      fontSize: 20,
-      flex: 1,
-      marginRight: 12,
+      fontSize: 18,
+      fontFamily: 'SpaceGrotesk_700Bold',
     },
     modalSummaryStatsRow: {
       flexDirection: 'row',
@@ -611,7 +1351,7 @@ const createStyles = (theme: Theme) =>
       fontFamily: 'SpaceGrotesk_700Bold',
     },
     modalStartBtn: {
-      height: 52,
+      height: 50,
       alignItems: 'center',
       justifyContent: 'center',
       width: '100%',
@@ -620,9 +1360,64 @@ const createStyles = (theme: Theme) =>
       fontSize: 15,
     },
     dragHandle: {
-      paddingRight: 8,
+      paddingRight: 4,
       paddingVertical: 12,
       justifyContent: 'center',
       alignItems: 'center',
+    },
+
+    // Folder Modals
+    folderInput: {
+      height: 48,
+      borderWidth: 1,
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      fontSize: 15,
+      fontFamily: 'Manrope_500Medium',
+      marginBottom: 18,
+    },
+    folderModalButtonsRow: {
+      flexDirection: 'row',
+      gap: 12,
+      justifyContent: 'flex-end',
+    },
+    folderModalBtn: {
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      minWidth: 100,
+    },
+    assignFolderOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 14,
+      paddingHorizontal: 12,
+      borderRadius: 10,
+      marginBottom: 4,
+    },
+    assignFolderOptionActive: {
+      backgroundColor: theme.colors.background,
+    },
+    assignFolderOptionText: {
+      flex: 1,
+      fontSize: 15,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+    },
+    assignNewFolderBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      paddingVertical: 12,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+      marginTop: 8,
+    },
+    assignNewFolderBtnText: {
+      fontSize: 14,
+      fontFamily: 'SpaceGrotesk_700Bold',
     },
   });

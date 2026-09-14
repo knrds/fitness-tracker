@@ -472,6 +472,7 @@ export function getDefaultPrograms(): Program[] {
 export interface ProgramState {
   programs: Program[];
   templates: WorkoutTemplate[];
+  customFolders: string[];
 
   createProgram: (program: Partial<Program>) => void;
   updateProgram: (id: UUID, updates: Partial<Program>) => void;
@@ -483,11 +484,17 @@ export interface ProgramState {
   updateTemplate: (id: UUID, updates: Partial<WorkoutTemplate>) => void;
   deleteTemplate: (id: UUID) => void;
   updateTemplatesOrder: (templates: WorkoutTemplate[]) => void;
+
+  createFolder: (name: string) => void;
+  renameFolder: (oldName: string, newName: string) => void;
+  deleteFolder: (name: string) => void;
+  setTemplateFolder: (templateId: UUID, folder: string | null) => void;
 }
 
 const programPersistedSchema = z.object({
   programs: z.array(ProgramSchema),
   templates: z.array(WorkoutTemplateSchema),
+  customFolders: z.array(z.string().trim().min(1).max(50)).optional(),
 });
 
 type ProgramPersistedState = z.infer<typeof programPersistedSchema>;
@@ -495,6 +502,7 @@ type ProgramPersistedState = z.infer<typeof programPersistedSchema>;
 const defaultPersistedState: ProgramPersistedState = {
   programs: [],
   templates: [],
+  customFolders: [],
 };
 
 export const useProgramStore = create<ProgramState>()(
@@ -502,6 +510,7 @@ export const useProgramStore = create<ProgramState>()(
     (set) => ({
       programs: [],
       templates: [],
+      customFolders: [],
 
       createProgram: (programPartial) =>
         set((state) => {
@@ -573,6 +582,11 @@ export const useProgramStore = create<ProgramState>()(
       createTemplate: (templatePartial) =>
         set((state) => {
           const now = new Date();
+          const folder = templatePartial.folder?.trim() || undefined;
+          let folders = state.customFolders || [];
+          if (folder && !folders.includes(folder)) {
+            folders = [...folders, folder];
+          }
           const newTemplate = {
             ...templatePartial,
             id: templatePartial.id || Crypto.randomUUID(),
@@ -580,11 +594,12 @@ export const useProgramStore = create<ProgramState>()(
             name: templatePartial.name || 'New Template',
             exercises: templatePartial.exercises || [],
             isArchived: templatePartial.isArchived ?? false,
+            folder,
             createdAt: templatePartial.createdAt || now,
             updatedAt: now,
           } as WorkoutTemplate;
           useSyncStore.getState().addToQueue('workout_templates', 'INSERT', newTemplate);
-          return { templates: [newTemplate, ...state.templates] };
+          return { customFolders: folders, templates: [newTemplate, ...state.templates] };
         }),
 
       updateTemplate: (id, updates) =>
@@ -612,6 +627,70 @@ export const useProgramStore = create<ProgramState>()(
         set({
           templates,
         }),
+
+      createFolder: (name: string) =>
+        set((state) => {
+          const trimmed = name.trim();
+          if (!trimmed) return state;
+          const existing = state.customFolders || [];
+          if (existing.some((f) => f.toLowerCase() === trimmed.toLowerCase())) {
+            return state;
+          }
+          return { customFolders: [...existing, trimmed] };
+        }),
+
+      renameFolder: (oldName: string, newName: string) =>
+        set((state) => {
+          const trimmedNew = newName.trim();
+          if (!trimmedNew || oldName === trimmedNew) return state;
+          const existing = state.customFolders || [];
+          const updatedFolders = existing.map((f) => (f === oldName ? trimmedNew : f));
+          if (!updatedFolders.includes(trimmedNew)) {
+            updatedFolders.push(trimmedNew);
+          }
+          const updatedTemplates = state.templates.map((t) => {
+            if (t.folder === oldName) {
+              const updated = { ...t, folder: trimmedNew, updatedAt: new Date() };
+              useSyncStore.getState().addToQueue('workout_templates', 'INSERT', updated);
+              return updated;
+            }
+            return t;
+          });
+          return { customFolders: updatedFolders, templates: updatedTemplates };
+        }),
+
+      deleteFolder: (name: string) =>
+        set((state) => {
+          const existing = state.customFolders || [];
+          const updatedFolders = existing.filter((f) => f !== name);
+          const updatedTemplates = state.templates.map((t) => {
+            if (t.folder === name) {
+              const updated = { ...t, folder: undefined, updatedAt: new Date() };
+              useSyncStore.getState().addToQueue('workout_templates', 'INSERT', updated);
+              return updated;
+            }
+            return t;
+          });
+          return { customFolders: updatedFolders, templates: updatedTemplates };
+        }),
+
+      setTemplateFolder: (templateId: UUID, folder: string | null) =>
+        set((state) => {
+          const trimmedFolder = folder?.trim() || undefined;
+          let folders = state.customFolders || [];
+          if (trimmedFolder && !folders.includes(trimmedFolder)) {
+            folders = [...folders, trimmedFolder];
+          }
+          const updatedTemplates = state.templates.map((t) => {
+            if (t.id === templateId) {
+              const updated = { ...t, folder: trimmedFolder, updatedAt: new Date() };
+              useSyncStore.getState().addToQueue('workout_templates', 'INSERT', updated);
+              return updated;
+            }
+            return t;
+          });
+          return { customFolders: folders, templates: updatedTemplates };
+        }),
     }),
     {
       name: 'program-storage',
@@ -623,10 +702,15 @@ export const useProgramStore = create<ProgramState>()(
       version: 1,
       migrate: (persistedState) => {
         const parsed = programPersistedSchema.safeParse(persistedState);
-        return parsed.success ? parsed.data : defaultPersistedState;
+        return parsed.success
+          ? { ...defaultPersistedState, ...parsed.data }
+          : defaultPersistedState;
       },
       onRehydrateStorage: () => (state) => {
         if (state) {
+          if (!state.customFolders) {
+            state.customFolders = [];
+          }
           const defaultTemplates = getDefaultTemplates();
           const existingNames = new Set((state.templates || []).map((t) => t.name));
           const templatesToSeed = defaultTemplates.filter((t) => !existingNames.has(t.name));

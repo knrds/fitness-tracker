@@ -96,4 +96,55 @@ describe('programStore', () => {
       expect(ProgramSchema.safeParse(program).success).toBe(true);
     });
   });
+
+  it('manages custom folders and template folder assignments', () => {
+    const store = useProgramStore.getState();
+    store.createFolder('PPL ARNOLD');
+    store.createFolder('Upper Lower 5 Split');
+    expect(useProgramStore.getState().customFolders).toEqual(['PPL ARNOLD', 'Upper Lower 5 Split']);
+
+    // Duplicate folder should not be added
+    useProgramStore.getState().createFolder('ppl arnold');
+    expect(useProgramStore.getState().customFolders).toHaveLength(2);
+
+    // Create templates with and without folder
+    useProgramStore.getState().createTemplate({
+      id: 't-arnold-1',
+      name: 'Pull 1',
+      folder: 'PPL ARNOLD',
+    });
+    useProgramStore.getState().createTemplate({
+      id: 't-arnold-2',
+      name: 'Push 2',
+      folder: 'PPL ARNOLD',
+    });
+    useProgramStore.getState().createTemplate({
+      id: 't-unassigned',
+      name: 'Quick Warmup',
+    });
+
+    expect(useProgramStore.getState().templates.find((t) => t.id === 't-arnold-1')?.folder).toBe(
+      'PPL ARNOLD',
+    );
+    expect(useProgramStore.getState().templates.find((t) => t.id === 't-unassigned')?.folder).toBeUndefined();
+
+    // Assign template to a folder
+    useProgramStore.getState().setTemplateFolder('t-unassigned', 'Upper Lower 5 Split');
+    expect(useProgramStore.getState().templates.find((t) => t.id === 't-unassigned')?.folder).toBe(
+      'Upper Lower 5 Split',
+    );
+
+    // Rename folder should update customFolders and assigned templates
+    useProgramStore.getState().renameFolder('PPL ARNOLD', 'Arnold Classic Split');
+    expect(useProgramStore.getState().customFolders).toContain('Arnold Classic Split');
+    expect(useProgramStore.getState().customFolders).not.toContain('PPL ARNOLD');
+    expect(useProgramStore.getState().templates.find((t) => t.id === 't-arnold-1')?.folder).toBe(
+      'Arnold Classic Split',
+    );
+
+    // Delete folder removes folder and unassigns its templates
+    useProgramStore.getState().deleteFolder('Arnold Classic Split');
+    expect(useProgramStore.getState().customFolders).not.toContain('Arnold Classic Split');
+    expect(useProgramStore.getState().templates.find((t) => t.id === 't-arnold-1')?.folder).toBeUndefined();
+  });
 });

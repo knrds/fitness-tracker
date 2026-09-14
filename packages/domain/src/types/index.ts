@@ -352,6 +352,8 @@ export interface WorkoutTemplate {
   estimatedDurationMinutes?: number;
   /** Whether the template is archived (hidden from the active list). */
   isArchived: boolean;
+  /** Optional folder or category name for grouping templates (e.g. "PPL ARNOLD", "Urlaubs-Workouts"). */
+  folder?: string | undefined;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

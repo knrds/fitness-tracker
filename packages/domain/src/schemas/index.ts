@@ -182,6 +182,7 @@ export const WorkoutTemplateSchema = z.object({
   exercises: z.array(TemplateExerciseSchema),
   estimatedDurationMinutes: z.number().int().positive().optional(),
   isArchived: z.boolean(),
+  folder: z.string().trim().max(50).optional(),
   createdAt: TimestampSchema,
   updatedAt: TimestampSchema,
 });

@@ -45,6 +45,7 @@ export default function WorkoutTemplateBuilderScreen() {
 
   const [name, setName] = useState(existingTemplate?.name || '');
   const [description, setDescription] = useState(existingTemplate?.description || '');
+  const [folder, setFolder] = useState(existingTemplate?.folder || '');
   const [templateExercises, setTemplateExercises] = useState<TemplateExercise[]>(
     existingTemplate?.exercises || [],
   );
@@ -64,12 +65,24 @@ export default function WorkoutTemplateBuilderScreen() {
 
   const handleSave = () => {
     if (!name.trim()) return;
+    const trimmedFolder = folder.trim() || undefined;
 
     if (existingTemplate) {
-      updateTemplate(existingTemplate.id, { name, description, exercises: templateExercises });
+      updateTemplate(existingTemplate.id, {
+        name,
+        description,
+        folder: trimmedFolder,
+        exercises: templateExercises,
+      });
     } else {
       const newTemplateId = Crypto.randomUUID();
-      createTemplate({ id: newTemplateId, name, description, exercises: templateExercises });
+      createTemplate({
+        id: newTemplateId,
+        name,
+        description,
+        folder: trimmedFolder,
+        exercises: templateExercises,
+      });
 
       if (program && dayOfWeek) {
         const targetWeek = week ? parseInt(week, 10) : 1;
@@ -187,6 +200,17 @@ export default function WorkoutTemplateBuilderScreen() {
           value={description}
           onChangeText={setDescription}
           placeholder="e.g. Focused on chest and triceps"
+          placeholderTextColor={theme.colors.muted}
+          inputAccessoryViewID={KEYBOARD_DONE_ID}
+          onSubmitEditing={() => Keyboard.dismiss()}
+        />
+
+        <Text style={styles.label}>Ordner / Folder (Optional)</Text>
+        <TextInput
+          style={styles.input}
+          value={folder}
+          onChangeText={setFolder}
+          placeholder="z. B. PPL ARNOLD, Urlaubs-Workouts, Home Gym"
           placeholderTextColor={theme.colors.muted}
           inputAccessoryViewID={KEYBOARD_DONE_ID}
           onSubmitEditing={() => Keyboard.dismiss()}

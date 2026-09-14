@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Image, View, Text, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, StyleProp, ViewStyle } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -7,30 +7,12 @@ import Animated, {
   useReducedMotion,
 } from 'react-native-reanimated';
 import { useTheme } from '@fitness-tracker/ui';
-import { getLevelBadge } from '../utils/level';
-import levelBadges from '../../assets/level-badges.png';
+import { getRankForLevel } from '../utils/level';
+import { LevelRankBadge } from './LevelRankBadge';
 import { VoltBackdrop } from './VoltBackdrop';
 
 export function LevelEmblem({ level, size = 52 }: { level: number; size?: number }) {
-  const tier = level < 10 ? 0 : level < 20 ? 1 : level < 50 ? 2 : 3;
-  return (
-    <View
-      accessible
-      accessibilityLabel={`Level ${level}: ${getLevelBadge(level).title}`}
-      style={{ width: size, height: size, overflow: 'hidden', borderRadius: size / 2 }}
-    >
-      <Image
-        source={levelBadges}
-        style={{
-          width: size * 2,
-          height: size * 2,
-          position: 'absolute',
-          left: -(tier % 2) * size,
-          top: -Math.floor(tier / 2) * size,
-        }}
-      />
-    </View>
-  );
+  return <LevelRankBadge level={level} size={size} />;
 }
 
 export function LevelProgress({
@@ -46,10 +28,13 @@ export function LevelProgress({
 }) {
   const theme = useTheme();
   const reduced = useReducedMotion();
+  const rankInfo = getRankForLevel(level);
   const progress = useSharedValue((xp % 500) / 500);
+
   useEffect(() => {
     progress.value = withTiming((xp % 500) / 500, { duration: reduced ? 0 : 450 });
   }, [xp, progress, reduced]);
+
   const barStyle = useAnimatedStyle(() => ({ width: `${progress.value * 100}%` }));
 
   return (
@@ -71,7 +56,7 @@ export function LevelProgress({
       ]}
     >
       {!compact && <VoltBackdrop />}
-      <LevelEmblem level={level} size={compact ? 40 : 52} />
+      <LevelRankBadge level={level} size={compact ? 44 : 56} />
       <View style={{ flex: 1, gap: compact ? 4 : 7 }}>
         <View
           style={{
@@ -87,7 +72,7 @@ export function LevelProgress({
               fontSize: compact ? 12 : 13,
             }}
           >
-            Level {level} · {getLevelBadge(level).title}
+            Level {level} · Rank {rankInfo.rank} ({rankInfo.title})
           </Text>
           {compact && (
             <Text
@@ -125,15 +110,28 @@ export function LevelProgress({
           />
         </View>
         {!compact && (
-          <Text
-            style={{
-              color: theme.colors.muted,
-              fontSize: 11,
-              fontVariant: ['tabular-nums'],
-            }}
-          >
-            {xp % 500} / 500 XP · {500 - (xp % 500)} bis Level {level + 1}
-          </Text>
+          <View style={{ gap: 2 }}>
+            <Text
+              style={{
+                color: theme.colors.muted,
+                fontSize: 11,
+                fontVariant: ['tabular-nums'],
+              }}
+            >
+              {xp % 500} / 500 XP · {500 - (xp % 500)} bis Level {level + 1}
+            </Text>
+            <Text
+              style={{
+                color: theme.colors.primary,
+                fontSize: 10.5,
+                fontFamily: 'SpaceGrotesk_500Medium',
+              }}
+            >
+              {rankInfo.nextRankLevel !== null
+                ? `Rank ${rankInfo.rank} (Lvl ${rankInfo.minLevel}–${rankInfo.maxLevel}) · Nächster Rank bei Level ${rankInfo.nextRankLevel}`
+                : `Max Rank ${rankInfo.rank} (VOLT Master) erreicht`}
+            </Text>
+          </View>
         )}
       </View>
     </View>

@@ -443,6 +443,8 @@ const createMockExercise = (
   equipment: Equipment.Barbell,
   movementPattern,
   isCustom: false,
+  createdAt: new Date(),
+  updatedAt: new Date(),
 });
 
   it('should automatically transfer broken Big 3 PRs to profileStore when finishing workout', () => {

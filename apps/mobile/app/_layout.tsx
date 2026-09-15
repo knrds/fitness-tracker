@@ -29,6 +29,11 @@ import { getResumeWorkoutDecision } from '../src/utils/resumeWorkoutGuard';
 import { inspectStartupState } from '../src/utils/startup-recovery';
 import { PersistenceGate } from '../src/components/PersistenceGate';
 import { useProfileStore } from '../src/stores/profileStore';
+import { validateEnvironment } from '../src/utils/envValidation';
+
+if (typeof __DEV__ !== 'undefined' && __DEV__) {
+  validateEnvironment(true);
+}
 
 if (Platform.OS !== 'web') {
   SplashScreen.preventAutoHideAsync().catch(() => {});

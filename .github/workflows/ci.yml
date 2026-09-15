@@ -39,3 +39,6 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      - name: Verify Web Bundle Export
+        run: pnpm build

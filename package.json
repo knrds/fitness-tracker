@@ -17,6 +17,7 @@
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test && pnpm test:api",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
   },
   "devDependencies": {

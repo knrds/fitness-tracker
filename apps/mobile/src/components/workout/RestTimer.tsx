@@ -1,13 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import React, { useEffect, useState, useMemo } from 'react';
+import { View, Text, StyleSheet, Pressable, TextInput, PanResponder } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   useAnimatedProps,
   withTiming,
   Easing,
-  runOnJS,
   useReducedMotion,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +13,7 @@ import { useTheme } from '@fitness-tracker/ui';
 import { useWorkoutStore } from '../../stores/workoutStore';
 import Svg, { Circle } from 'react-native-svg';
 import { triggerRestTimerAlarm } from '../../utils/timerAudio';
+import { shouldCaptureTimerSwipe, shouldTriggerTimerAction } from '../../utils/timerSwipe';
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export const RestTimer = () => {
@@ -77,13 +76,37 @@ export const RestTimer = () => {
     } else if (/^\d+$/.test(value)) seconds = Number(value);
     if (seconds > 0 && seconds <= 86400) startRestTimer(seconds);
   };
-  const pan = Gesture.Pan()
-    .minDistance(12)
-    .failOffsetX([-20, 20])
-    .onEnd((event) => {
-      if (event.translationY > 24) runOnJS(setExpanded)(false);
-      else if (event.translationY < -24) runOnJS(setExpanded)(true);
-    });
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onStartShouldSetPanResponderCapture: () => false,
+        onMoveShouldSetPanResponder: (_, gestureState) => {
+          if (editing) return false;
+          return shouldCaptureTimerSwipe(gestureState.dx, gestureState.dy, expanded);
+        },
+        onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+          if (editing) return false;
+          return shouldCaptureTimerSwipe(gestureState.dx, gestureState.dy, expanded);
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          const action = shouldTriggerTimerAction(
+            gestureState.dx,
+            gestureState.dy,
+            expanded,
+            gestureState.vy,
+          );
+          if (action === 'expand') {
+            setEditing(false);
+            setExpanded(true);
+          } else if (action === 'collapse') {
+            setEditing(false);
+            setExpanded(false);
+          }
+        },
+      }),
+    [expanded, editing],
+  );
   const progress =
     restTimer.durationSeconds > 0
       ? Math.min(1, Math.max(0, remaining / restTimer.durationSeconds))
@@ -105,27 +128,29 @@ export const RestTimer = () => {
         panelStyle,
       ]}
     >
-      <View style={styles.header}>
-        <GestureDetector gesture={pan}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={expanded ? 'Pausentimer einklappen' : 'Pausentimer öffnen'}
-            accessibilityState={{ expanded }}
-            onPress={() => {
-              setEditing(false);
-              setExpanded((value) => !value);
-            }}
-            style={styles.toggle}
-          >
-            <Ionicons name="timer-outline" size={22} color={theme.colors.primary} />
-            <Text style={{ color: theme.colors.muted, fontSize: 12 }}>REST</Text>
-            <Ionicons
-              name={expanded ? 'chevron-down' : 'chevron-up'}
-              size={16}
-              color={theme.colors.muted}
-            />
-          </Pressable>
-        </GestureDetector>
+      <View
+        testID="rest-timer-header"
+        style={styles.header}
+        {...panResponder.panHandlers}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={expanded ? 'Pausentimer einklappen' : 'Pausentimer öffnen'}
+          accessibilityState={{ expanded }}
+          onPress={() => {
+            setEditing(false);
+            setExpanded((value) => !value);
+          }}
+          style={styles.toggle}
+        >
+          <Ionicons name="timer-outline" size={22} color={theme.colors.primary} />
+          <Text style={{ color: theme.colors.muted, fontSize: 12 }}>REST</Text>
+          <Ionicons
+            name={expanded ? 'chevron-down' : 'chevron-up'}
+            size={16}
+            color={theme.colors.muted}
+          />
+        </Pressable>
         {editing ? (
           <TextInput
             accessibilityLabel="Pausendauer"
@@ -176,8 +201,10 @@ export const RestTimer = () => {
         style={[styles.details, detailStyle]}
       >
         <View
+          testID="rest-timer-clock-surface"
           style={{ alignSelf: 'center', width: 112, height: 112 }}
           accessibilityLabel={`Pause ${formatTime(remaining)}`}
+          {...panResponder.panHandlers}
         >
           <Svg width={112} height={112} viewBox="0 0 112 112">
             <Circle

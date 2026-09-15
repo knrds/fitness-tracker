@@ -70,6 +70,7 @@
 - **Error Banner:** Im Coach-Screen mit dynamischer "Erneut senden"-Aktion und klaren deutschen/englischen Rückmeldungen abgesichert.
 - **Dialoge:** Saubere Trennung zwischen Abbruch und Weitertrainieren im aktiven Workout ohne Datenverlust.
 - **Workout Set Options UX:** Das Drei-Punkte-Menü (`...`) bei Sätzen wird ausgeblendet, wenn sowohl RPE als auch RIR effektiv deaktiviert sind (`showRpe === false && showRir === false`). Der Platz wird sauber für Gewichts- und Wiederholungsfelder freigegeben. Swipe-to-delete bleibt unverändert funktionsfähig.
+- **Rest Timer Swipe Gesture:** Der Pausentimer kann nun zusätzlich per Swipe nach oben ausgefahren und per Swipe nach unten eingefahren werden. Die bestehende Tap-Bedienung und sämtliche Timer-Funktionen bleiben unverändert. `PHYSICAL_DEVICE_GESTURE_TEST_REQUIRED` für das finale Touch-Gefühl auf Hardware dokumentiert.
 
 ---
 
@@ -112,8 +113,10 @@
 2. `apps/mobile/src/utils/__tests__/haptics.test.ts` (6 Tests)
 3. `apps/mobile/src/i18n/__tests__/i18n.test.ts` (+ 1 rekursiver 100%-Paritätstest)
 4. `apps/mobile/src/components/workout/__tests__/SessionExerciseCardSetOptions.test.tsx` (8 Tests für alle RPE/RIR-Sichtbarkeitskombinationen, Cardio und Swipe-to-Delete)
+5. `apps/mobile/src/utils/__tests__/timerSwipe.test.ts` (13 Tests für Gesten-Richtung, Schwellenwerte, Flicks und Horizontalschutz)
+6. `apps/mobile/src/components/workout/__tests__/RestTimerGestures.test.tsx` (8 Tests für Swipe Up, Swipe Down, Tap, Controls und aktiven Countdown)
 
-Gesamtzahl Tests im Monorepo: **334 Tests PASS** (zuvor 326).
+Gesamtzahl Tests im Monorepo: **355 Tests PASS** (zuvor 334).
 
 ---
 

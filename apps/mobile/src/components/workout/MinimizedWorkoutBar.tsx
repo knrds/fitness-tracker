@@ -1,16 +1,25 @@
-import { Theme, useThemeStyles } from '@fitness-tracker/ui';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  useReducedMotion,
+  Easing,
+  runOnJS,
+} from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@fitness-tracker/ui';
+import { Theme, useTheme, useThemeStyles } from '@fitness-tracker/ui';
 import { useWorkoutStore } from '../../stores/workoutStore';
 import { isIOS } from '../../utils/platform';
+import { useI18n } from '../../i18n';
 
 export const MinimizedWorkoutBar = () => {
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
   const router = useRouter();
+  const { t } = useI18n();
   const {
     status,
     name,
@@ -26,6 +35,53 @@ export const MinimizedWorkoutBar = () => {
 
   const [elapsed, setElapsed] = useState(0);
   const [restRemaining, setRestRemaining] = useState(0);
+  const isRestoringRef = useRef(false);
+  const reducedMotion = useReducedMotion();
+
+  const isVisible = status !== 'idle' && isMinimized;
+  const [mounted, setMounted] = useState(isVisible);
+  const progress = useSharedValue(isVisible ? 1 : 0);
+
+  useEffect(() => {
+    if (status === 'idle') {
+      setMounted(false);
+      progress.value = 0;
+      return;
+    }
+
+    if (isMinimized) {
+      setMounted(true);
+      progress.value = withTiming(1, {
+        duration: reducedMotion ? 0 : theme.motion.standard,
+        easing: Easing.out(Easing.cubic),
+      });
+    } else {
+      progress.value = withTiming(
+        0,
+        {
+          duration: reducedMotion ? 0 : theme.motion.fast,
+          easing: Easing.in(Easing.cubic),
+        },
+        (finished) => {
+          if (finished) {
+            runOnJS(setMounted)(false);
+          }
+        },
+      );
+    }
+  }, [isMinimized, status, reducedMotion, theme.motion.standard, theme.motion.fast, progress]);
+
+  const animatedBarStyle = useAnimatedStyle(() => ({
+    opacity: progress.value,
+    transform: [
+      {
+        translateY: (1 - progress.value) * 60,
+      },
+      {
+        scale: 0.96 + progress.value * 0.04,
+      },
+    ],
+  }));
 
   // Active workout timer
   useEffect(() => {
@@ -82,10 +138,6 @@ export const MinimizedWorkoutBar = () => {
     };
   }, [status, restTimer.isRunning, restTimer.endsAt, isMinimized]);
 
-  if (status === 'idle' || !isMinimized) {
-    return null;
-  }
-
   const formatElapsed = (secs: number) => {
     const h = Math.floor(secs / 3600);
     const m = Math.floor((secs % 3600) / 60);
@@ -96,21 +148,31 @@ export const MinimizedWorkoutBar = () => {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const handleRestore = () => {
+  const handleRestore = useCallback(() => {
+    if (isRestoringRef.current) return;
+    isRestoringRef.current = true;
     setMinimized(false);
     router.push('/workout/session');
-  };
+    setTimeout(() => {
+      isRestoringRef.current = false;
+    }, 350);
+  }, [router, setMinimized]);
 
-  const handlePlayPause = () => {
+  const handlePlayPause = useCallback(() => {
     if (status === 'active') {
       pauseWorkout();
     } else if (status === 'paused') {
       resumeWorkout();
     }
-  };
+  }, [status, pauseWorkout, resumeWorkout]);
+
+  if (status === 'idle' || (!isMinimized && !mounted)) {
+    return null;
+  }
 
   return (
-    <Pressable
+    <Animated.View
+      pointerEvents={isMinimized ? 'auto' : 'none'}
       style={[
         styles.barContainer,
         {
@@ -118,50 +180,63 @@ export const MinimizedWorkoutBar = () => {
           borderColor: theme.colors.border,
           bottom: isIOS ? 98 : 76,
         },
+        animatedBarStyle,
       ]}
-      onPress={handleRestore}
     >
-      <View style={styles.leftCol}>
-        <Ionicons name="barbell-outline" size={20} color={theme.colors.primary} />
-        <View style={styles.textContainer}>
-          <Text style={[styles.titleText, { color: theme.colors.text }]} numberOfLines={1}>
-            {name || 'Laufendes Training'}
-          </Text>
-          <Text style={[styles.durationText, { color: theme.colors.muted }]}>
-            {formatElapsed(elapsed)}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.rightCol}>
-        {restTimer.isRunning && restRemaining > 0 && (
-          <View
-            style={[
-              styles.restBadge,
-              { backgroundColor: 'rgba(74, 222, 128, 0.15)', borderColor: theme.colors.success },
-            ]}
-          >
-            <Ionicons name="timer-outline" size={12} color={theme.colors.success} />
-            <Text style={styles.restText}>Rest: {formatElapsed(restRemaining)}</Text>
+      <Pressable
+        style={styles.innerPressable}
+        onPress={handleRestore}
+        accessibilityRole="button"
+        accessibilityLabel={t('workout.expandWorkoutA11y')}
+      >
+        <View style={styles.leftCol}>
+          <Ionicons name="barbell-outline" size={20} color={theme.colors.primary} />
+          <View style={styles.textContainer}>
+            <Text style={[styles.titleText, { color: theme.colors.text }]} numberOfLines={1}>
+              {name || 'Laufendes Training'}
+            </Text>
+            <Text style={[styles.durationText, { color: theme.colors.muted }]}>
+              {formatElapsed(elapsed)}
+            </Text>
           </View>
-        )}
+        </View>
 
-        <Pressable
-          style={[styles.actionButton, { backgroundColor: theme.colors.background }]}
-          onPress={(e) => {
-            e.stopPropagation();
-            handlePlayPause();
-          }}
-          hitSlop={8}
-        >
-          <Ionicons
-            name={status === 'active' ? 'pause' : 'play'}
-            size={16}
-            color={theme.colors.primary}
-          />
-        </Pressable>
-      </View>
-    </Pressable>
+        <View style={styles.rightCol}>
+          {restTimer.isRunning && restRemaining > 0 && (
+            <View
+              style={[
+                styles.restBadge,
+                { backgroundColor: 'rgba(74, 222, 128, 0.15)', borderColor: theme.colors.success },
+              ]}
+            >
+              <Ionicons name="timer-outline" size={12} color={theme.colors.success} />
+              <Text style={styles.restText}>Rest: {formatElapsed(restRemaining)}</Text>
+            </View>
+          )}
+
+          <Pressable
+            style={[styles.actionButton, { backgroundColor: theme.colors.background }]}
+            onPress={(e) => {
+              e?.stopPropagation?.();
+              handlePlayPause();
+            }}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={status === 'active' ? 'Pause' : 'Play'}
+          >
+            <Ionicons
+              name={status === 'active' ? 'pause' : 'play'}
+              size={16}
+              color={theme.colors.primary}
+            />
+          </Pressable>
+
+          <View style={styles.expandChevron}>
+            <Ionicons name="chevron-up" size={18} color={theme.colors.primary} />
+          </View>
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 };
 
@@ -174,16 +249,20 @@ const createStyles = (theme: Theme) =>
       height: 56,
       borderRadius: 12,
       borderWidth: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 16,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
       shadowRadius: 6,
       elevation: 8,
       zIndex: 9999,
+    },
+    innerPressable: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      height: '100%',
     },
     leftCol: {
       flexDirection: 'row',
@@ -229,5 +308,10 @@ const createStyles = (theme: Theme) =>
       borderRadius: 16,
       justifyContent: 'center',
       alignItems: 'center',
+    },
+    expandChevron: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: 2,
     },
   });

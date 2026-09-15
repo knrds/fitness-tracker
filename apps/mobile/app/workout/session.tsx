@@ -11,10 +11,17 @@ import {
   ScrollView,
   Pressable,
   TextInput,
-  Animated,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  useReducedMotion,
+  Easing,
+  runOnJS,
+} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import * as Crypto from 'expo-crypto';
 import { useRouter, Stack } from 'expo-router';
@@ -67,6 +74,50 @@ export default function WorkoutSessionScreen() {
   const [caffeineExpanded, setCaffeineExpanded] = useState(false);
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [collapsedExerciseIds, setCollapsedExerciseIds] = useState<Record<string, boolean>>({});
+
+  const reducedMotion = useReducedMotion();
+  const chevronRotation = useSharedValue(0);
+  const isMinimizingRef = React.useRef(false);
+
+  const chevronAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${chevronRotation.value}deg` }],
+  }));
+
+  const executeMinimize = React.useCallback(() => {
+    setMinimized(true);
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.navigate('/(tabs)/workouts');
+    }
+    setTimeout(() => {
+      isMinimizingRef.current = false;
+      chevronRotation.value = 0;
+    }, 350);
+  }, [router, setMinimized, chevronRotation]);
+
+  const handleMinimize = React.useCallback(() => {
+    if (isMinimizingRef.current) return;
+    isMinimizingRef.current = true;
+
+    if (reducedMotion) {
+      executeMinimize();
+      return;
+    }
+
+    chevronRotation.value = withTiming(
+      180,
+      {
+        duration: theme.motion.fast,
+        easing: Easing.out(Easing.cubic),
+      },
+      (finished) => {
+        if (finished) {
+          runOnJS(executeMinimize)();
+        }
+      },
+    );
+  }, [reducedMotion, theme.motion.fast, chevronRotation, executeMinimize]);
 
   const sorter = useMeasuredReorder(exercises, reorderExercises, {
     collapsedItemHeight: 76,
@@ -285,15 +336,14 @@ export default function WorkoutSessionScreen() {
               <Ionicons name="close" size={24} color={theme.colors.muted} />
             </Pressable>
             <Pressable
-              onPress={() => {
-                setMinimized(true);
-                router.navigate('/(tabs)/workouts');
-              }}
+              onPress={handleMinimize}
               style={{ minWidth: 44, minHeight: 44, justifyContent: 'center' }}
               accessibilityLabel={t('workout.minimizeWorkoutA11y')}
               accessibilityRole="button"
             >
-              <Ionicons name="chevron-down" size={24} color={theme.colors.primary} />
+              <Animated.View style={chevronAnimatedStyle}>
+                <Ionicons name="chevron-down" size={24} color={theme.colors.primary} />
+              </Animated.View>
             </Pressable>
             <View style={styles.headerTitleGroup}>
               <Text

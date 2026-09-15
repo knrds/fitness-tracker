@@ -128,6 +128,16 @@ Gesamtzahl Tests im Monorepo: **355 Tests PASS** (zuvor 334).
 4. Fehlende Typensicherheit bei Auth-Strings (wurden durch Inline-Ternaries statt `t()` gepflegt).
 5. Statische Anzeige der App-Version im About-Bereich dynamisiert.
 6. Drei-Punkte-Menü bei Workout-Sätzen wurde auch angezeigt, wenn weder RPE noch RIR aktiv waren (wird jetzt sauber ausgeblendet, ohne Layout-Lücke).
+7. Rest-Timer Gestensteuerung: Vertikaler Swipe up expandiert, Swipe down kollabiert den Timer.
+8. Workout Collapse / Expand Animation: Flüssiger, weicher Übergang zwischen Vollbild-Workout und minimierter Leiste (inkl. Chevron-Rotation, Reanimated Bar Slide-In/Out und Stack Slide-From-Bottom).
+
+### Workout Collapse / Expand Animation
+
+DONE
+
+The active workout now transitions smoothly between full and collapsed states instead of switching abruptly.
+
+Existing workout state and functionality remain unchanged.
 
 ---
 

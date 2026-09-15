@@ -140,7 +140,12 @@ export default function BodyTrackingScreen() {
   const handleSaveHydrationGoal = () => {
     const nextGoal = parseInt(hydrationGoalInput, 10);
     if (!Number.isFinite(nextGoal) || nextGoal < 250) {
-      return Alert.alert('Error', 'Hydration goal must be at least 250 ml.');
+      return Alert.alert(
+        t('common.error'),
+        language === 'en'
+          ? 'Hydration goal must be at least 250 ml.'
+          : 'Das Trinkziel muss mindestens 250 ml betragen.',
+      );
     }
     setDailyGoal(nextGoal);
     setHydrationGoalInput(String(nextGoal));
@@ -157,12 +162,22 @@ export default function BodyTrackingScreen() {
       !arms.trim() &&
       !legs.trim()
     ) {
-      return Alert.alert('Error', 'Please enter at least one metric.');
+      return Alert.alert(
+        t('common.error'),
+        language === 'en'
+          ? 'Please enter at least one metric.'
+          : 'Bitte trage mindestens einen Messwert ein.',
+      );
     }
 
     const parsedDate = new Date(`${dateStr}T12:00:00`);
     if (isNaN(parsedDate.getTime()) || formatDateLocal(parsedDate) !== dateStr) {
-      return Alert.alert('Error', 'Please enter a valid date (YYYY-MM-DD).');
+      return Alert.alert(
+        t('common.error'),
+        language === 'en'
+          ? 'Please enter a valid date (YYYY-MM-DD).'
+          : 'Bitte ein gültiges Datum (JJJJ-MM-TT) eingeben.',
+      );
     }
 
     const updates: Omit<BodyMetric, 'id' | 'userId' | 'createdAt'> = {
@@ -173,7 +188,12 @@ export default function BodyTrackingScreen() {
     if (height.trim()) {
       const hVal = parseDecimalInput(height);
       if (isNaN(hVal) || hVal <= 0)
-        return Alert.alert('Error', 'Height must be a positive number.');
+        return Alert.alert(
+          t('common.error'),
+          language === 'en'
+            ? 'Height must be a positive number.'
+            : 'Die Größe muss eine positive Zahl sein.',
+        );
       const canonicalHeight = isImperial ? hVal * 2.54 : hVal;
       useProfileStore.getState().updateProfile({ heightCm: canonicalHeight });
     }
@@ -182,7 +202,12 @@ export default function BodyTrackingScreen() {
     if (weight.trim()) {
       const wVal = parseDecimalInput(weight);
       if (isNaN(wVal) || wVal <= 0)
-        return Alert.alert('Error', 'Weight must be a positive number.');
+        return Alert.alert(
+          t('common.error'),
+          language === 'en'
+            ? 'Weight must be a positive number.'
+            : 'Das Gewicht muss eine positive Zahl sein.',
+        );
       const canonicalWeight = isImperial ? wVal / 2.20462 : wVal;
       updates.weightKg = canonicalWeight;
       useProfileStore.getState().updateProfile({ weightKg: canonicalWeight });
@@ -192,7 +217,12 @@ export default function BodyTrackingScreen() {
     if (bodyFat.trim()) {
       const bfVal = parseDecimalInput(bodyFat);
       if (isNaN(bfVal) || bfVal < 0 || bfVal > 100) {
-        return Alert.alert('Error', 'Body fat must be between 0% and 100%.');
+        return Alert.alert(
+          t('common.error'),
+          language === 'en'
+            ? 'Body fat must be between 0% and 100%.'
+            : 'Der Körperfettanteil muss zwischen 0 % und 100 % liegen.',
+        );
       }
       updates.bodyFatPercentage = bfVal;
     }
@@ -231,7 +261,14 @@ export default function BodyTrackingScreen() {
         }
         updates.measurements = meas;
       } catch (err) {
-        return Alert.alert('Error', err instanceof Error ? err.message : 'Invalid measurements.');
+        return Alert.alert(
+          t('common.error'),
+          err instanceof Error
+            ? err.message
+            : language === 'en'
+              ? 'Invalid measurements.'
+              : 'Ungültige Körpermaße.',
+        );
       }
     }
 
@@ -282,10 +319,10 @@ export default function BodyTrackingScreen() {
               },
             ]}
           >
-            Not enough data
+            {t('body.notEnoughData')}
           </Text>
           <Text style={[{ color: theme.colors.muted, ...theme.typography.body }]}>
-            Log at least 2 data points.
+            {t('body.logAtLeastTwo')}
           </Text>
         </Card>
       );
@@ -362,7 +399,7 @@ export default function BodyTrackingScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2 }}>
             <Ionicons name="information-circle-outline" size={13} color={theme.colors.muted} />
             <Text style={[styles.chartTipText, { color: theme.colors.muted }]}>
-              Tap any point on the chart to inspect details
+              {t('body.chartTip')}
             </Text>
           </View>
         )}
@@ -823,8 +860,8 @@ export default function BodyTrackingScreen() {
             style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 }}
             onPress={() =>
               Alert.alert(
-                'Körperfett verstehen',
-                'Der Körperfettanteil beschreibt den Anteil deiner Körpermasse, der aus Fett besteht. Beispiel: 20 % bei 80 kg entsprechen 16 kg Fettmasse. Der übrige Anteil umfasst unter anderem Muskeln, Knochen und Wasser. Ein einzelner Prozentwert ist keine Gesundheitsbewertung. Alter, Geschlecht und Messverfahren spielen eine Rolle. Vergleiche deinen Verlauf möglichst mit derselben Messmethode. Quelle: Johns Hopkins Medicine – Body composition assessment.',
+                t('body.understandingBodyFat'),
+                t('body.bodyFatExplanation'),
               )
             }
           >

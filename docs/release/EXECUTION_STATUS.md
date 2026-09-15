@@ -181,8 +181,9 @@ Im Code und in der Dokumentation wurden alle sichtbaren Alt-Namen bereinigt:
 5. [x] **Audio/Haptics Audit:** Nachweis des Web-Audio-Problems und Ausarbeitung des Migrationspfads auf `expo-av` (`docs/release/AUDIO_HAPTICS_AUDIT.md`).
 6. [x] **Subscription Integration Map:** Architektur und Feature-Matrix für EVARO Pro (`docs/release/SUBSCRIPTION_INTEGRATION_MAP.md`).
 7. [x] **Legal UI-Verdrahtung:** Neutrale Platzhalter für Impressum, Datenschutz, AGB und Support in `profile.tsx`.
-8. [x] **Ungenutzte Dependency entfernt:** `@opentelemetry/api` aus `package.json` und Lockfile bereinigt.
-9. [x] **Vollständige Validierung:** 315/315 Tests PASS, 0 Typecheck-Fehler, 0 Lint-Fehler, Coach-Check PASS.
+8. [x] **Deutsche Übersetzung & i18n-Hardening:** Bekannter Fehler bei zu wenigen Körperdaten behoben ("Noch nicht genügend Daten" / "Trage mindestens zwei Werte ein, um die Entwicklung anzuzeigen."); Übungsdetails (`exercise/[id].tsx`) und Supersatz-Alerts vollständig lokalisiert; Unit-Tests in `i18n.test.ts` ergänzt.
+9. [x] **Ungenutzte Dependency & Code bereinigt:** `@opentelemetry/api` entfernt; ungenutzter Helper `formatName` entfernt.
+10. [x] **Vollständige Validierung & Bundle-Check:** 315/315 Tests PASS, 0 Typecheck-Fehler, 0 Lint-Fehler, Coach-Check PASS, `expo export --platform web` PASS.
 
 ### ASTRA_TASKS (Komplexe architektonische & sicherheitskritische Arbeiten)
 1. **Exercise DB Bereinigung:** Ersatz oder lizenzierte Bereitstellung der Exercise-Visuals umsetzen.
@@ -203,14 +204,15 @@ Im Code und in der Dokumentation wurden alle sichtbaren Alt-Namen bereinigt:
 
 ## 5. Stable Beta Checkpoint
 
-**Version:** `0.1.0-beta.1`  
-**Tag:** `v0.1.0-beta.1`  
-**Commit:** `4cc3303` (bzw. finaler Sync-Commit)  
+**Version:** `0.1.0-beta.2` (Basis: `0.1.0-beta.1` auf `7d24b85`)  
+**Tag:** `v0.1.0-beta.2` (sowie vorhandener Remote-Tag `v0.1.0-beta.1`)  
+**Commit:** Final Verification Pass  
 **Date:** 15. September 2026  
 **Typecheck:** PASS (0 Fehler über alle Pakete)  
 **Lint:** PASS (0 Fehler, 0 Warnungen)  
 **Tests:** 315 / 315 PASS (100% grün)  
 **Coach Check:** PASS (Modell & API-Key bestätigt)  
+**Bundle Check:** PASS (`expo export --platform web` fehlerfrei)  
 **Physical iOS:** NOT VERIFIED  
 **Physical Android:** NOT VERIFIED  
 **Status:** `STABLE_BETA_CHECKPOINT`  

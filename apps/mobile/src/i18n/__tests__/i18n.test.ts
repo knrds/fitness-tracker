@@ -20,6 +20,18 @@ describe('i18n system', () => {
     expect(getTranslation('en', 'nav.home')).toBe('Home');
     expect(getTranslation('de', 'nav.coach')).toBe('Coach');
     expect(getTranslation('en', 'nav.coach')).toBe('Coach');
+
+    // Body metric empty state translations
+    expect(getTranslation('de', 'body.notEnoughData')).toBe('Noch nicht genügend Daten');
+    expect(getTranslation('en', 'body.notEnoughData')).toBe('Not enough data');
+    expect(getTranslation('de', 'body.logAtLeastTwo')).toBe(
+      'Trage mindestens zwei Werte ein, um die Entwicklung anzuzeigen.',
+    );
+    expect(getTranslation('en', 'body.logAtLeastTwo')).toBe('Log at least 2 data points.');
+    expect(getTranslation('de', 'body.chartTip')).toBe(
+      'Tippe auf einen Punkt im Diagramm für Details',
+    );
+    expect(getTranslation('en', 'body.chartTip')).toBe('Tap any point on the chart to inspect details');
   });
 
   it('formats muscle groups in German and English', () => {

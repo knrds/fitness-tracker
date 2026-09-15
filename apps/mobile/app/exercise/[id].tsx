@@ -19,6 +19,7 @@ import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { MuscleGroupBadge } from '../../src/components/exercises/MuscleGroupBadge';
 import { useTheme } from '@fitness-tracker/ui';
+import { useI18n } from '../../src/i18n';
 
 export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -27,6 +28,7 @@ export default function ExerciseDetailScreen() {
   const { profile, updateProfile } = useProfileStore();
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
+  const { t, language, formatEquipment, formatLevel } = useI18n();
 
   const [imageLoading, setImageLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
@@ -63,7 +65,9 @@ export default function ExerciseDetailScreen() {
   if (!exercise) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorText}>Exercise not found</Text>
+        <Text style={styles.errorText}>
+          {language === 'de' ? 'Übung nicht gefunden' : 'Exercise not found'}
+        </Text>
       </View>
     );
   }
@@ -72,10 +76,19 @@ export default function ExerciseDetailScreen() {
     try {
       if (status === 'active' || status === 'paused') {
         addExercise(exercise.id);
-        Alert.alert('Success', `${exercise.name} added to your active workout!`, [
-          { text: 'Go to Workout', onPress: () => router.push('/workout/session') },
-          { text: 'OK', style: 'cancel' },
-        ]);
+        Alert.alert(
+          t('common.success'),
+          language === 'de'
+            ? `„${exercise.name}“ wurde zum aktiven Workout hinzugefügt!`
+            : `"${exercise.name}" added to your active workout!`,
+          [
+            {
+              text: language === 'de' ? 'Zum Workout' : 'Go to Workout',
+              onPress: () => router.push('/workout/session'),
+            },
+            { text: t('common.ok'), style: 'cancel' },
+          ],
+        );
       } else {
         startWorkout('Quick Start');
         // Retrieve the store state again to ensure it was created, then add exercise
@@ -83,7 +96,12 @@ export default function ExerciseDetailScreen() {
         router.push('/workout/session');
       }
     } catch {
-      Alert.alert('Error', 'Could not add exercise to workout.');
+      Alert.alert(
+        t('common.error'),
+        language === 'de'
+          ? 'Übung konnte nicht zum Workout hinzugefügt werden.'
+          : 'Could not add exercise to workout.',
+      );
     }
   };
 
@@ -182,20 +200,20 @@ export default function ExerciseDetailScreen() {
           {/* Info Rows: Side by Side Cards */}
           <View style={styles.infoRow}>
             <View style={styles.infoCard}>
-              <Text style={styles.infoLabel}>Equipment</Text>
-              <Text style={styles.infoValue}>{formatName(exercise.equipment)}</Text>
+              <Text style={styles.infoLabel}>{language === 'de' ? 'Ausrüstung' : 'Equipment'}</Text>
+              <Text style={styles.infoValue}>{formatEquipment(exercise.equipment)}</Text>
             </View>
             <View style={styles.infoCard}>
-              <Text style={styles.infoLabel}>Difficulty</Text>
+              <Text style={styles.infoLabel}>{language === 'de' ? 'Schwierigkeit' : 'Difficulty'}</Text>
               <Text style={styles.infoValue}>
-                {exercise.experienceLevel ? formatName(exercise.experienceLevel) : 'Beginner'}
+                {exercise.experienceLevel ? formatLevel(exercise.experienceLevel) : (language === 'de' ? 'Anfänger' : 'Beginner')}
               </Text>
             </View>
           </View>
 
           {/* Muscle Badges */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Primary Muscles</Text>
+            <Text style={styles.sectionTitle}>{language === 'de' ? 'Hauptmuskeln' : 'Primary Muscles'}</Text>
             <View style={styles.badges}>
               {exercise.primaryMuscles.map((m) => (
                 <MuscleGroupBadge key={m} muscleGroup={m} />
@@ -205,7 +223,7 @@ export default function ExerciseDetailScreen() {
 
           {exercise.secondaryMuscles.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Secondary Muscles</Text>
+              <Text style={styles.sectionTitle}>{language === 'de' ? 'Hilfsmuskeln' : 'Secondary Muscles'}</Text>
               <View style={styles.badges}>
                 {exercise.secondaryMuscles.map((m) => (
                   <MuscleGroupBadge key={m} muscleGroup={m} />
@@ -216,7 +234,7 @@ export default function ExerciseDetailScreen() {
 
           {/* Instructions list */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Instructions</Text>
+            <Text style={styles.sectionTitle}>{language === 'de' ? 'Anleitung' : 'Instructions'}</Text>
             {instructionLines.length > 0 ? (
               <View style={styles.instructionsContainer}>
                 {instructionLines.map((line, idx) => (
@@ -230,7 +248,9 @@ export default function ExerciseDetailScreen() {
               </View>
             ) : (
               <Text style={styles.noInstructionsText}>
-                No instructions available for this exercise.
+                {language === 'de'
+                  ? 'Keine Anleitung für diese Übung verfügbar.'
+                  : 'No instructions available for this exercise.'}
               </Text>
             )}
           </View>
@@ -241,11 +261,11 @@ export default function ExerciseDetailScreen() {
           {(profile.rpeMode === 'selected_exercises' ||
             profile.rirMode === 'selected_exercises') && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Exercise Options</Text>
+              <Text style={styles.sectionTitle}>{language === 'de' ? 'Übungs-Optionen' : 'Exercise Options'}</Text>
               <View style={styles.exerciseOptionsContainer}>
                 {profile.rpeMode === 'selected_exercises' && (
                   <View style={styles.optionRow}>
-                    <Text style={styles.optionLabel}>Enable RPE Column</Text>
+                    <Text style={styles.optionLabel}>{language === 'de' ? 'RPE-Spalte aktivieren' : 'Enable RPE Column'}</Text>
                     <Switch
                       value={(profile.rpeEnabledExerciseIds || []).includes(exercise.id)}
                       onValueChange={(val) => {
@@ -261,7 +281,7 @@ export default function ExerciseDetailScreen() {
                 )}
                 {profile.rirMode === 'selected_exercises' && (
                   <View style={[styles.optionRow, { borderBottomWidth: 0 }]}>
-                    <Text style={styles.optionLabel}>Enable RIR Column</Text>
+                    <Text style={styles.optionLabel}>{language === 'de' ? 'RIR-Spalte aktivieren' : 'Enable RIR Column'}</Text>
                     <Switch
                       value={(profile.rirEnabledExerciseIds || []).includes(exercise.id)}
                       onValueChange={(val) => {
@@ -292,8 +312,8 @@ export default function ExerciseDetailScreen() {
           >
             <Text style={styles.actionButtonText}>
               {status === 'active' || status === 'paused'
-                ? 'Zu aktivem Workout hinzufügen'
-                : 'Neues Workout mit dieser Übung starten'}
+                ? (language === 'de' ? 'Zu aktivem Workout hinzufügen' : 'Add to active workout')
+                : (language === 'de' ? 'Neues Workout mit dieser Übung starten' : 'Start new workout with this exercise')}
             </Text>
           </Pressable>
         </View>
@@ -320,7 +340,9 @@ export default function ExerciseDetailScreen() {
             </Pressable>
             <View style={styles.fullscreenHint}>
               <Text style={styles.playOverlayText}>
-                {isPlaying ? '⏸ Tap to pause' : '▶ Tap to play'}
+                {isPlaying
+                  ? (language === 'de' ? '⏸ Tippen zum Pausieren' : '⏸ Tap to pause')
+                  : (language === 'de' ? '▶ Tippen zum Abspielen' : '▶ Tap to play')}
               </Text>
             </View>
           </View>
@@ -329,13 +351,6 @@ export default function ExerciseDetailScreen() {
     </View>
   );
 }
-
-const formatName = (str: string) => {
-  return str
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({

@@ -37,8 +37,9 @@
 
 ## Dead code removed
 
-- Keine aggressive Dead-Code-Elimination an Fachlogik oder UI durchgeführt, um Regressionsrisiken für die laufende Beta vollständig auszuschließen.
-- Beseitigung von veralteten UI-Hardcodings und ungenutzten Importen im Rahmen der Branding-Updates.
+- Keine aggressive Dead-Code-Elimination an Fachlogik durchgeführt, um Regressionsrisiken für die laufende Beta vollständig auszuschließen.
+- Beseitigung von veralteten UI-Hardcodings und ungenutzten Importen im Rahmen der Branding- und i18n-Updates.
+- Entfernung der ungenutzten Hilfsfunktion `formatName` in `apps/mobile/app/exercise/[id].tsx` nach Umstellung auf die kanonischen i18n-Formatierer `formatEquipment` und `formatLevel`.
 
 ---
 
@@ -81,5 +82,5 @@ Folgende technische Identifier wurden ganz bewusst **nicht** umbenannt, da eine 
 - **Lint:** PASS (`eslint` über alle Pakete – 0 Fehler, 0 Warnungen)
 - **Tests:** PASS (**315 / 315 Tests grün**, 0 Fehlgeschlagen, 0 Übersprungen)
 - **Coach Check:** PASS (`node api/provider-check.cjs` – Modell und API-Schlüssel bestätigt)
-- **Bundle / Start:** PASS (Metro-Konfiguration, Expo Router Einträge und TypeScript-Transpilation syntaktisch intakt)
+- **Bundle / Start:** PASS (`expo export --platform web` generiert alle Bundles und Chunks fehlerfrei)
 - **Working Tree:** Sauber

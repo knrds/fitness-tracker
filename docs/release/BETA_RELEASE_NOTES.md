@@ -1,13 +1,44 @@
-# EVARO Beta 0.1.0-beta.1
+# EVARO Beta Release Notes
 
-## Zweck dieses Releases
+## EVARO Beta 0.1.0-beta.2 (Final Verification & i18n Checkpoint)
 
-Stabiler Pre-Production-Checkpoint vor größeren Release-, Security-, Subscription-, Backend- und Store-Arbeiten. Dieser Release dient als verifizierter, jederzeit wiederherstellbarer Ausgangspunkt für den folgenden Lead Release Architect (ChatGPT-Astra).
+**Release-Datum:** 15. September 2026  
+**Commit-Basis:** baut auf `7d24b85` (`v0.1.0-beta.1`) auf  
+**Status:** `PRE-RELEASE` (Pre-Production Safepoint)
+
+### Neu / Korrigiert
+- **Korrektur deutscher Übersetzungsfehler im Body Tracking (`body.tsx`):**
+  - Leere Diagramme für Gewicht und Körperfett zeigen nun den gewünschten deutschen Text: `"Noch nicht genügend Daten"` und `"Trage mindestens zwei Werte ein, um die Entwicklung anzuzeigen."` (im englischen Modus unverändert `"Not enough data"` / `"Log at least 2 data points."`).
+  - Interaktiver Diagramm-Tipp vollständig übersetzt: `"Tippe auf einen Punkt im Diagramm für Details"`.
+  - Körperfett-Erklärungsdialog und Validierungs-Alerts (Datum, Größe, Gewicht, Körperfettanteil, Trinkziel) zweisprachig angebunden.
+- **Vollständige Lokalisierung Übungsdetails (`exercise/[id].tsx`):**
+  - Alle englischen Resttexte übersetzt: Ausrüstung, Schwierigkeit, Hauptmuskeln, Hilfsmuskeln, Anleitung, leere Anleitungen, Übungs-Optionen, RPE/RIR-Spalten, Button-Beschriftungen und Hinzufügen-Alerts.
+  - Kanonische Formatierung über `formatEquipment()` und `formatLevel()`; ungenutzte Alt-Helfer entfernt.
+- **Supersatz-Alerts (`SessionExerciseCard.tsx`):**
+  - Alert-Titel in deutscher Sprache auf `"Supersatz"` lokalisiert.
+- **Automatisierte i18n-Tests:**
+  - `apps/mobile/src/i18n/__tests__/i18n.test.ts` erweitert um Validierung der neuen Translation-Keys.
+- **Bundle-Sanity-Check:**
+  - Vollständiger Expo Web-Export (`expo export --platform web`) erfolgreich verifiziert (54 Assets, JS-Bundle, HTML, Manifest).
+
+### Technische Verifikation
+- **Typecheck:** PASS (0 Fehler über alle 3 Monorepo-Pakete)
+- **Lint:** PASS (0 Fehler, 0 Warnungen)
+- **Tests:** PASS (**315 / 315 Tests grün**)
+  - Domain: 57 / 57 PASS (Vitest)
+  - Mobile: 240 / 240 PASS (Jest, 50 Testsuites)
+  - Coach API: 18 / 18 PASS (Node Test Runner)
+- **Coach Check:** PASS (`pnpm coach:check` – Modell und API-Key bestätigt)
 
 ---
 
-## Enthalten
+## EVARO Beta 0.1.0-beta.1 (Baseline Checkpoint)
 
+**Release-Datum:** 15. September 2026  
+**Commit:** `7d24b85` (auf `origin/main`)  
+**Tag:** `v0.1.0-beta.1`
+
+### Enthalten
 - **Funktionierendes Workout Tracking:** Sets, Reps, Weight, RPE, Rest-Timer, aktives Session-HUD, Volume-Berechnungen und atomare Speicherung.
 - **Exercise Library & Filter:** 873 strukturierte Übungen durchsuchbar und filterbar nach Muskelgruppen und Equipment.
 - **Trainingsprogramme & Vorlagen:** Strukturierte Pläne (GK, OK/UK, PPL, Arnold Split), Drag-and-Drop Sortierung und Session-Zuordnung.
@@ -30,44 +61,10 @@ Stabiler Pre-Production-Checkpoint vor größeren Release-, Security-, Subscript
 
 ---
 
-## Technisch verifiziert
+## Bekannte offene P0-Themen für Astra
 
-- **Typecheck:** PASS (`tsc --noEmit` über `packages/domain`, `packages/ui`, `apps/mobile` – 0 Fehler)
-- **Lint:** PASS (`eslint` über alle Pakete – 0 Fehler, 0 Warnungen)
-- **Tests:** PASS (**315 / 315 Tests grün**)
-  - Domain: 57 / 57 PASS (Vitest)
-  - Mobile: 240 / 240 PASS (Jest, 50 Testsuites)
-  - Coach API: 18 / 18 PASS (Node Test Runner)
-- **Coach Check:** PASS (`pnpm coach:check` – Modell und API-Key bestätigt)
-- **Build/Bundle Check:** PASS (TypeScript und Metro-Bundle verifiziert)
-- **Physical Device:** NOT VERIFIED ON PHYSICAL DEVICE (lokale Windows-Entwicklungsumgebung ohne native iOS/Android-Signatur-Credentials)
-
----
-
-## Bekannte offene P0-Themen
-
-1. **P0-01 (Lizenz/Assets):** 1.492 Übungs-GIFs werden via Hotlink von `static.exercisedb.dev` geladen; Klärung der kommerziellen Lizenz bzw. Ersatz durch eigene Vektoren erforderlich (`BLOCKED`).
-2. **P0-02 (Backend-Sicherheit & AI-Kosten):** Coach-Backend läuft aktuell als lokaler Node-Server; benötigt öffentliches HTTPS-Deployment, verteiltes Rate-Limiting und serverseitigen Entitlement-Check (`READY_FOR_ASTRA`).
+1. **P0-01 (Lizenz/Assets):** 1.492 Übungs-GIFs werden via Hotlink von `static.exercisedb.dev` geladen (`BLOCKED`).
+2. **P0-02 (Backend-Sicherheit & AI-Kosten):** Coach-Backend benötigt HTTPS-Deployment, verteiltes Rate-Limiting und serverseitigen Entitlement-Check (`READY_FOR_ASTRA`).
 3. **P0-03 (Store-Compliance):** Kaskadierende Cloud-Account-Löschung gemäß Apple Guideline 5.1.1(v) fehlt serverseitig (`READY_FOR_ASTRA`).
 4. **P0-04 (Monetarisierung):** RevenueCat SDK und Store-Produkte (Monat/Jahr) müssen integriert werden (`READY_FOR_ASTRA`).
 5. **P0-05 (Native Rest-Timer Audio):** Web Audio API synthese in `timerAudio.ts` schlägt auf nativen Geräten fehl; Umstellung auf `expo-av` vorbereitet (`READY_FOR_ASTRA`).
-
----
-
-## Noch nicht enthalten
-
-- Production In-App Subscriptions (RevenueCat / StoreKit 2 / Google Play Billing)
-- Finale serverseitige Account-Löschung (Supabase RPC)
-- Sichere Keychain-/Keystore-Token-Speicherung (SecureStore)
-- Store Production Setup & EAS Credentials
-- Production HTTPS AI Backend mit Distributed Rate Limiting
-- Finale rechtliche Datenschutz- und Art.-9-DSGVO-Freigaben
-- Vollständige End-to-End-Qualitätssicherung auf physischen iOS-/Android-Geräten
-
----
-
-## Safe Return Point
-
-- **Git Tag:** `v0.1.0-beta.1`
-- **Commit:** `4cc3303` (bzw. finaler Sync-Commit)
-- **Zweck:** Garantierter, voll funktionsfähiger Rückkehrpunkt vor allen anstehenden Architektur-, Sicherheits- und Store-Umbauten.

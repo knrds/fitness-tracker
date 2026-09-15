@@ -312,7 +312,7 @@ export const SessionExerciseCard = ({
     if (sessionExercise.supersetGroup) {
       toggleSuperset(sessionExercise.id);
       Alert.alert(
-        'Superset',
+        language === 'de' ? 'Supersatz' : 'Superset',
         language === 'de'
           ? 'Übung wurde vom Supersatz getrennt.'
           : 'Exercise unlinked from superset.',
@@ -320,7 +320,7 @@ export const SessionExerciseCard = ({
     } else {
       if (currentIdx === totalEx - 1) {
         Alert.alert(
-          'Superset',
+          language === 'de' ? 'Supersatz' : 'Superset',
           language === 'de'
             ? 'Ein Supersatz verbindet diese Übung mit der nächsten. Bitte füge zuerst eine weitere Übung hinzu.'
             : 'Supersets link this exercise with the next one. Please add another exercise first to create a superset.',

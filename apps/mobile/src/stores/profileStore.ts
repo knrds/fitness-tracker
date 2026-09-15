@@ -71,6 +71,8 @@ export interface Profile {
   rirDisabledExerciseIds?: string[];
   profileImageUri?: string;
   showExerciseDeleteConfirmation?: boolean;
+  hapticsEnabled?: boolean;
+  soundEnabled?: boolean;
 }
 
 export interface ProfileState {
@@ -100,6 +102,8 @@ const defaultProfile: Profile = {
   rpeDisabledExerciseIds: [],
   rirDisabledExerciseIds: [],
   showExerciseDeleteConfirmation: true,
+  hapticsEnabled: true,
+  soundEnabled: true,
 };
 
 const profileStateSchema = z.object({
@@ -143,6 +147,8 @@ const profileStateSchema = z.object({
   rirDisabledExerciseIds: z.array(z.string()).optional(),
   profileImageUri: z.string().optional(),
   showExerciseDeleteConfirmation: z.boolean().optional(),
+  hapticsEnabled: z.boolean().optional(),
+  soundEnabled: z.boolean().optional(),
 });
 
 const profilePersistedSchema = z.object({

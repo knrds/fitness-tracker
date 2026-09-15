@@ -1,16 +1,9 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  useReducedMotion,
-  Easing,
-  runOnJS,
-} from 'react-native-reanimated';
+import { Theme, useThemeStyles } from '@fitness-tracker/ui';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Theme, useTheme, useThemeStyles } from '@fitness-tracker/ui';
+import { useTheme } from '@fitness-tracker/ui';
 import { useWorkoutStore } from '../../stores/workoutStore';
 import { isIOS } from '../../utils/platform';
 import { useI18n } from '../../i18n';
@@ -35,53 +28,8 @@ export const MinimizedWorkoutBar = () => {
 
   const [elapsed, setElapsed] = useState(0);
   const [restRemaining, setRestRemaining] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const isRestoringRef = useRef(false);
-  const reducedMotion = useReducedMotion();
-
-  const isVisible = status !== 'idle' && isMinimized;
-  const [mounted, setMounted] = useState(isVisible);
-  const progress = useSharedValue(isVisible ? 1 : 0);
-
-  useEffect(() => {
-    if (status === 'idle') {
-      setMounted(false);
-      progress.value = 0;
-      return;
-    }
-
-    if (isMinimized) {
-      setMounted(true);
-      progress.value = withTiming(1, {
-        duration: reducedMotion ? 0 : theme.motion.standard,
-        easing: Easing.out(Easing.cubic),
-      });
-    } else {
-      progress.value = withTiming(
-        0,
-        {
-          duration: reducedMotion ? 0 : theme.motion.fast,
-          easing: Easing.in(Easing.cubic),
-        },
-        (finished) => {
-          if (finished) {
-            runOnJS(setMounted)(false);
-          }
-        },
-      );
-    }
-  }, [isMinimized, status, reducedMotion, theme.motion.standard, theme.motion.fast, progress]);
-
-  const animatedBarStyle = useAnimatedStyle(() => ({
-    opacity: progress.value,
-    transform: [
-      {
-        translateY: (1 - progress.value) * 60,
-      },
-      {
-        scale: 0.96 + progress.value * 0.04,
-      },
-    ],
-  }));
 
   // Active workout timer
   useEffect(() => {
@@ -138,6 +86,22 @@ export const MinimizedWorkoutBar = () => {
     };
   }, [status, restTimer.isRunning, restTimer.endsAt, isMinimized]);
 
+  // Smooth subtle fade-in when the minimized bar appears
+  useEffect(() => {
+    if (status !== 'idle' && isMinimized) {
+      fadeAnim.setValue(0);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [status, isMinimized, fadeAnim]);
+
+  if (status === 'idle' || !isMinimized) {
+    return null;
+  }
+
   const formatElapsed = (secs: number) => {
     const h = Math.floor(secs / 3600);
     const m = Math.floor((secs % 3600) / 60);
@@ -148,39 +112,34 @@ export const MinimizedWorkoutBar = () => {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const handleRestore = useCallback(() => {
+  const handleRestore = () => {
     if (isRestoringRef.current) return;
     isRestoringRef.current = true;
     setMinimized(false);
     router.push('/workout/session');
     setTimeout(() => {
       isRestoringRef.current = false;
-    }, 350);
-  }, [router, setMinimized]);
+    }, 300);
+  };
 
-  const handlePlayPause = useCallback(() => {
+  const handlePlayPause = () => {
     if (status === 'active') {
       pauseWorkout();
     } else if (status === 'paused') {
       resumeWorkout();
     }
-  }, [status, pauseWorkout, resumeWorkout]);
-
-  if (status === 'idle' || (!isMinimized && !mounted)) {
-    return null;
-  }
+  };
 
   return (
     <Animated.View
-      pointerEvents={isMinimized ? 'auto' : 'none'}
       style={[
         styles.barContainer,
         {
           backgroundColor: theme.colors.surface,
           borderColor: theme.colors.border,
           bottom: isIOS ? 98 : 76,
+          opacity: fadeAnim,
         },
-        animatedBarStyle,
       ]}
     >
       <Pressable
@@ -230,10 +189,6 @@ export const MinimizedWorkoutBar = () => {
               color={theme.colors.primary}
             />
           </Pressable>
-
-          <View style={styles.expandChevron}>
-            <Ionicons name="chevron-up" size={18} color={theme.colors.primary} />
-          </View>
         </View>
       </Pressable>
     </Animated.View>
@@ -308,10 +263,5 @@ const createStyles = (theme: Theme) =>
       borderRadius: 16,
       justifyContent: 'center',
       alignItems: 'center',
-    },
-    expandChevron: {
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginLeft: 2,
     },
   });

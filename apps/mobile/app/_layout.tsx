@@ -13,7 +13,6 @@ import * as SplashScreen from 'expo-splash-screen';
 import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useReducedMotion } from 'react-native-reanimated';
 import {
   ThemeProvider,
   useTheme,
@@ -160,7 +159,6 @@ function RootNavigator() {
   const router = useRouter();
   const pathname = usePathname();
   const { isConfigured, isInitialized, isLoading, session } = useAuthStore();
-  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     Keyboard.dismiss();
@@ -202,8 +200,7 @@ function RootNavigator() {
           name="workout/session"
           options={{
             headerShown: false,
-            animation: reducedMotion ? 'none' : 'slide_from_bottom',
-            animationDuration: 220,
+            animation: 'fade',
           }}
         />
       </Stack>

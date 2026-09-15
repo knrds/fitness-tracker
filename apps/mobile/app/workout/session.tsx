@@ -3,7 +3,7 @@ import { Theme, useThemeStyles, AnimatedDisclosure } from '@fitness-tracker/ui';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
 import { getStorageScope, isScopeCurrent } from '../../src/data/storageScope';
 import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -67,6 +67,37 @@ export default function WorkoutSessionScreen() {
   const [caffeineExpanded, setCaffeineExpanded] = useState(false);
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [collapsedExerciseIds, setCollapsedExerciseIds] = useState<Record<string, boolean>>({});
+
+  const isMinimized = useWorkoutStore((s) => s.isMinimized);
+  const screenFadeAnim = useRef(new Animated.Value(0)).current;
+  const isMinimizingRef = useRef(false);
+
+  useEffect(() => {
+    if (!isMinimized) {
+      screenFadeAnim.setValue(0);
+      Animated.timing(screenFadeAnim, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isMinimized, screenFadeAnim]);
+
+  const handleMinimize = () => {
+    if (isMinimizingRef.current) return;
+    isMinimizingRef.current = true;
+    Animated.timing(screenFadeAnim, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      setMinimized(true);
+      router.navigate('/(tabs)/workouts');
+      setTimeout(() => {
+        isMinimizingRef.current = false;
+      }, 300);
+    });
+  };
 
   const sorter = useMeasuredReorder(exercises, reorderExercises, {
     collapsedItemHeight: 76,
@@ -241,7 +272,12 @@ export default function WorkoutSessionScreen() {
   const headerHeight = topSafeArea + headerBodyHeight;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <Animated.View
+      style={[
+        styles.container,
+        { backgroundColor: theme.colors.background, opacity: screenFadeAnim },
+      ]}
+    >
       <Stack.Screen
         options={{
           headerShown: false,
@@ -285,10 +321,7 @@ export default function WorkoutSessionScreen() {
               <Ionicons name="close" size={24} color={theme.colors.muted} />
             </Pressable>
             <Pressable
-              onPress={() => {
-                setMinimized(true);
-                router.navigate('/(tabs)/workouts');
-              }}
+              onPress={handleMinimize}
               style={{ minWidth: 44, minHeight: 44, justifyContent: 'center' }}
               accessibilityLabel={t('workout.minimizeWorkoutA11y')}
               accessibilityRole="button"
@@ -614,7 +647,7 @@ export default function WorkoutSessionScreen() {
         templateId={templateId}
         onUpdate={handleUpdateTemplate}
       />
-    </View>
+    </Animated.View>
   );
 }
 

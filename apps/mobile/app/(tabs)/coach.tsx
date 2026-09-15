@@ -47,7 +47,7 @@ const SUGGESTIONS_DE = [
 export default function CoachScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const { profile } = useProfileStore();
 
   const suggestions = React.useMemo(() => {
@@ -103,15 +103,15 @@ export default function CoachScreen() {
       if (!isScopeCurrent(scope) || result.canceled) return;
       const asset = result.assets[0];
       if (!asset?.base64 || asset.base64.length > 5500000)
-        throw Error('Bitte ein kleineres Bild auswählen (max. 4 MB).');
+        throw Error(t('coach.imageTooLarge'));
       const mime = Platform.OS === 'web' ? asset.mimeType || 'image/jpeg' : 'image/jpeg';
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(mime))
-        throw Error('Bitte ein JPEG-, PNG- oder WebP-Bild auswählen.');
+        throw Error(t('coach.unsupportedImageFormat'));
       setImage('data:' + mime + ';base64,' + asset.base64);
       setAttachmentError('');
     } catch (e) {
       if (isScopeCurrent(scope))
-        setAttachmentError(e instanceof Error ? e.message : 'Bild konnte nicht geöffnet werden.');
+        setAttachmentError(e instanceof Error ? e.message : t('coach.imageOpenFailed'));
     }
   };
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
@@ -220,7 +220,7 @@ export default function CoachScreen() {
                 style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }}
               >
                 <Text style={{ color: theme.colors.primary, fontWeight: '600' }}>
-                  Erneut senden
+                  {t('coach.retry')}
                 </Text>
               </Pressable>
             </View>

@@ -20,7 +20,7 @@ export default function LoginScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { showAlert } = useDialog();
-  const { language } = useI18n();
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { signIn, isLoading } = useAuthStore();
@@ -28,8 +28,8 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       await showAlert({
-        title: language === 'de' ? 'Fehler' : 'Error',
-        message: language === 'de' ? 'Bitte fülle alle Felder aus.' : 'Please fill in all fields.',
+        title: t('common.error'),
+        message: t('auth.fillAllFields'),
         tone: 'danger',
       });
       return;
@@ -43,7 +43,7 @@ export default function LoginScreen() {
 
       if (result.error) {
         await showAlert({
-          title: language === 'de' ? 'Anmeldung fehlgeschlagen' : 'Login Failed',
+          title: t('auth.loginFailed'),
           message: result.error,
           tone: 'danger',
         });
@@ -51,14 +51,9 @@ export default function LoginScreen() {
         // Auth state listener in _layout.tsx will navigate to (tabs) automatically
       }
     } catch (err: unknown) {
-      const errMsg =
-        err instanceof Error
-          ? err.message
-          : language === 'de'
-            ? 'Ein unerwarteter Fehler ist aufgetreten.'
-            : 'An unexpected error occurred.';
+      const errMsg = err instanceof Error ? err.message : t('auth.unexpectedError');
       await showAlert({
-        title: language === 'de' ? 'Fehler' : 'Error',
+        title: t('common.error'),
         message: errMsg,
         tone: 'danger',
       });
@@ -81,12 +76,12 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
       >
-        <AuthHeader title={language === 'de' ? 'Willkommen zurück' : 'Welcome back'} />
+        <AuthHeader title={t('auth.loginTitle')} />
 
         <View style={styles.form}>
           <Input
-            label={language === 'de' ? 'E-Mail-Adresse' : 'Email Address'}
-            placeholder="email@example.com"
+            label={t('auth.emailLabel')}
+            placeholder={t('auth.emailPlaceholder')}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -94,8 +89,8 @@ export default function LoginScreen() {
           />
 
           <Input
-            label={language === 'de' ? 'Passwort' : 'Password'}
-            placeholder="••••••••"
+            label={t('auth.passwordLabel')}
+            placeholder={t('auth.passwordPlaceholder')}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -107,12 +102,12 @@ export default function LoginScreen() {
             onPress={() => router.push('/auth/forgot-password' as Href)}
           >
             <Text style={[styles.forgotPasswordText, { color: theme.colors.primary }]}>
-              {language === 'de' ? 'Passwort vergessen?' : 'Forgot Password?'}
+              {t('auth.forgotPassword')}
             </Text>
           </Pressable>
 
           <Button
-            title={language === 'de' ? 'ANMELDEN' : 'LOG IN'}
+            title={t('auth.loginButton').toUpperCase()}
             variant="primary"
             isLoading={isLoading}
             onPress={handleLogin}
@@ -122,7 +117,7 @@ export default function LoginScreen() {
 
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: theme.colors.muted }]}>
-            {language === 'de' ? 'Noch kein Konto? ' : "Don't have an account? "}
+            {t('auth.noAccountPrompt')}{' '}
           </Text>
           <Pressable
             accessibilityRole="button"
@@ -130,7 +125,7 @@ export default function LoginScreen() {
             onPress={() => router.push('/auth/register' as Href)}
           >
             <Text style={[styles.link, { color: theme.colors.primary }]}>
-              {language === 'de' ? 'Registrieren' : 'Sign Up'}
+              {t('auth.registerButton')}
             </Text>
           </Pressable>
         </View>

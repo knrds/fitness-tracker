@@ -128,13 +128,10 @@ export default function WorkoutSessionScreen() {
     const hasCompletedSet = exercises.some((ex) => ex.sets.some((set) => set.completed));
     if (!hasCompletedSet) {
       const discard = await showConfirm({
-        title: language === 'de' ? 'Noch kein Satz abgeschlossen' : 'No sets completed yet',
-        message:
-          language === 'de'
-            ? 'Möchtest du dieses Training verwerfen oder weitertrainieren?'
-            : 'Do you want to discard this workout or continue training?',
-        confirmLabel: language === 'de' ? 'Training verwerfen' : 'Discard workout',
-        cancelLabel: language === 'de' ? 'Weitertrainieren' : 'Continue training',
+        title: t('workout.noSetsCompletedTitle'),
+        message: t('workout.noSetsCompletedMessage'),
+        confirmLabel: t('workout.discardWorkout'),
+        cancelLabel: t('workout.continueWorkout'),
         destructive: true,
       });
       if (discard && isScopeCurrent(scope)) {
@@ -194,13 +191,10 @@ export default function WorkoutSessionScreen() {
   const handleBackAction = async () => {
     const scope = getStorageScope();
     const shouldDiscard = await showConfirm({
-      title: language === 'de' ? 'Training abbrechen' : 'Cancel workout',
-      message:
-        language === 'de'
-          ? 'Möchtest du das aktuelle Training wirklich abbrechen und verwerfen?'
-          : 'Are you sure you want to cancel and discard the current workout?',
-      confirmLabel: language === 'de' ? 'Training abbrechen' : 'Cancel workout',
-      cancelLabel: language === 'de' ? 'Weitertrainieren' : 'Continue training',
+      title: t('workout.cancelWorkoutConfirmTitle'),
+      message: t('workout.cancelWorkoutConfirmMessage'),
+      confirmLabel: t('workout.cancelWorkout'),
+      cancelLabel: t('workout.continueWorkout'),
       destructive: true,
     });
     if (shouldDiscard && isScopeCurrent(scope)) {
@@ -285,7 +279,7 @@ export default function WorkoutSessionScreen() {
             <Pressable
               onPress={handleBackAction}
               style={{ minWidth: 44, minHeight: 44, justifyContent: 'center' }}
-              accessibilityLabel="Training beenden"
+              accessibilityLabel={t('workout.endWorkoutA11y')}
               accessibilityRole="button"
             >
               <Ionicons name="close" size={24} color={theme.colors.muted} />
@@ -296,7 +290,7 @@ export default function WorkoutSessionScreen() {
                 router.navigate('/(tabs)/workouts');
               }}
               style={{ minWidth: 44, minHeight: 44, justifyContent: 'center' }}
-              accessibilityLabel="Training minimieren"
+              accessibilityLabel={t('workout.minimizeWorkoutA11y')}
               accessibilityRole="button"
             >
               <Ionicons name="chevron-down" size={24} color={theme.colors.primary} />
@@ -373,7 +367,7 @@ export default function WorkoutSessionScreen() {
           <Card padding="md" style={styles.caffeineCard}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Koffein eintragen"
+              accessibilityLabel={t('workout.logCaffeineA11y')}
               accessibilityState={{ expanded: caffeineExpanded }}
               onPress={() => setCaffeineExpanded((value) => !value)}
               style={[styles.caffeineHeader, { minHeight: 44, marginBottom: 0 }]}
@@ -492,7 +486,9 @@ export default function WorkoutSessionScreen() {
             {exercises.length > 1 && (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={isReorderMode ? 'Sortieren beenden' : 'Übungen sortieren'}
+                accessibilityLabel={
+                  isReorderMode ? t('workout.finishReorderA11y') : t('workout.reorderExercisesA11y')
+                }
                 onPress={() => setIsReorderMode((prev) => !prev)}
                 style={[
                   styles.reorderToggleBtn,

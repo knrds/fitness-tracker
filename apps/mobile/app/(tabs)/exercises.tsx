@@ -128,7 +128,7 @@ interface ExercisesScreenProps {
 export default function ExercisesScreen({ embedded = false }: ExercisesScreenProps) {
   const scrollRef = useFocusScroll<FlatList<import('@fitness-tracker/domain').Exercise>>();
   const theme = useTheme();
-  const { language, formatMuscle } = useI18n();
+  const { language, formatMuscle, t } = useI18n();
   const params = useLocalSearchParams<{ muscle?: string }>();
   const insets = useSafeAreaInsets();
   const { filteredExercises, favoriteIds, toggleFavorite, searchQuery, setSearchQuery } =
@@ -416,12 +416,8 @@ export default function ExercisesScreen({ embedded = false }: ExercisesScreenPro
         )}
         ListEmptyComponent={
           <EmptyState
-            title={language === 'de' ? '0 ÜBUNGEN GEFUNDEN' : '0 EXERCISES FOUND'}
-            description={
-              language === 'de'
-                ? 'Passe deine Suche oder Filter an, um passende Übungen zu finden.'
-                : "Adjust your search or filters to find what you're looking for."
-            }
+            title={t('exercises.noExercisesFound')}
+            description={t('exercises.adjustFiltersPrompt')}
           />
         }
       />

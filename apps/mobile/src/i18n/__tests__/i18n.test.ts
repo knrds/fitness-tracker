@@ -1,4 +1,4 @@
-import { getTranslation, formatMuscle, formatEquipment, formatGoal } from '../index';
+import { getTranslation, formatMuscle, formatEquipment, formatGoal, translations } from '../index';
 import { MuscleGroup, Equipment } from '@fitness-tracker/domain';
 
 describe('i18n system', () => {
@@ -71,4 +71,30 @@ describe('i18n system', () => {
     expect(getTranslation('de', 'unknown.key', 'Fallback')).toBe('Fallback');
     expect(getTranslation('en', 'unknown.key')).toBe('unknown.key');
   });
+
+  it('guarantees 100% key parity between German and English translations', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function getLeafPaths(obj: Record<string, any>, prefix = ''): string[] {
+      let paths: string[] = [];
+      for (const [key, value] of Object.entries(obj)) {
+        const fullPath = prefix ? `${prefix}.${key}` : key;
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+          paths = paths.concat(getLeafPaths(value, fullPath));
+        } else {
+          paths.push(fullPath);
+        }
+      }
+      return paths.sort();
+    }
+
+    const dePaths = getLeafPaths(translations.de);
+    const enPaths = getLeafPaths(translations.en);
+
+    const missingInEn = dePaths.filter((p) => !enPaths.includes(p));
+    const missingInDe = enPaths.filter((p) => !dePaths.includes(p));
+
+    expect(missingInEn).toEqual([]);
+    expect(missingInDe).toEqual([]);
+  });
 });
+

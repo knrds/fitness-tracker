@@ -20,7 +20,7 @@ export default function RegisterScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { showAlert } = useDialog();
-  const { language } = useI18n();
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,8 +29,8 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
       await showAlert({
-        title: language === 'de' ? 'Fehler' : 'Error',
-        message: language === 'de' ? 'Bitte fülle alle Felder aus.' : 'Please fill in all fields.',
+        title: t('common.error'),
+        message: t('auth.fillAllFields'),
         tone: 'danger',
       });
       return;
@@ -45,17 +45,14 @@ export default function RegisterScreen() {
 
       if (result.error) {
         await showAlert({
-          title: language === 'de' ? 'Registrierung fehlgeschlagen' : 'Sign Up Failed',
+          title: t('auth.registerFailed'),
           message: result.error,
           tone: 'danger',
         });
       } else if (result.needsEmailVerification) {
         await showAlert({
-          title: language === 'de' ? 'Erfolg' : 'Success',
-          message:
-            language === 'de'
-              ? 'Registrierung erfolgreich! Bitte bestätige deine E-Mail.'
-              : 'Registration successful! Please verify your email.',
+          title: t('auth.registerSuccessTitle'),
+          message: t('auth.registerSuccessMessage'),
           tone: 'success',
         });
         router.push(`/auth/verify?email=${encodeURIComponent(email.trim())}` as Href);
@@ -63,14 +60,9 @@ export default function RegisterScreen() {
         router.replace('/' as Href);
       }
     } catch (err: unknown) {
-      const errMsg =
-        err instanceof Error
-          ? err.message
-          : language === 'de'
-            ? 'Ein unerwarteter Fehler ist aufgetreten.'
-            : 'An unexpected error occurred.';
+      const errMsg = err instanceof Error ? err.message : t('auth.unexpectedError');
       await showAlert({
-        title: language === 'de' ? 'Fehler' : 'Error',
+        title: t('common.error'),
         message: errMsg,
         tone: 'danger',
       });
@@ -93,19 +85,19 @@ export default function RegisterScreen() {
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
       >
-        <AuthHeader title={language === 'de' ? 'Konto erstellen' : 'Create your account'} />
+        <AuthHeader title={t('auth.registerTitle')} />
 
         <View style={styles.form}>
           <Input
-            label={language === 'de' ? 'Name / Benutzername' : 'Name / Username'}
-            placeholder="John Doe"
+            label={t('auth.nameLabel')}
+            placeholder={t('auth.namePlaceholder')}
             value={name}
             onChangeText={setName}
           />
 
           <Input
-            label={language === 'de' ? 'E-Mail-Adresse' : 'Email Address'}
-            placeholder="email@example.com"
+            label={t('auth.emailLabel')}
+            placeholder={t('auth.emailPlaceholder')}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -113,8 +105,8 @@ export default function RegisterScreen() {
           />
 
           <Input
-            label={language === 'de' ? 'Passwort' : 'Password'}
-            placeholder="••••••••"
+            label={t('auth.passwordLabel')}
+            placeholder={t('auth.passwordPlaceholder')}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -122,7 +114,7 @@ export default function RegisterScreen() {
           />
 
           <Button
-            title={language === 'de' ? 'REGISTRIEREN' : 'SIGN UP'}
+            title={t('auth.registerButton').toUpperCase()}
             variant="primary"
             isLoading={isLoading}
             onPress={handleRegister}
@@ -132,7 +124,7 @@ export default function RegisterScreen() {
 
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: theme.colors.muted }]}>
-            {language === 'de' ? 'Bereits ein Konto? ' : 'Already have an account? '}
+            {t('auth.hasAccountPrompt')}{' '}
           </Text>
           <Pressable
             accessibilityRole="button"
@@ -140,7 +132,7 @@ export default function RegisterScreen() {
             onPress={() => router.push('/auth/login' as Href)}
           >
             <Text style={[styles.link, { color: theme.colors.primary }]}>
-              {language === 'de' ? 'Anmelden' : 'Log In'}
+              {t('auth.loginButton')}
             </Text>
           </Pressable>
         </View>

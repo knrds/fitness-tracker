@@ -33,6 +33,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import Constants from 'expo-constants';
 import { useProfileStore } from '../src/stores/profileStore';
 import { useBodyMetricStore } from '../src/stores/bodyMetricStore';
 import { useHistoryStore } from '../src/stores/historyStore';
@@ -840,6 +841,84 @@ export default function ProfileScreen() {
               </View>
             )}
           </View>
+
+          {/* Haptics Toggle */}
+          <Pressable
+            style={styles.settingsRow}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: profile.hapticsEnabled ?? true }}
+            onPress={() =>
+              updateProfile({
+                hapticsEnabled: !(profile.hapticsEnabled ?? true),
+              })
+            }
+          >
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="hardware-chip-outline" size={22} color={theme.colors.muted} />
+              <Text style={styles.settingsLabel}>{t('settings.haptics')}</Text>
+            </View>
+            <View style={styles.settingsRowRight}>
+              <Text style={styles.settingsValue}>
+                {(profile.hapticsEnabled ?? true) ? t('settings.on') : t('settings.off')}
+              </Text>
+              <View
+                style={[
+                  styles.togglePill,
+                  (profile.hapticsEnabled ?? true)
+                    ? styles.togglePillActive
+                    : styles.togglePillInactive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.toggleKnob,
+                    (profile.hapticsEnabled ?? true)
+                      ? styles.toggleKnobActive
+                      : styles.toggleKnobInactive,
+                  ]}
+                />
+              </View>
+            </View>
+          </Pressable>
+
+          {/* Sound Toggle */}
+          <Pressable
+            style={[styles.settingsRow, styles.lastRow]}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: profile.soundEnabled ?? true }}
+            onPress={() =>
+              updateProfile({
+                soundEnabled: !(profile.soundEnabled ?? true),
+              })
+            }
+          >
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="volume-medium-outline" size={22} color={theme.colors.muted} />
+              <Text style={styles.settingsLabel}>{t('settings.timerSounds')}</Text>
+            </View>
+            <View style={styles.settingsRowRight}>
+              <Text style={styles.settingsValue}>
+                {(profile.soundEnabled ?? true) ? t('settings.on') : t('settings.off')}
+              </Text>
+              <View
+                style={[
+                  styles.togglePill,
+                  (profile.soundEnabled ?? true)
+                    ? styles.togglePillActive
+                    : styles.togglePillInactive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.toggleKnob,
+                    (profile.soundEnabled ?? true)
+                      ? styles.toggleKnobActive
+                      : styles.toggleKnobInactive,
+                  ]}
+                />
+              </View>
+            </View>
+          </Pressable>
         </View>
         <AppearanceSettings />
         <View style={styles.sectionCard}>
@@ -1064,7 +1143,7 @@ export default function ProfileScreen() {
                   color: theme.colors.primary,
                 }}
               >
-                {t('legal.version')}
+                {`v${Constants.expoConfig?.version ?? '0.1.0'} (Beta)`}
               </Text>
             </View>
           </View>

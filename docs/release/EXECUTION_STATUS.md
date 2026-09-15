@@ -26,7 +26,8 @@
 | `pnpm install` | Installation aller Workspace-Dependencies | PASS (Lockfile synchron, Node >=24, pnpm 11.5.0) | `package.json`, `pnpm-lock.yaml` |
 | `pnpm -r typecheck` | TypeScript-Prüfung über alle Pakete | **PASS (0 Fehler)** | `apps/mobile`, `packages/domain`, `packages/ui` |
 | `pnpm -r lint` | ESLint über alle Pakete | **PASS (0 Fehler / 0 Warnings)** | `.eslintrc.js` |
-| `pnpm test` | Gesamte automatisierte Testsuite | **PASS (315 Tests grün)** | 57 Domain (Vitest), 240 Mobile (Jest, 50 Suites), 18 Coach API (`node:test`) |
+| `pnpm test` | Gesamte automatisierte Testsuite | **PASS (326 Tests grün)** | 57 Domain (Vitest), 251 Mobile (Jest, 52 Suites), 18 Coach API (`node:test`) |
+| `pnpm verify` | Zentrales Quality Gate (Typecheck + Lint + Test) | **PASS (0 Fehler)** | `package.json`, `.github/workflows/ci.yml` |
 | `pnpm coach:check` | OpenRouter Preflight-Check | **PASS (Modell & Key bestätigt)** | `api/provider-check.cjs`, `.env.coach.local` |
 | `pnpm dev` | Lokaler Web-Entwicklungsserver | Funktional auf Port 8081 | `apps/mobile/scripts/web-dev-preview.cjs` |
 | `pnpm coach:local` | Lokaler Coach-Proxy-Server | Funktional auf Port 8096 (127.0.0.1) | `api/local-server.cjs` |
@@ -181,9 +182,12 @@ Im Code und in der Dokumentation wurden alle sichtbaren Alt-Namen bereinigt:
 5. [x] **Audio/Haptics Audit:** Nachweis des Web-Audio-Problems und Ausarbeitung des Migrationspfads auf `expo-av` (`docs/release/AUDIO_HAPTICS_AUDIT.md`).
 6. [x] **Subscription Integration Map:** Architektur und Feature-Matrix für EVARO Pro (`docs/release/SUBSCRIPTION_INTEGRATION_MAP.md`).
 7. [x] **Legal UI-Verdrahtung:** Neutrale Platzhalter für Impressum, Datenschutz, AGB und Support in `profile.tsx`.
-8. [x] **Deutsche Übersetzung & i18n-Hardening:** Bekannter Fehler bei zu wenigen Körperdaten behoben ("Noch nicht genügend Daten" / "Trage mindestens zwei Werte ein, um die Entwicklung anzuzeigen."); Übungsdetails (`exercise/[id].tsx`) und Supersatz-Alerts vollständig lokalisiert; Unit-Tests in `i18n.test.ts` ergänzt.
-9. [x] **Ungenutzte Dependency & Code bereinigt:** `@opentelemetry/api` entfernt; ungenutzter Helper `formatName` entfernt.
-10. [x] **Vollständige Validierung & Bundle-Check:** 315/315 Tests PASS, 0 Typecheck-Fehler, 0 Lint-Fehler, Coach-Check PASS, `expo export --platform web` PASS.
+8. [x] **Deutsche Übersetzung & i18n-Hardening:** Bekannter Fehler bei zu wenigen Körperdaten behoben; Übungsdetails (`exercise/[id].tsx`) und Supersatz-Alerts vollständig lokalisiert; Auth-Namespace (`login`, `register`) modularisiert; Coach- und Workout-Strings lokalisiert; rekursiver 100%-Paritätstest in `i18n.test.ts` implementiert.
+9. [x] **Zentraler Haptik-Wrapper & Audio-Adapter:** `hapticFeedback` (`selection`, `impact`, `notification`) und `audioAdapter` mit 6 Unit-Tests (`haptics.test.ts`) implementiert; Mute/Haptics-Toggles im User-Profile verankert; Web-Chime bleibt unberührt.
+10. [x] **Sichere Environment-Validierung:** `apps/mobile/src/utils/envValidation.ts` mit 4 Unit-Tests (`envValidation.test.ts`) implementiert; prüft Cloud-Status ohne Secret-Leaks.
+11. [x] **CI & Quality Gates:** Zentrales `pnpm verify` Skript eingerichtet; GitHub Actions Workflow (`ci.yml`) mit Web-Bundle-Build-Export abgesichert.
+12. [x] **Accessibility & Settings Hardening:** Workout-Session-Buttons mit dynamischen Screenreader-Labels versehen; App-Version im Profile-UI dynamisch aus App-Metadaten bezogen (`Constants.expoConfig?.version`).
+13. [x] **Vollständige Validierung & Bundle-Check:** 326/326 Tests PASS (57 Domain, 251 Mobile in 52 Suites, 18 API), 0 Typecheck-Fehler, 0 Lint-Fehler, Coach-Check PASS, `expo export --platform web` PASS.
 
 ### ASTRA_TASKS (Komplexe architektonische & sicherheitskritische Arbeiten)
 1. **Exercise DB Bereinigung:** Ersatz oder lizenzierte Bereitstellung der Exercise-Visuals umsetzen.

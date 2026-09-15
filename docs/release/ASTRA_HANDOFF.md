@@ -15,9 +15,10 @@ Astra startet auf einer vollständig verifizierten, konsistenten und grünen Bas
 - **Aktueller Beta Tag:** `v0.1.0-beta.1` (auf `7d24b85` verankert) / `v0.1.0-beta.2` (final verifizierter Checkpoint)
 - **Version:** `0.1.0-beta.2`
 - **Teststatus:**
-  - **315 / 315 Tests PASS** (57 Domain Vitest, 240 Mobile Jest, 18 API Node Test Runner)
+  - **326 / 326 Tests PASS** (57 Domain Vitest, 251 Mobile Jest, 18 API Node Test Runner)
   - **Typecheck:** PASS (0 Fehler über `packages/domain`, `packages/ui`, `apps/mobile`)
   - **Lint:** PASS (0 Fehler, 0 Warnungen)
+  - **Quality Gate:** PASS (`pnpm verify` vereint Typecheck, Lint und Tests)
   - **Coach Preflight:** PASS (`pnpm coach:check` bestätigt OpenRouter Key & Model)
   - **Bundle Sanity:** PASS (`expo export --platform web` generiert alle Bundles und Chunks fehlerfrei)
   - **Physical Device:** `NOT VERIFIED ON PHYSICAL DEVICE` (mangels Hardware/Zertifikaten; 100% statisch und automatisiert abgesichert)
@@ -86,6 +87,12 @@ Astra startet auf einer vollständig verifizierten, konsistenten und grünen Bas
 5. **Master-Checkliste & Gesamt-Summary:**
    - `evaro_release_execution_pack/MASTER_CHECKLIST.md` und `docs/release/EXECUTION_STATUS.md` mit Evidence aktualisiert.
    - `docs/release/GEMINI_WORK_SUMMARY.md` als umfassende Bilanz aller 5 Arbeitsblöcke erstellt.
+6. **Release Foundation & Quality Gates (`GEMINI_FOUNDATION_PROGRESS.md`):**
+   - **CI / Quality:** `pnpm verify` Command und GitHub Actions Workflow mit Web-Bundle-Check (`pnpm build`) aktiv.
+   - **Environment:** `envValidation.ts` mit 4 Tests; sichere Offline-Erkennung ohne Secret-Leaks.
+   - **i18n & a11y:** Auth-Namespace integriert; 100%-Paritätstest in `i18n.test.ts`; barrierefreie Labels in `session.tsx`.
+   - **Haptics & Audio:** `hapticFeedback`-Wrapper mit 6 Tests und `audioAdapter` mit Mute/Toggle-Integration im Store.
+   - **Settings:** Schalter für Haptik und Töne im Profil; dynamische App-Version (`Constants.expoConfig?.version`).
 
 ---
 

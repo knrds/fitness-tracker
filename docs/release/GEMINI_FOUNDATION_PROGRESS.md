@@ -69,6 +69,7 @@
 - **Empty States:** Einheitliche Nutzung der `EmptyState`-Komponente in Historie und Übungskatalog mit kontextuellen Hilfetexten.
 - **Error Banner:** Im Coach-Screen mit dynamischer "Erneut senden"-Aktion und klaren deutschen/englischen Rückmeldungen abgesichert.
 - **Dialoge:** Saubere Trennung zwischen Abbruch und Weitertrainieren im aktiven Workout ohne Datenverlust.
+- **Workout Set Options UX:** Das Drei-Punkte-Menü (`...`) bei Sätzen wird ausgeblendet, wenn sowohl RPE als auch RIR effektiv deaktiviert sind (`showRpe === false && showRir === false`). Der Platz wird sauber für Gewichts- und Wiederholungsfelder freigegeben. Swipe-to-delete bleibt unverändert funktionsfähig.
 
 ---
 
@@ -84,9 +85,8 @@
 
 ## Audio
 
-- **Audio-Adapter:** `apps/mobile/src/utils/audioAdapter.ts` vorbereitet.
-- **Browser Chime:** Bewährter Web Audio Zweiklang-Glockenton bleibt für Web-Previews unberührt erhalten.
-- **Einstellungsrespekt:** Berücksichtigt `profile.soundEnabled` aus dem Profil (Standard: `true`).
+- **Status Quo:** Web Audio API (`AudioContext`) funktioniert in nativem Hermes nicht.
+- **Architektur:** `apps/mobile/src/utils/audioAdapter.ts` entkoppelt die Audio-Ausgabe und berücksichtigt `profile.soundEnabled`.
 - **Native Vorbereitung:** Struktur für `expo-av` offline Sound-Playback vorbereitet; physischer Gerätetest als offen dokumentiert (`ASTRA_REVIEW_REQUIRED`).
 
 ---
@@ -111,8 +111,9 @@
 1. `apps/mobile/src/utils/__tests__/envValidation.test.ts` (4 Tests)
 2. `apps/mobile/src/utils/__tests__/haptics.test.ts` (6 Tests)
 3. `apps/mobile/src/i18n/__tests__/i18n.test.ts` (+ 1 rekursiver 100%-Paritätstest)
+4. `apps/mobile/src/components/workout/__tests__/SessionExerciseCardSetOptions.test.tsx` (8 Tests für alle RPE/RIR-Sichtbarkeitskombinationen, Cardio und Swipe-to-Delete)
 
-Gesamtzahl Tests im Monorepo: **326 Tests PASS** (zuvor 315).
+Gesamtzahl Tests im Monorepo: **334 Tests PASS** (zuvor 326).
 
 ---
 
@@ -123,6 +124,7 @@ Gesamtzahl Tests im Monorepo: **326 Tests PASS** (zuvor 315).
 3. Hardcodierte deutsche `accessibilityLabel`-Attribute im Workout-Screen (wurden Screenreadern englischsprachiger Nutzer auf Deutsch vorgelesen).
 4. Fehlende Typensicherheit bei Auth-Strings (wurden durch Inline-Ternaries statt `t()` gepflegt).
 5. Statische Anzeige der App-Version im About-Bereich dynamisiert.
+6. Drei-Punkte-Menü bei Workout-Sätzen wurde auch angezeigt, wenn weder RPE noch RIR aktiv waren (wird jetzt sauber ausgeblendet, ohne Layout-Lücke).
 
 ---
 

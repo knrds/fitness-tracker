@@ -239,6 +239,7 @@ export const SessionExerciseCard = ({
       (rirMode === 'selected_exercises' &&
         rirEnabledExerciseIds.includes(sessionExercise.exerciseId))) &&
     !rirDisabledExerciseIds.includes(sessionExercise.exerciseId);
+  const showSetOptions = showRpe || showRir;
 
   const confirmDeleteExercise = async () => {
     if (profile.showExerciseDeleteConfirmation === false) {
@@ -650,7 +651,9 @@ export const SessionExerciseCard = ({
             <Text style={[styles.columnHeader, styles.doneCol, { color: theme.colors.muted }]}>
               ✓
             </Text>
-            <Text style={[styles.columnHeader, styles.deleteCol, { color: theme.colors.muted }]} />
+            {showSetOptions && (
+              <Text style={[styles.columnHeader, styles.deleteCol, { color: theme.colors.muted }]} />
+            )}
           </View>
 
           {(() => {
@@ -1231,6 +1234,7 @@ const SetRow = ({
   const { language } = useI18n();
   const isDone = set.completed;
   const reducedMotion = useReducedMotion();
+  const showSetOptions = showRpe || showRir;
   const [detailsVisible, setDetailsVisible] = useState(false);
   const closeDetails = () => {
     Keyboard.dismiss();
@@ -1723,30 +1727,33 @@ const SetRow = ({
                 }
               />
             </Pressable>
-            <Pressable
-              style={[styles.deleteCol, styles.centerAlign, { minHeight: 44 }]}
-              accessibilityRole="button"
-              accessibilityLabel={`Satz ${workingSetNumber} Details`}
-              accessibilityActions={[{ name: 'delete', label: 'Satz entfernen' }]}
-              onAccessibilityAction={(event) => {
-                if (event.nativeEvent.actionName === 'delete') handleDeleteSet();
-              }}
-              onPress={() => {
-                closeSwipe();
-                setDetailsVisible(true);
-              }}
-            >
-              <Ionicons
-                name="ellipsis-horizontal"
-                size={18}
-                color={set.rpe || set.rir !== undefined ? theme.colors.primary : theme.colors.muted}
-              />
-            </Pressable>
+            {showSetOptions && (
+              <Pressable
+                testID={`set-options-btn-${set.id}`}
+                style={[styles.deleteCol, styles.centerAlign, { minHeight: 44 }]}
+                accessibilityRole="button"
+                accessibilityLabel={`Satz ${workingSetNumber} Details`}
+                accessibilityActions={[{ name: 'delete', label: 'Satz entfernen' }]}
+                onAccessibilityAction={(event) => {
+                  if (event.nativeEvent.actionName === 'delete') handleDeleteSet();
+                }}
+                onPress={() => {
+                  closeSwipe();
+                  setDetailsVisible(true);
+                }}
+              >
+                <Ionicons
+                  name="ellipsis-horizontal"
+                  size={18}
+                  color={set.rpe || set.rir !== undefined ? theme.colors.primary : theme.colors.muted}
+                />
+              </Pressable>
+            )}
           </View>
         </Animated.View>
       </View>
       <DetailModal
-        visible={detailsVisible}
+        visible={showSetOptions && detailsVisible}
         title={`Satz ${workingSetNumber} · Details`}
         onClose={closeDetails}
         primaryActionTitle="Fertig"

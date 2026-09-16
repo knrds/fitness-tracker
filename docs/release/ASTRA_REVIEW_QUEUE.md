@@ -10,6 +10,7 @@ Zentrale Queue aller von Gemini vorbereiteten, analysierten oder implementierten
 | [AR-002](#ar-002--client-resilience--abortsignal--timeout-hardening-in-coach-api) | Client Resilience: AbortSignal & Timeout Hardening in Coach API | P1 | IMPLEMENTED | MEDIUM | VERIFY |
 | [AR-003](#ar-003--privacy-safe-logging-abstraction--sensitive-data-redaction) | Privacy-safe Logging Abstraction & Sensitive Data Redaction | P1 | IMPLEMENTED | LOW | VERIFY |
 | [AR-004](#ar-004--data-integrity-contract-tests--multi-device-sync-test-matrix) | Data Integrity Contract Tests & Multi-Device Sync Test Matrix | P0 | IMPLEMENTED | LOW | VERIFY |
+| [AR-005](#ar-005--secure-storage-migration-plan-auth--token-persistence) | Secure Storage Migration Plan (Auth & Token Persistence) | P0 | PREPARED | HIGH | ARCHITECTURE_DECISION |
 
 ---
 
@@ -220,5 +221,57 @@ VERIFY
 
 Rollback commit:
 d43ca9c
+
+---
+
+## AR-005 – Secure Storage Migration Plan (Auth & Token Persistence)
+
+Priority:
+P0
+
+Gemini Status:
+PREPARED
+
+Risk:
+HIGH
+
+Commit:
+35dee3a
+
+Files:
+- `docs/release/SECURE_STORAGE_MIGRATION_PLAN.md`
+
+Gemini changed:
+1. `docs/release/SECURE_STORAGE_MIGRATION_PLAN.md`: Umfassender Migrationsplan für den Wechsel von unverschlüsseltem MMKV/AsyncStorage zu hardware-unterstütztem SecureStore (Keychain / Keystore) erarbeitet:
+   - Vollständige Bestandsaufnahme der aktuellen Speicherung (`supabase-auth-storage`).
+   - Analyse der sensiblen Werte (`access_token`, `refresh_token`, `email`, `user_id`).
+   - Zielarchitektur: Hybrid Secure Storage mit Chunken / AES-Schlüsselverwaltung.
+   - Ausarbeitung der Zero-Logout-Migrationsstrategie (Dual-Read von SecureStore und Legacy-MMKV, Übertragung ohne Abmeldung aktiver Beta-Nutzer).
+   - Rollback-Strategie, Testanforderungen und Risikoanalyse (Android Keystore 2048-Byte Limit, Offline-Verhalten).
+2. Keine produktive Session-Migration vorweggenommen (gemäß Regel: High Risk -> Astra Owner).
+
+Why:
+Token-Speicherung in unverschlüsseltem MMKV/AsyncStorage stellt ein Sicherheitsrisiko dar (Auslesbarkeit auf gerooteten/gejailbreakten Geräten oder Backups). Eine unüberlegte Migration würde jedoch aktive Beta-Nutzer zwangsabmelden oder bei Keystore-Problemen offline aussperren.
+
+Tests:
+- Statische Code- und Schema-Analyse der Auth-Persistenzpfade.
+
+Expected behavior:
+Nach Freigabe durch Astra können Tokens verlustfrei und ohne Zwangs-Logout in hardware-gesicherte Speicher überführt werden.
+
+Potential concerns:
+- `expo-secure-store` ist aktuell noch nicht in den Projekt-Dependencies installiert.
+- Android Keystore hat ein 2KB-Limit pro Key; ein verschlüsselter MMKV-Store mit Key im SecureStore umgeht dieses Limit elegant.
+
+Questions for Astra:
+1. Bevorzugt Astra den hybriden Ansatz (verschlüsseltes MMKV mit AES-Key in SecureStore/Keychain) oder die direkte Nutzung von `expo-secure-store` mit Chunker?
+2. Soll Web-Storage rein flüchtig gehalten werden (Session endet mit Tab-Close) oder bleibt LocalStorage für Web-Previews akzeptabel?
+
+Astra action:
+ARCHITECTURE_DECISION
+
+Rollback commit:
+9467844
+
 
 

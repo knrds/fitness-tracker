@@ -460,3 +460,88 @@ d43ca9c
 
 Commit mit Änderung:
 943676b
+
+---
+
+# Work Block 05 – Secure Storage Migration Plan (Phase 6)
+
+Date: 2026-09-16
+Starting Commit: 9467844
+Ending Commit: 35dee3a
+
+## Ziel
+
+Vollständige technische Analyse und Erstellung eines praxistauglichen Migrationsplans (`SECURE_STORAGE_MIGRATION_PLAN.md`) für den Wechsel von unverschlüsseltem MMKV/AsyncStorage zu hardware-unterstütztem SecureStore (Keychain / Keystore) ohne Zwangsabmeldung bestehender Beta-Nutzer.
+
+## Vorheriger Zustand
+
+- Supabase Auth nutzt in `supabase.ts` eine unverschlüsselte MMKV-Instanz (`supabase-auth-storage`) mit Fallback auf AsyncStorage.
+- Tokens (`access_token`, `refresh_token`) und User-E-Mails liegen unverschlüsselt in der Sandbox.
+- Es existierte kein formaler Migrations- oder Rollback-Plan für das heikle P0-Thema Token-Sicherheit.
+
+## Analyse
+
+Ein sofortiger, harter Wechsel auf `expo-secure-store` birgt zwei wesentliche Risiken:
+1. Zwangs-Logout aller bisherigen Beta-Nutzer beim nächsten App-Start.
+2. Überschreitung des 2048-Byte-Limits von `EncryptedSharedPreferences` unter Android bei großen Session-Payloads.
+Die Lösung ist eine Zero-Logout-Strategie mit Dual-Read (erst SecureStore prüfen, bei Miss MMKV lesen, übertragen und bereinigen) sowie die Prüfung eines hybriden Ansatzes (verschlüsseltes MMKV mit AES-Key in SecureStore). Gemäß Risikomodell (High Risk) wird keine Session-Migration voreilig ausgeführt, sondern vollständig vorbereitet.
+
+## Änderungen
+
+### Datei
+`docs/release/SECURE_STORAGE_MIGRATION_PLAN.md`
+
+Änderung:
+Vollständiger Migrationsplan mit Analyse der aktuellen Implementierung, sensiblen Werten, Zielarchitektur, Zero-Logout-Ablauf, Rollback-Strategie, Testmatrix und offenen Astra-Entscheidungen erstellt.
+
+Warum:
+Entscheidungsgrundlage und Schritt-für-Schritt-Leitfaden für Astra.
+
+### Datei
+`docs/release/ASTRA_REVIEW_QUEUE.md`
+
+Änderung:
+AR-005 eingetragen (P0, PREPARED, HIGH RISK, ARCHITECTURE_DECISION).
+
+Warum:
+Review-Transparenz.
+
+## Tests
+
+- Statische Architektur- und Codeanalyse von `supabase.ts`, `authStore.ts` und `authMigration.ts`.
+
+## Verhalten vorher
+
+Unverschlüsselte Token-Speicherung ohne dokumentierte Migrationsstrategie.
+
+## Verhalten nachher
+
+Detailliert spezifizierte, risikoarme Migrationssequenz für Astra vorbereitet.
+
+## Risiko
+
+HIGH (Architektur-Entscheidung bei Astra; Gemini-Arbeit ist reine Doku = risikofrei)
+
+## Rückwärtskompatibilität
+
+Vollständig abwärtskompatibel. Bestehende Sessions bleiben unberührt.
+
+## Bestehende Nutzerdaten betroffen?
+
+NO
+
+## Offene Punkte
+
+- Astra-Entscheidung über hybrides verschlüsseltes MMKV vs. direktes `expo-secure-store`.
+
+## Astra muss später prüfen
+
+- AR-005 in `ASTRA_REVIEW_QUEUE.md`.
+
+## Rollback
+
+Commit vor Änderung:
+9467844
+
+Commit mit Änderung:
+35dee3a

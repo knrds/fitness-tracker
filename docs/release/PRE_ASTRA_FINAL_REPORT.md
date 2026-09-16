@@ -26,8 +26,8 @@
 
 - **Date:** 2026-09-16
 - **Branch:** `main`
-- **Commit:** `cc7ff1b`
-- **origin/main:** `cc7ff1b`
+- **Commit:** `96985da`
+- **origin/main:** `96985da`
 - **Latest Beta Tag:** `v0.1.0-beta.4` (pushed)
 - **Typecheck:** Clean (0 errors)
 - **Lint:** Clean (0 errors)
@@ -216,8 +216,8 @@ Schritt 6: EAS Preview Build anstoßen (`eas build --profile preview`).
 ## 11. Stable Git State
 
 - **Branch:** `main`
-- **Commit:** `cc7ff1b`
-- **origin/main:** `cc7ff1b`
+- **Commit:** `96985da`
+- **origin/main:** `96985da`
 - **Working Tree:** Clean (0 uncommitted changes)
 - **Latest Tag:** `v0.1.0-beta.4`
 

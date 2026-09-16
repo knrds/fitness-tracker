@@ -74,7 +74,7 @@ Risk:
 MEDIUM
 
 Commit:
-50f8a7d
+38f8820
 
 Files:
 - `apps/mobile/src/utils/coachApi.ts`
@@ -123,7 +123,7 @@ Risk:
 LOW
 
 Commit:
-50f8a7d
+38f8820
 
 Files:
 - `apps/mobile/src/utils/logger.ts`

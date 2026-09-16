@@ -30,7 +30,7 @@ describe('EVARO – Release Candidate Core Regression Suite', () => {
     useWorkoutStore.getState().resetWorkout();
     useHistoryStore.getState().clearHistory();
     useBodyMetricStore.getState().clearMetrics();
-    useProgramStore.setState({ programs: [], templates: [], activeProgramId: null });
+    useProgramStore.setState({ programs: [], templates: [], customFolders: [] });
     useProfileStore.setState({
       profile: { displayName: 'User', preferredUnits: 'metric' },
     });
@@ -236,8 +236,8 @@ describe('EVARO – Release Candidate Core Regression Suite', () => {
         id: 'template-upper',
         name: 'Upper Body Power',
         exercises: [
-          { exerciseId: 'bench_press', order: 0, defaultSets: 4, minReps: 6, maxReps: 6 },
-          { exerciseId: 'bent_over_row', order: 1, defaultSets: 4, minReps: 8, maxReps: 8 },
+          { id: 'te-1', exerciseId: 'bench_press', order: 0, targetSets: 4, targetReps: 6, targetRepsMax: 6 },
+          { id: 'te-2', exerciseId: 'bent_over_row', order: 1, targetSets: 4, targetReps: 8, targetRepsMax: 8 },
         ],
       });
 

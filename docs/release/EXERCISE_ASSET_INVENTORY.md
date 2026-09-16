@@ -72,9 +72,13 @@ Dieses Dokument dokumentiert die Herkunft, Speicherorte, Lizenzlage und kommerzi
 
 ## 4. Handlungsempfehlungen für Astra & Konrad
 
+Detaillierter Migrationsplan liegt vor in:
+- [EXERCISE_ASSET_REPLACEMENT_PLAN.md](file:///d:/TrainingsAppGPT/docs/release/EXERCISE_ASSET_REPLACEMENT_PLAN.md) (AR-009)
+
 1. **Exercise-GIFs / Medien**:
    - **Option A (Kommerzielle API-Lizenz):** Abschluss eines offiziellen kommerziellen Abonnements bei ExerciseDB / RapidAPI mit eigenem API-Key und legalem CDN-Zugriff.
    - **Option B (Asset-Entfernung / Placeholder):** Deaktivierung von externen GIF-Hotlinks für den V1 Store Release; stattdessen Anzeige hochwertiger statischer Vektor-Icons oder anatomischer Muskel-Hervorhebungen.
    - **Option C (Eigene Medien / CC0-Datensatz):** Ersatz durch einen verifizierten Open-Source-/Public-Domain-Datensatz mit expliziter kommerzieller Freigabe.
 2. **Dateibereinigung**:
    - Veraltete oder ungenutzte Datensätze wie `exercisedb-v1.json` (1,4 MB) sollten nach Freigabe aus dem finalen Bundle entfernt werden, um die App-Größe zu optimieren.
+

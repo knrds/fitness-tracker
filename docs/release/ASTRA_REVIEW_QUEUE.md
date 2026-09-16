@@ -14,6 +14,7 @@ Zentrale Queue aller von Gemini vorbereiteten, analysierten oder implementierten
 | [AR-006](#ar-006--account-lifecycle-deletion-rpc-spec--gdpr-art-20-data-export) | Account Lifecycle: Deletion RPC Spec & GDPR Art. 20 Data Export | P0 | PREPARED | HIGH | ARCHITECTURE_DECISION |
 | [AR-007](#ar-007--ai-coach-production-safety-matrix--client-resilience-tests) | AI Coach Production Safety Matrix & Client Resilience Tests | P1 | IMPLEMENTED | LOW | VERIFY |
 | [AR-008](#ar-008--monetization-preparation-evaro-pro-feature-matrix--entitlement-architecture-spec) | Monetization Preparation: EVARO Pro Feature Matrix & Entitlement Architecture Spec | P1 | PREPARED | HIGH | ARCHITECTURE_DECISION |
+| [AR-009](#ar-009--exercise-asset-replacement-plan--licensing-decoupling) | Exercise Asset Replacement Plan & Licensing Decoupling | P0 | PREPARED | HIGH | ARCHITECTURE_DECISION |
 
 ---
 
@@ -437,6 +438,58 @@ ARCHITECTURE_DECISION
 
 Rollback commit:
 081e62a
+
+---
+
+## AR-009 – Exercise Asset Replacement Plan & Licensing Decoupling
+
+Priority:
+P0
+
+Gemini Status:
+PREPARED (Replacement Plan & Fallback UI Verification)
+
+Risk:
+HIGH (Exercise Media Copyright & Hotlink Outage Risk)
+
+Commit:
+TBD
+
+Files:
+- `docs/release/EXERCISE_ASSET_REPLACEMENT_PLAN.md`
+- `docs/release/EXERCISE_ASSET_INVENTORY.md`
+
+Gemini changed:
+1. `EXERCISE_ASSET_REPLACEMENT_PLAN.md`: Erstellt. Umfassender Migrations- und Entkopplungsplan für die 1.492 externen GIF-URLs (`static.exercisedb.dev`) und dynamischen GitHub-JPGs (`free-exercise-db`), deren kommerzielle Rechte im Repository nicht belegt sind:
+   - Audit aller 4 bildverbrauchenden Screens (`ExerciseCard.tsx`, `[id].tsx`, `SessionExerciseCard.tsx`, `template-builder.tsx`).
+   - Verifikation des bestehenden Fallback-UI: Beide Hauptkomponenten verfügen bereits über einen fehlerfreien Fallback mit `Ionicons name="barbell-outline"` bzw. `imagePlaceholder`. Die App stürzt ohne GIFs nicht ab.
+   - Ausarbeitung von 4 Lösungsoptionen (A: Kommerzielle API-Lizenz bei ExerciseDB; B: Anatomie-Muskel-Vektor-Fallback mit MIT-lizenzierter `AnatomyFigure`; C: CC0/Wger-Datensatz; D: Custom 3D-Assets).
+   - Ausarbeitung eines 2-Stufen-Plans: Stufe 1 als sofortige, abmahnsichere Null-Risiko-Entkopplung für den App Store Release; Stufe 2 für spätere Lizenzierung mit CDN-Hosting.
+2. `EXERCISE_ASSET_INVENTORY.md`: Aktualisiert und verknüpft.
+3. Keine voreilige Löschung von Assets oder Datenfiles vor der Entscheidung durch Astra/Konrad.
+
+Why:
+Unlizenzierte Medien oder Hotlinks auf fremde CDNs bergen ein akutes Risiko für Copyright-Abmahnungen, Ausfälle im Betrieb und Ablehnungen im App Store Review. Gleichzeitig darf Gemini ohne Weisung des Rechteinhabers keine Assets unwiderruflich löschen.
+
+Tests:
+- Statische Code-Analyse aller Bild-Konsumenten und Fallback-Pfade.
+
+Expected behavior:
+Astra kann mit minimalem Aufwand (Entfernen der URL-Auflösung in `mapExercises.ts`) die App rechtssicher und hotlink-frei für den App Store Release konfigurieren.
+
+Potential concerns:
+- Wird Option B (Anatomie-Fallback) gewählt, fehlen animierte Übungsvorschauen; dafür erhält die App ein minimalistisches, extrem schnelles medizinisches Design (analog zu Whoop / Apple Fitness).
+
+Questions for Astra:
+1. Liegt Konrad eine Rechnung / Vereinbarung für ExerciseDB vor, oder soll Option B (Anatomie-Vektor-Fallback) für den V1 Store Release scharf geschaltet werden?
+2. Soll `packages/domain/src/data/raw/exercisedb-v1.json` (1,4 MB) jetzt endgültig aus dem Git-Tracking entfernt werden?
+
+Astra action:
+ARCHITECTURE_DECISION
+
+Rollback commit:
+d3ce4d2
+
 
 
 

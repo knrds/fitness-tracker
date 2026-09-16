@@ -872,5 +872,106 @@ Commit vor Änderung:
 Commit mit Änderung:
 d27ca51
 
+---
+
+# Work Block 09 – Exercise Licensing & Asset Replacement Plan (Phase 10)
+
+Date: 2026-09-16
+Starting Commit: d3ce4d2
+Ending Commit: TBD
+
+## Ziel
+
+Vollständige juristische und technische Bestandsaufnahme aller im Repository verlinkten Übungsmedien (`exerciseGifs.json`, GitHub-JPGs), Audit der Fallback-Komponenten und Ausarbeitung eines 2-Stufen-Plans (`EXERCISE_ASSET_REPLACEMENT_PLAN.md`) zur abmahnsicheren Entkopplung vor dem Store-Release.
+
+## Vorheriger Zustand
+
+- 1.492 externe GIF-URLs verweisen auf `https://static.exercisedb.dev/media/...` und dynamische Fallbacks hotlinken auf GitHub-Rohdaten (`free-exercise-db`).
+- Im Repository existiert kein schriftlicher Nachweis oder Vertrag für kommerzielle Nutzungsrechte dieser Bilddaten.
+- Es fehlte eine konkrete Spezifikation, welche Screens Bilder anzeigen, wie sich das UI verhält, wenn keine Bilder geliefert werden, und welche Ersatzoptionen bestehen.
+
+## Analyse
+
+Die Verwendung fremder Medien ohne dokumentierte Lizenz birgt ein unmittelbares Risiko für Abmahnungen und App-Store-Ablehnungen.
+Ein Audit der UI-Komponenten (`ExerciseCard.tsx`, `app/exercise/[id].tsx`) ergab, dass beide Screens bereits über robuste Fallback-Container mit `Ionicons name="barbell-outline"` bzw. `imagePlaceholder` verfügen. Die App bricht nicht ab, wenn keine GIFs oder Bilder geladen werden.
+Darüber hinaus verfügt EVARO mit `AnatomyFigure` über eine vollständig MIT-lizenzierte Vektorgrafik (`HichamELBSI`), die als hochwertiger anatomischer Ersatz für Muskel-Highlights dienen kann.
+
+## Änderungen
+
+### Datei
+`docs/release/EXERCISE_ASSET_REPLACEMENT_PLAN.md`
+
+Änderung:
+Vollständiger Migrationsplan erstellt:
+- Detaillierte Bestandsaufnahme aller Bildquellen und Risikoklassen.
+- Audit der 4 betroffenen Screens (`ExerciseCard.tsx`, `[id].tsx`, `SessionExerciseCard.tsx`, `template-builder.tsx`).
+- Verifikation des existierenden fehlerfreien Fallback-UI.
+- Bewertung von 4 Lösungsoptionen (A: Kommerzielle API-Lizenz; B: Anatomie-Vektor-Fallback; C: CC0/Wger; D: Eigene 3D-Modelle).
+- Konkreter 2-Stufen-Plan für Astra: Stufe 1 für den sofortigen, hotlink-freien Null-Risiko-Store-Launch (Option B); Stufe 2 für spätere Lizenzierung mit eigenem CDN.
+
+Warum:
+Maximale Vorbereitung des größten rechtlichen Blockers ohne eigenständige, irreversible Asset-Löschung vor dem Astra-Review.
+
+### Datei
+`docs/release/EXERCISE_ASSET_INVENTORY.md`
+
+Änderung:
+Mit dem Ersatzplan verknüpft und aktualisiert.
+
+Warum:
+Dokumentationsintegrität.
+
+### Datei
+`docs/release/ASTRA_REVIEW_QUEUE.md`
+
+Änderung:
+AR-009 hinzugefügt.
+
+Warum:
+Dokumentation für Astra.
+
+## Tests
+
+- Statische Prüfung aller 4 Bild-Renderpfade auf Fallback-Verhalten.
+- `pnpm verify` -> PASS (384 Tests)
+- `pnpm coach:check` -> PASS
+
+## Verhalten vorher
+
+Ungeklärter Lizenzstatus externer Medien-Hotlinks ohne definierten Entkopplungspfad.
+
+## Verhalten nachher
+
+Lückenlose Bestandsaufnahme mit verifiziertem Fallback-UI und sofort ausführbarem 2-Stufen-Plan für Astra.
+
+## Risiko
+
+HIGH (Urheberrechtsentscheidung liegt bei Konrad / Astra) / LOW (reine Gemini-Dokumentation)
+
+## Rückwärtskompatibilität
+
+Vollständig gegeben. Keine Daten oder Dateien verändert.
+
+## Bestehende Nutzerdaten betroffen?
+
+NO
+
+## Offene Punkte
+
+- Konrad/Astra-Entscheidung: Liegt eine ExerciseDB-Lizenz vor oder soll Stufe 1 (Anatomie-Vektor-Fallback) scharf geschaltet werden?
+
+## Astra muss später prüfen
+
+- AR-009 in `docs/release/ASTRA_REVIEW_QUEUE.md`.
+
+## Rollback
+
+Commit vor Änderung:
+d3ce4d2
+
+Commit mit Änderung:
+TBD
+
+
 
 

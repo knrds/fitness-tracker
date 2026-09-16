@@ -1,5 +1,32 @@
 # EVARO Beta Release Notes
 
+## EVARO Beta 0.1.0-beta.5 (Clean Pre-P0 Baseline)
+
+**Release-Datum:** 16. September 2026  
+**Commit-Basis:** baut auf `3273e6b` (`v0.1.0-beta.4`) auf  
+**Status:** `PRE-RELEASE` (Clean Pre-P0 Baseline Safepoint)
+
+### Neu / Verbessert
+- **Full Project Cleanup & Repository Compaction:**
+  - Bereinigung von 40+ MB flüchtigen lokalen Build- und Test-Artefakten (`dist-native`, `.playwright-cli`, `.expo`).
+  - Bereinigung redundanter Gitignore-Muster und Härtung gegen versehentliche Commits temporärer Dateien (`*.tmp`, `*.bak`, `*.old`).
+  - Entfernung von 0-Byte-Root-Altlasten (`GEMINI.md`).
+  - Ausführlicher Bericht in `LOCAL_PROJECT_CLEANUP_REPORT.md`.
+- **Workout Template Update UX Polish:**
+  - Stark vergrößerter, prominenter Hero-Button „Template aktualisieren“ in `SaveTemplateModal.tsx` mit Refresh-Icon, Space-Grotesk-Typografie und Haptic Feedback.
+  - Strukturierte ODER-Trennlinie zur visuellen Trennung der primären Aktualisierungsaktion von alternativen Speicheroptionen.
+- **Erweiterte Test-Abdeckung:**
+  - Neue Test-Suite für `SaveTemplateModal` (61 Mobile Test Suites, 318 Mobile Tests, 393 Tests gesamt).
+
+### Technische Verifikation
+- **Typecheck:** PASS (0 Fehler über Monorepo)
+- **Lint:** PASS (0 Fehler über Monorepo)
+- **Tests:** PASS (393 Tests grün: 61 Mobile Suites [318 Tests] + 57 Domain Tests + 18 Coach API Tests)
+- **Coach Check:** PASS (Modell und API-Key validiert)
+- **Bundle Export:** PASS (Web-Export single-bundle 4.81 MB fehlerfrei)
+
+---
+
 ## EVARO Beta 0.1.0-beta.4 (Pre-Astra UI Polish & Gesture Checkpoint)
 
 **Release-Datum:** 16. September 2026  

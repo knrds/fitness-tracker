@@ -1393,6 +1393,68 @@ Nach Abschluss des Repository-Cleanups wurden alle kritischen P0-Bereiche der EV
 - `pnpm build` -> PASS (Web-Bundle fehlerfrei)
 - Production Behavior: UNCHANGED / SAUBER ENTKOPPELT
 
+---
+
+# Work Block 07 – Release Candidate QA, Verification & Store Readiness
+
+Date: 2026-09-16
+Starting Commit: 8272b88
+Current Head: 0cb299f
+
+## Ziel
+EVARO so intensiv wie möglich verifizieren, härten und für einen späteren Release Candidate vorbereiten, ohne neue riskante Kernarchitektur oder unfertige Production-Systeme (`ASTRA_REQUIRED`) zu aktivieren.
+
+## Durchgeführte Arbeiten
+
+### 1. Phase A – Independent Verification Pass
+- Alle 10 Komponenten der vorangegangenen Blöcke unabhängig auditiert und in `docs/release/PRE_ASTRA_VERIFICATION_REPORT.md` klassifiziert.
+- Frühere Aussagen wie "Production behavior unchanged" präzisiert und differenziert (defensives Laufzeitverhalten vs. Kern-Trainingslogik).
+- Secure Storage Adapter mit 14 Tests gehärtet (Keystore-Read-Failure-Fallback, Concurrency-Idempotenz, Token-Validierung).
+- Account Deletion Service gegen fehlerhafte/leere Backend-Antworten und User-Abbruch abgesichert.
+- Restore Purchases im Profil mit ehrlichem "Beta"-Badge versehen.
+- Exercise Media Resolver (`getExerciseMedia.ts`) zentral in `ExerciseCard`, `ExerciseRow` und Übungsdetail-Screen verankert.
+- AI Safety Layer um Dyspnoe-Erkennung (`EMERGENCY_DYSPNEA`) erweitert; False-Positive-Schutz für reguläre Trainingsfragen automatisiert verifiziert.
+
+### 2. Phase B & J – Core Flow Regression & Subscription Error Handling
+- Erstellung der umfassenden RC Core Flow Regression Suite (`releaseCandidateCoreRegression.test.ts`): 11 Tests für Workout-Lebenszyklus, Satz-Updates, Speichern, Deduplikation, Restart/Recovery Guard, Metriken (DE/EN), Templates und Gast-Isolation.
+- Entitlement-Service um Tests für Billing-Fehler, Store-Timeouts und Cache-Fallbacks erweitert.
+
+### 3. Phase C – Physical Device QA Preparation
+- `docs/release/DEVICE_QA_CHECKLIST.md` mit dedizierten Spalten für iOS und Android aktualisiert.
+- Klare Markierung von `PHYSICAL_DEVICE_TEST_REQUIRED` für alle Hardware-abhängigen Tests (Touch, Haptik, Audio, OS-Kill).
+
+### 4. Phase D – Native Release Readiness
+- `npx expo config --type public` und `--type introspect` ausgeführt und ohne Fehler validiert.
+- EAS-Build-Voraussetzungen in `STORE_TECHNICAL_READINESS.md` exakt dokumentiert.
+
+### 5. Phase E – Privacy-Safe Observability Preparation
+- `DiagnosticsService` (`diagnosticsService.ts`) als lokale Abstraktion ohne Cloud-Upload implementiert (Ring-Buffer für max. 50 non-sensitive Fehlercodes, Sanitized App State).
+- Event-Taxonomie in `docs/release/OBSERVABILITY_EVENT_MODEL.md` festgelegt.
+
+### 6. Phase F – Store Submission Preparation
+- `docs/release/STORE_SUBMISSION_CHECKLIST.md` für Apple App Store und Google Play Console erstellt.
+- `docs/release/STORE_REVIEW_NOTES_TEMPLATE.md` für Reviewer ohne Fake-Credentials angelegt.
+
+### 7. Phase G & H – Accessibility & Performance Verification
+- Statischer Audit der interaktiven Controls (Checkmarks, Buttons, Inputs): Touch Targets erfüllen die 44x44 pt Richtlinie.
+- Performance-Benchmarks (`largeDatasetPerformance.test.ts`): 1.000 Workouts und 10.000+ Sätze in 37 ms verarbeitet.
+
+### 8. Phase I – RLS Local Test Preparation
+- Reproduzierbares SQL-Testskript `docs/release/rls_negative_tests.sql` (10 Negative Tests für Tenant-Isolation) und Ausführungsanleitung `docs/release/RLS_LOCAL_TEST_HARNESS.md` für Astra erstellt.
+
+### 9. Phase K – Documentation & Astra Handoff
+- `ASTRA_HANDOFF.md` mit klarer `# START HERE` Sektion neu strukturiert.
+- `ASTRA_REVIEW_QUEUE.md` um AR-022 und AR-023 erweitert.
+- Zentrale `USER_ACTION_REQUIRED` Liste konsolidiert.
+
+## Qualitätsmetriken
+- Tests: 488 / 488 Tests PASS (394 Mobile, 57 Domain, 37 API)
+- Typecheck: PASS (0 Fehler)
+- Lint: PASS (0 Fehler / 0 Warnings)
+- Coach Check: PASS
+- Build: PASS (Expo Web Export 4.82 MB)
+
+
 
 
 

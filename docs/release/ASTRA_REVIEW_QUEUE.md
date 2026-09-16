@@ -27,6 +27,8 @@ Zentrale Queue aller von Gemini vorbereiteten, analysierten oder implementierten
 | [AR-019](#ar-019--sync-failure-test-harness--offlinefifo-resilience) | Sync Failure Test Harness & Offline/FIFO Resilience | P0 | IMPLEMENTED | LOW | VERIFY |
 | [AR-020](#ar-020--react-error-boundary--graceful-crash-recovery) | React Error Boundary & Graceful Crash Recovery | P1 | IMPLEMENTED | LOW | VERIFY |
 | [AR-021](#ar-021--store-compliance-technical-audit--in-app-readiness) | Store Compliance Technical Audit & In-App Readiness | P0 | AUDITED | MEDIUM | USER_DECISION |
+| [AR-022](#ar-022--release-candidate-core-flow-regression--subscription-error-coverage) | Release Candidate Core Flow Regression & Subscription Error Coverage | P0 | IMPLEMENTED | LOW | VERIFY |
+| [AR-023](#ar-023--privacy-safe-local-diagnostics--observability-event-model) | Privacy-Safe Local Diagnostics & Observability Event Model | P1 | IMPLEMENTED | LOW | VERIFY |
 
 ---
 
@@ -1064,6 +1066,81 @@ USER_DECISION
 
 Rollback commit:
 v0.1.0-beta.5 (4dd430e)
+
+---
+
+## AR-022 – Release Candidate Core Flow Regression & Subscription Error Coverage
+
+Priority:
+P0
+
+Gemini Status:
+IMPLEMENTED
+
+Risk:
+LOW
+
+Commit:
+2bd428b
+
+Files:
+- `apps/mobile/src/__tests__/releaseCandidateCoreRegression.test.ts`
+- `apps/mobile/src/services/__tests__/entitlementService.test.ts`
+
+Gemini changed:
+1. Erstellung der umfassenden RC Core Regression Suite mit 11 Tests:
+   - Vollständiger Workout Flow: Start, Übung hinzufügen, Satz anpassen (Weight/Reps/RPE/RIR), abhaken, löschen, beenden, SQLite-Persistenz und Deduplikation.
+   - Restart / Recovery Guard: State Reload, unfertiger Workout-Zustand, Resume Guard Entscheidungen.
+   - Body Metrics Flow: Gewicht & KFA erfassen/löschen, Verlauf, DE/EN Übersetzungs-Parität.
+   - Program & Template Flow: Template anlegen, aktualisieren, löschen.
+   - Gast-Isolation: Keine Datenvermengung zwischen Gast und registrierten Nutzern.
+2. Entitlement-Service Test-Erweiterung: StoreKit/Billing-Fehler, Store-Timeouts, Cache-Fallbacks und Grace Periods abgedeckt.
+
+Why:
+Sicherstellung, dass vor Astra-Aktivierung alle Kernpfade regressionsfrei und fehlerresistent abgedeckt sind.
+
+Tests:
+- `pnpm --filter @fitness-tracker/mobile test releaseCandidateCoreRegression.test.ts` (11 Tests PASS)
+- `pnpm --filter @fitness-tracker/mobile test entitlementService.test.ts` (10 Tests PASS)
+
+Astra action:
+VERIFY
+
+---
+
+## AR-023 – Privacy-Safe Local Diagnostics & Observability Event Model
+
+Priority:
+P1
+
+Gemini Status:
+IMPLEMENTED
+
+Risk:
+LOW
+
+Commit:
+0cb299f
+
+Files:
+- `apps/mobile/src/services/diagnosticsService.ts`
+- `apps/mobile/src/services/__tests__/diagnosticsService.test.ts`
+- `docs/release/OBSERVABILITY_EVENT_MODEL.md`
+
+Gemini changed:
+1. `diagnosticsService.ts`: Vollständig lokale Abstraktion für Diagnoseberichte und Fehlercode-Aufzeichnung (Ring-Buffer, max. 50 non-sensitive Codes).
+2. Strikt datenschutzkonform: Keine PII, keine Workouts, kein Körpergewicht, keine Coach-Texte, keine Tokens.
+3. `OBSERVABILITY_EVENT_MODEL.md`: Provider-unabhängiges Telemetrie-Event-Modell mit klarer Whitelist für Astra vor Sentry/PostHog-Anbindung.
+
+Why:
+Vorbereitung für Support und Fehlersuche ohne Installation schwerer oder datenschutzrechtlich riskanter SDKs im Vorfeld.
+
+Tests:
+- `pnpm --filter @fitness-tracker/mobile test diagnosticsService.test.ts` (5 Tests PASS)
+
+Astra action:
+VERIFY
+
 
 
 

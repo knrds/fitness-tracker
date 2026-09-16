@@ -33,7 +33,7 @@ Im aktuellen Stand (Beta Baseline `v0.1.0-beta.5`) sind die architektonischen un
 | **Photo Library Permission** | `app.json` (`expo-image-picker`) | NSPhotoLibraryUsageDescription mit Zweck | **READY** | DE String: *"Die App benötigt Zugriff auf deine Fotos, um Profil- und Trainingsbilder auszuwählen."* | Gemini / Astra |
 | **Camera Permission** | `app.json` (`expo-image-picker`) | NSCameraUsageDescription | **READY** (N/A) | Kamera wird aktuell nicht direkt gestartet (nur Image Library). Falls Kamera gewünscht: hinzufügen | Astra |
 | **Account Deletion UI** | `apps/mobile/app/profile.tsx` & `accountDeletionService.ts` | Apple Guideline 5.1.1(v) – Löschung in der App initierbar | **READY** | Einstiegspunkt vorhanden; warnt ehrlich, solange Cloud-RPC inaktiv ist; Fallback auf Datenreset | Astra / Gemini |
-| **Restore Purchases** | `apps/mobile/app/profile.tsx` & `entitlementService.ts` | Apple Guideline 3.1.1 – Restore Purchases Button Pflicht | **READY** | UI-Button in Einstellungen aktiv; löst `entitlementService.restorePurchases()` aus | Astra / Gemini |
+| **Restore Purchases** | `apps/mobile/app/profile.tsx` & `entitlementService.ts` | Apple Guideline 3.1.1 – Restore Purchases Button Pflicht | **READY (Beta-Transparent)** | UI-Button zeigt transparentes Beta-Badge und ehrliche Info; ruft `restorePurchases()` im EntitlementService auf | Astra / Gemini |
 | **Subscription Management** | `apps/mobile/app/profile.tsx` | Apple Guideline 3.1.2 – Link/Button zur Verwaltung | **READY** | UI-Einstiegspunkt vorhanden; zeigt kontrollierten Info-Dialog bis RevenueCat SDK aktiv ist | Astra |
 | **Privacy Policy Link** | `apps/mobile/app/profile.tsx` & App Store Connect | Apple Guideline 5.1.1(i) – Gültige URL | **BLOCKED** | Echte Datenschutz-URL (`https://evaro.app/privacy`) bereitstellen und via `Linking.openURL` verknüpfen | **USER_ACTION_REQUIRED** |
 | **Terms of Service (EULA)** | `apps/mobile/app/profile.tsx` & App Store Connect | Apple Guideline 3.1.2(c) – Nutzungsbedingungen | **BLOCKED** | Echte AGB/EULA-URL (`https://evaro.app/terms` oder Apple Standard EULA) hinterlegen | **USER_ACTION_REQUIRED** |
@@ -118,6 +118,22 @@ In `apps/mobile/app.json` sollten vor dem ersten App Store Upload ergänzt werde
 
 ---
 
+### 3.4 EAS Build Technische Bereitschaft (Preview / Internal)
+
+```text
+Command: eas build --profile preview --platform all
+Required account: Expo (EAS) Account verknüpft mit Organisation / User
+Required credentials:
+  - iOS: Apple Developer Team ID, Distribution Certificate, Provisioning Profile (via EAS managed credentials)
+  - Android: Keystore / Upload Key (via EAS managed credentials)
+Current blocker:
+  - EAS Login / Token im CI/Terminal noch nicht hinterlegt
+  - Apple Developer Account & Google Play Console Account müssen mit EAS verknüpft werden (USER_ACTION_REQUIRED)
+  - Lokale Konfiguration (eas.json, app.json, Metro Export) ist technisch 100% startbereit
+```
+
+---
+
 ## 4. Checkliste für Astra vor Store-Submit
 
 - [ ] **Domain & Hosting:** `https://evaro.app` (oder Subdomain) aktiv mit SSL.
@@ -128,3 +144,4 @@ In `apps/mobile/app.json` sollten vor dem ersten App Store Upload ergänzt werde
 - [ ] **Apple Developer Team:** `bundleIdentifier` in Apple Developer Portal angelegt, Push/Auth Capabilities aktiviert.
 - [ ] **RevenueCat Project:** API Keys für iOS und Android in EAS Secrets hinterlegt.
 - [ ] **Cloud Account Deletion RPC:** Supabase Edge Function oder RPC scharf geschaltet.
+

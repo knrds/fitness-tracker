@@ -1,171 +1,96 @@
-# EVARO – Astra Handoff Document
+# START HERE – EVARO Astra Handoff
 
-**Stand:** 15. September 2026  
-**Erstellt von:** Gemini Support Agent (Release Preparation, Verification & Baseline Audit)  
-**Für:** ChatGPT-Astra (Lead Mobile/Backend Release Architect)  
-**Branch:** `main` (vollständig validiert & synchronisiert)  
-
----
-
-## STABLE_BASE
-
-Astra startet auf einer vollständig verifizierten, konsistenten und grünen Basis:
-
-- **Aktueller Main Commit:** Finaler Verification Commit (baut direkt auf `7d24b85` auf)
-- **Aktueller Beta Tag:** `v0.1.0-beta.1` (auf `7d24b85` verankert) / `v0.1.0-beta.2` (final verifizierter Checkpoint)
-- **Version:** `0.1.0-beta.2`
-- **Teststatus:**
-  - **326 / 326 Tests PASS** (57 Domain Vitest, 251 Mobile Jest, 18 API Node Test Runner)
-  - **Typecheck:** PASS (0 Fehler über `packages/domain`, `packages/ui`, `apps/mobile`)
-  - **Lint:** PASS (0 Fehler, 0 Warnungen)
-  - **Quality Gate:** PASS (`pnpm verify` vereint Typecheck, Lint und Tests)
-  - **Coach Preflight:** PASS (`pnpm coach:check` bestätigt OpenRouter Key & Model)
-  - **Bundle Sanity:** PASS (`expo export --platform web` generiert alle Bundles und Chunks fehlerfrei)
-  - **Physical Device:** `NOT VERIFIED ON PHYSICAL DEVICE` (mangels Hardware/Zertifikaten; 100% statisch und automatisiert abgesichert)
-- **Relevante vorbereitete Dokumente:**
-  - `docs/release/EXECUTION_STATUS.md`: Faktenbasierter Status aller 31 P0-Release-Gates
-  - `docs/release/ACCOUNT_DATA_MAP.md`: Alle 20 Datenspeicher für DSGVO-Export & Kontolöschung
-  - `docs/release/EXERCISE_ASSET_INVENTORY.md`: Audit aller 873 Übungen und 1.492 GIF-Hotlinks
-  - `docs/release/AUDIO_HAPTICS_AUDIT.md`: Native Audio-Analyse & Migrationspfad auf `expo-av`
-  - `docs/release/SUBSCRIPTION_INTEGRATION_MAP.md`: EVARO Pro Feature-Gating-Matrix & RevenueCat-Architektur
-  - `docs/release/GEMINI_WORK_SUMMARY.md`: Chronologischer Gesamtüberblick aller 5 Arbeitsblöcke
-  - `docs/release/REPOSITORY_CLEANUP_REPORT.md`: Audit der Datei- und Hygienebereinigung
-  - `docs/release/BETA_RELEASE_NOTES.md`: Release Notes für Beta-Checkpoints
-  - `evaro_release_execution_pack/MASTER_CHECKLIST.md`: Release-Checkliste
-- **Verbleibende P0-Blocker:**
-  1. *P0-01 (Asset-Lizenz):* 1.492 Übungs-GIFs von `static.exercisedb.dev` (`BLOCKED`)
-  2. *P0-02 (Backend-Sicherheit):* Kein öffentlicher HTTPS-Coach-Endpunkt, kein verteiltes Rate-Limit, kein Entitlement-Check (`READY_FOR_ASTRA`)
-  3. *P0-03 (Store-Compliance):* Serverseitige Kaskadenlöschung via Supabase RPC gemäß Apple 5.1.1(v) fehlt (`READY_FOR_ASTRA`)
-  4. *P0-04 (Monetarisierung):* RevenueCat SDK und Store-Produkte (Monat/Jahr) nicht integriert (`READY_FOR_ASTRA`)
-  5. *P0-05 (Native Audio):* Web Audio API wirft Fehler auf nativen Geräten; Migration auf `expo-av` erforderlich (`READY_FOR_ASTRA`)
-- **Verbleibende Legacy-Identifier:**
-  - `com.fitnesstracker.app` (Bundle ID & Package Name – EAS/Store Provisioning)
-  - `fitness-tracker` (Slug & Scheme – Deep Linking)
-  - `'volt-sync-store'` & `'volt-coach-store'` (SQLite-Persistenz bestehender Tester)
-  - `assets/volt-emblem.png` (Marken-Emblem Dashboard)
-  - `VoltDashboard.tsx` & `VoltBackdrop.tsx` (Interne TypeScript-Komponentennamen)
-- **Offene User-Entscheidungen (Konrad):**
-  - Exercise-Asset Lizenzstrategie (ExerciseDB API-Lizenz vs. Drittanbieter-Bilder vs. Start ohne GIFs)
-  - Apple Developer Account ($99/Jahr) & Google Play Console ($25 einmalig)
-  - RevenueCat Account anlegen & In-App-Produkte (`evaro_pro_monthly`, `evaro_pro_yearly`) im Store konfigurieren
-  - Rechtstexte (Impressum, Datenschutzerklärung, AGB, Art.-9-Einwilligung)
-  - HTTPS-Hosting für AI Coach Backend (z. B. Vercel)
-- **Empfohlener erster Astra-Arbeitsblock:**
-  1. Native Rest Timer Audio auf `expo-av` umstellen (`AUDIO_HAPTICS_AUDIT.md`)
-  2. HTTPS-Coach Backend mit verteiltem Rate-Limiting und `evaro_pro`-Entitlement-Gate bereitstellen
-  3. RevenueCat SDK (`react-native-purchases`) integrieren und Paywall nach Onboarding einbauen
+**Stable Commit:** `0cb299f` (ahead of `origin/main`)  
+**Stable Base Tag:** `v0.1.0-beta.5`  
+**Empfohlener nächster Checkpoint:** `READY_FOR_BETA_6_TAG`  
+**Teststatus:** **488 / 488 Tests PASS** (Mobile Jest: 394, Domain Vitest: 57, API Node: 37)  
+**Quality Gates:** Typecheck (0 Errors), Lint (0 Warnings), Build (Metro single-bundle 4.82MB), Coach Preflight PASS  
 
 ---
 
-## 1. Aufgabenstatus nach Kategorien
+## Review first (Prioritäre Reihenfolge für Astra)
 
-### DONE_BY_GEMINI (Vollständig erledigt & integriert)
-1. **Repositoryweiter EVARO Branding Pass:**
-   - Display Name in `apps/mobile/app.json`: `"name": "EVARO"`.
-   - AI Coach Persona & Header: `api/coach-chat.js` (`EVARO Coach`, `X-OpenRouter-Title: EVARO`).
-   - UI Chips: `apps/mobile/src/components/CoachComposer.tsx` (`EVARO Coach`).
-   - Colorway-Anzeigenamen: `packages/ui/src/theme.ts` & `rewards.ts` (`EVARO Verde`, `EVARO Ember`).
-   - Gamification & Levelsystem: `apps/mobile/src/utils/level.ts` (`EVARO Master`), `LevelProgress.tsx` und `BattlePassModal.tsx` (`EVARO SEASON 1: ASCEND`, `EVARO Master`).
-   - Share-Strings & Backup-Name: `programs.tsx`, `workouts.tsx`, `history/[id].tsx`, `profile.tsx` auf EVARO vereinheitlicht.
-   - Release Pack Verzeichnis: umbenannt auf `evaro_release_execution_pack/` und interne Unterlagen auf EVARO aktualisiert.
-   - **Rückwärtskompatibilität:** Interne Theme-IDs (`verde`, `ember`), SQLite-Keys (`volt-sync-store`, `volt-coach-store`) und Store-Identifikatoren wurden strikt erhalten, um bestehende Beta-Daten nicht zu gefährden.
-2. **Deutsche Übersetzungen & i18n-Hardening:**
-   - Bekannter Fehler in `body.tsx` behoben: Diagramm-Empty-State zeigt jetzt `"Noch nicht genügend Daten"` und `"Trage mindestens zwei Werte ein, um die Entwicklung anzuzeigen."` (DE) bzw. `"Not enough data"` / `"Log at least 2 data points."` (EN).
-   - Diagramm-Interaktions-Tipp in `body.tsx`: `"Tippe auf einen Punkt im Diagramm für Details"`.
-   - Körperfett-Erklärung und Validierungs-Alerts in `body.tsx` vollständig lokalisiert.
-   - Übungsdetails-Screen (`apps/mobile/app/exercise/[id].tsx`): Vollständig lokalisiert (Ausrüstung, Schwierigkeit, Muskeln, Anleitung, Übungs-Optionen, RPE/RIR-Toggles, Alerts).
-   - Supersatz-Alert-Titel in `SessionExerciseCard.tsx` lokalisiert.
-   - Automatisierte Regressionstests in `i18n.test.ts` ergänzt.
-3. **Rechtliches UI & neutrale Menüpunkte (`profile.tsx`):**
-   - Strukturierte Menüeinträge für Impressum (§ 5 DDG), Datenschutzerklärung, Nutzungsbedingungen / EULA, Support, Abonnement verwalten und Account löschen angelegt.
-   - Neutrales Store-konformes Platzhalter-Handling ohne voreilige Scheindaten oder unvollständige Art.-9-DSGVO-Hacks.
-4. **Erstellung von 4 technischen Architektur-Karten:**
-   - `docs/release/ACCOUNT_DATA_MAP.md`: Detailerfassung aller 20 lokalen/serverseitigen Datenspeicher für Account-Löschung und Datenexport.
-   - `docs/release/EXERCISE_ASSET_INVENTORY.md`: Detaillierte Lizenz- und Herkunftsanalyse aller 873 Übungen und 1.492 GIF-Hotlinks.
-   - `docs/release/AUDIO_HAPTICS_AUDIT.md`: Native Audioproblematik (Web Audio API) und Migrationspfade via `expo-av` analysiert.
-   - `docs/release/SUBSCRIPTION_INTEGRATION_MAP.md`: Feature-Matrix für EVARO Pro, Entitlement-Gates und RevenueCat-Integrationspunkte kartiert.
-5. **Master-Checkliste & Gesamt-Summary:**
-   - `evaro_release_execution_pack/MASTER_CHECKLIST.md` und `docs/release/EXECUTION_STATUS.md` mit Evidence aktualisiert.
-   - `docs/release/GEMINI_WORK_SUMMARY.md` als umfassende Bilanz aller 5 Arbeitsblöcke erstellt.
-6. **Release Foundation & Quality Gates (`GEMINI_FOUNDATION_PROGRESS.md`):**
-   - **CI / Quality:** `pnpm verify` Command und GitHub Actions Workflow mit Web-Bundle-Check (`pnpm build`) aktiv.
-   - **Environment:** `envValidation.ts` mit 4 Tests; sichere Offline-Erkennung ohne Secret-Leaks.
-   - **i18n & a11y:** Auth-Namespace integriert; 100%-Paritätstest in `i18n.test.ts`; barrierefreie Labels in `session.tsx`.
-   - **Haptics & Audio:** `hapticFeedback`-Wrapper mit 6 Tests und `audioAdapter` mit Mute/Toggle-Integration im Store.
-   - **Settings:** Schalter für Haptik und Töne im Profil; dynamische App-Version (`Constants.expoConfig?.version`).
+1. **Secure Storage Activation (`AR-011` / `AR-012`):**
+   - Prüfe `apps/mobile/src/utils/secureStorage.ts`. Adapter ist mit 14 Scenarios gehärtet (inkl. Keystore-Read-Failure-Fallback auf MMKV, Concurrency-Idempotenz und Token-Validierung).
+   - *Astra-Aufgabe:* Nach physischem E2E-Gerätetest auf iOS/Android als Session Storage in `supabase.ts` verdrahten. Migration beim Kaltstart kontrolliert scharfschalten.
+
+2. **RLS + Sync Architektur (`AR-014` / `docs/release/RLS_LOCAL_TEST_HARNESS.md`):**
+   - Prüfe `docs/schema.sql` und führe `docs/release/rls_negative_tests.sql` lokal auf Supabase aus.
+   - Alle 10 Negative Tests stellen sicher: User A kann User B nicht lesen/ändern/löschen; anonyme Clients erhalten keine Daten.
+   - *Astra-Aufgabe:* Migration nach `supabase/migrations/` überführen und RLS auf Supabase Cloud deployen.
+
+3. **Account Deletion Backend RPC (`AR-015`):**
+   - Prüfe `apps/mobile/src/services/accountDeletionService.ts` und UI-Guard in `apps/mobile/app/profile.tsx`.
+   - UI warnt den Nutzer ehrlich, solange RPC inaktiv ist (`BACKEND_NOT_CONFIGURED`), und löscht keine Daten unter falschen Vorwänden.
+   - *Astra-Aufgabe:* Supabase RPC `delete_user_account()` bereitstellen und verknüpfen.
+
+4. **AI Production Infrastruktur (`AR-013`):**
+   - Prüfe `api/coach-safety.cjs` und `api/coach-chat.js`. Safety Layer fängt medizinische Notfälle (Brustschmerz, Atemnot, K.O.), Extremdiäten und Injections deterministisch ab. Payload-Limits (50kB, max 10 Msgs, 415/405 Handling) sind verifiziert.
+   - *Astra-Aufgabe:* Serverless / Edge Deployment (z.B. Vercel) mit Redis/Upstash Rate-Limiting und Auth-Token-Validierung aufsetzen.
+
+5. **Exercise Licensing Transition (`AR-001`):**
+   - Prüfe `apps/mobile/src/utils/getExerciseMedia.ts`. Ist zentral in `ExerciseCard`, `ExerciseRow` und `app/exercise/[id].tsx` eingebunden.
+   - *Astra / PO:* Sobald Konrad die Lizenzstrategie (ExerciseDB API vs. eigene Grafiken) festlegt, Remote GIF URLs durch lizenzierte Assets austauschen.
+
+6. **RevenueCat / Entitlements (`AR-016`):**
+   - Prüfe `apps/mobile/src/services/entitlementService.ts`. Beta-Bypass (`BETA_ALL_FEATURES_ENABLED: true`) hält die App für aktuelle Tester voll offen. Restore Purchases zeigt transparentes Beta-Badge.
+   - *Astra-Aufgabe:* `react-native-purchases` SDK installieren, Entitlement-Checks scharfschalten und StoreKit / Google Play Billing anbinden.
 
 ---
 
-### READY_FOR_ASTRA (Direkt durch Astra umsetzbar)
+## Verified Gemini Work (Bereits vollständig implementiert & verifiziert)
 
-1. **Native Rest Timer Audio (`timerAudio.ts`):**
-   - *Problem:* Web Audio API (`window.AudioContext`) schlägt in React Native Hermes fehl.
-   - *Aktion:* Umstellung auf `expo-av` (`Audio.Sound.createAsync`) mit kurzen Offline-Sounds in `apps/mobile/assets/sounds/` gemäß [`AUDIO_HAPTICS_AUDIT.md`](file:///d:/TrainingsAppGPT/docs/release/AUDIO_HAPTICS_AUDIT.md).
-2. **Production Coach Backend & Entitlement Gate:**
-   - *Problem:* Backend läuft lokal auf Port 8096, besitzt kein verteiltes Rate-Limiting und keinen Entitlement-Check.
-   - *Aktion:* Bereitstellung eines öffentlichen HTTPS-Endpunkts (Vercel/Railway), Einbau von Redis/KV-basiertem Rate-Limiting und serverseitiger Prüfung des `evaro_pro` Entitlements vor AI-Generierung gemäß [`SUBSCRIPTION_INTEGRATION_MAP.md`](file:///d:/TrainingsAppGPT/docs/release/SUBSCRIPTION_INTEGRATION_MAP.md).
-3. **RevenueCat In-App Purchases:**
-   - *Problem:* Weder StoreKit noch Google Play Billing sind integriert.
-   - *Aktion:* `react-native-purchases` einbinden, Entitlements (`evaro_pro`) mappen, Purchase/Restore-Flows verdrahten und Paywall nach Onboarding einbauen.
-4. **Vollständige DSGVO- & Apple-Account-Löschung:**
-   - *Problem:* Nur lokaler Reset vorhanden; Cloud-Daten bleiben bestehen (Verstoß gegen Apple Guideline 5.1.1(v)).
-   - *Aktion:* Supabase RPC mit `SECURITY DEFINER` zur kaskadierenden Löschung von `auth.users` und allen verknüpften Tabellen gemäß [`ACCOUNT_DATA_MAP.md`](file:///d:/TrainingsAppGPT/docs/release/ACCOUNT_DATA_MAP.md) implementieren und im UI verdrahten.
-5. **Secure Token Storage:**
-   - *Problem:* Supabase Auth-Tokens liegen unverschlüsselt in MMKV (`supabase-auth-storage`).
-   - *Aktion:* Migration des Auth-Storage-Adapters auf `expo-secure-store`.
-6. **Supabase RLS & Cross-Account Tests:**
-   - *Problem:* `docs/schema.sql` enthält RLS-Entwürfe, aber keine automatisierten Negative-Tests.
-   - *Aktion:* Bereitstellung auf Test-Projekt und Verifikation der Cross-Account-Isolation.
-
----
-
-### BLOCKED (Wartet auf Vorab-Entscheidung oder Klärung)
-
-1. **Exercise Asset Lizenzierung (`EXERCISE_ASSET_INVENTORY.md`):**
-   - *Status:* `BLOCKED`.
-   - *Ursache:* 1.492 Übungs-GIFs werden via Hotlink von `https://static.exercisedb.dev` geladen. Es existiert kein kommerzieller Lizenznachweis.
-   - *Voraussetzung zur Entblockung:* Konrad muss entscheiden:
-     - Option A: Kommerzielle API-Lizenz bei ExerciseDB / RapidAPI erwerben.
-     - Option B: Lizenzierte Drittanbieter-Bilder (z. B. MuscleWiki) anbinden.
-     - Option C: V1 ohne Fremd-GIFs veröffentlichen (nur Anatomie-Karten und Textanleitungen).
+- **Independent Verification Pass:** Alle 10 Komponenten aus Phase A auditiert (`docs/release/PRE_ASTRA_VERIFICATION_REPORT.md`).
+- **Core Flow Regression Suite:** Vollständige automatisierte Regression (`releaseCandidateCoreRegression.test.ts`):
+  - Workout erstellen, Übungen hinzufügen, Sätze editieren/abhaken/löschen, Speichern, Deduplikation.
+  - Startup-Recovery & State-Reload Guard.
+  - Körpermaße & DE/EN Lokalisierungs-Parität (`Not enough data` / `Noch nicht genügend Daten`).
+  - Template Lifecycle (Erstellen, Aktualisieren, Löschen).
+  - Gast-Isolation (Gastdaten verbleiben isoliert vom Server).
+- **Subscription Error Simulation:** EntitlementService deckt Billing-Fehler, Store-Timeouts und Cache-Fallbacks ab.
+- **Privacy-Safe Observability & Diagnostics:** 
+  - `DiagnosticsService` (`diagnosticsService.ts`) generiert lokale Berichte ohne PII, ohne Workout-Inhalte und ohne Auth-Tokens.
+  - Event-Modell in `docs/release/OBSERVABILITY_EVENT_MODEL.md` definiert.
+- **Native & EAS Release Readiness:**
+  - `npx expo config --type public` und `--type introspect` geprüft (0 Fehler).
+  - Permissions für Mikrofon und Foto-Bibliothek in `app.json` konkret begründet.
+- **Store Technical Readiness:**
+  - `docs/release/STORE_SUBMISSION_CHECKLIST.md` (vollständige Apple & Google Play Checklisten).
+  - `docs/release/STORE_REVIEW_NOTES_TEMPLATE.md` (Vorbelegtes Template für App Reviewer).
+- **Device QA Matrix:**
+  - `docs/release/DEVICE_QA_CHECKLIST.md` mit dedizierten Spalten für iOS und Android, ehrlicher Kennzeichnung von `PHYSICAL_DEVICE_TEST_REQUIRED`.
+- **Accessibility & Touch Targets:**
+  - Checkmarks, Three-Dot-Menüs, Timer-Buttons und Inputs besitzen min. 44x44 pt Touch Targets.
+  - `accessibilityRole`, `accessibilityLabel` und `accessibilityState` flächendeckend implementiert.
+- **Performance Benchmarks:**
+  - 1.000 Workouts und 10.000+ Sätze in 37 ms verarbeitet (`largeDatasetPerformance.test.ts`).
 
 ---
 
-### USER_ACTION_REQUIRED (Konrad muss manuell erledigen)
+## User Decisions Required (`USER_ACTION_REQUIRED`)
 
-1. **Apple Developer Account (99 $/Jahr):**
-   - Account anlegen, Team-ID und Apple-Zertifikate für EAS bereitstellen.
-2. **Google Play Console (einmalig 25 $):**
-   - Entwicklerkonto anlegen.
-3. **RevenueCat Account:**
-   - Projekt anlegen, Apple App Store Shared Secret / Service Account hinterlegen, API-Keys generieren.
-4. **In-App Produkte anlegen:**
-   - In App Store Connect und Play Console Produkte anlegen:
-     - `evaro_pro_monthly` (z. B. 9,99 €)
-     - `evaro_pro_yearly` (z. B. 59,99 € mit 7 Tagen kostenloser Testphase)
-5. **Rechtstexte bereitstellen:**
-   - Echte Angaben für Impressum (§ 5 DDG), Datenschutzerklärung (DSGVO) und Nutzungsbedingungen (EULA) hinterlegen.
-6. **Backend-Hosting & Secrets:**
-   - Produktions-Hosting für Coach-Backend einrichten (z. B. Vercel) und `OPENROUTER_API_KEY` sowie `SUPABASE_SERVICE_ROLE_KEY` eintragen.
+Diese Punkte erfordern manuelle Bereitstellung, juristische Dokumente oder Account-Konfigurationen durch den Product Owner (Konrad) und können nicht durch Code automatisiert werden:
 
----
-
-## 2. Noch verbleibende technische Legacy-Identifier
-
-Folgende interne Identifier wurden bewusst **nicht** verändert, um die lauffähige Beta nicht zu gefährden:
-
-| Identifier | Datei | Zweck | Warum nicht geändert |
-|---|---|---|---|
-| `com.fitnesstracker.app` | `apps/mobile/app.json` | iOS Bundle ID & Android Package | EAS Build-Profile und Provisioning-Profile hängen daran. Änderung erfolgt koordiniert beim Store-Setup. |
-| `fitness-tracker` | `apps/mobile/app.json`, `authStore.ts` | Slug & URL-Scheme | Deep-Link-Redirects für Supabase Auth hängen am Schema. |
-| `'volt-sync-store'` | `documentDatabase.ts:32`, `normalizedState.ts:22` | SQLite State Document Key | Enthält ungesyncte lokale Operationen von Beta-Testern. |
-| `'volt-coach-store'` | `coachStore.ts:280` | Zustand Persist Key in SQLite | Speichert bisherige Chatverläufe lokaler Beta-Tester. |
-| `assets/volt-emblem.png` | `apps/mobile/assets/` | Dashboard-Grafik | Bleibt als Platzhalter erhalten, bis Konrad ein neues EVARO-Logo liefert. |
-| `VoltDashboard.tsx` / `VoltBackdrop.tsx` | `apps/mobile/src/components/` | Interne TSX-Komponenten | Rein interne Codenamen ohne UI-Sichtbarkeit; Refactoring ohne funktionalen Mehrwert vermieden. |
+1. **Apple Developer Account:** Enrollment ($99/Jahr), Team ID und Zertifikate für EAS.
+2. **Google Play Console:** Developer Account ($25 einmalig), 20-Tester-Phase für Internal Track.
+3. **Final Bundle Identifier:** Bestätigung von `com.evaro.app` vs. Legacy `com.fitnesstracker.app`.
+4. **EAS Credentials:** Hinterlegung der Store-Credentials in EAS CLI.
+5. **ExerciseDB Lizenzentscheidung:** Kommerzielle API-Subscription vs. alternative Asset-Bibliothek.
+6. **Higgsfield Commercial Rights:** Klärung der Nutzungsrechte für KI-animierte Übungs-Assets.
+7. **RevenueCat Account:** Anlegen des Projekts und Hinterlegen der öffentlichen API-Keys.
+8. **Subscription Pricing:** Festlegung der finalen Monats- und Jahrespreise (z.B. 4,99 € / Monat, 39,99 € / Jahr).
+9. **Datenschutzerklärung (Privacy Policy):** Veröffentlichung einer DSGVO-konformen URL (z.B. `https://evaro.app/privacy`).
+10. **AGB / EULA:** Bereitstellung von AGB und Widerrufsbelehrung (z.B. `https://evaro.app/terms`).
+11. **Impressum:** Anbieterkennzeichnung nach § 5 DDG (Name, Adresse, Kontakt, ggf. USt-ID).
+12. **Support URL / Kontakt:** E-Mail-Adresse (`support@evaro.app`) oder Kontaktformular.
+13. **Physische Gerätetests:** Vollständiges Durchführen der Checkliste in `docs/release/DEVICE_QA_CHECKLIST.md` auf echten iPhones und Android-Geräten.
 
 ---
 
-## 3. Bereit für die Übernahme
+## Do Not Activate Without Review (`ASTRA_REQUIRED`)
 
-Das Repository befindet sich in einem **sauberen, vollständig getesteten und stabilen Zustand**.
-Astra kann direkt mit den Aufgaben aus `READY_FOR_ASTRA` fortfahren.
+1. **Keine Supabase Session Migration auf SecureStore ohne physischen Test.**
+2. **Keine RLS-Policies direkt auf Supabase Cloud deployen ohne `rls_negative_tests.sql` auszuführen.**
+3. **Keine Account-Löschung als erfolgreich melden, ohne dass die Cloud RPC läuft.**
+4. **Keine Paywall aktivieren, solange `react-native-purchases` nicht verknüpft ist.**
+5. **Kein Exercise-GIF-Löschskript ausführen, bevor Ersatz-Assets vorliegen.**

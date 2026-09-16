@@ -288,7 +288,7 @@ Risk:
 HIGH (Cloud Deletion RPC Execution) / LOW (Export & Local Reset)
 
 Commit:
-TBD
+f3cbf27
 
 Files:
 - `docs/release/ACCOUNT_DELETION_IMPLEMENTATION_SPEC.md`

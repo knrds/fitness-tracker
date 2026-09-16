@@ -33,7 +33,7 @@ Working Tree: clean
 
 Date: 2026-09-16
 Starting Commit: 030fd6227ab37f0eb9874cb7cce3d17ea1887e35
-Ending Commit: 3c44fcb
+Ending Commit: dcd58d8
 
 ## Ziel
 
@@ -138,4 +138,108 @@ Commit vor Änderung:
 030fd6227ab37f0eb9874cb7cce3d17ea1887e35
 
 Commit mit Änderung:
-3c44fcb
+dcd58d8
+
+---
+
+# Work Block 02 – Native Build & Device Readiness (Phase 2)
+
+Date: 2026-09-16
+Starting Commit: dcd58d8
+Ending Commit: 8914eb7
+
+## Ziel
+
+Vorbereitung der nativen Build- und Geräte-Readiness für iOS und Android ohne Bundle-ID-Migration. Absicherung nativer Berechtigungen für Bildauswahl, Bereitstellung von EAS Preview/Simulator Profilen und Etablierung einer lückenlosen Geräte-QA-Checkliste.
+
+## Vorheriger Zustand
+
+- `expo-image-picker` wurde in `apps/mobile/package.json` deklariert und in Screens verwendet, fehlte aber im Expo Config Plugin Array in `apps/mobile/app.json`. Dadurch fehlten in nativen Prebuilds `NSPhotoLibraryUsageDescription` für iOS und `READ_MEDIA_IMAGES` für Android.
+- `apps/mobile/eas.json` hatte kein dediziertes Profil für iOS Simulator Preview (`simulator: true`), was Vorschautests auf Entwicklungs-Macs ohne kostenpflichtigen Apple Developer Account erschwerte.
+- Keine strukturierte Checkliste für manuelle Geräte-QA vorhanden.
+- EAS Cloud-Build nicht ausführbar wegen fehlendem Login (`eas whoami` -> Not logged in).
+
+## Analyse
+
+Die Prüfung von `apps/mobile/app.json` ergab, dass `expo-av` für Audio-Memos bereits ein Plugin mit `microphonePermission` konfiguriert hatte, `expo-image-picker` jedoch unvollständig war. Ein iOS App Store Review schlägt fehl, wenn `NSPhotoLibraryUsageDescription` bei Verwendung von Photo-APIs fehlt. Das Hinzufügen des Plugins generiert diese Plist- und Manifest-Einträge deklarativ.
+Für EAS Preview Builds wurde analysiert: Android APKs können direkt via `buildType: "apk"` signiert und geladen werden; iOS erfordert für reale Geräte Ad-Hoc Provisioning mit Apple Developer Account, während für den Simulator ein Profil mit `ios: { simulator: true }` ohne Zertifikate gebaut werden kann.
+
+## Änderungen
+
+### Datei
+`apps/mobile/app.json`
+
+Änderung:
+Plugin `expo-image-picker` mit `photosPermission: "Die App benötigt Zugriff auf deine Fotos, um Profil- und Trainingsbilder auszuwählen."` ergänzt.
+
+Warum:
+Gewährleistung korrekter nativer Berechtigungs-Strings (`NSPhotoLibraryUsageDescription` / `READ_MEDIA_IMAGES`) für iOS und Android.
+
+### Datei
+`apps/mobile/eas.json`
+
+Änderung:
+`preview` um `ios: { simulator: false }` ergänzt und neues Profil `preview-simulator` mit `ios: { simulator: true }` hinzugefügt.
+
+Warum:
+Ermöglicht getrennte Vorschau-Builds für reale Testgeräte (Ad-hoc) und macOS Simulator.
+
+### Datei
+`docs/release/DEVICE_QA_CHECKLIST.md`
+
+Änderung:
+Neue umfassende Checkliste für native Gerätetests (Installation, Auth, Workout, Timer, Data, Lifecycle, Accessibility) mit Status-Feldern angelegt.
+
+Warum:
+Verbindliche Abnahme-Grundlage für reale Hardware-Tests.
+
+### Datei
+`docs/release/ASTRA_REVIEW_QUEUE.md`
+
+Änderung:
+AR-001 eingetragen.
+
+Warum:
+Astra-Review-Transparenz.
+
+## Tests
+
+- `npx expo config --type public` -> PASS
+- `npx expo config --type introspect` -> PASS
+- `pnpm verify` -> PASS (306 Tests)
+
+## Verhalten vorher
+
+Fehlende native Plist-Berechtigungsstrings für Bilder; kein EAS-Simulator-Profil; keine Geräte-Checkliste.
+
+## Verhalten nachher
+
+Native Konfiguration vollständig; saubere Profile; standardisierte Abnahme-Matrix.
+
+## Risiko
+
+LOW
+
+## Rückwärtskompatibilität
+
+Vollständig abwärtskompatibel. Keine Bundle-ID- oder Schemaänderungen.
+
+## Bestehende Nutzerdaten betroffen?
+
+NO
+
+## Offene Punkte
+
+- `USER_ACTION_REQUIRED`: EAS Build Ausführung erfordert `npx eas-cli login` mit Expo-Konto und Verknüpfung der Projekt-ID sowie Apple-Developer-Team für iOS-Geräte.
+
+## Astra muss später prüfen
+
+- AR-001 in `ASTRA_REVIEW_QUEUE.md`: Freigabe des deutschen Berechtigungstexts und Entscheidung bzgl. zukünftiger `runtimeVersion`.
+
+## Rollback
+
+Commit vor Änderung:
+dcd58d8
+
+Commit mit Änderung:
+8914eb7

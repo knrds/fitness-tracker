@@ -38,6 +38,12 @@
         {
           "microphonePermission": "Sprachmemo aufnehmen und für den Coach in Text umwandeln."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Die App benötigt Zugriff auf deine Fotos, um Profil- und Trainingsbilder auszuwählen."
+        }
       ]
     ],
     "experiments": {

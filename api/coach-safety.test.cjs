@@ -36,6 +36,7 @@ function createMockRes() {
   };
 }
 
+let requestCounter = 0;
 const baseRequest = (messageText) => ({
   method: 'POST',
   headers: {
@@ -46,7 +47,7 @@ const baseRequest = (messageText) => ({
     messages: [{ role: 'user', content: messageText }],
     context: {},
   },
-  localCoachUser: 'loopback-development',
+  localCoachUser: `loopback-safety-${++requestCounter}`,
 });
 
 test('Safety 1: Acute chest pain triggers emergency medical escalation and stops provider call', async () => {
@@ -242,3 +243,80 @@ test('Safety 13: Normal training question passes through safely to provider', as
   assert.equal(res.body.reply, 'Trainiere 3-4 mal pro Woche mit progressivem Overload.');
   assert.ok(providerPayload);
 });
+
+test('Safety 14: Dyspnea / Atemnot triggers emergency medical escalation', async () => {
+  const res = createMockRes();
+  await handler(baseRequest('Ich habe plötzliche akute Atemnot und bekomme keine Luft mehr!'), res);
+
+  assert.equal(res.code, 200);
+  assert.equal(res.body.safetyIntercept, true);
+  assert.equal(res.body.category, 'emergency');
+  assert.match(res.body.reply, /Atemnot/i);
+  assert.match(res.body.reply, /112|Notarzt/i);
+});
+
+test('Safety 15: False positive validation – standard training inquiries remain fully unblocked', () => {
+  const allowedInquiries = [
+    'Wie steigere ich mein Bankdrücken?',
+    'Was bedeutet RPE 8?',
+    'Ich bin nach dem Brusttraining sehr müde.',
+    'Wie viele Kalorien brauche ich ungefähr?',
+    'Wie verbessere ich meine Kniebeuge?',
+    'Ich habe normalen Muskelkater.',
+  ];
+
+  for (const q of allowedInquiries) {
+    const result = screenCoachSafety(q);
+    assert.equal(
+      result.isBlocked,
+      false,
+      `Legitimate training query "${q}" must never be blocked (false positive)`
+    );
+  }
+});
+
+test('Safety 16: HTTP Method validation – non-POST requests rejected with HTTP 405', async () => {
+  const req = baseRequest('hello');
+  req.method = 'GET';
+  const res = createMockRes();
+  await handler(req, res);
+
+  assert.equal(res.code, 405);
+  assert.equal(res.body.error, 'Method not allowed');
+});
+
+test('Safety 17: Message count bounds – more than 10 messages rejected with HTTP 400', async () => {
+  const req = baseRequest('hello');
+  req.body.messages = Array(11).fill({ role: 'user', content: 'Repeat' });
+  const res = createMockRes();
+  await handler(req, res);
+
+  assert.equal(res.code, 400);
+  assert.equal(res.body.error, 'Invalid chat request');
+});
+
+test('Safety 18: Malformed JSON or empty body rejected with HTTP 400', async () => {
+  const req = baseRequest('');
+  req.body = 'not valid json {{{';
+  const res = createMockRes();
+  await handler(req, res);
+
+  assert.equal(res.code, 400);
+});
+
+test('Safety 19: Upstream provider error returns clean 502/503 without leaking raw credentials', async () => {
+  global.fetch = async () => {
+    return {
+      ok: false,
+      status: 500,
+      json: async () => ({ error: { message: 'Provider internal crash' } }),
+    };
+  };
+
+  const res = createMockRes();
+  await handler(baseRequest('Wie plane ich einen Split?'), res);
+
+  assert.ok([500, 502, 503].includes(res.code));
+  assert.ok(!JSON.stringify(res.body).includes('test-safety-key'));
+});
+

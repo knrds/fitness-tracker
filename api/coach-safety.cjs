@@ -10,6 +10,13 @@ const SAFETY_RULES = [
       'WICHTIGER NOTFALL-HINWEIS: Akute Brustschmerzen, Engegefühl in der Brust oder Herzbeschwerden sind potenzielle medizinische Notfälle. Bitte brich jedes Training sofort ab und kontaktiere unverzüglich den Rettungsdienst (112 in der EU / 911 in den USA) oder einen Notarzt. Als Fitness-App kann EVARO keine medizinische Hilfe leisten.',
   },
   {
+    id: 'EMERGENCY_DYSPNEA',
+    category: 'emergency',
+    pattern: /\b(atemnot\w*|akute atemnot|keine luft (?:mehr )?bekommen|kurzatmigkeit im ruhezustand|shortness of breath|difficulty breathing|gasping for air)\b/i,
+    reply:
+      'WICHTIGER NOTFALL-HINWEIS: Akute Atemnot oder das Gefühl, keine Luft mehr zu bekommen, sind potenzielle medizinische Notfälle. Bitte brich jedes Training sofort ab und wende dich unverzüglich an den Rettungsdienst (112 in der EU / 911 in den USA) oder einen Notarzt.',
+  },
+  {
     id: 'EMERGENCY_UNCONSCIOUSNESS',
     category: 'emergency',
     pattern: /\b(ohnm[äa]chtig\w*|bewusstlos\w*|umgekippt|blackout|passed out|fainted|loss of consciousness)\b/i,

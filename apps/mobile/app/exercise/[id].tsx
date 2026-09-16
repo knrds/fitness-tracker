@@ -20,6 +20,7 @@ import { useProfileStore } from '../../src/stores/profileStore';
 import { MuscleGroupBadge } from '../../src/components/exercises/MuscleGroupBadge';
 import { useTheme } from '@fitness-tracker/ui';
 import { useI18n } from '../../src/i18n';
+import { getExerciseMedia } from '../../src/utils/getExerciseMedia';
 
 export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -37,9 +38,10 @@ export default function ExerciseDetailScreen() {
   const [fullscreen, setFullscreen] = useState(false);
 
   const exercise = exercises.find((e) => e.id === id);
+  const media = getExerciseMedia(exercise);
 
   useEffect(() => {
-    if (!exercise?.imageUrl || !isPlaying || exercise?.gifUrl) {
+    if (!exercise?.imageUrl || !isPlaying || exercise?.gifUrl || media.badge === 'GIF') {
       setCurrentImageIndex(0);
       return;
     }
@@ -50,15 +52,17 @@ export default function ExerciseDetailScreen() {
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [exercise?.imageUrl, exercise?.gifUrl, isPlaying]);
+  }, [exercise?.imageUrl, exercise?.gifUrl, media.badge, isPlaying]);
 
   const getDisplayedImageUri = () => {
-    if (exercise?.gifUrl) return exercise.gifUrl;
-    if (!exercise?.imageUrl) return null;
-    if (currentImageIndex === 1 && exercise.imageUrl.endsWith('0.jpg')) {
-      return exercise.imageUrl.replace('/0.jpg', '/1.jpg');
+    if (media.hasMedia && media.uri) {
+      if (media.badge === 'GIF') return media.uri;
+      if (currentImageIndex === 1 && media.uri.endsWith('0.jpg')) {
+        return media.uri.replace('/0.jpg', '/1.jpg');
+      }
+      return media.uri;
     }
-    return exercise.imageUrl;
+    return null;
   };
   const isFavorite = favoriteIds.includes(id || '');
 
@@ -141,7 +145,7 @@ export default function ExerciseDetailScreen() {
         }}
       />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        {exercise.imageUrl ? (
+        {media.hasMedia && media.uri ? (
           <Pressable
             onPress={() => {
               setIsPlaying(true);
@@ -169,13 +173,13 @@ export default function ExerciseDetailScreen() {
             </View>
             <View style={styles.playOverlay}>
               <Text style={styles.playOverlayText}>
-                {exercise?.gifUrl ? '● 3D GIF' : isPlaying ? '● Animiert' : '▶ Abspielen'}
+                {media.badge === 'GIF' ? '● 3D GIF' : isPlaying ? '● Animiert' : '▶ Abspielen'}
               </Text>
             </View>
           </Pressable>
         ) : (
           <View style={styles.imagePlaceholder}>
-            <Ionicons name="barbell-outline" size={44} color={theme.colors.muted} style={{ marginBottom: 8 }} />
+            <Ionicons name={media.fallbackIcon} size={44} color={theme.colors.muted} style={{ marginBottom: 8 }} />
             <Text style={styles.placeholderText}>No Exercise Image Available</Text>
           </View>
         )}

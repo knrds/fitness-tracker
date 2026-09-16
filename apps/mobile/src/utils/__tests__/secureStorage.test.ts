@@ -41,8 +41,12 @@ jest.mock('expo-secure-store', () => {
 class MockSecureAdapter implements SecureStorageAdapter {
   store = new Map<string, string>();
   failWrites = false;
+  failReads = false;
 
   async getItem(key: string): Promise<string | null> {
+    if (this.failReads) {
+      throw new Error('Hardware keystore read failed');
+    }
     return this.store.get(key) ?? null;
   }
   async setItem(key: string, value: string): Promise<void> {
@@ -248,4 +252,66 @@ describe('Secure Storage & Dual-Read Migration Scaffolding', () => {
 
     expect(allLogged).not.toContain(sensitiveSecret);
   });
+
+  test('Scenario 12: Secure read failure falls back safely to legacy store inspection without throwing', async () => {
+    legacyStore.store.set(SESSION_KEY, VALID_SESSION);
+    secureStore.failReads = true;
+
+    // Even if reading secure store throws, migration catches it and migrates from legacy
+    const result = await migrateSessionFromLegacyStore({
+      sessionKey: SESSION_KEY,
+      secureStore,
+      legacyStore,
+    });
+
+    expect(result.status).toBe('migrated');
+    expect(result.source).toBe('legacy_store');
+    expect(result.sessionData).toBe(VALID_SESSION);
+    expect(secureStore.store.get(SESSION_KEY)).toBe(VALID_SESSION);
+  });
+
+  test('Scenario 13: Concurrent migration calls resolve idempotently and do not corrupt data', async () => {
+    legacyStore.store.set(SESSION_KEY, VALID_SESSION);
+
+    const [res1, res2] = await Promise.all([
+      migrateSessionFromLegacyStore({
+        sessionKey: SESSION_KEY,
+        secureStore,
+        legacyStore,
+      }),
+      migrateSessionFromLegacyStore({
+        sessionKey: SESSION_KEY,
+        secureStore,
+        legacyStore,
+      }),
+    ]);
+
+    // Both calls must succeed without error or corrupted session payload
+    expect(['migrated', 'already_migrated']).toContain(res1.status);
+    expect(['migrated', 'already_migrated']).toContain(res2.status);
+    expect(res1.sessionData).toBe(VALID_SESSION);
+    expect(res2.sessionData).toBe(VALID_SESSION);
+    expect(secureStore.store.get(SESSION_KEY)).toBe(VALID_SESSION);
+  });
+
+  test('Scenario 14: Expired session payload is handled safely without crashing', async () => {
+    const expiredSession = JSON.stringify({
+      access_token: 'expired-token-xyz',
+      expires_at: Math.floor(Date.now() / 1000) - 7200, // 2 hours ago
+      user: { id: 'user-expired' },
+    });
+    legacyStore.store.set(SESSION_KEY, expiredSession);
+
+    const result = await migrateSessionFromLegacyStore({
+      sessionKey: SESSION_KEY,
+      secureStore,
+      legacyStore,
+    });
+
+    // Valid JSON payload is migrated to secure store so Supabase auth client can refresh it
+    expect(result.status).toBe('migrated');
+    expect(result.sessionData).toBe(expiredSession);
+    expect(secureStore.store.get(SESSION_KEY)).toBe(expiredSession);
+  });
 });
+

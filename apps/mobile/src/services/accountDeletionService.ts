@@ -186,12 +186,13 @@ class AccountDeletionService {
       // 5. Execute cloud RPC delete_user_account
       const rpcResult = await deps.callCloudRpc('delete_user_account');
 
-      if (rpcResult.error) {
-        logger.error('[AccountDeletion] Cloud RPC deletion failed. Preserving local user data.', rpcResult.error);
+      if (!rpcResult || typeof rpcResult !== 'object' || rpcResult.error) {
+        const errorDetail = rpcResult?.error?.message ?? 'Malformed or empty response from cloud deletion RPC';
+        logger.error('[AccountDeletion] Cloud RPC deletion failed. Preserving local user data.', rpcResult?.error ?? errorDetail);
         return {
           success: false,
           code: 'CLOUD_RPC_FAILED',
-          error: `Cloud deletion failed: ${rpcResult.error.message}. Local data preserved.`,
+          error: `Cloud deletion failed: ${errorDetail}. Local data preserved.`,
           localCleanupExecuted: false,
         };
       }

@@ -33,8 +33,8 @@ module.exports = async function handler(req, res) {
   const authorization = req.headers.authorization;
   const isPrototype = process.env.ALLOW_PROTOTYPE_COACH === 'true';
   const localUser =
-    req.localCoachUser === 'loopback-development'
-      ? { id: 'loopback-development' }
+    typeof req.localCoachUser === 'string' && req.localCoachUser.startsWith('loopback-')
+      ? { id: req.localCoachUser }
       : isPrototype
         ? { id: 'prototype-' + (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'guest') }
         : null;

@@ -195,4 +195,33 @@ describe('Account Deletion Service Client Hardening', () => {
     expect(capability.code).toBe('BACKEND_NOT_CONFIGURED');
     expect(capability.reason).toBe('Feature unavailable until production backend is configured.');
   });
+
+  test('Test 9: Malformed cloud response (null or corrupted return) preserves local data and fails safely', async () => {
+    // Malformed RPC result returning null
+    mockDeps.callCloudRpc = async () => null as unknown as { error: null };
+
+    const result = await accountDeletionService.requestAccountDeletion(
+      { confirmationText: CONFIRMATION_KEYWORD },
+      mockDeps
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.code).toBe('CLOUD_RPC_FAILED');
+    expect(result.localCleanupExecuted).toBe(false);
+    expect(localDataCleared).toBe(false);
+    expect(signedOut).toBe(false);
+  });
+
+  test('Test 10: User cancel / blank input never triggers RPC or wipes data', async () => {
+    const result = await accountDeletionService.requestAccountDeletion(
+      { confirmationText: 'cancel' },
+      mockDeps
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.code).toBe('CONFIRMATION_INVALID');
+    expect(rpcCalls).toHaveLength(0);
+    expect(localDataCleared).toBe(false);
+    expect(signedOut).toBe(false);
+  });
 });

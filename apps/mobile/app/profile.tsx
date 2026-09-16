@@ -47,7 +47,6 @@ import {
   KeyboardDoneAccessory,
   KEYBOARD_DONE_ID,
 } from '../src/components/workout/KeyboardDoneAccessory';
-import { entitlementService } from '../src/services/entitlementService';
 import {
   accountDeletionService,
   CONFIRMATION_KEYWORD,
@@ -339,27 +338,13 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleRestorePurchases = async () => {
-    try {
-      const state = await entitlementService.restorePurchases();
-      if (state.isPro) {
-        Alert.alert(
-          t('legal.restorePurchases'),
-          language === 'de'
-            ? 'Käufe wiederhergestellt. Alle EVARO Beta-Features sind für dich freigeschaltet.'
-            : 'Purchases restored. All EVARO Beta features are unlocked for you.',
-        );
-      } else {
-        Alert.alert(
-          t('legal.restorePurchases'),
-          language === 'de'
-            ? 'Keine aktiven Käufe gefunden.'
-            : 'No active purchases found.',
-        );
-      }
-    } catch {
-      Alert.alert(t('legal.restorePurchases'), t('legal.pendingPlaceholder'));
-    }
+  const handleRestorePurchases = () => {
+    Alert.alert(
+      t('legal.restorePurchases'),
+      language === 'de'
+        ? 'In der EVARO Beta sind bereits alle Pro-Funktionen uneingeschränkt aktiv. Die Wiederherstellung von Käufen über den App Store / Google Play wird mit dem offiziellen Store-Launch aktiviert.'
+        : 'All Pro features are already unlocked in the EVARO Beta. In-app purchase restoration will be activated with the official store release.',
+    );
   };
 
   const handleDeleteAccount = async () => {
@@ -1066,7 +1051,21 @@ export default function ProfileScreen() {
               <Ionicons name="refresh-circle-outline" size={22} color={theme.colors.muted} />
               <Text style={styles.settingsLabel}>{t('legal.restorePurchases')}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View
+                style={{
+                  backgroundColor: withAlpha(theme.colors.primary, 0.12),
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 6,
+                }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.primary }}>
+                  Beta
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
+            </View>
           </Pressable>
 
           <Pressable style={[styles.settingsRow, styles.lastRow]} onPress={handleDeleteAccount}>

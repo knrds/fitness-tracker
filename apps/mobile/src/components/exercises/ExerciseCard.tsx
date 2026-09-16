@@ -7,6 +7,7 @@ import { Exercise } from '@fitness-tracker/domain';
 import { MuscleGroupBadge } from './MuscleGroupBadge';
 import { Link, Href } from 'expo-router';
 import { useI18n } from '../../i18n';
+import { getExerciseMedia } from '../../utils/getExerciseMedia';
 
 interface Props {
   exercise: Exercise;
@@ -20,15 +21,15 @@ export const ExerciseCard = ({ exercise, isFavorite, onToggleFavorite }: Props) 
   const { formatEquipment } = useI18n();
   const [loading, setLoading] = useState(true);
 
-  const previewUri = exercise.gifUrl || exercise.imageUrl;
+  const media = getExerciseMedia(exercise);
 
   return (
     <Link href={`/exercise/${exercise.id}` as Href} asChild>
       <Pressable style={styles.card} testID="exercise-card">
-        {previewUri ? (
+        {media.hasMedia && media.uri ? (
           <View style={styles.imageContainer}>
             <Image
-              source={{ uri: previewUri }}
+              source={{ uri: media.uri }}
               style={styles.image}
               contentFit="contain"
               onLoadStart={() => setLoading(true)}
@@ -39,7 +40,7 @@ export const ExerciseCard = ({ exercise, isFavorite, onToggleFavorite }: Props) 
                 <ActivityIndicator size="small" color={theme.colors.primary} />
               </View>
             )}
-            {exercise.gifUrl ? (
+            {media.badge === 'GIF' ? (
               <View style={styles.gifBadge}>
                 <Text style={styles.gifBadgeText}>GIF</Text>
               </View>
@@ -47,7 +48,7 @@ export const ExerciseCard = ({ exercise, isFavorite, onToggleFavorite }: Props) 
           </View>
         ) : (
           <View style={styles.placeholderContainer}>
-            <Ionicons name="barbell-outline" size={24} color={theme.colors.muted} />
+            <Ionicons name={media.fallbackIcon} size={24} color={theme.colors.muted} />
           </View>
         )}
 

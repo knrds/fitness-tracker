@@ -364,3 +364,99 @@ Commit vor Änderung:
 
 Commit mit Änderung:
 38f8820
+
+---
+
+# Work Block 04 – Data Integrity Contracts & Sync Test Matrix (Phase 5)
+
+Date: 2026-09-16
+Starting Commit: d43ca9c
+Ending Commit: cfb3244
+
+## Ziel
+
+Ausbau der automatisierten Testabdeckung für kritische Datenintegritäts-Pfade (Workouts, Sets, Körperdaten, Programme, UUIDs) und Erstellung einer lückenlosen Synchronisations-Testmatrix für 12 typische Multi-Device- und Offline-Szenarien.
+
+## Vorheriger Zustand
+
+- Persistenztests deckten primär einfache Rehydration ab; relationale Invarianten (keine doppelten Set-IDs, isolierte Set-Updates ohne Mutation von Nachbarsätzen, sequenzielle Neunummerierung nach Löschung, chronologische Ordnung bei ungeordneten Measurements) waren nicht als zusammenhängender Vertrag getestet.
+- Es gab keine strukturierte Matrix, die den Test- und Implementierungsstatus aller 12 geforderten Sync-Szenarien festhielt.
+
+## Analyse
+
+Die bestehenden Stores (`workoutStore`, `bodyMetricStore`, `programStore`) verfügen über solide Grundlogik, aber ohne dedizierte Vertragstests besteht bei zukünftigen Schema- oder Sync-Refactorings durch Astra ein erhöhtes Regressionsrisiko. Eine neue Vertragstestsuite `dataIntegrityContracts.test.ts` sichert diese Invarianten ab, ohne Produktivcode riskant zu verändern.
+Zusätzlich wurde in `SYNC_TEST_MATRIX.md` jedes der 12 Szenarien (`offline create`, `offline edit`, `offline delete`, `online reconnect`, `same entity changed twice`, `two-device edit`, `delete vs update`, `duplicate upload`, `retry after timeout`, `partial sync failure`, `auth change during sync`, `account switch`) genau verortet und bewertet.
+
+## Änderungen
+
+### Datei
+`apps/mobile/src/data/__tests__/dataIntegrityContracts.test.ts`
+
+Änderung:
+Neue umfassende Testsuite mit 4 Testblöcken implementiert:
+1. Workout & Set Integrity (Eindeutigkeit, Updates, Löschung & Re-numbering).
+2. Body Measurements Integrity (Chronologie, `getLatestMetric()`, Löschung).
+3. Program & Template Integrity (Template-Erstellung mit `targetSets`/`targetReps`/`targetWeight`, Einzel-Aktiv-Exklusivität).
+4. ID Collision & UUID Validity (1.000 UUID-Generierungen ohne Duplikat, RFC4122-Schema-Validierung).
+
+Warum:
+Solides Sicherheitsnetz für spätere persistente Refactorings durch Astra.
+
+### Datei
+`docs/release/SYNC_TEST_MATRIX.md`
+
+Änderung:
+Neue Spezifikations- und Statusmatrix für alle 12 Sync-Szenarien angelegt.
+
+Warum:
+Transparente Übersicht des aktuellen Grads an Offline-First-Reife und klare Benennung der noch offenen Astra-Architekturentscheidungen (Tombstones, Outbox Coalescing).
+
+### Datei
+`docs/release/ASTRA_REVIEW_QUEUE.md`
+
+Änderung:
+AR-004 eingetragen.
+
+Warum:
+Review-Transparenz.
+
+## Tests
+
+- `apps/mobile/src/data/__tests__/dataIntegrityContracts.test.ts` -> PASS (4 Tests)
+- `pnpm verify` -> PASS (322 Tests grün, 0 Type-Fehler, 0 Lint-Fehler)
+
+## Verhalten vorher
+
+Teilweise implizite Datenverträge; keine zentrale Sync-Test-Matrix.
+
+## Verhalten nachher
+
+Explizit getestete relationale Invarianten; standardisierte 12-Punkte-Sync-Matrix.
+
+## Risiko
+
+LOW
+
+## Rückwärtskompatibilität
+
+Vollständig abwärtskompatibel. Keine Codeänderung an bestehenden Stores.
+
+## Bestehende Nutzerdaten betroffen?
+
+NO
+
+## Offene Punkte
+
+- Astra-Entscheidung zu serverseitigen Tombstones und Coalescing in der Cloud-Queue.
+
+## Astra muss später prüfen
+
+- AR-004 in `ASTRA_REVIEW_QUEUE.md`.
+
+## Rollback
+
+Commit vor Änderung:
+d43ca9c
+
+Commit mit Änderung:
+cfb3244

@@ -184,7 +184,7 @@ Risk:
 LOW
 
 Commit:
-cfb3244
+943676b
 
 Files:
 - `apps/mobile/src/data/__tests__/dataIntegrityContracts.test.ts`

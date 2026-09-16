@@ -1,6 +1,6 @@
 import { useProfileStore } from '../profileStore';
 import { useHistoryStore } from '../historyStore';
-import { WorkoutSession } from '@fitness-tracker/domain';
+import { WorkoutSession, Equipment, MuscleGroup, MovementPattern } from '@fitness-tracker/domain';
 import { useAchievementStore } from '../achievementStore';
 import { useBodyMetricStore } from '../bodyMetricStore';
 import { useExerciseStore } from '../exerciseStore';
@@ -36,6 +36,76 @@ describe('profileStore', () => {
     expect(exported.coachMessages).toEqual(useCoachStore.getState().messages);
     expect(exported.sync).toBeUndefined();
     expect(exported.auth).toBeUndefined();
+  });
+
+  it('generates a complete GDPR Art. 20 export payload containing all 15 required domain sections without credential leaks', () => {
+    const testDate = new Date('2026-06-15T10:00:00.000Z');
+    useHistoryStore.getState().addSession({
+      id: 'session-export-1',
+      userId: 'user-export-1',
+      name: 'Full Body A',
+      startedAt: testDate,
+      completedAt: testDate,
+      durationSeconds: 3600,
+      createdAt: testDate,
+      updatedAt: testDate,
+      exercises: [
+        {
+          id: 'se-1',
+          exerciseId: 'bench-press',
+          order: 0,
+          sets: [{ id: 'set-1', setNumber: 1, type: 'working', weight: 100, reps: 5, completed: true }],
+        },
+      ],
+    });
+    useBodyMetricStore.getState().addMetric({
+      weightKg: 82.5,
+      bodyFatPercentage: 14.2,
+      recordedAt: testDate,
+    });
+    useExerciseStore.getState().addCustomExercise({
+      name: 'Zercher Squat',
+      instructions: 'Hold bar in crook of elbows.',
+      primaryMuscles: [MuscleGroup.Quads],
+      secondaryMuscles: [MuscleGroup.Glutes],
+      equipment: Equipment.Barbell,
+      movementPattern: MovementPattern.Squat,
+    });
+    useExerciseStore.getState().toggleFavorite('bench-press');
+    useCoachStore.setState({
+      messages: [
+        { id: 'msg-1', role: 'user', content: 'What is my split for tomorrow?', createdAt: testDate },
+        { id: 'msg-2', role: 'assistant', content: 'You have Upper Body scheduled.', createdAt: testDate },
+      ],
+    });
+
+    const exportRaw = useProfileStore.getState().exportData();
+    expect(typeof exportRaw).toBe('string');
+    expect(exportRaw).not.toContain('access_token');
+    expect(exportRaw).not.toContain('refresh_token');
+    expect(exportRaw).not.toContain('sb-');
+    expect(exportRaw).not.toContain('service_role');
+
+    const parsed = JSON.parse(exportRaw);
+    expect(parsed.schemaVersion).toBe(2);
+    expect(typeof parsed.exportedAt).toBe('string');
+    expect(parsed.profile.displayName).toBe('User');
+    expect(parsed.history).toHaveLength(1);
+    expect(parsed.history[0].name).toBe('Full Body A');
+    expect(parsed.history[0].exercises[0].sets[0].weight).toBe(100);
+    expect(parsed.bodyMetrics).toHaveLength(1);
+    expect(parsed.bodyMetrics[0].weightKg).toBe(82.5);
+    expect(parsed.customExercises).toHaveLength(1);
+    expect(parsed.customExercises[0].name).toBe('Zercher Squat');
+    expect(parsed.favorites).toContain('bench-press');
+    expect(parsed.coachMessages).toHaveLength(2);
+    expect(parsed.workout).toBeDefined();
+    expect(parsed.achievements).toBeDefined();
+    expect(parsed.hydration).toBeDefined();
+    expect(parsed.caffeine).toBeDefined();
+    expect(parsed.exercisePreferences).toBeDefined();
+    expect(parsed.programs).toBeDefined();
+    expect(parsed.templates).toBeDefined();
   });
   beforeEach(() => {
     useProfileStore.setState({

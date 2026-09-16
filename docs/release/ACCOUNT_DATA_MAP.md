@@ -82,10 +82,19 @@ Dieses Dokument dient als verbindliche technische Bestandsaufnahme aller im Repo
 
 ---
 
-## 5. ASTRA_REVIEW_REQUIRED
+## 5. Detaillierte Spezifikationen & Handlungsanweisungen
 
-- [ ] **Supabase RPC / Endpoint**: Implementierung einer sicheren Funktion `delete_user_account()`, die serverseitig aufgerufen werden kann und alle Cloud-Tabellen + Auth-User atomar bereinigt.
-- [ ] **FK-Constraint Prüfung**: Fix des potenziellen `ON DELETE RESTRICT`-Konflikts zwischen `template_exercises` und `exercises`.
-- [ ] **Automatisierte Bereinigung von Storage-Buckets**: Bucket-Purge für Avatare.
-- [ ] **Zweistufiger Bestätigungsdialog im UI**: Sicherheitsabfrage mit Bestätigungswort ("LÖSCHEN" / "DELETE") vor Durchführung der irreversiblen Löschung.
-- [ ] **Abo-Kündigungshinweis**: Warnmeldung gemäß Apple-Richtlinien bezüglich weiterlaufender App-Store-Abos.
+Vollständige technische Spezifikationen für die Umsetzung durch Astra liegen vor in:
+- **Account Deletion:** [ACCOUNT_DELETION_IMPLEMENTATION_SPEC.md](file:///d:/TrainingsAppGPT/docs/release/ACCOUNT_DELETION_IMPLEMENTATION_SPEC.md) (AR-006)
+- **Data Export:** [DATA_EXPORT_IMPLEMENTATION_SPEC.md](file:///d:/TrainingsAppGPT/docs/release/DATA_EXPORT_IMPLEMENTATION_SPEC.md) (AR-006)
+
+---
+
+## 6. ASTRA_REVIEW_REQUIRED
+
+- [ ] **Supabase RPC (`delete_user_account`)**: Ausrollen der in `ACCOUNT_DELETION_IMPLEMENTATION_SPEC.md` spezifizierten Postgres-Stored-Procedure mit `SECURITY DEFINER` zur atomaren Bereinigung von Cloud-Tabellen, Avataren und `auth.users`.
+- [ ] **FK-Constraint Prüfung**: Fix des potenziellen `ON DELETE RESTRICT`-Konflikts zwischen `template_exercises` und `exercises` in `schema.sql`.
+- [ ] **Automatisierte Bereinigung von Storage-Buckets**: Verifikation der Storage-Trigger-Löschung für `avatars/${userId}`.
+- [ ] **Zweistufiger Bestätigungsdialog im UI**: Sicherheitsabfrage mit Bestätigungswort ("LÖSCHEN" / "DELETE") in `app/profile.tsx` gemäß Spezifikation.
+- [ ] **Abo-Kündigungshinweis**: Warnmeldung gemäß Apple-Richtlinie 5.1.1(v) bezüglich weiterlaufender App-Store-Abonnements vor Bestätigung einblenden.
+

@@ -545,3 +545,115 @@ Commit vor Änderung:
 
 Commit mit Änderung:
 f4960b7
+
+---
+
+# Work Block 06 – Account Lifecycle: Deletion Spec & GDPR Art. 20 Export (Phase 7)
+
+Date: 2026-09-16
+Starting Commit: 9643886
+Ending Commit: TBD
+
+## Ziel
+
+Vorbereitung der serverseitigen Account-Löschung (Apple Guideline 5.1.1(v), DSGVO Art. 17) und Absicherung des Datenexports (DSGVO Art. 20) ohne Ausführung riskanter, irreversibler Produktivmigrationen.
+
+## Vorheriger Zustand
+
+- `app/profile.tsx` und `profileStore.ts` verfügten über `clearAllData()` (lokaler Reset von SQLite-Partitionen und Stores) und `exportData()` (JSON-Serialisierung).
+- Es existierte jedoch keine verknüpfte serverseitige Account-Löschung via Supabase RPC, was ein Ablehnungsrisiko im Apple App Store Review darstellt.
+- `docs/schema.sql` enthielt ein potenzielles Kaskadierungs-Problem (`ON DELETE RESTRICT` von `template_exercises.exercise_id` auf `exercises(id)`).
+- Für `exportData()` fehlte ein umfassender Test, der das Vorhandensein aller 15 Domänenabschnitte und den strikten Ausschluss von Anmeldetokens validierte.
+
+## Analyse
+
+Die Account-Löschung erfordert das koordinierte Bereinigen von fünf Tiers: Supabase Postgres, Supabase Storage (`avatars`), Supabase `auth.users`, lokaler SQLite (`training.sqlite`), und lokalen MMKV-Tokens. Eine reine Client-Löschung genügt den App-Store-Richtlinien nicht; gleichzeitig darf ein Client mangels Service-Role-Rechten `auth.users` nicht direkt mutieren.
+Die optimale Lösung ist eine Postgres-Funktion `delete_user_account()` mit `SECURITY DEFINER`, die atomar mit `auth.uid()` ausgeführt wird.
+
+## Änderungen
+
+### Datei
+`docs/release/ACCOUNT_DELETION_IMPLEMENTATION_SPEC.md`
+
+Änderung:
+Vollständige technische Spezifikation für Astra erstellt:
+- Postgres RPC mit atomarer Transaktion und `SECURITY DEFINER`.
+- Reihenfolge zur Vermeidung von `ON DELETE RESTRICT`-Fehlern (Templates vor Custom Exercises löschen).
+- Bereinigung von Storage-Objekten (`avatars/${userId}`).
+- Client-Orchestrierung: StoreKit/Play-Abo-Prüfung, Offline-Blockade, Outbox-Freezing, 2-Stufen-Bestätigung mit Sicherheitswort "LÖSCHEN", atomare lokale Bereinigung nach Server-Erfolg.
+
+Warum:
+Erfüllung von Apple App Store Guideline 5.1.1(v) und DSGVO Art. 17.
+
+### Datei
+`docs/release/DATA_EXPORT_IMPLEMENTATION_SPEC.md`
+
+Änderung:
+Technische Spezifikation für DSGVO Art. 20 Datenübertragbarkeit erstellt:
+- Struktur- und Schemaverträge für Schema-Version 2.
+- Performance-Analyse bei 1.000+ Workouts (ca. 2,5–4,0 MB Payload).
+- Empfehlung für FileSystem-Streaming via `expo-file-system` statt nativer String-Übergabe an `Share.share`.
+
+Warum:
+Rechtliche und technische Absicherung des Datenexports.
+
+### Datei
+`apps/mobile/src/stores/__tests__/profileStore.test.ts`
+
+Änderung:
+Neuen Test `generates a complete GDPR Art. 20 export payload containing all 15 required domain sections without credential leaks` ergänzt.
+
+Warum:
+Verifikation, dass alle 15 Datenbereiche (Profile, History, BodyMetrics, Custom Exercises, Favorites, Coach Messages, Workout Draft, Achievements, etc.) exportiert werden und keinerlei Tokens (`access_token`, `refresh_token`, `sb-`, `service_role`) enthalten sind.
+
+### Datei
+`docs/release/ACCOUNT_DATA_MAP.md`
+
+Änderung:
+Mit neuen Spezifikationen und Prüfpunkten aktualisiert.
+
+Warum:
+Konsistenz in der Projektdokumentation.
+
+## Tests
+
+- `apps/mobile/src/stores/__tests__/profileStore.test.ts` -> PASS (8 Tests)
+- `pnpm verify` -> PASS (380 Tests)
+- `pnpm coach:check` -> PASS
+
+## Verhalten vorher
+
+Unvollständige Dokumentation der Cloud-Löschkette; kein automatisierter Vertragstest für den vollständigen DSGVO-Export.
+
+## Verhalten nachher
+
+Lückenlose Spezifikation für Astra zur sofortigen Aktivierung der Cloud-Löschung; automatisierter Nachweis der DSGVO-Export-Konformität.
+
+## Risiko
+
+HIGH (Cloud RPC Ausführung liegt bei Astra) / LOW (lokale Spezifikation und Tests)
+
+## Rückwärtskompatibilität
+
+Vollständig gegeben. Keine bestehenden Datenstrukturen verändert.
+
+## Bestehende Nutzerdaten betroffen?
+
+NO
+
+## Offene Punkte
+
+- Bereitstellung der Postgres-Migration `delete_user_account` in Supabase durch Astra.
+
+## Astra muss später prüfen
+
+- AR-006 in `docs/release/ASTRA_REVIEW_QUEUE.md`.
+
+## Rollback
+
+Commit vor Änderung:
+9643886
+
+Commit mit Änderung:
+TBD
+

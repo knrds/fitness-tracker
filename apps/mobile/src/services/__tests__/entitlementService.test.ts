@@ -168,4 +168,15 @@ describe('Entitlement Service Provider Abstraction & Beta Fallback', () => {
     service.verifyAgainstBackendClaim(true);
     expect(service.getEntitlementState().status).toBe('backend_mismatch');
   });
+
+  test('Test 11: Billing / store error during restore propagates cleanly without corrupting existing state', async () => {
+    const service = new EntitlementService({ betaBypass: false, provider: mockProvider });
+    mockProvider.restoreCustomerPurchases.mockRejectedValueOnce(
+      new Error('StoreKit billing service unavailable')
+    );
+
+    await expect(service.restorePurchases()).rejects.toThrow('StoreKit billing service unavailable');
+    // State remains safe
+    expect(service.getEntitlementState().isPro).toBe(false);
+  });
 });

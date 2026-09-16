@@ -16,6 +16,8 @@ Zentrale Queue aller von Gemini vorbereiteten, analysierten oder implementierten
 | [AR-008](#ar-008--monetization-preparation-evaro-pro-feature-matrix--entitlement-architecture-spec) | Monetization Preparation: EVARO Pro Feature Matrix & Entitlement Architecture Spec | P1 | PREPARED | HIGH | ARCHITECTURE_DECISION |
 | [AR-009](#ar-009--exercise-asset-replacement-plan--licensing-decoupling) | Exercise Asset Replacement Plan & Licensing Decoupling | P0 | PREPARED | HIGH | ARCHITECTURE_DECISION |
 | [AR-010](#ar-010--performance-qa-benchmarks-large-datasets--scalability-report) | Performance QA: Benchmarks, Large Datasets & Scalability Report | P1 | IMPLEMENTED | LOW | VERIFY |
+| [AR-011](#ar-011--possible-obsolete-component-exercisefiltertsx) | Possible Obsolete Component: ExerciseFilter.tsx | P2 | ANALYZED | LOW | VERIFY_DELETE |
+| [AR-012](#ar-012--dormant-dependencies-react-hook-form--hookformresolvers) | Dormant Dependencies: react-hook-form & @hookform/resolvers | P2 | ANALYZED | LOW | ARCHITECTURE_DECISION |
 
 ---
 
@@ -544,6 +546,96 @@ VERIFY
 
 Rollback commit:
 353529b
+
+---
+
+## AR-011 – Possible Obsolete Component: ExerciseFilter.tsx
+
+Priority:
+P2
+
+Gemini Status:
+ANALYZED
+
+Risk:
+LOW
+
+Commit:
+bc6741f (Pre-Cleanup Safepoint)
+
+Files:
+- `apps/mobile/src/components/exercises/ExerciseFilter.tsx`
+
+Gemini changed:
+Keine Löschung vorgenommen. Komponente analysiert und als potenziell ungenutzt identifiziert.
+
+Why:
+`ExerciseFilter.tsx` ist im Quellcode nirgendwo importiert. Die Screen-Datei `apps/mobile/app/(tabs)/exercises.tsx` verwendet eigene Inline-Filterchips (`MUSCLE_FILTERS`, `WARMUP_KEYWORDS` etc.). Am 13.09.2026 wurde die Komponente jedoch gestylt (`useThemeStyles`, `accessibilityRole="button"`). Um zu verhindern, dass eine geplante Wiederverwendung in einem kommenden Modal oder einer Übungsauswahl versehentlich gelöscht wird, wurde die Datei bewusst nicht gelöscht, sondern zur Verifikation an Astra übergeben.
+
+Tests:
+- `git grep "ExerciseFilter"` -> 0 Verwendungen außerhalb der Definitionsdatei.
+- `pnpm verify` -> PASS
+
+Expected behavior:
+Entweder:
+a) Komponente wird in `(tabs)/exercises.tsx` oder einem Auswahldialog als Shared Component wiederverwendet, ODER
+b) Komponente wird endgültig gelöscht.
+
+Potential concerns:
+- Keine funktionale Auswirkung, da unreferenziert.
+
+Questions for Astra:
+1. Soll `ExerciseFilter.tsx` gelöscht werden (`VERIFY_DELETE`) oder für eine zukünftige Filter-Modal-Abstraktion behalten werden?
+
+Astra action:
+VERIFY_DELETE
+
+Rollback commit:
+bc6741f
+
+---
+
+## AR-012 – Dormant Dependencies: react-hook-form & @hookform/resolvers
+
+Priority:
+P2
+
+Gemini Status:
+ANALYZED
+
+Risk:
+LOW
+
+Commit:
+bc6741f (Pre-Cleanup Safepoint)
+
+Files:
+- `apps/mobile/package.json`
+
+Gemini changed:
+Keine Entfernung vorgenommen. Abhängigkeiten im Rahmen des Repository-Cleanups analysiert.
+
+Why:
+`react-hook-form` und `@hookform/resolvers` sind in `apps/mobile/package.json` deklariert und in den Entwicklungsdokumenten (`CLAUDE.md`, `docs/AGENTS_REFERENCE.md`, `docs/agents/mobile-dev.md`) als Standard-Formularstack festgeschrieben. Aktuell nutzen die Screens (`login.tsx`, `register.tsx`, `profile.tsx`, `template-builder.tsx`) jedoch direkt `useState`. Ein vorschnelles Entfernen würde künftige Roadmap-Arbeiten (wie Onboarding WP-06) behindern, falls diese wie dokumentiert `react-hook-form` nutzen sollen.
+
+Tests:
+- `git grep "useForm"` -> 0 Treffer im aktuellen Quellcode.
+- `pnpm verify` -> PASS
+
+Expected behavior:
+Astra entscheidet, ob `react-hook-form` für Onboarding/Paywall/Forms beibehalten oder deinstalliert werden soll.
+
+Potential concerns:
+- Minimaler Package-Overhead in `node_modules` (beide Libraries werden vom Metro-Tree-Shaking ohnehin nicht in das Client-Bundle gepackt, solange kein Import existiert).
+
+Questions for Astra:
+1. Sollen bestehende Formulare auf `react-hook-form` + Zod migriert werden, oder soll die Abhängigkeit aus `apps/mobile/package.json` deinstalliert werden?
+
+Astra action:
+ARCHITECTURE_DECISION
+
+Rollback commit:
+bc6741f
 
 
 

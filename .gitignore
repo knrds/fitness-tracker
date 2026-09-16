@@ -15,8 +15,6 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
-*.orig.*
-web-build/
 
 # Metro
 .metro-health-check*
@@ -49,6 +47,10 @@ dist-native/
 output/
 .playwright-cli/
 *.log
+*.tmp
+*.temp
+*.bak
+*.old
 *.db
 *.sqlite
 *.sqlite-*

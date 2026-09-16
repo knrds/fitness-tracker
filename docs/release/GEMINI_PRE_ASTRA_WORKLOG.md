@@ -1088,6 +1088,124 @@ Commit vor Änderung:
 Commit mit Änderung:
 aa2028b
 
+---
+
+# Work Block 11 – Full Local Project Cleanup & Repository Compaction
+
+Date: 16. September 2026
+Starting Commit: bc6741f
+Ending Commit: PENDING_COMMIT
+
+## Ziel
+
+Vollständige und vorsichtige Bereinigung des gesamten lokalen EVARO-Projektordners und Repositorys ohne jede funktionale Veränderung der App. Entfernung generierter Artefakte, Reduzierung von Ballast und Erfassung potenziell ungenutzter Komponenten für Astra.
+
+## Vorheriger Zustand
+
+- Monorepo mit 405 Git-tracked Dateien.
+- Lokale generierte Verzeichnisse: `.playwright-cli/` (330 KB alte Logs), `apps/mobile/dist-native/` (20,81 MB), `apps/mobile/.expo/` (Cache), `apps/mobile/dist/` (19,48 MB).
+- Lokaler Speicherplatz (exkl. `node_modules` und `.git`): 97,52 MB.
+- 0-Byte-Leere Datei `GEMINI.md` im Root.
+- Redundante Einträge (`*.orig.*`, `web-build/`) in `.gitignore`.
+
+## Analyse
+
+- Alle 405 getrackten Dateien wurden rekursiv auditiert und kategorisiert (`KEEP_REQUIRED`, `KEEP_FUTURE`, `KEEP_HISTORY_CRITICAL`, `REMOVE_GENERATED`, `REMOVE_OBSOLETE`, `UNCERTAIN`).
+- Dead-Code-Scan identifizierte `ExerciseFilter.tsx` als unreferenziert, jedoch am 13.09.2026 gestylt -> als `AR-011` an Astra übergeben.
+- Dependency-Scan identifizierte `react-hook-form` und `@hookform/resolvers` als deklarierten, aber noch nicht importierten Form-Stack -> als `AR-012` an Astra übergeben.
+- Exercise-Daten (`exercisedb-v1.json`) und Assets (`level-badges.png`, `Design_idea/`) wurden bewusst gemäß Sicherheitsregeln unangetastet gelassen.
+- Keine Secrets in Git-Historie committet.
+
+## Änderungen
+
+### Datei
+`GEMINI.md`
+
+Änderung:
+Gelöscht (`git rm`).
+
+Warum:
+0-Byte-Leere Datei ohne Quellwert oder Funktion.
+
+### Datei
+`.gitignore`
+
+Änderung:
+Deduplizierung von `*.orig.*` und `web-build/`. Ergänzung von Schutzmustern für temporäre und Backup-Dateien (`*.tmp`, `*.temp`, `*.bak`, `*.old`).
+
+Warum:
+Verhinderung künftiger versehentlicher Commits von lokalen Backup- oder Temp-Artefakten.
+
+### Lokale Bereinigung (nicht versioniert)
+`.playwright-cli/`, `apps/mobile/dist-native/`, `apps/mobile/.expo/`, `apps/mobile/dist/`
+
+Änderung:
+Vollständig aus dem lokalen Entwicklungsordner entfernt.
+
+Warum:
+Freigabe von über 40 MB lokalem Speicherplatz. Alle entfernten Ordner sind über `pnpm build` oder Skripte deterministisch regenerierbar.
+
+### Datei
+`docs/release/LOCAL_PROJECT_CLEANUP_REPORT.md`
+
+Änderung:
+Umfassenden Abschlussbericht für Astra und Konrad erstellt mit Vorher-/Nachher-Metriken, Asset-Status, behaltenen Dateien und Verifikation.
+
+Warum:
+Vollständige Auditierbarkeit und Nachvollziehbarkeit des Cleanups.
+
+### Datei
+`docs/release/ASTRA_REVIEW_QUEUE.md`
+
+Änderung:
+`AR-011` (`ExerciseFilter.tsx`) und `AR-012` (`react-hook-form` & `@hookform/resolvers`) ergänzt.
+
+Warum:
+Strikte Übergabe von Unsicherheiten an Astra statt eigenmächtiger Löschung.
+
+## Tests
+
+- `pnpm verify` -> PASS (389 Tests, Typecheck 0 Fehler, Lint 0 Fehler)
+- `pnpm coach:check` -> PASS
+- `pnpm build` -> PASS (Web-Export in `apps/mobile/dist` fehlerfrei generiert)
+
+## Verhalten vorher
+
+Unbereinigter lokaler Workspace (97,52 MB), alte Logs, 0-Byte-Dateien im Root, unvollständige Gitignore-Schutzregeln.
+
+## Verhalten nachher
+
+Aufgeräumter lokaler Workspace (56,89 MB vor Build, -41,7% Footprint), gehärtete `.gitignore`, 0 ungetrackte Artefakte, vollständige Dokumentation aller erhaltenen Dateien. 100% identische Laufzeitfunktionalität der App.
+
+## Risiko
+
+LOW (keine Veränderung an App- oder Fachlogik)
+
+## Rückwärtskompatibilität
+
+100% gegeben.
+
+## Bestehende Nutzerdaten betroffen?
+
+NO
+
+## Offene Punkte
+
+- Astra entscheidet über AR-011 (`ExerciseFilter.tsx`) und AR-012 (`react-hook-form`).
+
+## Astra muss später prüfen
+
+- AR-011 und AR-012 in `docs/release/ASTRA_REVIEW_QUEUE.md`.
+- `docs/release/LOCAL_PROJECT_CLEANUP_REPORT.md`.
+
+## Rollback
+
+Commit vor Änderung:
+bc6741f
+
+Commit mit Änderung:
+PENDING_COMMIT
+
 
 
 

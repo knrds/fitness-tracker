@@ -47,6 +47,11 @@ import {
   KeyboardDoneAccessory,
   KEYBOARD_DONE_ID,
 } from '../src/components/workout/KeyboardDoneAccessory';
+import { entitlementService } from '../src/services/entitlementService';
+import {
+  accountDeletionService,
+  CONFIRMATION_KEYWORD,
+} from '../src/services/accountDeletionService';
 
 export default function ProfileScreen() {
   const theme = useTheme();
@@ -332,6 +337,77 @@ export default function ProfileScreen() {
         result.error,
       );
     }
+  };
+
+  const handleRestorePurchases = async () => {
+    try {
+      const state = await entitlementService.restorePurchases();
+      if (state.isPro) {
+        Alert.alert(
+          t('legal.restorePurchases'),
+          language === 'de'
+            ? 'Käufe wiederhergestellt. Alle EVARO Beta-Features sind für dich freigeschaltet.'
+            : 'Purchases restored. All EVARO Beta features are unlocked for you.',
+        );
+      } else {
+        Alert.alert(
+          t('legal.restorePurchases'),
+          language === 'de'
+            ? 'Keine aktiven Käufe gefunden.'
+            : 'No active purchases found.',
+        );
+      }
+    } catch {
+      Alert.alert(t('legal.restorePurchases'), t('legal.pendingPlaceholder'));
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const capability = await accountDeletionService.verifyDeletionCapability();
+    if (!capability.available) {
+      Alert.alert(
+        t('legal.deleteAccount'),
+        language === 'de'
+          ? `Die Cloud-Account-Löschung ist aktuell noch nicht im Backend eingerichtet (${capability.reason}). Nutze "Alle Daten zurücksetzen" unter Daten & Backup zum Löschen lokaler Daten auf diesem Gerät.`
+          : `Cloud account deletion is not yet configured in the backend (${capability.reason}). Use "Reset All Data" under Data & Backup to wipe local device data.`,
+      );
+      return;
+    }
+
+    Alert.alert(
+      t('legal.deleteAccount'),
+      language === 'de'
+        ? 'Möchtest du deinen Account und alle zugehörigen Daten wirklich unwiderruflich löschen?'
+        : 'Are you sure you want to permanently delete your account and all associated data?',
+      [
+        { text: language === 'de' ? 'Abbrechen' : 'Cancel', style: 'cancel' },
+        {
+          text: language === 'de' ? 'Unwiderruflich löschen' : 'Delete Permanently',
+          style: 'destructive',
+          onPress: async () => {
+            const res = await accountDeletionService.requestAccountDeletion({
+              confirmationText: CONFIRMATION_KEYWORD,
+            });
+            if (res.success) {
+              await accountDeletionService.clearLocalDataAfterConfirmedCloudDeletion();
+              Alert.alert(
+                language === 'de' ? 'Erfolg' : 'Success',
+                language === 'de'
+                  ? 'Account wurde erfolgreich gelöscht.'
+                  : 'Account deleted successfully.',
+              );
+            } else {
+              Alert.alert(
+                language === 'de' ? 'Fehler' : 'Error',
+                language === 'de'
+                  ? (res.error ?? 'Löschung fehlgeschlagen.')
+                  : (res.error ?? 'Deletion failed.'),
+              );
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handlePickImage = async () => {
@@ -985,19 +1061,15 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
           </Pressable>
 
-          <Pressable
-            style={[styles.settingsRow, styles.lastRow]}
-            onPress={() => {
-              // TODO: Final account deletion backend / flow pending.
-              // ASTRA_REVIEW_REQUIRED: Needs Supabase user deletion + cloud purge.
-              Alert.alert(
-                t('legal.deleteAccount'),
-                profile.language === 'en'
-                  ? 'Account deletion requires cloud backend integration. Use "Reset All Data" under Data & Backup to clear local device data.'
-                  : 'Die vollständige Account-Löschung erfordert ein Cloud-Backend. Nutze "Alle Daten zurücksetzen" unter Daten & Backup zum Löschen lokaler Gerätedaten.',
-              );
-            }}
-          >
+          <Pressable style={styles.settingsRow} onPress={handleRestorePurchases}>
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="refresh-circle-outline" size={22} color={theme.colors.muted} />
+              <Text style={styles.settingsLabel}>{t('legal.restorePurchases')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
+          </Pressable>
+
+          <Pressable style={[styles.settingsRow, styles.lastRow]} onPress={handleDeleteAccount}>
             <View style={styles.settingsRowLeft}>
               <Ionicons name="person-remove-outline" size={22} color={theme.colors.error} />
               <Text style={[styles.settingsLabel, styles.dangerText]}>

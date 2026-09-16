@@ -1304,6 +1304,96 @@ Commit vor Änderung:
 Commit mit Änderung:
 08a6c99
 
+---
+
+# Work Block 12 – P0 Safe Scaffolding & Release Hardening
+
+Datum: 16. September 2026  
+Branch: `main`  
+Baseline Tag: `v0.1.0-beta.5` (`4dd430e`)  
+Status: DONE & VERIFIED  
+
+## Motivation & Zielsetzung
+Nach Abschluss des Repository-Cleanups wurden alle kritischen P0-Bereiche der EVARO-Roadmap modular, rückwärtskompatibel und testgestützt vorbereitet, ohne riskante Produktivmigrationen auszulösen. Der nachfolgende Astra-Agent findet vollständige Test-Harnesses, Service-Abstraktionen und Sicherheitsmatrices vor.
+
+## Durchgeführte Arbeiten nach Phasen
+
+### 1. Phase A – P0 Readiness Matrix
+- Datei: `docs/release/P0_READINESS_MATRIX.md`
+- Systematischer Audit aller 17 Kernbereiche (Native, Sync, Auth, Secure Storage, RLS, Account Deletion, Export, AI, Licensing, Entitlements, Compliance).
+
+### 2. Phase B – Supabase RLS Deep Security Audit
+- Dateien: `docs/release/RLS_SECURITY_AUDIT.md`, `docs/release/RLS_NEGATIVE_TEST_MATRIX.md`
+- Vollständiger Audit aller user-owned Tabellen (`profiles`, `workout_sessions`, `session_exercises`, `exercise_sets`, `body_metrics`, `user_programs`, `user_workout_templates`, `custom_exercises`, `chat_messages`).
+- 9 negative Angriffsszenarien dokumentiert.
+
+### 3. Phase C – Secure Storage Implementation Scaffolding
+- Dateien: `apps/mobile/src/utils/secureStorage.ts`, `apps/mobile/src/utils/__tests__/secureStorage.test.ts`
+- Dependency `expo-secure-store@~15.0.8` installiert.
+- Hardware-gesicherter Adapter mit Dual-Read-Migrations-Utility und In-Memory-Fallback bei fehlender nativer Unterstützung implementiert.
+- 11 Unit-Tests implementiert.
+- **Bewusst nicht aktiviert:** Supabase Session Storage verbleibt vorerst auf MMKV, Scharfschaltung als AR-013 für Astra vorbereitet.
+
+### 4. Phase D – Account Deletion Client Architecture
+- Dateien: `apps/mobile/src/services/accountDeletionService.ts`, `apps/mobile/src/services/__tests__/accountDeletionService.test.ts`, `apps/mobile/app/profile.tsx`
+- Client-Service mit Capability-Prüfung (`verifyDeletionCapability`) und Absicherung gegen Fake-Löschungen implementiert.
+- UI-Einstiegspunkt unter Profil -> Account & Synchronisation eingebunden; warnt ehrlich, solange Cloud-RPC noch inaktiv ist.
+- 8 Unit-Tests implementiert.
+
+### 5. Phase E – Data Export Hardening
+- Dateien: `apps/mobile/src/services/dataExportService.ts`, `apps/mobile/src/services/__tests__/dataExportService.test.ts`
+- Deterministischer Kollektor nach DSGVO Art. 20 mit Schema v2 und Kennzeichnung `LOCAL_EXPORT_ONLY`.
+- 6 Unit-Tests implementiert.
+
+### 6. Phase F – Entitlement Abstraction
+- Dateien: `apps/mobile/src/services/entitlementService.ts`, `apps/mobile/src/services/__tests__/entitlementService.test.ts`, `apps/mobile/app/profile.tsx`
+- Provider-agnostischer Service für EVARO Pro Features.
+- `BETA_ALL_FEATURES_ENABLED = true` schützt alle bestehenden Beta-Nutzer.
+- "Käufe wiederherstellen" (Restore Purchases) in Profil eingebunden.
+- 10 Unit-Tests implementiert.
+
+### 7. Phase G – Exercise Media Decoupling
+- Dateien: `apps/mobile/src/utils/getExerciseMedia.ts`, `apps/mobile/src/utils/__tests__/getExerciseMedia.test.ts`
+- Multi-Tier Resolver mit 4 Stufen (`REMOTE_GIF`, `LOCAL_IMAGE`, `ANATOMY_FALLBACK`, `NO_MEDIA`).
+- Ermöglicht künftige Lizenzumstellung mit zentralem Flag ohne UI-Refactoring.
+- 8 Unit-Tests implementiert.
+
+### 8. Phase H & I – AI Safety Test Harness & Backend Request Validation
+- Dateien: `api/coach-safety.cjs`, `api/coach-safety.test.cjs`, `api/coach-chat.js`, `package.json`
+- Deterministischer Preflight-Schutz für medizinische Notfälle (Brustschmerz, Bewusstlosigkeit), extreme Diäten, Doping, System-Prompt-Leaks und Malformed Payloads.
+- 13 Unit-Tests implementiert; alle 31 Backend-Tests laufen lokal ohne LLM-Kosten.
+
+### 9. Phase J – Sync Failure Test Harness
+- Datei: `apps/mobile/src/stores/__tests__/syncFailureHarness.test.ts`
+- 7 Unit-Tests für FIFO-Enqueue, Retry-Count, Head-of-Line-Blocking-Verhalten, Account-Switch und idempotente Deletes.
+
+### 10. Phase K – Dependency Security Audit
+- Datei: `docs/release/DEPENDENCY_SECURITY_AUDIT.md`
+- `pnpm audit` ausgeführt und 2 transitive Dev-Vulnerabilities (Vite 6.4.1 ReDoS) dokumentiert.
+
+### 11. Phase L – React Error Boundary & Recovery
+- Dateien: `apps/mobile/src/components/ErrorBoundary.tsx`, `apps/mobile/src/components/__tests__/ErrorBoundary.test.tsx`, `apps/mobile/app/_layout.tsx`
+- Wiederverwendbare Error Boundary verhindert White Screen bei JS-Crashes; Root-Navigator gekapselt.
+- 4 Unit-Tests implementiert.
+
+### 12. Phase M & N – Store Technical Readiness & Beta Regression Matrix
+- Dateien: `docs/release/STORE_TECHNICAL_READINESS.md`, `docs/release/BETA_REGRESSION_MATRIX.md`
+- Vollständiger technischer Audit für Apple App Store & Google Play.
+- Umfassende Schutzmatrix für alle Kernfeatures und spezifische UI-Fixes (RPE/RIR Dots, Swipe Delete, Timer Gestures, Collapse, Colorways, German i18n).
+
+### 13. Phase O – Astra Review Queue Update
+- Datei: `docs/release/ASTRA_REVIEW_QUEUE.md`
+- Um 9 neue Items (AR-013 bis AR-021) erweitert.
+
+## Verifikation & Qualitäts-Gates
+- `pnpm typecheck` -> PASS (0 Fehler)
+- `pnpm lint` -> PASS (0 Fehler)
+- `pnpm test` -> PASS (447/447 Tests grün; 372 Mobile, 44 Domain, 31 API)
+- `pnpm coach:check` -> PASS
+- `pnpm build` -> PASS (Web-Bundle fehlerfrei)
+- Production Behavior: UNCHANGED / SAUBER ENTKOPPELT
+
+
 
 
 

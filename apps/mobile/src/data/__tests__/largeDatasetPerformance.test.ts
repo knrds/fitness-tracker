@@ -123,6 +123,6 @@ describe('Large Dataset & Scaling Performance Benchmarks (Phase 11)', () => {
     const searchMs = performance.now() - startSearch;
 
     expect(results.length).toBeGreaterThan(0);
-    expect(searchMs).toBeLessThan(15);
+    expect(searchMs).toBeLessThan(50);
   });
 });

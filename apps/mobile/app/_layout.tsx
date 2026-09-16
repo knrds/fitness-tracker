@@ -28,6 +28,7 @@ import { useWorkoutStore } from '../src/stores/workoutStore';
 import { getResumeWorkoutDecision } from '../src/utils/resumeWorkoutGuard';
 import { inspectStartupState } from '../src/utils/startup-recovery';
 import { PersistenceGate } from '../src/components/PersistenceGate';
+import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { useProfileStore } from '../src/stores/profileStore';
 import { validateEnvironment } from '../src/utils/envValidation';
 
@@ -287,7 +288,9 @@ export default function RootLayout() {
               />
             )}
             <PersistenceGate>
-              <RootNavigator />
+              <ErrorBoundary>
+                <RootNavigator />
+              </ErrorBoundary>
             </PersistenceGate>
           </DialogProvider>
         </AppTheme>

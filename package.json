@@ -6,7 +6,7 @@
   "scripts": {
     "coach:local": "node api/local-server.cjs",
     "coach:check": "node api/provider-check.cjs",
-    "test:api": "node --test api/coach-chat.test.cjs",
+    "test:api": "node --test api/coach-chat.test.cjs api/coach-safety.test.cjs",
     "dev": "pnpm --filter @fitness-tracker/mobile dev",
     "web": "pnpm --filter @fitness-tracker/mobile web",
     "expo": "pnpm --filter @fitness-tracker/mobile start:lan",

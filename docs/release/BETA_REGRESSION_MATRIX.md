@@ -1,0 +1,107 @@
+# EVARO – Beta Regression Suite & Quality Assurance Matrix
+
+**Version:** 1.0.0  
+**Baseline:** `v0.1.0-beta.5`  
+**Datum:** 16. September 2026  
+**Status:** ACTIVE REGRESSION BASELINE  
+**Autor:** Antigravity (Gemini Implementation Agent)  
+**Zielgruppe:** Astra, QA Engineers, Core Maintainers  
+
+---
+
+## 1. Regression Matrix Overview
+
+Diese Matrix schützt alle Kernfunktionen sowie die spezifisch in den letzten Zyklen stabilisierten UI- und Interaktions-Fixes vor Regressionen während der kommenden Astra-Entwicklungsblöcke.
+
+Alle Einträge sind entweder durch **automatisierte Unit-/Integrationstests** (`pnpm test`) abgedeckt oder als deterministische **Manual Verification Scenarios** für Device-QA definiert.
+
+---
+
+## 2. Kritische Kernbereiche & Testzuordnung
+
+| Bereich | Feature / User Flow | Kritische Erwartung | Automatisierter Testpfad | Manual Verification Case |
+|---|---|---|---|---|
+| **Auth** | Sign Up & Sign In | Formularvalidierung, JWT Session Persistence, Fehleranzeige | `apps/mobile/src/stores/__tests__/authStore.test.ts` | Test auf echtem Gerät mit Offline-Modus |
+| **Auth** | Guest Mode | Lokale MMKV/SQLite-Nutzung ohne Zwang zu Account | `apps/mobile/src/stores/__tests__/authStore.test.ts` | Gast-Modus starten, App schließen, Daten prüfen |
+| **Workout** | Live Workout Lifecycle | Starten, Pausieren, Beenden, Session Persistenz bei Crash | `apps/mobile/src/stores/__tests__/workoutStore.test.ts`<br>`apps/mobile/src/stores/__tests__/workoutPersistence.test.ts` | Aktives Workout starten, App via iOS App Switcher killen, neu öffnen |
+| **Set Logging** | Satz hinzufügen & abhaken | Set-Zählung (Warmup, Working, Drop, Failure), Checkbox Toggle | `apps/mobile/src/stores/__tests__/workoutStore.test.ts` | Checkbox antippen -> Haptisches Feedback |
+| **Set Logging** | RPE Tracking | 3-Punkte-Menü öffnet RPE-Picker (6.0 - 10.0 in 0.5er Schritten) | `apps/mobile/src/components/workout/__tests__/SessionExerciseCardSetOptions.test.tsx` | Drei-Punkte-Button antippen -> Dialog erscheint |
+| **Set Logging** | RIR Tracking | 3-Punkte-Menü öffnet RIR-Picker (0, 1, 2, 3, 4+) | `apps/mobile/src/components/workout/__tests__/SessionExerciseCardSetOptions.test.tsx` | Drei-Punkte-Button antippen -> RIR auswählen |
+| **Set Delete** | Swipe-to-Delete Satz | Horizontaler Wisch nach links deckt roten Lösch-Button auf | `apps/mobile/src/utils/__tests__/setSwipe.test.ts` | Wischgeste auf Satzzeile -> Satz wird entfernt |
+| **Workout UI** | Exercise Collapse | Einklappen/Ausklappen einzelner Übungskarten im Workout | `apps/mobile/src/components/workout/__tests__/workoutCollapse.test.tsx`<br>`apps/mobile/src/components/workout/__tests__/SessionExerciseCardCollapse.test.tsx` | Übungstitel antippen -> Karte klappt animiert zu |
+| **Rest Timer** | Rest Timer Swipe Gesture | Wisch nach oben: +30s; Wisch nach unten: -15s; Wisch links: Skip | `apps/mobile/src/utils/__tests__/timerSwipe.test.ts`<br>`apps/mobile/src/components/workout/__tests__/RestTimerGestures.test.tsx`<br>`apps/mobile/src/components/workout/__tests__/RestTimer.test.tsx` | Floating Timer nach oben/unten wischen |
+| **History** | Workout History | Historienanzeige, PR-Extraktion, Kalender, Sortierung nach Datum | `apps/mobile/src/stores/__tests__/historyStore.test.ts`<br>`apps/mobile/src/utils/__tests__/bigThree.test.ts` | Historien-Tab aufrufen -> korrekte Sätze und PRs |
+| **Measurements** | Body Metrics | Gewicht, KFA, Umfänge, metrische/imperiale Konvertierung | `apps/mobile/src/stores/__tests__/bodyMetricStore.test.ts`<br>`apps/mobile/src/utils/__tests__/decimalInput.test.ts` | Neue Wiegung eintragen mit Komma (`82,5`) |
+| **Programs** | Trainingspläne | Pläne erstellen, Tage zuweisen, Reorder-Gesten | `apps/mobile/src/stores/__tests__/programStore.test.ts`<br>`apps/mobile/src/hooks/__tests__/useFolderTemplateReorder.test.ts`<br>`apps/mobile/src/hooks/__tests__/useMeasuredReorder.test.ts` | Workout-Template per Drag & Drop verschieben |
+| **Exercises** | Katalog & Custom Exercises | Suche, Muskelgruppen-Filter, Equipment-Filter, eigene Übungen | `apps/mobile/src/stores/__tests__/exerciseStore.test.ts`<br>`apps/mobile/src/utils/__tests__/exerciseSearch.test.ts` | Suche nach "Bankdrücken" -> Treffer |
+| **Themes** | EVARO Colorways | Dark Mode, Neon Lime, Cyber Cyan, Crimson Pulse, Minimalist Monochrom | `packages/ui` Design Token Tests | Theme in Profile/Settings wechseln -> sofortiges UI-Update |
+| **Achievements** | Gamification & Level | XP-Berechnung, Level-Aufstieg, Streaks, Abzeichen | `apps/mobile/src/stores/__tests__/achievementStore.test.ts`<br>`apps/mobile/src/utils/__tests__/rewards.test.ts`<br>`apps/mobile/src/utils/__tests__/level.test.ts` | Workout abschließen -> Level-Fortschrittsbalken wächst |
+| **AI Coach** | Coach Chat & Safety | Trainingsberatung, Form-Tipps, medizinische Notfall-Eskalation | `api/coach-chat.test.cjs`<br>`api/coach-safety.test.cjs`<br>`apps/mobile/src/stores/__tests__/coachStore.test.ts`<br>`apps/mobile/src/utils/__tests__/coachApi.test.ts` | Nachricht "Ich habe Schmerzen in der Brust" -> Emergency |
+| **Data Export** | DSGVO Datenexport | Vollständiger JSON-Export aller lokalen Datenstrukturen | `apps/mobile/src/services/__tests__/dataExportService.test.ts` | *Profil -> Daten exportieren* -> valider JSON-String |
+| **Settings** | Einstellungen | Einheiten (kg/lb, cm/in), Haptik, Audio-Sounds | `apps/mobile/src/stores/__tests__/profileStore.test.ts` | Toggles umschalten -> State bleibt nach App-Neustart |
+| **Languages** | Mehrsprachigkeit (DE & EN) | 100% konsistente Übersetzungen ohne gemischte Sprachen | `apps/mobile/src/i18n/__tests__/i18n.test.ts` | Sprache umschalten -> alle Labels aktualisieren sich |
+| **Accessibility**| Barrierefreiheit & Reduced Motion | `prefers-reduced-motion` respektiert, Screenreader Labels | Automatisierte Accessibility Props in UI-Komponenten | iOS Barrierefreiheit: "Bewegung reduzieren" aktivieren |
+
+---
+
+## 3. Explizit geschützte UI-Fixes der jüngsten Iterationen
+
+Folgende spezifische Fehlerbehebungen und UX-Optimierungen dürfen von Astra nicht regressiert oder unbemerkt rückgängig gemacht werden:
+
+### 1. RPE/RIR Three-Dot Visibility
+* **Problemstellung:** In früheren Versionen war das Kontextmenü für RPE/RIR auf schmalen Bildschirmen (z.B. iPhone SE) abgeschnitten oder unsichtbar.
+* **Soll-Zustand:** Der Drei-Punkte-Button (`SessionExerciseCardSetOptions`) ist für jeden Satz dauerhaft erreichbar und öffnet das Modal unabhängig von Spaltenbreiten.
+* **Testabsicherung:** `SessionExerciseCardSetOptions.test.tsx` (Test: *"renders 3-dot trigger button for every set row"*).
+
+### 2. Swipe Delete auf Satz- und Übungsebene
+* **Problemstellung:** Beim Wischen konnte es zu versehentlichem horizontalem Scrollen oder ruckelnder Listenanimation kommen.
+* **Soll-Zustand:** Horizontale Wischgeste ist richtungsstabil, deckt den roten Papierkorb auf und löscht den Satz erst nach bewusstem Klick oder Schwellenwert-Swipe.
+* **Testabsicherung:** `setSwipe.test.ts`.
+
+### 3. Rest Timer Gestures (Swipe Up / Down / Left)
+* **Problemstellung:** Timer war rein statisch oder nur über kleine Buttons bedienbar.
+* **Soll-Zustand:** Wischgesten auf dem RestTimer-Overlay passen Zeit präzise an (+30s aufwärts, -15s abwärts, Schließen/Skip nach links).
+* **Testabsicherung:** `RestTimerGestures.test.tsx` und `timerSwipe.test.ts`.
+
+### 4. Workout Card Collapse Animation
+* **Problemstellung:** Einklappen von Übungskarten blockierte den Hauptthread bei langen Workouts mit vielen Sätzen.
+* **Soll-Zustand:** Die Animation nutzt Reanimated / LayoutAnimation mit optimierter Render-Pipeline, sodass die Framerate flüssig bleibt.
+* **Testabsicherung:** `workoutCollapse.test.tsx` und `SessionExerciseCardCollapse.test.tsx`.
+
+### 5. EVARO Colorway Theming System
+* **Problemstellung:** Hartkodierte Hex-Codes führten zu unleserlichen Kontrasten in einzelnen Screens.
+* **Soll-Zustand:** Alle Komponenten referenzieren strikt `theme.colors.*` (`primary`, `background`, `surface`, `border`, `text`, `muted`).
+* **Testabsicherung:** `useTheme()` / `useThemeStyles()` Typechecks und UI Token Definitionen.
+
+### 6. Vollständige deutsche Lokalisierung
+* **Problemstellung:** Denglische Wortkombinationen wie *"Set gelöscht successfully"* oder fehlende Umlaute.
+* **Soll-Zustand:** Alle Strings laufen über `t(...)` mit vollständigem Key-Paritätsabgleich zwischen DE und EN.
+* **Testabsicherung:** `i18n.test.ts`.
+
+### 7. Haptics & Audio Setting Toggles
+* **Problemstellung:** Haptik und Sound liefen auch dann, wenn der Nutzer sie in den Einstellungen deaktiviert hatte.
+* **Soll-Zustand:** `hapticsEnabled` und `soundEnabled` in `profileStore` werden vor jedem Vibrations- oder Audio-Aufruf (`expo-haptics`, `expo-av`) geprüft.
+* **Testabsicherung:** Unit Tests für Store-Settings und Event-Guards.
+
+---
+
+## 4. Automatisierte Ausführung der Regressionssuite
+
+Vor jedem Release-Zweig oder Meilenstein-Merge muss die vollständige Suite lokal ausgeführt werden:
+
+```bash
+# 1. Typecheck (Zero Errors)
+pnpm typecheck
+
+# 2. Lint (Zero Warnings)
+pnpm lint
+
+# 3. Unit- und Integrationstests (Alle 447 Tests müssen grün sein)
+pnpm test
+
+# 4. AI Coach Preflight & Safety Test
+pnpm coach:check
+
+# 5. Production Web Bundle
+pnpm build
+```

@@ -5,6 +5,7 @@ const {
   wantsStructuredPlan,
 } = require('./coach-plans.cjs');
 const { getResearch } = require('./coach-research.cjs');
+const { screenCoachSafety } = require('./coach-safety.cjs');
 const limits = new Map();
 const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const systemPrompt =
@@ -25,6 +26,10 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  const contentType = req.headers['content-type'];
+  if (contentType && !contentType.includes('application/json')) {
+    return res.status(415).json({ error: 'Unsupported media type: application/json required' });
+  }
   const authorization = req.headers.authorization;
   const isPrototype = process.env.ALLOW_PROTOTYPE_COACH === 'true';
   const localUser =
@@ -146,6 +151,15 @@ module.exports = async function handler(req, res) {
     }
     limit.count++;
     limits.set(user.id, limit);
+    const safetyScreen = !audio ? screenCoachSafety(lastText) : { isBlocked: false };
+    if (safetyScreen.isBlocked) {
+      return res.status(200).json({
+        reply: safetyScreen.reply,
+        safetyIntercept: true,
+        category: safetyScreen.category,
+        model: 'evaro-safety-guardrail',
+      });
+    }
     const research =
       !audio && (planMode || /muskel|hypertroph|volum|studi|research|evidence/i.test(lastText))
         ? await getResearch()

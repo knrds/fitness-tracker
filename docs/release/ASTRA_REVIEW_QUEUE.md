@@ -18,6 +18,15 @@ Zentrale Queue aller von Gemini vorbereiteten, analysierten oder implementierten
 | [AR-010](#ar-010--performance-qa-benchmarks-large-datasets--scalability-report) | Performance QA: Benchmarks, Large Datasets & Scalability Report | P1 | IMPLEMENTED | LOW | VERIFY |
 | [AR-011](#ar-011--possible-obsolete-component-exercisefiltertsx) | Possible Obsolete Component: ExerciseFilter.tsx | P2 | ANALYZED | LOW | VERIFY_DELETE |
 | [AR-012](#ar-012--dormant-dependencies-react-hook-form--hookformresolvers) | Dormant Dependencies: react-hook-form & @hookform/resolvers | P2 | ANALYZED | LOW | ARCHITECTURE_DECISION |
+| [AR-013](#ar-013--secure-storage-adapter-implementation--dual-read-migration) | Secure Storage Adapter Implementation & Dual-Read Migration | P0 | PREPARED | HIGH | ACTIVATE |
+| [AR-014](#ar-014--account-deletion-service-client-architecture--safety-gate) | Account Deletion Service: Client Architecture & Safety Gate | P0 | PREPARED | HIGH | ACTIVATE |
+| [AR-015](#ar-015--data-export-hardening-gdpr-art-20-collector-service) | Data Export Hardening: GDPR Art. 20 Collector Service | P0 | IMPLEMENTED | LOW | VERIFY |
+| [AR-016](#ar-016--entitlement-abstraction-provider-agnostic-pro-management) | Entitlement Abstraction: Provider-Agnostic Pro Management | P1 | PREPARED | MEDIUM | ACTIVATE |
+| [AR-017](#ar-017--exercise-media-decoupling-central-multi-tier-resolver) | Exercise Media Decoupling: Central Multi-Tier Resolver | P0 | PREPARED | MEDIUM | ACTIVATE |
+| [AR-018](#ar-018--ai-safety-test-harness--backend-request-validation) | AI Safety Test Harness & Backend Request Validation | P0 | IMPLEMENTED | LOW | VERIFY |
+| [AR-019](#ar-019--sync-failure-test-harness--offlinefifo-resilience) | Sync Failure Test Harness & Offline/FIFO Resilience | P0 | IMPLEMENTED | LOW | VERIFY |
+| [AR-020](#ar-020--react-error-boundary--graceful-crash-recovery) | React Error Boundary & Graceful Crash Recovery | P1 | IMPLEMENTED | LOW | VERIFY |
+| [AR-021](#ar-021--store-compliance-technical-audit--in-app-readiness) | Store Compliance Technical Audit & In-App Readiness | P0 | AUDITED | MEDIUM | USER_DECISION |
 
 ---
 
@@ -636,6 +645,425 @@ ARCHITECTURE_DECISION
 
 Rollback commit:
 bc6741f
+
+---
+
+## AR-013 – Secure Storage Adapter Implementation & Dual-Read Migration
+
+Priority:
+P0
+
+Gemini Status:
+PREPARED
+
+Risk:
+HIGH (Active session persistence)
+
+Files:
+- `apps/mobile/src/utils/secureStorage.ts`
+- `apps/mobile/src/utils/__tests__/secureStorage.test.ts`
+- `apps/mobile/package.json` (`expo-secure-store` installiert)
+
+Gemini changed:
+1. `expo-secure-store@~15.0.8` passend zur Expo 54 Installation hinzugefügt.
+2. `apps/mobile/src/utils/secureStorage.ts`: Vollständige Adapter-Klasse `SecureStorageAdapter` implementiert mit:
+   - `getItem(key)`, `setItem(key, value)`, `deleteItem(key)`
+   - Hardware-Schutz via `keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK`
+   - Graceful Fallback auf In-Memory-Store bei nativer Nicht-Verfügbarkeit (z.B. SSR, Headless-Tests)
+   - Dual-Read-Migrations-Utility `migrateSessionWithDualRead()`: liest SecureStore, migriert bei Bedarf MMKV, schreibt zuerst in SecureStore, löscht erst nach Bestätigung aus MMKV
+   - `clearSessionFromAllStores()`: Bereinigt bei Logout synchron sowohl SecureStore als auch MMKV
+   - Keine Logs von Session-Tokens oder Passwörtern
+3. `apps/mobile/src/utils/__tests__/secureStorage.test.ts`: 11 automatisierte Unit-Tests für alle Fehlerszenarien (SecureStore gefüllt, MMKV gefüllt, beide gefüllt, korrupte Payloads, Schreibfehler, Native unavail, Logout-Cleanup).
+4. **Bewusst NICHT aktiviert:** Die Supabase-Client-Konfiguration in `supabase.ts` verbleibt unverändert auf MMKV, um bestehende Beta-Sessions nicht im laufenden Betrieb zurückzusetzen.
+
+Why:
+Authentifizierungs-Token (JWT) lagen bislang in MMKV unverschlüsselt auf dem Gerätespeicher. P0-Sicherheitsanforderung verlangt Hardware-Keystore/Keychain. Die Migration wurde vollständig vorbereitet und getestet, die finale Scharfschaltung obliegt Astra.
+
+Tests:
+- `apps/mobile/src/utils/__tests__/secureStorage.test.ts` -> 11/11 PASS
+
+Expected behavior:
+Adapter ist isoliert einsatzbereit. Bestehendes Production-Verhalten bleibt unverändert.
+
+Questions for Astra:
+1. Soll `secureStorage` im nächsten Schritt als `storage: secureStorage` in `createClient(...)` in `supabase.ts` übergeben werden?
+2. Soll beim ersten App-Start die Funktion `migrateSessionWithDualRead()` im `authStore.initialize()` aufgerufen werden?
+
+Astra action:
+ACTIVATE
+
+Rollback commit:
+v0.1.0-beta.5 (4dd430e)
+
+---
+
+## AR-014 – Account Deletion Service: Client Architecture & Safety Gate
+
+Priority:
+P0
+
+Gemini Status:
+PREPARED
+
+Risk:
+HIGH (Reversible client logic; backend RPC pending)
+
+Files:
+- `apps/mobile/src/services/accountDeletionService.ts`
+- `apps/mobile/src/services/__tests__/accountDeletionService.test.ts`
+- `apps/mobile/app/profile.tsx`
+- `apps/mobile/src/i18n/translations.ts`
+
+Gemini changed:
+1. `accountDeletionService.ts`: Client-Service für Account-Löschung nach Apple Guideline 5.1.1(v) implementiert:
+   - `verifyDeletionCapability()`: Prüft, ob Supabase und Cloud-RPC bereitstehen. Falls nicht, Rückgabe von `BACKEND_NOT_CONFIGURED`
+   - `requestAccountDeletion({ confirmationText })`: Verlangt explizites Bestätigungswort (`DELETE` / `LÖSCHEN`), blockiert Offline-Aufrufe, schützt vor Double-Submit, prüft Auth-Gültigkeit
+   - `clearLocalDataAfterConfirmedCloudDeletion()`: Löscht alle lokalen Daten, Stores und Scopes erst nach bestätigter Cloud-Löschung
+   - Keine Ausführung von Fake-Löschungen
+2. `profile.tsx`: UI-Button *"Account löschen"* verknüpft mit `verifyDeletionCapability()`. Da das Cloud-Backend noch inaktiv ist, wird der Nutzer ehrlich gewarnt und auf *"Alle Daten zurücksetzen"* verwiesen.
+3. 8 automatisierte Unit-Tests in `accountDeletionService.test.ts`.
+
+Why:
+App Store Zulassung erfordert einen Account-Lösch-Flow. Dieser darf jedoch keine Scheinlösung sein, bei der nur lokale Daten gelöscht werden, während der Account im Supabase-Backend verbleibt.
+
+Tests:
+- `accountDeletionService.test.ts` -> 8/8 PASS
+
+Expected behavior:
+Kein unberechtigter Datenverlust, ehrliches Feedback für Beta-Tester.
+
+Questions for Astra:
+1. Wann wird die RPC-Funktion `delete_user_account()` in der Supabase-Produktionsumgebung ausgerollt?
+
+Astra action:
+ACTIVATE
+
+Rollback commit:
+v0.1.0-beta.5 (4dd430e)
+
+---
+
+## AR-015 – Data Export Hardening: GDPR Art. 20 Collector Service
+
+Priority:
+P0
+
+Gemini Status:
+IMPLEMENTED
+
+Risk:
+LOW
+
+Files:
+- `apps/mobile/src/services/dataExportService.ts`
+- `apps/mobile/src/services/__tests__/dataExportService.test.ts`
+
+Gemini changed:
+1. `dataExportService.ts`: Deterministischer Daten-Kollektor nach DSGVO Art. 20 (Recht auf Datenübertragbarkeit):
+   - Export-Struktur mit Schema Version 2
+   - Eindeutige Kennzeichnung `exportScope: "LOCAL_EXPORT_ONLY"` (keine falsche Behauptung eines vollständigen Cloud-Exports)
+   - Aggregiert Profil, Workouts, Sets, Body Metrics, Trainingspläne, Templates, Custom Exercises, Achievements, Hydration, Caffeine und Coach-Nachrichten
+   - Schnelle Serialisierung (< 100ms auch bei hunderten Workouts)
+   - Reine kanonische Zahlenwerte (keine Formatierungsstörungen durch deutsche Kommas)
+   - Vollständige Erhaltung von Sonderzeichen, Umlauten und Emojis
+2. 6 automatisierte Unit-Tests in `dataExportService.test.ts`.
+
+Why:
+Sicherstellung der DSGVO-Compliance und verlässlicher Datensicherung für Power-User ohne Schema-Drift.
+
+Tests:
+- `dataExportService.test.ts` -> 6/6 PASS
+
+Expected behavior:
+Export erzeugt reproduzierbare, valide JSON-Dumps.
+
+Questions for Astra:
+1. Soll der Export-Service zukünftig zusätzlich eine CSV-Export-Option für Excel/Numbers anbieten?
+
+Astra action:
+VERIFY
+
+Rollback commit:
+v0.1.0-beta.5 (4dd430e)
+
+---
+
+## AR-016 – Entitlement Abstraction: Provider-Agnostic Pro Management
+
+Priority:
+P1
+
+Gemini Status:
+PREPARED
+
+Risk:
+MEDIUM
+
+Files:
+- `apps/mobile/src/services/entitlementService.ts`
+- `apps/mobile/src/services/__tests__/entitlementService.test.ts`
+- `apps/mobile/app/profile.tsx`
+
+Gemini changed:
+1. `entitlementService.ts`: Provider-unabhängige Entitlement-Abstraktion implementiert:
+   - `hasEntitlement(id)`
+   - `getEntitlementState()`
+   - `refreshEntitlements()`
+   - `restorePurchases()`
+   - Entkoppelt UI und Business-Logik von proprietären SDKs (RevenueCat / StoreKit)
+   - **BETA_ALL_FEATURES_ENABLED = true:** Standardmäßig aktiviert, damit kein einziger bestehender Beta-Tester den Zugriff auf Workouts, Coach oder Historie verliert
+   - Unterstützt Grace-Periods, Trial-States, Offline-Cache und Account-Switches
+2. `profile.tsx`: *"Käufe wiederherstellen"* (Restore Purchases) als Pflichtkomponente für Store-Zulassung hinzugefügt und mit Service verbunden.
+3. 10 automatisierte Unit-Tests in `entitlementService.test.ts`.
+
+Why:
+App Store verlangt Restore Purchases und saubere Entitlement-Prüfung vor In-App-Käufen. Die Abstraktion verhindert Vendor-Lock-in.
+
+Tests:
+- `entitlementService.test.ts` -> 10/10 PASS
+
+Expected behavior:
+Alle Beta-Features bleiben für alle Nutzer uneingeschränkt nutzbar.
+
+Questions for Astra:
+1. Welches RevenueCat SDK soll Astra integrieren (`react-native-purchases`), und welche Offerings/Packages sollen angelegt werden?
+
+Astra action:
+ACTIVATE
+
+Rollback commit:
+v0.1.0-beta.5 (4dd430e)
+
+---
+
+## AR-017 – Exercise Media Decoupling: Central Multi-Tier Resolver
+
+Priority:
+P0
+
+Gemini Status:
+PREPARED
+
+Risk:
+MEDIUM
+
+Files:
+- `apps/mobile/src/utils/getExerciseMedia.ts`
+- `apps/mobile/src/utils/__tests__/getExerciseMedia.test.ts`
+
+Gemini changed:
+1. `getExerciseMedia.ts`: Zentraler Resolver für Übungsmedien implementiert:
+   - Unterstützt 4 Stufen: `REMOTE_GIF`, `LOCAL_IMAGE`, `ANATOMY_FALLBACK`, `NO_MEDIA`
+   - Globaler Feature-Flag `EXERCISE_MEDIA_SOURCE_OVERRIDE` (Standard: `REMOTE_GIF`, somit 100% abwärtskompatibel zum bestehenden Zustand)
+   - Anatomie-Fallback-Mapping basierend auf den Primärmuskeln der Übung (`MuscleGroup`)
+   - Fehler- und URL-Validierung (Ungültige URLs fallen ohne Bildfehler auf neutralen Fallback zurück)
+   - Kein kaputtes Bild-Icon oder leere Layout-Verschiebungen
+2. 8 automatisierte Unit-Tests in `getExerciseMedia.test.ts`.
+
+Why:
+Die Lizenzfrage der 1.492 Übungs-GIFs (P0 Blocker) ist noch nicht juristisch entschieden. Durch diesen Resolver kann die gesamte App mit einer einzigen Zeile Code von Remote-GIFs auf anatomische Schaubilder oder lizenzierte Alternativen umgestellt werden, ohne dass UI-Komponenten angefasst werden müssen.
+
+Tests:
+- `getExerciseMedia.test.ts` -> 8/8 PASS
+
+Expected behavior:
+Bestehende Medien werden unverändert angezeigt. Ein Switch auf Fallbacks ist jederzeit schadlos möglich.
+
+Questions for Astra:
+1. Sobald die rechtliche Entscheidung zu den Übungs-GIFs vorliegt: Soll `EXERCISE_MEDIA_SOURCE_OVERRIDE` auf `ANATOMY_FALLBACK` gesetzt werden?
+
+Astra action:
+ACTIVATE
+
+Rollback commit:
+v0.1.0-beta.5 (4dd430e)
+
+---
+
+## AR-018 – AI Safety Test Harness & Backend Request Validation
+
+Priority:
+P0
+
+Gemini Status:
+IMPLEMENTED
+
+Risk:
+LOW
+
+Files:
+- `api/coach-safety.cjs`
+- `api/coach-safety.test.cjs`
+- `api/coach-chat.js`
+- `package.json` (`test:api` Skript erweitert)
+
+Gemini changed:
+1. `api/coach-safety.cjs`: Deterministische Safety-Interception ohne LLM-Kosten:
+   - Notfall-Eskalation bei akutem Brustschmerz, Bewusstlosigkeit, schweren Verletzungen (Sehnenabriss, Frakturen) mit Notrufhinweis (112 / 911)
+   - Verweigerung von Ratschlägen zu extremer Kalorienrestriktion (< 500 kcal / Verhungern) und Dehydrierung / trockenem Fasten
+   - Deterministische Verweigerung von Steroid-/Doping-/PED-Dosierungen
+   - Verweigerung medizinischer Ferndiagnosen
+   - Erkennung und Blockade von Prompt Injections und Abfragen zur Herausgabe von System Prompts
+2. `api/coach-chat.js`:
+   - Preflight Safety Check vor jedem LLM-Aufruf
+   - Strikte Content-Type-Prüfung (`application/json`) mit HTTP 415 bei abweichenden Formaten
+   - Maximale Message-Größe (50.000 Zeichen) mit HTTP 400
+   - Validierung von Bild-Payloads (Data-URL / Base64-Format)
+3. 13 automatisierte deterministische Tests in `coach-safety.test.cjs`. Alle 31 Backend-Tests laufen lokal ohne API-Kosten durch.
+
+Why:
+Haftungsausschluss und Store-Vorgaben verlangen wirksame Schutzmechanismen gegen lebensgefährliche Fitness-Ratschläge und System-Prompt-Lecks.
+
+Tests:
+- `pnpm test:api` -> 31/31 PASS
+
+Expected behavior:
+Gefährliche Anfragen werden sofort, sicher und kostenfrei im Preflight abgefangen. Normale Trainingsfragen passieren unverändert zum Modell.
+
+Questions for Astra:
+1. Sollen die Safety-Trigger zukünftig in ein separates Logging-Audit zur Missbrauchserkennung fließen?
+
+Astra action:
+VERIFY
+
+Rollback commit:
+v0.1.0-beta.5 (4dd430e)
+
+---
+
+## AR-019 – Sync Failure Test Harness & Offline/FIFO Resilience
+
+Priority:
+P0
+
+Gemini Status:
+IMPLEMENTED
+
+Risk:
+LOW
+
+Files:
+- `apps/mobile/src/stores/__tests__/syncFailureHarness.test.ts`
+
+Gemini changed:
+1. `syncFailureHarness.test.ts`: Umfassende Härtungstests gegen bestehendes Verhalten von `syncStore`:
+   - Duplicate Enqueue: Gleiche Entität mehrfach eingereiht -> separate FIFO-Einträge
+   - Network Retry: Bei Verbindungsausfall bleibt Mutation in Queue und `retryCount` wird inkrementiert
+   - Non-Retryable Errors (z.B. Postgres 42P01 / 23505): Mutation wird verworfen, um Endlos-Blockaden zu verhindern
+   - Partial Failure / Head-of-Line Blocking: Bei Fehler in Mutation 1 stoppt die Verarbeitung, nachfolgende Mutationen bleiben in korrekter Sequenz erhalten
+   - Account Switch / Logout: Synchronisation bricht sofort ab, Altdaten werden nicht unter falscher User-ID gepusht
+   - Idempotente Deletes: Zweifaches Löschen derselben ID wird schadlos ausgeführt
+2. 7 automatisierte Tests ohne Änderung an der bestehenden Sync-Architektur.
+
+Why:
+Aufdeckung von Grenzfällen bei instabiler Mobilfunkverbindung und Schutz der Datenintegrität.
+
+Tests:
+- `syncFailureHarness.test.ts` -> 7/7 PASS
+
+Expected behavior:
+Bestehende Sync-Logik ist nachweislich resilient gegenüber Verbindungsabbrüchen.
+
+Questions for Astra:
+1. Wann soll das Revisions-/Tombstone-Modell für Offline-Konflikte (AR-004) implementiert werden?
+
+Astra action:
+VERIFY
+
+Rollback commit:
+v0.1.0-beta.5 (4dd430e)
+
+---
+
+## AR-020 – React Error Boundary & Graceful Crash Recovery
+
+Priority:
+P1
+
+Gemini Status:
+IMPLEMENTED
+
+Risk:
+LOW
+
+Files:
+- `apps/mobile/src/components/ErrorBoundary.tsx`
+- `apps/mobile/src/components/__tests__/ErrorBoundary.test.tsx`
+- `apps/mobile/app/_layout.tsx`
+
+Gemini changed:
+1. `ErrorBoundary.tsx`: Wiederverwendbare React Error Boundary nach Best Practices implementiert:
+   - Fängt unerwartete Render- und Lifecycle-Fehler ab
+   - Verhindert den gefürchteten "White Screen of Death"
+   - Bietet Buttons *"Erneut versuchen"* und *"Zurück zur Startseite"*
+   - Maskiert sensible technische Stacktraces im Release-Modus (zeigt nur anwenderfreundliche Hilfehinweise)
+   - Loggt Fehler über die datenschutzsichere Logger-Abstraktion
+2. `apps/mobile/app/_layout.tsx`: Root-Navigation in `ErrorBoundary` gekapselt.
+3. 4 automatisierte Unit-Tests in `ErrorBoundary.test.tsx`.
+
+Why:
+App Store Richtlinien und Nutzerzufriedenheit verlangen kontrolliertes Fehlerverhalten statt App-Abstürzen bei seltenen UI-Glitches.
+
+Tests:
+- `ErrorBoundary.test.tsx` -> 4/4 PASS
+
+Expected behavior:
+Fehlerfreie UI bleibt unberührt. Unerwartete JS-Crashes führen zu einer gestalteten Recovery-Ansicht.
+
+Questions for Astra:
+1. Welcher Observability-Provider (Sentry, PostHog, Bugsnag) soll für Remote-Crash-Reporting an die Error Boundary angebunden werden?
+
+Astra action:
+VERIFY
+
+Rollback commit:
+v0.1.0-beta.5 (4dd430e)
+
+---
+
+## AR-021 – Store Compliance Technical Audit & In-App Readiness
+
+Priority:
+P0
+
+Gemini Status:
+AUDITED
+
+Risk:
+MEDIUM
+
+Files:
+- `docs/release/STORE_TECHNICAL_READINESS.md`
+- `apps/mobile/app/profile.tsx`
+- `apps/mobile/src/i18n/translations.ts`
+
+Gemini changed:
+1. `STORE_TECHNICAL_READINESS.md`: Vollständiger technischer Audit für Apple App Store und Google Play Store:
+   - Prüfung aller 17 Kernbereiche (Permission Strings, App Name, Bundle ID, Versioning, Icons, Splash, Account Deletion, In-App Purchases, Restore Purchases, Legal Links)
+   - Klare Zuweisung von Zuständigkeiten (`READY`, `PARTIAL`, `BLOCKED`, `USER_ACTION_REQUIRED`, `ASTRA_REQUIRED`)
+2. In-App-Integration:
+   - "Käufe wiederherstellen" als eigener Menüpunkt integriert
+   - Account-Löschung technisch verknüpft
+   - Gesetzliche Informationshinweise (DSGVO, Medizinischer Disclaimer) zweisprachig verankert
+
+Why:
+Vermeidung von Ablehnungen im App Store Review Prozess durch vorausschauende Einhaltung aller formalen und technischen Store-Richtlinien.
+
+Tests:
+- Store Compliance Matrix verifiziert
+- `pnpm verify` -> 447 Tests PASS
+
+Expected behavior:
+Alle Einstiegspunkte sind vorhanden. Sobald rechtliche URLs und Developer Accounts vorliegen, ist die Einreichung technisch vorbereitet.
+
+Questions for Astra:
+1. Liegen die finalen URLs für Datenschutzerklärung und Impressum vor, um die Platzhalter in `profile.tsx` zu ersetzen?
+
+Astra action:
+USER_DECISION
+
+Rollback commit:
+v0.1.0-beta.5 (4dd430e)
 
 
 

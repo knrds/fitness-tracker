@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Switch,
   Modal,
+  AccessibilityInfo,
 } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Image } from 'expo-image';
@@ -32,6 +33,8 @@ export default function ExerciseDetailScreen() {
 
   const [imageLoading, setImageLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [secondImageMissing, setSecondImageMissing] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
@@ -39,22 +42,54 @@ export default function ExerciseDetailScreen() {
   const exercise = exercises.find((e) => e.id === id);
 
   useEffect(() => {
-    if (!exercise?.imageUrl || !isPlaying) {
+    let isMounted = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((reduced) => {
+        if (isMounted && reduced) {
+          setIsPlaying(false);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!exercise?.imageUrl || !isPlaying || secondImageMissing || imageError) {
       setCurrentImageIndex(0);
       return;
     }
 
     if (exercise.imageUrl.endsWith('0.jpg')) {
       const interval = setInterval(() => {
-        setCurrentImageIndex((prev) => (prev === 0 ? 1 : 0));
+        if (isMounted) {
+          setCurrentImageIndex((prev) => (prev === 0 ? 1 : 0));
+        }
       }, 1000);
-      return () => clearInterval(interval);
+      return () => {
+        isMounted = false;
+        clearInterval(interval);
+      };
     }
-  }, [exercise?.imageUrl, isPlaying]);
+  }, [exercise?.imageUrl, isPlaying, secondImageMissing, imageError]);
+
+  const handleImageError = () => {
+    setImageLoading(false);
+    if (currentImageIndex === 1) {
+      setSecondImageMissing(true);
+      setCurrentImageIndex(0);
+      setIsPlaying(false);
+    } else {
+      setImageError(true);
+    }
+  };
 
   const getDisplayedImageUri = () => {
     if (!exercise?.imageUrl) return null;
-    if (currentImageIndex === 1 && exercise.imageUrl.endsWith('0.jpg')) {
+    if (currentImageIndex === 1 && exercise.imageUrl.endsWith('0.jpg') && !secondImageMissing) {
       return exercise.imageUrl.replace('/0.jpg', '/1.jpg');
     }
     return exercise.imageUrl;
@@ -140,10 +175,12 @@ export default function ExerciseDetailScreen() {
         }}
       />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        {exercise.imageUrl ? (
+        {exercise.imageUrl && !imageError ? (
           <Pressable
             onPress={() => {
-              setIsPlaying(true);
+              if (!secondImageMissing) {
+                setIsPlaying(true);
+              }
               setFullscreen(true);
             }}
             style={styles.imageContainer}
@@ -152,11 +189,14 @@ export default function ExerciseDetailScreen() {
               source={getDisplayedImageUri()}
               style={styles.image}
               contentFit="contain"
+              accessibilityRole="image"
+              accessibilityLabel={exercise.name}
               onLoadStart={() => setImageLoading(true)}
               onLoadEnd={() => {
                 setImageLoading(false);
                 setHasLoadedOnce(true);
               }}
+              onError={handleImageError}
             />
             {imageLoading && !hasLoadedOnce && (
               <View style={styles.imageLoader}>
@@ -166,16 +206,37 @@ export default function ExerciseDetailScreen() {
             <View style={styles.expandBadge}>
               <Ionicons name="expand" size={18} color={theme.colors.text} />
             </View>
-            <View style={styles.playOverlay}>
+            <Pressable
+              onPress={(e) => {
+                e.stopPropagation();
+                if (!secondImageMissing) {
+                  setIsPlaying((prev) => !prev);
+                }
+              }}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={
+                isPlaying
+                  ? (language === 'de' ? 'Animation pausieren' : 'Pause animation')
+                  : (language === 'de' ? 'Animation abspielen' : 'Play animation')
+              }
+              style={styles.playOverlay}
+            >
               <Text style={styles.playOverlayText}>
-                {isPlaying ? '● Animiert' : '▶ Abspielen'}
+                {secondImageMissing
+                  ? (language === 'de' ? '● Einzelfoto' : '● Single photo')
+                  : isPlaying
+                  ? (language === 'de' ? '● Animiert' : '● Animated')
+                  : (language === 'de' ? '▶ Abspielen' : '▶ Play')}
               </Text>
-            </View>
+            </Pressable>
           </Pressable>
         ) : (
           <View style={styles.imagePlaceholder}>
             <Ionicons name="barbell-outline" size={44} color={theme.colors.muted} style={{ marginBottom: 8 }} />
-            <Text style={styles.placeholderText}>No Exercise Image Available</Text>
+            <Text style={styles.placeholderText}>
+              {language === 'de' ? 'Kein Übungsbild verfügbar' : 'No Exercise Image Available'}
+            </Text>
           </View>
         )}
 
@@ -318,7 +379,7 @@ export default function ExerciseDetailScreen() {
         </View>
 
         <Modal
-          visible={fullscreen}
+          visible={fullscreen && !imageError}
           animationType="fade"
           onRequestClose={() => setFullscreen(false)}
         >
@@ -326,20 +387,40 @@ export default function ExerciseDetailScreen() {
             <Pressable
               style={styles.fullscreenClose}
               hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={language === 'de' ? 'Vollbild schließen' : 'Close fullscreen'}
               onPress={() => setFullscreen(false)}
             >
               <Ionicons name="close" size={30} color={theme.colors.text} />
             </Pressable>
-            <Pressable style={styles.fullscreenImageWrap} onPress={() => setIsPlaying((p) => !p)}>
+            <Pressable
+              style={styles.fullscreenImageWrap}
+              accessibilityRole="button"
+              accessibilityLabel={
+                secondImageMissing
+                  ? exercise.name
+                  : isPlaying
+                  ? (language === 'de' ? 'Animation anhalten' : 'Pause animation')
+                  : (language === 'de' ? 'Animation starten' : 'Start animation')
+              }
+              onPress={() => {
+                if (!secondImageMissing) {
+                  setIsPlaying((p) => !p);
+                }
+              }}
+            >
               <Image
                 source={getDisplayedImageUri()}
                 style={styles.fullscreenImage}
                 contentFit="contain"
+                onError={handleImageError}
               />
             </Pressable>
             <View style={styles.fullscreenHint}>
               <Text style={styles.playOverlayText}>
-                {isPlaying
+                {secondImageMissing
+                  ? (language === 'de' ? '● Einzelfoto' : '● Single photo')
+                  : isPlaying
                   ? (language === 'de' ? '⏸ Tippen zum Pausieren' : '⏸ Tap to pause')
                   : (language === 'de' ? '▶ Tippen zum Abspielen' : '▶ Tap to play')}
               </Text>

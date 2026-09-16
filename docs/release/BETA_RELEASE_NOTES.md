@@ -1,5 +1,41 @@
 # EVARO Beta Release Notes
 
+## EVARO Beta 0.1.0-beta.6 (RC Preparation & Exercise Dataset Consolidation)
+
+**Release-Datum:** 16. September 2026  
+**Commit-Basis:** baut auf `4dd430e` (`v0.1.0-beta.5`) auf  
+**Status:** `PRE-RELEASE` (RC Preparation & Exercise Dataset Consolidation Checkpoint)
+
+### Neu / Verbessert
+- **ExerciseDB Removal & Dataset Consolidation:**
+  - Kommerzielle ExerciseDB-Artefakte (`exerciseGifs.json` mit 1.492 externen Hotlinks und ungenutzte `exercisedb-v1.json` mit 1,4 MB) vollständig aus dem Repository entfernt.
+  - Verbleibender Katalog konsolidiert in `packages/domain/src/data/raw/free-exercise-db.json` (873 Übungen, Upstream: `yuhonas/free-exercise-db`).
+  - `gifUrl` vollständig aus Domain-Typen, Zod-Schemas und UI-Komponenten bereinigt.
+- **Exercise ID Stabilität & Kompatibilitätsnachweis:**
+  - 100% deterministische Beibehaltung aller 873 Exercise-UUIDs garantiert (`exerciseCatalogCompatibility.test.ts`).
+  - Vollständige Rückwärtskompatibilität für persistierte Altdaten mit vorhandenem `gifUrl` über Zod-Schema-Stripping.
+  - Alle Workout-Templates und Standardprogramme lösen deterministisch auf vorhandene Katalog-IDs auf.
+- **Media Fallback & Animation Hardening:**
+  - Zwei-Bilder-Animation (`0.jpg` Start, `1.jpg` Ende) gehärtet: sauberes Timer-Cleanup bei Unmount/Screen-Wechsel, Abfangen fehlender Zweitbilder (`secondImageMissing`), automatischer Fallback auf Barbell-Vektoricon bei Netzwerk- oder Ladefehlern.
+  - Vollständige Accessibility-Kennzeichnung (`accessibilityRole`, `accessibilityLabel`, Touch-Targets >= 44x44, Berücksichtigung von `AccessibilityInfo.isReduceMotionEnabled()`).
+- **Privacy-Safe Local Diagnostics:**
+  - `DiagnosticsService` zur lokalen Fehlererfassung ohne Übertragung personenbezogener Daten (keine Auth-Tokens, Workout-Inhalte, Körpergewichte oder Coach-Nachrichten).
+- **Core Flow & Safety Regression:**
+  - 512 automatisierte Tests grün (71 Mobile Suites [418 Tests] + 8 Domain Suites [57 Tests] + 2 API Suites [37 Tests]).
+  - Olympic-Lift-Instruktionen in `ExerciseSchema` auf 5.000 Zeichen erweitert (unterstützt Power Clean und Clean and Jerk).
+- **Store Preparation:**
+  - Apple App Store und Google Play Submission Checklisten, Reviewer-Notes Template und Native Permissions (`expo-image-picker`, `expo-av`) vollständig auditiert.
+  - Web Bundle Export auf 4,71 MB komprimiert.
+
+### Verbleibende Blocker für Astra (P0)
+1. **Secure Storage:** Native iOS Keychain / Android Keystore Session-Migration nach realen Gerätetests verdrahten.
+2. **RLS & Sync:** Supabase Cloud Deployment der RLS-Policies und Outbox-Replikation.
+3. **Account Deletion:** PostgreSQL RPC `delete_user_account()` in Supabase einspielen.
+4. **AI Backend:** Production Deployment der Coach API mit Upstash Redis Rate-Limiting.
+5. **Monetarisierung:** RevenueCat SDK verdrahten und IAP In-App-Käufe konfigurieren.
+
+---
+
 ## EVARO Beta 0.1.0-beta.5 (Clean Pre-P0 Baseline)
 
 **Release-Datum:** 16. September 2026  

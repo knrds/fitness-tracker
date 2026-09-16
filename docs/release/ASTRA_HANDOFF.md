@@ -1,96 +1,81 @@
-# START HERE – EVARO Astra Handoff
+# ASTRA START HERE
 
-**Stable Commit:** `0cb299f` (ahead of `origin/main`)  
 **Stable Base Tag:** `v0.1.0-beta.5`  
-**Empfohlener nächster Checkpoint:** `READY_FOR_BETA_6_TAG`  
-**Teststatus:** **488 / 488 Tests PASS** (Mobile Jest: 394, Domain Vitest: 57, API Node: 37)  
-**Quality Gates:** Typecheck (0 Errors), Lint (0 Warnings), Build (Metro single-bundle 4.82MB), Coach Preflight PASS  
+**Target Safepoint:** `v0.1.0-beta.6` (Recommended after full hardening)  
+**Quality Gates:** Typecheck: PASS | Lint: PASS | Tests: 512 PASS | Build: PASS | Coach: PASS  
+**Working Tree:** Clean  
 
 ---
 
-## Review first (Prioritäre Reihenfolge für Astra)
+## P0 – Review/activate first
 
-1. **Secure Storage Activation (`AR-011` / `AR-012`):**
-   - Prüfe `apps/mobile/src/utils/secureStorage.ts`. Adapter ist mit 14 Scenarios gehärtet (inkl. Keystore-Read-Failure-Fallback auf MMKV, Concurrency-Idempotenz und Token-Validierung).
-   - *Astra-Aufgabe:* Nach physischem E2E-Gerätetest auf iOS/Android als Session Storage in `supabase.ts` verdrahten. Migration beim Kaltstart kontrolliert scharfschalten.
+1. **Secure Storage (`AR-013`):**
+   - *Status:* PREPARED.
+   - *File:* `apps/mobile/src/utils/secureStorage.ts`
+   - *Astra Action:* Test on real physical iOS Keychain and Android Keystore. Then connect adapter as custom storage in `apps/mobile/src/utils/supabase.ts`. Do not activate session migration blindly without physical device validation.
 
-2. **RLS + Sync Architektur (`AR-014` / `docs/release/RLS_LOCAL_TEST_HARNESS.md`):**
-   - Prüfe `docs/schema.sql` und führe `docs/release/rls_negative_tests.sql` lokal auf Supabase aus.
-   - Alle 10 Negative Tests stellen sicher: User A kann User B nicht lesen/ändern/löschen; anonyme Clients erhalten keine Daten.
-   - *Astra-Aufgabe:* Migration nach `supabase/migrations/` überführen und RLS auf Supabase Cloud deployen.
+2. **RLS + Sync Integrity (`AR-004`, `AR-019`):**
+   - *Status:* VERIFIED locally, pending cloud deployment.
+   - *Files:* `docs/schema.sql`, `docs/release/rls_negative_tests.sql`
+   - *Astra Action:* Deploy RLS policies to Supabase production and execute negative tenant-isolation tests. Maintain the offline SQLite outbox FIFO architecture.
 
-3. **Account Deletion Backend RPC (`AR-015`):**
-   - Prüfe `apps/mobile/src/services/accountDeletionService.ts` und UI-Guard in `apps/mobile/app/profile.tsx`.
-   - UI warnt den Nutzer ehrlich, solange RPC inaktiv ist (`BACKEND_NOT_CONFIGURED`), und löscht keine Daten unter falschen Vorwänden.
-   - *Astra-Aufgabe:* Supabase RPC `delete_user_account()` bereitstellen und verknüpfen.
+3. **Account Deletion Backend RPC (`AR-014`):**
+   - *Status:* PREPARED on client with safety gate.
+   - *File:* `apps/mobile/src/services/accountDeletionService.ts`
+   - *Astra Action:* Implement and deploy PostgreSQL RPC `delete_user_account(user_id UUID)` in Supabase to satisfy Apple App Store Guideline 5.1.1(v). Remove the client-side `BACKEND_NOT_CONFIGURED` safety barrier once live.
 
-4. **AI Production Infrastruktur (`AR-013`):**
-   - Prüfe `api/coach-safety.cjs` und `api/coach-chat.js`. Safety Layer fängt medizinische Notfälle (Brustschmerz, Atemnot, K.O.), Extremdiäten und Injections deterministisch ab. Payload-Limits (50kB, max 10 Msgs, 415/405 Handling) sind verifiziert.
-   - *Astra-Aufgabe:* Serverless / Edge Deployment (z.B. Vercel) mit Redis/Upstash Rate-Limiting und Auth-Token-Validierung aufsetzen.
+4. **AI Production Backend (`AR-007`, `AR-018`):**
+   - *Status:* PREPARED with full safety layer.
+   - *Files:* `api/coach-safety.cjs`, `api/coach-chat.js`, `api/coach-chat.test.cjs`, `api/coach-safety.test.cjs`
+   - *Astra Action:* Deploy server endpoint (e.g. Vercel/Cloudflare Workers) with distributed Redis rate limiting (Upstash) and server-side entitlement validation.
 
-5. **Exercise Dataset (Entscheidung durch Konrad abgeschlossen):**
-   - Kommerzielle ExerciseDB wurde auf Anweisung von Konrad vollständig und restlos aus dem Repository entfernt (Dateien `exerciseGifs.json` und `exercisedb-v1.json` gelöscht, `gifUrl` entfernt).
-   - Die App nutzt ausschließlich den kostenlosen, offenen Datensatz (`free-exercise-db`) mit den zweistufigen Übungsfotos (`0.jpg` und `1.jpg`).
-   - Das frühere Lizenzrisiko (P0-01) ist damit **vollständig aufgelöst**. Keine externe API-Subscription erforderlich.
-
-6. **RevenueCat / Entitlements (`AR-016`):**
-   - Prüfe `apps/mobile/src/services/entitlementService.ts`. Beta-Bypass (`BETA_ALL_FEATURES_ENABLED: true`) hält die App für aktuelle Tester voll offen. Restore Purchases zeigt transparentes Beta-Badge.
-   - *Astra-Aufgabe:* `react-native-purchases` SDK installieren, Entitlement-Checks scharfschalten und StoreKit / Google Play Billing anbinden.
+5. **RevenueCat / Entitlements (`AR-016`):**
+   - *Status:* PREPARED with provider-agnostic abstraction.
+   - *File:* `apps/mobile/src/services/entitlementService.ts`
+   - *Astra Action:* Configure RevenueCat dashboard, configure Apple App Store In-App Purchases and Google Play Billing products, install `react-native-purchases` and connect SDK to `entitlementService`.
 
 ---
 
-## Verified Gemini Work (Bereits vollständig implementiert & verifiziert)
+## Already verified by Gemini
 
-- **Independent Verification Pass:** Alle 10 Komponenten aus Phase A auditiert (`docs/release/PRE_ASTRA_VERIFICATION_REPORT.md`).
-- **Core Flow Regression Suite:** Vollständige automatisierte Regression (`releaseCandidateCoreRegression.test.ts`):
-  - Workout erstellen, Übungen hinzufügen, Sätze editieren/abhaken/löschen, Speichern, Deduplikation.
-  - Startup-Recovery & State-Reload Guard.
-  - Körpermaße & DE/EN Lokalisierungs-Parität (`Not enough data` / `Noch nicht genügend Daten`).
-  - Template Lifecycle (Erstellen, Aktualisieren, Löschen).
-  - Gast-Isolation (Gastdaten verbleiben isoliert vom Server).
-- **Subscription Error Simulation:** EntitlementService deckt Billing-Fehler, Store-Timeouts und Cache-Fallbacks ab.
-- **Privacy-Safe Observability & Diagnostics:** 
-  - `DiagnosticsService` (`diagnosticsService.ts`) generiert lokale Berichte ohne PII, ohne Workout-Inhalte und ohne Auth-Tokens.
-  - Event-Modell in `docs/release/OBSERVABILITY_EVENT_MODEL.md` definiert.
-- **Native & EAS Release Readiness:**
-  - `npx expo config --type public` und `--type introspect` geprüft (0 Fehler).
-  - Permissions für Mikrofon und Foto-Bibliothek in `app.json` konkret begründet.
-- **Store Technical Readiness:**
-  - `docs/release/STORE_SUBMISSION_CHECKLIST.md` (vollständige Apple & Google Play Checklisten).
-  - `docs/release/STORE_REVIEW_NOTES_TEMPLATE.md` (Vorbelegtes Template für App Reviewer).
-- **Device QA Matrix:**
-  - `docs/release/DEVICE_QA_CHECKLIST.md` mit dedizierten Spalten für iOS und Android, ehrlicher Kennzeichnung von `PHYSICAL_DEVICE_TEST_REQUIRED`.
-- **Accessibility & Touch Targets:**
-  - Checkmarks, Three-Dot-Menüs, Timer-Buttons und Inputs besitzen min. 44x44 pt Touch Targets.
-  - `accessibilityRole`, `accessibilityLabel` und `accessibilityState` flächendeckend implementiert.
-- **Performance Benchmarks:**
-  - 1.000 Workouts und 10.000+ Sätze in 37 ms verarbeitet (`largeDatasetPerformance.test.ts`).
+- **Exercise Dataset Consolidation & ID Stability (`AR-024`):**
+  - ExerciseDB (`exerciseGifs.json` & `exercisedb-v1.json`) completely deleted from codebase. Zero commercial hotlinks remain.
+  - Free exercise catalog (`free-exercise-db.json`, 873 exercises) active.
+  - All 873 Exercise UUIDs remain 100% stable and identical to Beta 1-5 (`exerciseCatalogCompatibility.test.ts`).
+  - Strict backward compatibility for legacy persisted objects containing `gifUrl`.
+  - Image fallback and error handling hardened (`barbell-outline` fallback on Card, Row, and Detail views).
+  - License status honestly documented in `EXERCISE_DATA_PROVENANCE.md` and `EXERCISE_ASSET_INVENTORY.md` (`PARTIAL`: Data Unlicense VERIFIED, Images UNVERIFIED).
+- **Core Flow & Regression Suite (`AR-022`):**
+  - Complete end-to-end workout, template, history, body metric, and startup recovery testing (`releaseCandidateCoreRegression.test.ts`).
+- **Data Integrity & Sync Contracts (`AR-004`, `AR-019`):**
+  - 10 Data integrity contracts, SQLite document and normalized databases, multi-device sync conflict resolution.
+- **GDPR Art. 20 Data Portability (`AR-015`):**
+  - Deterministic JSON export service (`dataExportService.ts`) covering all local stores.
+- **Privacy-Safe Diagnostics (`AR-023`):**
+  - Local diagnostics service (`diagnosticsService.ts`) with zero PII, zero network transmission.
+- **UI & Stability Hardening (`AR-020`):**
+  - React ErrorBoundary with graceful recovery.
+- **Native Configuration (`AR-001`):**
+  - Full EAS and Expo config verified (`npx expo config --type public` / `--type introspect` PASS).
 
 ---
 
-## User Decisions Required (`USER_ACTION_REQUIRED`)
+## User decisions (Konrad)
 
-Diese Punkte erfordern manuelle Bereitstellung, juristische Dokumente oder Account-Konfigurationen durch den Product Owner (Konrad) und können nicht durch Code automatisiert werden:
-
-1. **Apple Developer Account:** Enrollment ($99/Jahr), Team ID und Zertifikate für EAS.
-2. **Google Play Console:** Developer Account ($25 einmalig), 20-Tester-Phase für Internal Track.
-3. **Final Bundle Identifier:** Bestätigung von `com.evaro.app` vs. Legacy `com.fitnesstracker.app`.
-4. **EAS Credentials:** Hinterlegung der Store-Credentials in EAS CLI.
-5. **Higgsfield Commercial Rights:** Klärung der Nutzungsrechte für KI-animierte Übungs-Assets.
-6. **RevenueCat Account:** Anlegen des Projekts und Hinterlegen der öffentlichen API-Keys.
-7. **Subscription Pricing:** Festlegung der finalen Monats- und Jahrespreise (z.B. 4,99 € / Monat, 39,99 € / Jahr).
-8. **Datenschutzerklärung (Privacy Policy):** Veröffentlichung einer DSGVO-konformen URL (z.B. `https://evaro.app/privacy`).
-9. **AGB / EULA:** Bereitstellung von AGB und Widerrufsbelehrung (z.B. `https://evaro.app/terms`).
-10. **Impressum:** Anbieterkennzeichnung nach § 5 DDG (Name, Adresse, Kontakt, ggf. USt-ID).
-11. **Support URL / Kontakt:** E-Mail-Adresse (`support@evaro.app`) oder Kontaktformular.
-12. **Physische Gerätetests:** Vollständiges Durchführen der Checkliste in `docs/release/DEVICE_QA_CHECKLIST.md` auf echten iPhones und Android-Geräten.
+1. **Exercise Images Store Strategy:**
+   - *Option A (Default):* Ship with `yuhonas/free-exercise-db` 2-photo step sequence (`0.jpg`/`1.jpg`) backed by automatic fallback.
+   - *Option B (Zero Risk):* Activate `modeOverride = 'ANATOMY_FALLBACK'` to use only MIT-licensed SVG figures for Store approval.
+2. **Support Contact Info:**
+   - Provide official support URL and support email for App Store metadata and in-app display.
+3. **Store Credentials & EAS Account:**
+   - Run `npx eas-cli login` on build workstation before initiating cloud preview builds.
 
 ---
 
-## Do Not Activate Without Review (`ASTRA_REQUIRED`)
+## Do not change blindly
 
-1. **Keine Supabase Session Migration auf SecureStore ohne physischen Test.**
-2. **Keine RLS-Policies direkt auf Supabase Cloud deployen ohne `rls_negative_tests.sql` auszuführen.**
-3. **Keine Account-Löschung als erfolgreich melden, ohne dass die Cloud RPC läuft.**
-4. **Keine Paywall aktivieren, solange `react-native-purchases` nicht verknüpft ist.**
-5. **Kein Exercise-GIF-Löschskript ausführen, bevor Ersatz-Assets vorliegen.**
+- **Domain Model:** Domain package (`@fitness-tracker/domain`) remains 100% React-free and framework-agnostic.
+- **Exercise UUIDs:** Deterministic hash generation must never be altered, or existing user workout logs will lose their exercise references.
+- **Kilograms / Centimeters:** Metric units remain the canonical internal storage format.
+- **Offline First:** Local MMKV and SQLite stores remain authoritative offline; sync queue must never discard entries due to network failures.
+- **No Blanket any / ts-ignore:** Maintain strict type safety across all packages.

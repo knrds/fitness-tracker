@@ -1,34 +1,36 @@
 # EVARO – Astra Review Queue
 
-Zentrale Queue aller von Gemini vorbereiteten, analysierten oder implementierten technischen Änderungen, die der nachfolgende Astra-Agent strukturiert überprüfen, entscheiden oder weiterführen soll.
+Zentrale, kanonisch normalisierte Queue aller von Gemini vorbereiteten, analysierten oder implementierten technischen Änderungen, die der nachfolgende Astra-Agent strukturiert überprüfen, entscheiden oder aktivieren soll.
 
-## Prioritätsübersicht
+## Kanonische Prioritätsübersicht
 
-| ID | Titel | Priorität | Gemini Status | Risiko | Astra Aktion |
+| AR ID | Area | Status | Risk | Astra Action | Primary files |
 |---|---|---|---|---|---|
-| [AR-001](#ar-001--native-build--device-readiness-image-picker-plugin--eas-preview-profiles) | Native Build & Device Readiness (Image Picker Plugin & EAS Preview Profiles) | P1 | IMPLEMENTED | LOW | VERIFY |
-| [AR-002](#ar-002--client-resilience--abortsignal--timeout-hardening-in-coach-api) | Client Resilience: AbortSignal & Timeout Hardening in Coach API | P1 | IMPLEMENTED | MEDIUM | VERIFY |
-| [AR-003](#ar-003--privacy-safe-logging-abstraction--sensitive-data-redaction) | Privacy-safe Logging Abstraction & Sensitive Data Redaction | P1 | IMPLEMENTED | LOW | VERIFY |
-| [AR-004](#ar-004--data-integrity-contract-tests--multi-device-sync-test-matrix) | Data Integrity Contract Tests & Multi-Device Sync Test Matrix | P0 | IMPLEMENTED | LOW | VERIFY |
-| [AR-005](#ar-005--secure-storage-migration-plan-auth--token-persistence) | Secure Storage Migration Plan (Auth & Token Persistence) | P0 | PREPARED | HIGH | ARCHITECTURE_DECISION |
-| [AR-006](#ar-006--account-lifecycle-deletion-rpc-spec--gdpr-art-20-data-export) | Account Lifecycle: Deletion RPC Spec & GDPR Art. 20 Data Export | P0 | PREPARED | HIGH | ARCHITECTURE_DECISION |
-| [AR-007](#ar-007--ai-coach-production-safety-matrix--client-resilience-tests) | AI Coach Production Safety Matrix & Client Resilience Tests | P1 | IMPLEMENTED | LOW | VERIFY |
-| [AR-008](#ar-008--monetization-preparation-evaro-pro-feature-matrix--entitlement-architecture-spec) | Monetization Preparation: EVARO Pro Feature Matrix & Entitlement Architecture Spec | P1 | PREPARED | HIGH | ARCHITECTURE_DECISION |
-| [AR-009](#ar-009--exercise-asset-replacement-plan--licensing-decoupling) | Exercise Asset Replacement Plan & Licensing Decoupling | P0 | PREPARED | HIGH | ARCHITECTURE_DECISION |
-| [AR-010](#ar-010--performance-qa-benchmarks-large-datasets--scalability-report) | Performance QA: Benchmarks, Large Datasets & Scalability Report | P1 | IMPLEMENTED | LOW | VERIFY |
-| [AR-011](#ar-011--possible-obsolete-component-exercisefiltertsx) | Possible Obsolete Component: ExerciseFilter.tsx | P2 | ANALYZED | LOW | VERIFY_DELETE |
-| [AR-012](#ar-012--dormant-dependencies-react-hook-form--hookformresolvers) | Dormant Dependencies: react-hook-form & @hookform/resolvers | P2 | ANALYZED | LOW | ARCHITECTURE_DECISION |
-| [AR-013](#ar-013--secure-storage-adapter-implementation--dual-read-migration) | Secure Storage Adapter Implementation & Dual-Read Migration | P0 | PREPARED | HIGH | ACTIVATE |
-| [AR-014](#ar-014--account-deletion-service-client-architecture--safety-gate) | Account Deletion Service: Client Architecture & Safety Gate | P0 | PREPARED | HIGH | ACTIVATE |
-| [AR-015](#ar-015--data-export-hardening-gdpr-art-20-collector-service) | Data Export Hardening: GDPR Art. 20 Collector Service | P0 | IMPLEMENTED | LOW | VERIFY |
-| [AR-016](#ar-016--entitlement-abstraction-provider-agnostic-pro-management) | Entitlement Abstraction: Provider-Agnostic Pro Management | P1 | PREPARED | MEDIUM | ACTIVATE |
-| [AR-017](#ar-017--exercise-media-decoupling-central-multi-tier-resolver) | Exercise Media Decoupling: Central Multi-Tier Resolver | P0 | PREPARED | MEDIUM | ACTIVATE |
-| [AR-018](#ar-018--ai-safety-test-harness--backend-request-validation) | AI Safety Test Harness & Backend Request Validation | P0 | IMPLEMENTED | LOW | VERIFY |
-| [AR-019](#ar-019--sync-failure-test-harness--offlinefifo-resilience) | Sync Failure Test Harness & Offline/FIFO Resilience | P0 | IMPLEMENTED | LOW | VERIFY |
-| [AR-020](#ar-020--react-error-boundary--graceful-crash-recovery) | React Error Boundary & Graceful Crash Recovery | P1 | IMPLEMENTED | LOW | VERIFY |
-| [AR-021](#ar-021--store-compliance-technical-audit--in-app-readiness) | Store Compliance Technical Audit & In-App Readiness | P0 | AUDITED | MEDIUM | USER_DECISION |
-| [AR-022](#ar-022--release-candidate-core-flow-regression--subscription-error-coverage) | Release Candidate Core Flow Regression & Subscription Error Coverage | P0 | IMPLEMENTED | LOW | VERIFY |
-| [AR-023](#ar-023--privacy-safe-local-diagnostics--observability-event-model) | Privacy-Safe Local Diagnostics & Observability Event Model | P1 | IMPLEMENTED | LOW | VERIFY |
+| **AR-001** | Native Build | IMPLEMENTED | LOW | VERIFY | `apps/mobile/app.json`, `eas.json` |
+| **AR-002** | Client Resilience | IMPLEMENTED | MEDIUM | VERIFY | `apps/mobile/src/utils/coachApi.ts` |
+| **AR-003** | Observability | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/utils/logger.ts` |
+| **AR-004** | Data Integrity | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/data/__tests__/dataIntegrityContracts.test.ts` |
+| **AR-005** | Security | SUPERSEDED_BY AR-013 | HIGH | N/A | `docs/release/SECURE_STORAGE_MIGRATION_PLAN.md` |
+| **AR-006** | Account / Legal | SUPERSEDED_BY AR-014 / AR-015 | HIGH | N/A | `docs/release/ACCOUNT_LIFECYCLE_SPEC.md` |
+| **AR-007** | AI Safety | IMPLEMENTED | LOW | VERIFY | `api/coach-safety.cjs`, `api/coach-safety.test.cjs` |
+| **AR-008** | Monetization | SUPERSEDED_BY AR-016 | HIGH | N/A | `docs/release/MONETIZATION_ARCHITECTURE_SPEC.md` |
+| **AR-009** | Licensing | SUPERSEDED_BY AR-017 / AR-024 | HIGH | N/A | `docs/release/EXERCISE_ASSET_REPLACEMENT_PLAN.md` |
+| **AR-010** | Performance | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/data/__tests__/largeDatasetPerformance.test.ts` |
+| **AR-011** | Clean Code | ANALYZED | LOW | VERIFY_DELETE | `apps/mobile/src/components/exercises/ExerciseFilter.tsx` |
+| **AR-012** | Clean Code | ANALYZED | LOW | ARCHITECTURE_DECISION | `apps/mobile/package.json` |
+| **AR-013** | Security | PREPARED | HIGH | ACTIVATE | `apps/mobile/src/utils/secureStorage.ts` |
+| **AR-014** | Account / Legal | PREPARED | HIGH | ACTIVATE | `apps/mobile/src/services/accountDeletionService.ts` |
+| **AR-015** | Data Export | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/services/dataExportService.ts` |
+| **AR-016** | Monetization | PREPARED | MEDIUM | ACTIVATE | `apps/mobile/src/services/entitlementService.ts` |
+| **AR-017** | Exercise Media | IMPLEMENTED | MEDIUM | VERIFY | `apps/mobile/src/utils/getExerciseMedia.ts`, `app/exercise/[id].tsx` |
+| **AR-018** | AI Safety | IMPLEMENTED | LOW | VERIFY | `api/coach-safety.cjs`, `api/coach-safety.test.cjs` |
+| **AR-019** | Sync Integrity | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/stores/__tests__/syncFailureHarness.test.ts` |
+| **AR-020** | Stability | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/components/ErrorBoundary.tsx` |
+| **AR-021** | Store Compliance | AUDITED | MEDIUM | USER_DECISION | `docs/release/STORE_TECHNICAL_READINESS.md` |
+| **AR-022** | QA Regression | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/__tests__/releaseCandidateCoreRegression.test.ts` |
+| **AR-023** | Diagnostics | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/services/diagnosticsService.ts` |
+| **AR-024** | Exercise Catalog | IMPLEMENTED | MEDIUM | VERIFY | `apps/mobile/src/__tests__/exerciseCatalogCompatibility.test.ts`, `docs/release/EXERCISE_DATA_PROVENANCE.md` |
+
 
 ---
 

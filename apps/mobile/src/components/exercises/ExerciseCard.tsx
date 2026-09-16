@@ -19,13 +19,14 @@ export const ExerciseCard = ({ exercise, isFavorite, onToggleFavorite }: Props) 
   const styles = useThemeStyles(createStyles);
   const { formatEquipment } = useI18n();
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   const previewUri = exercise.imageUrl;
 
   return (
     <Link href={`/exercise/${exercise.id}` as Href} asChild>
       <Pressable style={styles.card} testID="exercise-card">
-        {previewUri ? (
+        {previewUri && !hasError ? (
           <View style={styles.imageContainer}>
             <Image
               source={{ uri: previewUri }}
@@ -33,6 +34,10 @@ export const ExerciseCard = ({ exercise, isFavorite, onToggleFavorite }: Props) 
               contentFit="contain"
               onLoadStart={() => setLoading(true)}
               onLoadEnd={() => setLoading(false)}
+              onError={() => {
+                setLoading(false);
+                setHasError(true);
+              }}
             />
             {loading && (
               <View style={styles.loaderContainer}>

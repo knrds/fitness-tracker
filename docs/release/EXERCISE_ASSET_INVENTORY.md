@@ -1,17 +1,38 @@
 # EVARO Exercise & Media Asset Provenance Inventory
 
+**Dokumentversion:** 2.0 (Post-ExerciseDB Consolidation)  
+**Datum:** 16. September 2026  
+**Auditor:** Gemini Hardening Agent (im Auftrag von Konrad)  
+**Status:** `PARTIAL` (Dataset: VERIFIED; Image Title: UNVERIFIED)
+
 Dieses Dokument dokumentiert die Herkunft, Speicherorte, Lizenzlage und kommerzielle Belastbarkeit aller im Repository vorhandenen Übungsdatenbanken, Medien- und Design-Assets.
 
 ---
 
-## 1. Übersichtstabelle aller Asset-Gruppen
+## 1. Current Exercise Dataset
+
+Dataset: free-exercise-db
+Source: https://github.com/yuhonas/free-exercise-db
+License: The Unlicense (Public Domain Dedication)
+License evidence: https://github.com/yuhonas/free-exercise-db/blob/main/LICENSE
+Images source: yuhonas/free-exercise-db/exercises (historical wrkout/exercises.json)
+Images license: Provided under Unlicense in upstream repository; historical original author chain of title unverified
+Commercial use: Data: Permitted without restriction; Images: Potential residual copyright risk for commercial apps
+Attribution requirement: None legally required under Unlicense; voluntary attribution recommended
+Redistribution: Permitted
+Local copy permitted: Yes
+Verification status: PARTIAL
+
+---
+
+## 2. Übersichtstabelle aller Asset-Gruppen
 
 | Asset-Gruppe | Anzahl | Quelle | lokal / remote | Lizenz im Repo nachweisbar | Commercial Rights bestätigt | Status |
 |---|---:|---|---|---|---|---|
-| **Übungs-GIFs (`exerciseGifs.json`)** | 1.492 URLs (345 zugeordnet) | Hotlinks auf `https://static.exercisedb.dev/media/...` | remote | Nein (Keine Lizenz/Rechnung im Repo) | NO | **BLOCKED** |
-| **Übungskatalog (`exercisedb.json`)** | 873 Übungen | JSON-Daten (Struktur ähnlich `free-exercise-db`) | lokal | Nein (Kein License Header / File im Datenordner) | NO | **BLOCKED** |
-| **Übungskatalog V1 (`exercisedb-v1.json`)** | 1.500 Übungen | Archivierter / alternativer Datensatz | lokal | Nein | NO | **INACTIVE** |
-| **Übungsbilder (`mapExercises.ts`)** | Dynamisch nach Bedarf | Fallback auf `raw.githubusercontent.com/yuhonas/free-exercise-db` | remote | Nein (Kein Lizenznachweis für Remote-Bilder) | NO | **BLOCKED** |
+| **Übungs-Katalog (`free-exercise-db.json`)** | 873 Übungen | `yuhonas/free-exercise-db` | lokal | Ja (Unlicense Upstream) | YES (Data public domain) | **VERIFIED** |
+| **Übungsfotos (0.jpg / 1.jpg)** | 873 Bildpaare | GitHub Raw CDN (`yuhonas/free-exercise-db`) | remote | Upstream Unlicense, Bild-Vorprovenienz unklar | NO (Chain of title unklar) | **PARTIAL** |
+| **Übungs-GIFs (`exerciseGifs.json`)** | 0 (entfernt) | Ehemalige Hotlinks auf `static.exercisedb.dev` | N/A | Datei in Commit `92aae8f` vollständig gelöscht | N/A | **REMOVED** |
+| **Übungskatalog V1 (`exercisedb-v1.json`)** | 0 (entfernt) | Ehemaliger 38k-Zeilen-Dump | N/A | Datei in Commit `92aae8f` vollständig gelöscht | N/A | **REMOVED** |
 | **Anatomie-Vektorpfade** | 2 SVG-Figuren (Front/Back) | `HichamELBSI/react-native-body-highlighter` | lokal (Code) | Ja (`apps/mobile/src/components/anatomy/LICENSE`: MIT) | YES (MIT konform) | **CLEAR** |
 | **Level Badges (`level-badges.png`)** | 1 Sprite (4 Badges) | Generiert via Higgsfield (Job `4a335c38...`) | lokal | Dokumentiert in `README.md`, aber Provider Terms ungeprüft | NO (Terms offen) | **ASTRA_REVIEW_REQUIRED** |
 | **Rank Icons (`rank-01.png` - `rank-10.png`)** | 10 PNG-Grafiken | Lokale Bild-Assets | lokal | Keine Lizenzdatei beigelegt | NO | **ASTRA_REVIEW_REQUIRED** |
@@ -23,62 +44,37 @@ Dieses Dokument dokumentiert die Herkunft, Speicherorte, Lizenzlage und kommerzi
 
 ---
 
-## 2. Detaillierte Analyse der Übungs-Assets
+## 3. Detaillierte Analyse der Übungs-Assets
 
-### 2.1 Übungs-GIFs (`exerciseGifs.json`)
-- **Dateipfad:** `packages/domain/src/data/raw/exerciseGifs.json`
-- **Inhalt:** 1.492 Schlüssel-Wert-Paare, die normalisierte Übungsnamen auf externe Bild-URLs mappen.
-- **Ziel-Domain:** 100 % der URLs verweisen auf `https://static.exercisedb.dev/media/...`
-- **Laufzeit-Nutzung:** `apps/mobile/src/components/exercises/ExerciseCard.tsx` und `apps/mobile/app/exercise/[id].tsx` binden diese URLs direkt als Remote-Image (`<Image source={{ uri: previewUri }} />`) ein.
-- **Befund:** Commercial usage rights could not be verified from repository evidence.
-- **Risiken:**
-  - Hotlinking auf fremde CDNs / Server ohne belegte Vereinbarung.
-  - Ausfallrisiko: Ändert der CDN-Betreiber Pfade oder blockiert Hotlinking über Referrer-Checks, sind die Vorschaubilder in der App sofort schwarz/leer.
-  - Kommerzielles Verwertungs- und Schutzrechtsrisiko.
+### 3.1 Freie Übungs-Datenbank (`free-exercise-db.json`)
+- **Dateipfad:** `packages/domain/src/data/raw/free-exercise-db.json`
+- **Inhalt:** 873 strukturierte Übungen mit Name, Zielmuskeln, Equipment und detaillierten Anleitungen.
+- **Upstream:** `https://github.com/yuhonas/free-exercise-db` (The Unlicense).
+- **ID-Stabilität:** Deterministische FNV/UUIDv4-Generierung (`raw.id || raw.name`). Identisch zu allen früheren Beta-Releases.
+- **Status:** `VERIFIED` für Datensatz und Struktur.
 
-### 2.2 Übungs-Datenbank (`exercisedb.json`)
-- **Dateipfad:** `packages/domain/src/data/raw/exercisedb.json`
-- **Inhalt:** 873 strukturierte Übungen mit Name, Zielmuskeln, Equipment und Bewegungsanweisungen.
-- **Befund:** Im Datenordner liegt keine Lizenzdatei (wie `LICENSE` oder `COPYING`). In `mapExercises.ts` findet sich der Kommentar: `// Map the raw free-exercise-db JSON array to our typed domain Exercise array`.
-- **Status:** Commercial usage rights could not be verified from repository evidence.
-
-### 2.3 Fallback-Bilder (`free-exercise-db`)
-- **Dateipfad:** `packages/domain/src/data/mapExercises.ts:240`
+### 3.2 Übungsbilder (`0.jpg` / `1.jpg`)
+- **Dateipfad:** Dynamische HTTPS-Auflösung via `packages/domain/src/data/mapExercises.ts`.
 - **URL-Muster:** `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${raw.images[0]}`
-- **Befund:** Remote-Hotlinking auf GitHub-Rohdaten. Kein Lizenzbeleg für kommerzielle App-Nutzung im Repository hinterlegt.
+- **Fallback-Verhalten:** In `ExerciseDetailScreen`, `ExerciseCard` und `ExerciseRow` fängt `onError` fehlende oder geblockte Bilder ab und schaltet auf das neutrale `barbell-outline`-Icon bzw. die MIT-lizenzierte `AnatomyFigure` um.
+- **Status:** `PARTIAL`.
 
----
-
-## 3. Analyse weiterer Medien- und UI-Assets
-
-### 3.1 Anatomie-Assets (`AnatomyFigure.tsx`)
-- **Pfad:** `apps/mobile/src/components/anatomy/`
-- **Evidence:** `apps/mobile/src/components/anatomy/README.md` und `LICENSE`
-- **Autor/Urheber:** ELABBASSI Hicham (2022)
-- **Lizenz:** MIT License (vollständiger Lizenztext im Repository vorhanden).
-- **Bewertung:** Kommerzielle Nutzung im Rahmen der MIT-Lizenz zulässig, solange der Copyright-Vermerk erhalten bleibt.
-
-### 3.2 UI-Typografie und Vektorsymbole
-- **Fonts:** Space Grotesk und Manrope sind unter der SIL Open Font License (OFL) lizenziert. Kommerzielle Einbettung in mobile Apps ist gestattet.
-- **Icons:** Ionicons ist unter der MIT-Lizenz lizenziert. Kommerzielle Nutzung gestattet.
-
-### 3.3 Rank- & Gamification-Grafiken
-- **Pfad:** `apps/mobile/assets/ranks/rank-01.png` bis `rank-10.png` (jeweils ca. 1,3–1,6 MB)
-- **Sprite:** `apps/mobile/assets/level-badges.png`
-- **Evidence:** `apps/mobile/src/components/anatomy/README.md:7` verweist auf Generierung via Higgsfield AI (Job-ID dokumentiert).
-- **Bewertung:** Die kommerziellen Nutzungsrechte für über KI-Dienste generierte Grafiken hängen von den AGB des jeweiligen Accounts/Anbieters ab. Im Repository liegt keine Vertragsbestätigung vor.
+### 3.3 Vollständige Entfernung von ExerciseDB
+- Die unlizenzierte Datei `exerciseGifs.json` (1.492 Hotlinks auf `static.exercisedb.dev`) wurde in Commit `92aae8f` restlos gelöscht.
+- Die ungenutzte Datei `exercisedb-v1.json` (1,4 MB) wurde in Commit `92aae8f` gelöscht.
+- `gifUrl` wurde aus Typen, Schemas und Komponenten vollständig entfernt.
+- **Aktiver Produktcode enthält 0 Bezüge zu ExerciseDB.**
 
 ---
 
 ## 4. Handlungsempfehlungen für Astra & Konrad
 
-Detaillierter Migrationsplan liegt vor in:
-- [EXERCISE_ASSET_REPLACEMENT_PLAN.md](file:///d:/TrainingsAppGPT/docs/release/EXERCISE_ASSET_REPLACEMENT_PLAN.md) (AR-009)
+Detaillierter Nachweis liegt vor in:
+- [EXERCISE_DATA_PROVENANCE.md](file:///d:/TrainingsAppGPT/docs/release/EXERCISE_DATA_PROVENANCE.md)
+- [EXERCISE_ASSET_REPLACEMENT_PLAN.md](file:///d:/TrainingsAppGPT/docs/release/EXERCISE_ASSET_REPLACEMENT_PLAN.md)
 
-1. **Exercise-GIFs / Medien**:
-   - **Option A (Kommerzielle API-Lizenz):** Abschluss eines offiziellen kommerziellen Abonnements bei ExerciseDB / RapidAPI mit eigenem API-Key und legalem CDN-Zugriff.
-   - **Option B (Asset-Entfernung / Placeholder):** Deaktivierung von externen GIF-Hotlinks für den V1 Store Release; stattdessen Anzeige hochwertiger statischer Vektor-Icons oder anatomischer Muskel-Hervorhebungen.
-   - **Option C (Eigene Medien / CC0-Datensatz):** Ersatz durch einen verifizierten Open-Source-/Public-Domain-Datensatz mit expliziter kommerzieller Freigabe.
-2. **Dateibereinigung**:
-   - Veraltete oder ungenutzte Datensätze wie `exercisedb-v1.json` (1,4 MB) sollten nach Freigabe aus dem finalen Bundle entfernt werden, um die App-Größe zu optimieren.
-
+1. **Exercise-Medien für Store-Launch:**
+   - Option 1 (Standard): Kostenlose Fotos (`0.jpg`/`1.jpg`) via GitHub Raw CDN nutzen, geschützt durch die implementierten Fallbacks (`barbell-outline` / `AnatomyFigure`).
+   - Option 2 (Vollständige Risikofreiheit): Globalen Schalter `modeOverride = 'ANATOMY_FALLBACK'` in `getExerciseMedia.ts` aktivieren, falls vor Store-Einreichung jegliches Restrisiko externer Fotografien eliminiert werden soll.
+2. **Rank-Icons & Level-Badges:**
+   - Vor Store-Release klären, ob Higgsfield AI-Nutzungsbedingungen kommerzielle App-Nutzung freigeben oder ob stattdessen eigene EVARO-Vektorgrafiken genutzt werden sollen.

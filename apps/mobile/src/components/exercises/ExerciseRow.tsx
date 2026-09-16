@@ -15,6 +15,7 @@ interface Props {
 export const ExerciseRow = ({ exercise, isFavorite, onToggleFavorite }: Props) => {
   const theme = useTheme();
   const router = useRouter();
+  const [hasError, setHasError] = React.useState(false);
 
   return (
     <Pressable
@@ -24,8 +25,13 @@ export const ExerciseRow = ({ exercise, isFavorite, onToggleFavorite }: Props) =
       onPress={() => router.push(`/exercise/${exercise.id}` as Href)}
     >
       <View style={[styles.thumbnail, { backgroundColor: theme.colors.surface }]}>
-        {exercise.imageUrl ? (
-          <Image source={{ uri: exercise.imageUrl }} style={styles.image} contentFit="cover" />
+        {exercise.imageUrl && !hasError ? (
+          <Image
+            source={{ uri: exercise.imageUrl }}
+            style={styles.image}
+            contentFit="cover"
+            onError={() => setHasError(true)}
+          />
         ) : (
           <Ionicons name="barbell-outline" size={24} color={theme.colors.muted} />
         )}

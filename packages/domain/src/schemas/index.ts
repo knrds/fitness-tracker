@@ -86,7 +86,7 @@ export const ExerciseSchema = z
   .object({
     id: UUIDSchema,
     name: z.string().min(1).max(100),
-    instructions: z.string().max(2000).optional(),
+    instructions: z.string().max(5000).optional(),
     primaryMuscles: z.array(MuscleGroupSchema).min(1),
     secondaryMuscles: z.array(MuscleGroupSchema),
     equipment: EquipmentSchema,

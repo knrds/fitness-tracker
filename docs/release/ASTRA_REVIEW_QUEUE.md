@@ -236,7 +236,7 @@ Risk:
 HIGH
 
 Commit:
-35dee3a
+f4960b7
 
 Files:
 - `docs/release/SECURE_STORAGE_MIGRATION_PLAN.md`

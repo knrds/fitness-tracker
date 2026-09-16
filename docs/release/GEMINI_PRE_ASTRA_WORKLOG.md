@@ -1206,6 +1206,104 @@ bc6741f
 Commit mit Änderung:
 de2a5c3
 
+---
+
+# Work Block 12 – SaveTemplateModal Button UX Polish
+
+Date: 16. September 2026
+Starting Commit: 19bc0e5
+Ending Commit: PENDING_COMMIT
+
+## Ziel
+
+Den Button zum Aktualisieren eines bestehenden Templates („Template aktualisieren“) nach Trainingsabschluss in `SaveTemplateModal.tsx` groß, auffällig und ansprechend gestalten, sodass Nutzer die bestehende Vorlage priorisiert aktualisieren können, anstatt sie versehentlich als neues Template abzuspeichern oder zu verwerfen.
+
+## Vorheriger Zustand
+
+- Der Button „Bestehendes Template aktualisieren“ nutzte `styles.btn` mit `flex: 1` und einer fixen Höhe von `52`, wodurch er im vertikalen Kartenlayout unproportional dünn und klein wirken konnte.
+- Kein Icon, kein haptisches Feedback, kein visueller Press-Effekt.
+- Trennung zum Bereich „Oder als neues speichern unter:“ bestand nur aus einer unauffälligen 1px-Trennlinie.
+
+## Analyse
+
+- In `apps/mobile/app/workout/session.tsx` wird nach Abschluss eines Trainings mit aktiver Vorlage (`templateId`) und geänderten Übungen/Sätzen das `SaveTemplateModal` geöffnet.
+- Der Button ist die primäre, vom Nutzer gewünschte Aktion. Er sollte dem Design System entsprechen (`width: '100%'`, `minHeight: 56`, `SpaceGrotesk_700Bold`, Uppercase, `Ionicons` Refresh-Icon und `Haptics.impactAsync(Medium)`).
+- Eine semantische `ODER`-Trennlinie trennt den primären Aktualisieren-Pfad klar vom alternativen Pfad („Als neues speichern“ / „Nicht speichern“).
+
+## Änderungen
+
+### Datei
+`apps/mobile/src/components/workout/SaveTemplateModal.tsx`
+
+Änderung:
+1. `Ionicons` und `* as Haptics` importiert.
+2. Button auf `styles.updateBtn` umgestellt: volle Breite (`width: '100%'`), `minHeight: 56`, `paddingVertical: 16`, `theme.colors.primary` Hintergrund, abgerundete Ecken (`theme.radius.md`), Schatten/Elevation.
+3. Refresh-Icon (`refresh-outline`, 22pt) vor den Buttontext gesetzt.
+4. Buttontext optimiert: „TEMPLATE AKTUALISIEREN“ in fetter `SpaceGrotesk`-Typografie mit leichtem Letter-Spacing.
+5. Press-Feedback hinzugefügt: Skalierung (`transform: [{ scale: 0.98 }]`) und Opazitätsänderung bei Touch, sowie Haptic Feedback (`ImpactFeedbackStyle.Medium`).
+6. Trennlinie zu einer strukturierten `ODER`-Trennlinie erweitert.
+7. Die beiden unteren Buttons („Nicht speichern“ und „Als neues speichern“) blieben in ihrer Anordnung und Funktionalität unverändert erhalten.
+
+Warum:
+Benutzerwunsch: Der Button soll groß, schön und gut bedienbar sein wie die Hauptaktionsbuttons der App, um die Vorlagenaktualisierung intuitiv in den Vordergrund zu rücken.
+
+### Datei
+`apps/mobile/src/components/workout/__tests__/SaveTemplateModal.test.tsx`
+
+Änderung:
+Neue umfassende Unit-Test-Suite mit 4 Tests angelegt:
+- Prüft das Rendern des prominenten Aktualisieren-Buttons und der ODER-Trennlinie bei vorhandener `templateId`.
+- Prüft den Callback `onUpdate()`.
+- Prüft den Skip-Flow („Nicht speichern“).
+- Prüft das Speichern als neues Template („Als neues speichern“).
+- Prüft den Standardmodus ohne `templateId`.
+
+Warum:
+Verifikation und Absicherung gegen künftige UI- und Interaktionsregressionen.
+
+## Tests
+
+- `apps/mobile/src/components/workout/__tests__/SaveTemplateModal.test.tsx` -> PASS (4 Tests)
+- `pnpm verify` -> PASS (393 Tests, Typecheck 0 Fehler, Lint 0 Fehler)
+- `pnpm coach:check` -> PASS
+- `pnpm build` -> PASS (Web-Bundle fehlerfrei generiert)
+
+## Verhalten vorher
+
+Unauffälliger, schmal wirkender Button ohne Icon oder taktiles Feedback; schwache visuelle Trennung zu den alternativen Speicheraktionen.
+
+## Verhalten nachher
+
+Großer, vollflächiger Hero-Button mit Refresh-Icon, Haptics, Press-Animation und klarer ODER-Abgrenzung. Sofort als primäre Aktion erfassbar.
+
+## Risiko
+
+LOW (reine UI/UX-Verbesserung mit vollständiger Testabdeckung)
+
+## Rückwärtskompatibilität
+
+100% gegeben. Keine API- oder Schema-Änderung.
+
+## Bestehende Nutzerdaten betroffen?
+
+NO
+
+## Offene Punkte
+
+Keine.
+
+## Astra muss später prüfen
+
+- Keine gesonderte Architekturentscheidung notwendig; reine UI-Verbesserung.
+
+## Rollback
+
+Commit vor Änderung:
+19bc0e5
+
+Commit mit Änderung:
+PENDING_COMMIT
+
 
 
 

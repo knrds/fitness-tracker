@@ -12,6 +12,8 @@ import {
   Keyboard,
 } from 'react-native';
 import { useTheme } from '@fitness-tracker/ui';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useI18n } from '../../i18n';
 
 interface Props {
@@ -102,38 +104,57 @@ export const SaveTemplateModal = ({
 
           {templateId && onUpdate && (
             <Pressable
-              style={[
-                styles.btn,
+              accessibilityRole="button"
+              accessibilityLabel={
+                language === 'de'
+                  ? 'Bestehendes Template aktualisieren'
+                  : 'Update Existing Template'
+              }
+              style={({ pressed }) => [
+                styles.updateBtn,
                 {
                   backgroundColor: theme.colors.primary,
                   borderRadius: theme.radius.md,
-                  marginBottom: 20,
-                  height: 52,
-                  justifyContent: 'center',
-                  alignItems: 'center',
                 },
+                pressed && styles.updateBtnPressed,
               ]}
-              onPress={onUpdate}
+              onPress={() => {
+                if (Platform.OS !== 'web') {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+                }
+                onUpdate();
+              }}
             >
+              <Ionicons
+                name="refresh-outline"
+                size={22}
+                color={theme.colors.background}
+                style={styles.updateBtnIcon}
+              />
               <Text
                 style={[
-                  styles.btnText,
+                  styles.updateBtnText,
                   {
                     color: theme.colors.background,
                     ...theme.typography.button,
-                    fontWeight: 'bold',
                   },
                 ]}
               >
                 {language === 'de'
-                  ? 'Bestehendes Template aktualisieren'
-                  : 'Update Existing Template'}
+                  ? 'Template aktualisieren'
+                  : 'Update Template'}
               </Text>
             </Pressable>
           )}
 
           {templateId && (
-            <View style={{ height: 1, backgroundColor: theme.colors.border, marginBottom: 20 }} />
+            <View style={styles.dividerRow}>
+              <View style={[styles.dividerLine, { backgroundColor: theme.colors.border }]} />
+              <Text style={[styles.dividerText, { color: theme.colors.muted }]}>
+                {language === 'de' ? 'ODER' : 'OR'}
+              </Text>
+              <View style={[styles.dividerLine, { backgroundColor: theme.colors.border }]} />
+            </View>
           )}
 
           <Text style={[styles.label, { color: theme.colors.muted }]}>
@@ -250,6 +271,51 @@ const createStyles = (theme: Theme) =>
       fontFamily: 'Manrope_500Medium',
       fontSize: 16,
       marginBottom: 24,
+    },
+    updateBtn: {
+      width: '100%',
+      minHeight: 56,
+      paddingVertical: 16,
+      paddingHorizontal: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 20,
+      shadowColor: theme.colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    updateBtnPressed: {
+      opacity: 0.88,
+      transform: [{ scale: 0.98 }],
+    },
+    updateBtnIcon: {
+      marginRight: 10,
+    },
+    updateBtnText: {
+      fontSize: 16,
+      fontWeight: '700',
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+    },
+    dividerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 20,
+      gap: 12,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+    },
+    dividerText: {
+      fontFamily: 'SpaceGrotesk_400Regular',
+      fontSize: 12,
+      fontWeight: '600',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
     },
     actions: {
       flexDirection: 'row',

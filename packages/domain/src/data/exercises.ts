@@ -1,5 +1,5 @@
 import { Exercise } from '../types';
-import rawData from './raw/exercisedb.json';
+import rawData from './raw/free-exercise-db.json';
 import { mapExercises, RawExercise } from './mapExercises';
 
 // Map the raw free-exercise-db JSON array to our typed domain Exercise array

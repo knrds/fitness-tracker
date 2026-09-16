@@ -134,7 +134,7 @@ Neue Test-Suite: `apps/mobile/src/__tests__/releaseCandidateCoreRegression.test.
 3. **Account Deletion Cloud Backend:** Bereitstellung der Supabase RPC `delete_user_account()` (`AR-015`).
 4. **AI Coach Production Infrastructure:** HTTPS-Hosting mit distributed Rate-Limiting & Auth-Validation (`AR-013`).
 5. **RevenueCat SDK:** Installation von `react-native-purchases` und StoreKit/Play Billing Integration (`AR-016`).
-6. **ExerciseDB Asset Lizenzierung:** Austausch der Hotlink-URLs durch lizenzierte Assets (`AR-001`).
+*(Hinweis: Der frühere Blocker AR-009 / P0-01 bezüglich ExerciseDB-Lizenzierung ist vollständig entfallen, da ExerciseDB auf Anweisung von Konrad restlos aus der App entfernt wurde und ausschließlich die freie Bilddatenbank genutzt wird).*
 
 ---
 
@@ -144,15 +144,14 @@ Neue Test-Suite: `apps/mobile/src/__tests__/releaseCandidateCoreRegression.test.
 2. Google Play Console Account einrichten ($25 einmalig).
 3. Finalen Bundle Identifier (`com.evaro.app` vs. `com.fitnesstracker.app`) festlegen.
 4. EAS CLI Credentials für iOS & Android hinterlegen.
-5. ExerciseDB Lizenz klären oder Start ohne GIFs bestätigen.
-6. Higgsfield Nutzungsrechte für Video-Assets prüfen.
-7. RevenueCat Projekt anlegen und API Keys bereitstellen.
-8. Preise für EVARO Pro festlegen (Monat / Jahr).
-9. Öffentliche Datenschutzerklärung (URL) bereitstellen.
-10. Öffentliche AGB / EULA (URL) bereitstellen.
-11. Impressum (§ 5 DDG) bereitstellen.
-12. Support-URL oder Support-E-Mail hinterlegen.
-13. Physische Gerätetests anhand `docs/release/DEVICE_QA_CHECKLIST.md` durchführen.
+5. Higgsfield Nutzungsrechte für Video-Assets prüfen.
+6. RevenueCat Projekt anlegen und API Keys bereitstellen.
+7. Preise für EVARO Pro festlegen (Monat / Jahr).
+8. Öffentliche Datenschutzerklärung (URL) bereitstellen.
+9. Öffentliche AGB / EULA (URL) bereitstellen.
+10. Impressum (§ 5 DDG) bereitstellen.
+11. Support-URL oder Support-E-Mail hinterlegen.
+12. Physische Gerätetests anhand `docs/release/DEVICE_QA_CHECKLIST.md` durchführen.
 
 ---
 

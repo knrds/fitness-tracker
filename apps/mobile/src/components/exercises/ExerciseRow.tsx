@@ -5,7 +5,6 @@ import { Exercise } from '@fitness-tracker/domain';
 import { useRouter, Href } from 'expo-router';
 import { useTheme, Badge } from '@fitness-tracker/ui';
 import { Ionicons } from '@expo/vector-icons';
-import { getExerciseMedia } from '../../utils/getExerciseMedia';
 
 interface Props {
   exercise: Exercise;
@@ -16,7 +15,6 @@ interface Props {
 export const ExerciseRow = ({ exercise, isFavorite, onToggleFavorite }: Props) => {
   const theme = useTheme();
   const router = useRouter();
-  const media = getExerciseMedia(exercise);
 
   return (
     <Pressable
@@ -26,10 +24,10 @@ export const ExerciseRow = ({ exercise, isFavorite, onToggleFavorite }: Props) =
       onPress={() => router.push(`/exercise/${exercise.id}` as Href)}
     >
       <View style={[styles.thumbnail, { backgroundColor: theme.colors.surface }]}>
-        {media.hasMedia && media.uri ? (
-          <Image source={{ uri: media.uri }} style={styles.image} contentFit="cover" />
+        {exercise.imageUrl ? (
+          <Image source={{ uri: exercise.imageUrl }} style={styles.image} contentFit="cover" />
         ) : (
-          <Ionicons name={media.fallbackIcon} size={24} color={theme.colors.muted} />
+          <Ionicons name="barbell-outline" size={24} color={theme.colors.muted} />
         )}
       </View>
 

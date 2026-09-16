@@ -1,22 +1,4 @@
 import { Exercise, MuscleGroup, Equipment, MovementPattern } from '../types';
-import gifMapData from './raw/exerciseGifs.json';
-
-const gifMap: Record<string, string> = gifMapData as Record<string, string>;
-
-function normalizeName(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-function findGifUrl(name: string): string | undefined {
-  const norm = normalizeName(name);
-  if (gifMap[norm]) return gifMap[norm];
-  for (const [k, v] of Object.entries(gifMap)) {
-    if (k.length > 5 && (norm.includes(k) || k.includes(norm))) {
-      return v;
-    }
-  }
-  return undefined;
-}
 
 /**
  * Generates a deterministic UUID-like string from an arbitrary input string.
@@ -240,8 +222,6 @@ export function mapExercises(rawData: RawExercise[]): Exercise[] {
         ? `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${raw.images[0]}`
         : undefined;
 
-    const gifUrl = findGifUrl(raw.name);
-
     const mappedEx: Exercise = {
       id,
       name: raw.name,
@@ -254,7 +234,6 @@ export function mapExercises(rawData: RawExercise[]): Exercise[] {
       updatedAt: new Date('2026-06-01T00:00:00.000Z'),
       ...(instructionsStr !== undefined ? { instructions: instructionsStr } : {}),
       ...(imageUrl !== undefined ? { imageUrl } : {}),
-      ...(gifUrl !== undefined ? { gifUrl } : {}),
       ...(experienceLevel !== undefined ? { experienceLevel } : {}),
     };
 

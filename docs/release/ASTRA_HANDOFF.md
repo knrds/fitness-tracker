@@ -28,9 +28,10 @@
    - Prüfe `api/coach-safety.cjs` und `api/coach-chat.js`. Safety Layer fängt medizinische Notfälle (Brustschmerz, Atemnot, K.O.), Extremdiäten und Injections deterministisch ab. Payload-Limits (50kB, max 10 Msgs, 415/405 Handling) sind verifiziert.
    - *Astra-Aufgabe:* Serverless / Edge Deployment (z.B. Vercel) mit Redis/Upstash Rate-Limiting und Auth-Token-Validierung aufsetzen.
 
-5. **Exercise Licensing Transition (`AR-001`):**
-   - Prüfe `apps/mobile/src/utils/getExerciseMedia.ts`. Ist zentral in `ExerciseCard`, `ExerciseRow` und `app/exercise/[id].tsx` eingebunden.
-   - *Astra / PO:* Sobald Konrad die Lizenzstrategie (ExerciseDB API vs. eigene Grafiken) festlegt, Remote GIF URLs durch lizenzierte Assets austauschen.
+5. **Exercise Dataset (Entscheidung durch Konrad abgeschlossen):**
+   - Kommerzielle ExerciseDB wurde auf Anweisung von Konrad vollständig und restlos aus dem Repository entfernt (Dateien `exerciseGifs.json` und `exercisedb-v1.json` gelöscht, `gifUrl` entfernt).
+   - Die App nutzt ausschließlich den kostenlosen, offenen Datensatz (`free-exercise-db`) mit den zweistufigen Übungsfotos (`0.jpg` und `1.jpg`).
+   - Das frühere Lizenzrisiko (P0-01) ist damit **vollständig aufgelöst**. Keine externe API-Subscription erforderlich.
 
 6. **RevenueCat / Entitlements (`AR-016`):**
    - Prüfe `apps/mobile/src/services/entitlementService.ts`. Beta-Bypass (`BETA_ALL_FEATURES_ENABLED: true`) hält die App für aktuelle Tester voll offen. Restore Purchases zeigt transparentes Beta-Badge.
@@ -75,15 +76,14 @@ Diese Punkte erfordern manuelle Bereitstellung, juristische Dokumente oder Accou
 2. **Google Play Console:** Developer Account ($25 einmalig), 20-Tester-Phase für Internal Track.
 3. **Final Bundle Identifier:** Bestätigung von `com.evaro.app` vs. Legacy `com.fitnesstracker.app`.
 4. **EAS Credentials:** Hinterlegung der Store-Credentials in EAS CLI.
-5. **ExerciseDB Lizenzentscheidung:** Kommerzielle API-Subscription vs. alternative Asset-Bibliothek.
-6. **Higgsfield Commercial Rights:** Klärung der Nutzungsrechte für KI-animierte Übungs-Assets.
-7. **RevenueCat Account:** Anlegen des Projekts und Hinterlegen der öffentlichen API-Keys.
-8. **Subscription Pricing:** Festlegung der finalen Monats- und Jahrespreise (z.B. 4,99 € / Monat, 39,99 € / Jahr).
-9. **Datenschutzerklärung (Privacy Policy):** Veröffentlichung einer DSGVO-konformen URL (z.B. `https://evaro.app/privacy`).
-10. **AGB / EULA:** Bereitstellung von AGB und Widerrufsbelehrung (z.B. `https://evaro.app/terms`).
-11. **Impressum:** Anbieterkennzeichnung nach § 5 DDG (Name, Adresse, Kontakt, ggf. USt-ID).
-12. **Support URL / Kontakt:** E-Mail-Adresse (`support@evaro.app`) oder Kontaktformular.
-13. **Physische Gerätetests:** Vollständiges Durchführen der Checkliste in `docs/release/DEVICE_QA_CHECKLIST.md` auf echten iPhones und Android-Geräten.
+5. **Higgsfield Commercial Rights:** Klärung der Nutzungsrechte für KI-animierte Übungs-Assets.
+6. **RevenueCat Account:** Anlegen des Projekts und Hinterlegen der öffentlichen API-Keys.
+7. **Subscription Pricing:** Festlegung der finalen Monats- und Jahrespreise (z.B. 4,99 € / Monat, 39,99 € / Jahr).
+8. **Datenschutzerklärung (Privacy Policy):** Veröffentlichung einer DSGVO-konformen URL (z.B. `https://evaro.app/privacy`).
+9. **AGB / EULA:** Bereitstellung von AGB und Widerrufsbelehrung (z.B. `https://evaro.app/terms`).
+10. **Impressum:** Anbieterkennzeichnung nach § 5 DDG (Name, Adresse, Kontakt, ggf. USt-ID).
+11. **Support URL / Kontakt:** E-Mail-Adresse (`support@evaro.app`) oder Kontaktformular.
+12. **Physische Gerätetests:** Vollständiges Durchführen der Checkliste in `docs/release/DEVICE_QA_CHECKLIST.md` auf echten iPhones und Android-Geräten.
 
 ---
 

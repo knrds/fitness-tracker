@@ -453,7 +453,7 @@ Risk:
 HIGH (Exercise Media Copyright & Hotlink Outage Risk)
 
 Commit:
-TBD
+852c1dd
 
 Files:
 - `docs/release/EXERCISE_ASSET_REPLACEMENT_PLAN.md`

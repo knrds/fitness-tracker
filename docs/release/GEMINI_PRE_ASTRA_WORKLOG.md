@@ -657,3 +657,107 @@ Commit vor Änderung:
 Commit mit Änderung:
 f3cbf27
 
+---
+
+# Work Block 07 – AI Coach Safety Matrix & Client Resilience Tests (Phase 8)
+
+Date: 2026-09-16
+Starting Commit: 9e535e4
+Ending Commit: TBD
+
+## Ziel
+
+Audit und Härtung der AI-Coach-Infrastruktur, Ausarbeitung des Produktions-Test- und Sicherheitsplans (`AI_PRODUCTION_TEST_PLAN.md`) und Ergänzung automatisierter Unit-Tests für Netzwerkfehler, Rate-Limits, fehlerhafte Antworten und Secret-Exclusion im Client.
+
+## Vorheriger Zustand
+
+- `apps/mobile/src/utils/coachApi.ts` verfügte über Timeouts und Abort-Signale, aber es fehlten explizite automatisierte Tests für Verbindungsabbrüche (Fetch `TypeError`), HTTP 429 Rate Limits, leere/ungültige Serverantworten und den formalen Beweis, dass der Client niemals Provider-Secrets übermittelt.
+- Es gab keinen zusammenhängenden Testplan, der die 15 produktionskritischen Dimensionen (Auth, Entitlements, Rate Limits, Kostenbegrenzung, Ausfallsicherheit, Verletzungseskalation, Prompt Injection, Bilddaten und Datenschutz) strukturiert erfasste.
+
+## Analyse
+
+Die bestehende Architektur trennt den Client (`apps/mobile`) strikt vom Serverless-Proxy (`api/coach-chat.js`). Der Client besitzt keinen API-Key für LLM-Provider; er autorisiert sich ausschließlich mit dem Supabase-JWT des Nutzers.
+Die Proxy-Ebene validiert Pläne gegen den lokalen Übungskatalog und repariert fehlerhafte Antworten.
+Für den Release-Schritt zu Astra müssen die verbleibenden Risiken (insb. medizinische Falschberatung bei akuten Schmerzen sowie ungedeckte Bild-Upload-Größen) transparent markiert und der Client gegen Verbindungsfehler und Rate-Limits abgesichert werden.
+
+## Änderungen
+
+### Datei
+`docs/release/AI_PRODUCTION_TEST_PLAN.md`
+
+Änderung:
+Erstellung des umfassenden Sicherheits- und Testplans mit 15 Dimensionen:
+- Matrix mit Status: 11 Gates als `CURRENTLY_TESTED`, 3 als `NOT_TESTED` (Medizinische Eskalation, sichere Ratschläge, Bild-Payload-Limit), 1 als `ASTRA_REQUIRED` (RevenueCat Entitlement-Gating).
+- Detaillierte Spezifikation für medizinische Warnhinweise im System-Prompt bei akuten Verletzungen.
+- Spezifikation für ein 4-MB-Payload-Gate für Bild-Uploads.
+
+Warum:
+Klare Vorbereitung der Produktionsfreigabe für Astra.
+
+### Datei
+`apps/mobile/src/utils/__tests__/coachApi.test.ts`
+
+Änderung:
+4 neue Tests hinzugefügt:
+1. `handles network connection failure (TypeError) with user-friendly connectivity message`.
+2. `handles HTTP 429 rate limit response with explicit guidance`.
+3. `rejects malformed response with empty reply field`.
+4. `never transmits provider secrets or API keys in outgoing client request headers or body`.
+Saubere Bereinigung des Async-Generators via `generator.return()` zur Vermeidung offener Timer-Handles.
+
+Warum:
+Verifikation der Client-Resilienz und Absicherung gegen Secret-Leaks.
+
+### Datei
+`docs/release/ASTRA_REVIEW_QUEUE.md`
+
+Änderung:
+AR-007 hinzugefügt.
+
+Warum:
+Dokumentation für Astra.
+
+## Tests
+
+- `apps/mobile/src/utils/__tests__/coachApi.test.ts` -> PASS (10 Tests)
+- `api/coach-chat.test.cjs` -> PASS (18 Tests)
+- `pnpm verify` -> PASS (384 Tests)
+- `pnpm coach:check` -> PASS
+
+## Verhalten vorher
+
+Unvollständige Testabdeckung für Verbindungsabbrüche, 429er-Codes und Secret-Exclusion im Client; fehlender Produktions-Sicherheitsplan.
+
+## Verhalten nachher
+
+Deterministsche Fehlermeldungen bei Netzwerkausfällen und Rate Limits; formaler Testnachweis über Nichtübertragung von Secrets; 15-Punkte-Sicherheitsmatrix für Astra.
+
+## Risiko
+
+LOW (reine Test- und Spezifikationserweiterung ohne Protokolländerung)
+
+## Rückwärtskompatibilität
+
+Vollständig gegeben.
+
+## Bestehende Nutzerdaten betroffen?
+
+NO
+
+## Offene Punkte
+
+- Astra-Entscheidung bezüglich 4-MB-Payload-Limit und Schärfung des Notfall-Disclaimers im System-Prompt.
+
+## Astra muss später prüfen
+
+- AR-007 in `docs/release/ASTRA_REVIEW_QUEUE.md`.
+
+## Rollback
+
+Commit vor Änderung:
+9e535e4
+
+Commit mit Änderung:
+TBD
+
+

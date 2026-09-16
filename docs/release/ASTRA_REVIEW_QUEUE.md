@@ -12,6 +12,7 @@ Zentrale Queue aller von Gemini vorbereiteten, analysierten oder implementierten
 | [AR-004](#ar-004--data-integrity-contract-tests--multi-device-sync-test-matrix) | Data Integrity Contract Tests & Multi-Device Sync Test Matrix | P0 | IMPLEMENTED | LOW | VERIFY |
 | [AR-005](#ar-005--secure-storage-migration-plan-auth--token-persistence) | Secure Storage Migration Plan (Auth & Token Persistence) | P0 | PREPARED | HIGH | ARCHITECTURE_DECISION |
 | [AR-006](#ar-006--account-lifecycle-deletion-rpc-spec--gdpr-art-20-data-export) | Account Lifecycle: Deletion RPC Spec & GDPR Art. 20 Data Export | P0 | PREPARED | HIGH | ARCHITECTURE_DECISION |
+| [AR-007](#ar-007--ai-coach-production-safety-matrix--client-resilience-tests) | AI Coach Production Safety Matrix & Client Resilience Tests | P1 | IMPLEMENTED | LOW | VERIFY |
 
 ---
 
@@ -329,6 +330,59 @@ ARCHITECTURE_DECISION
 
 Rollback commit:
 9643886
+
+---
+
+## AR-007 – AI Coach Production Safety Matrix & Client Resilience Tests
+
+Priority:
+P1
+
+Gemini Status:
+IMPLEMENTED (Test Plan & Client Hardening Tests)
+
+Risk:
+LOW
+
+Commit:
+TBD
+
+Files:
+- `docs/release/AI_PRODUCTION_TEST_PLAN.md`
+- `apps/mobile/src/utils/__tests__/coachApi.test.ts`
+
+Gemini changed:
+1. `AI_PRODUCTION_TEST_PLAN.md`: Erstellt. Vollständige Matrix über 15 sicherheits- und kostenkritische Tore (Authentication, Entitlement, Rate Limits, Cost Caps, Provider Outage, Timeouts, HTTP 429, HTTP 500, Schema Repair, Unsafe Advice, Medical Escalation, Prompt Injections, Image Input Quotas, Context Truncation, Sensitive Logging) mit Statusmarkierung (`CURRENTLY_TESTED`, `NOT_TESTED`, `ASTRA_REQUIRED`).
+2. `apps/mobile/src/utils/__tests__/coachApi.test.ts`: Um 4 neue Unit-Tests erweitert:
+   - `handles network connection failure (TypeError)` -> saubere Fehlermeldung ohne Crash.
+   - `handles HTTP 429 rate limit response` -> verständliche Warte-Anweisung für den Nutzer.
+   - `rejects malformed response with empty reply field` -> wirft klaren JSON-/Backend-Fehler.
+   - `never transmits provider secrets or API keys` -> verifiziert, dass weder Headers (`x-api-key`, `openrouter-api-key`) noch Payload (`sk-or-`, `OPENROUTER`, `secret`) vertrauliche Tokens lecken.
+
+Why:
+Der KI-Coach ist ein Kern-Differenzierungsmerkmal von EVARO, birgt jedoch erhebliche finanzielle Risiken (Token-Abfluss, fehlende Limits) sowie Haftungsrisiken (gefährliche Ratschläge bei akuten Verletzungen). Vor der produktiven Freigabe muss Astra diese Schutzmechanismen systematisch abprüfen können.
+
+Tests:
+- `apps/mobile/src/utils/__tests__/coachApi.test.ts` (10 Tests) -> PASS
+- `api/coach-chat.test.cjs` (18 Tests) -> PASS
+- `pnpm verify` -> PASS (384 Tests)
+
+Expected behavior:
+Client reagiert auf alle Netzwerkfehler, Timeouts, Abbrüche und fehlerhafte Antworten deterministisch und leckt unter keinen Umständen API-Secrets.
+
+Potential concerns:
+- Medizinische Eskalationsfilter (z.B. Brustschmerzen, Schwellungen) müssen serverseitig im System-Prompt noch durch Astra geschärft und automatisiert getestet werden.
+
+Questions for Astra:
+1. Soll bei Free-Nutzern nach 6 Anfragen/Tag ein direkter Upgrade-Trigger zur Paywall erfolgen oder eine harte 24-Stunden-Sperre angezeigt werden?
+2. Bevorzugt Astra für Bildanalysen (z.B. KFA-Schätzung, Haltungsanalyse) ein clientseitiges Vorab-Komprimieren (max 1024x1024) oder ein striktes Server-Limit (max 4 MB)?
+
+Astra action:
+VERIFY
+
+Rollback commit:
+9e535e4
+
 
 
 

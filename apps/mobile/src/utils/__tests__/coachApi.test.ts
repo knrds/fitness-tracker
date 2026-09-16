@@ -119,4 +119,53 @@ describe('coachApi', () => {
       }).next(),
     ).rejects.toThrow('OpenRouter-Guthaben');
   });
+
+  it('handles client cancellation via AbortSignal gracefully', async () => {
+    process.env.EXPO_PUBLIC_COACH_CHAT_ENDPOINT = 'https://coach.example.test/chat';
+    const abortController = new AbortController();
+    abortController.abort();
+
+    global.fetch = jest.fn().mockImplementation(() => {
+      const err = new Error('The user aborted a request.');
+      err.name = 'AbortError';
+      return Promise.reject(err);
+    });
+
+    const { streamCoachResponse } = jest.requireActual<typeof import('../coachApi')>('../coachApi');
+    await expect(
+      streamCoachResponse(
+        [],
+        {
+          profile: { displayName: 'Test', preferredUnits: 'metric' },
+          stats: { totalWorkouts: 0, currentStreak: 0 },
+        },
+        { signal: abortController.signal },
+      ).next(),
+    ).rejects.toThrow('Anfrage durch Nutzer abgebrochen.');
+  });
+
+  it('handles request timeout with explicit message', async () => {
+    process.env.EXPO_PUBLIC_COACH_CHAT_ENDPOINT = 'https://coach.example.test/chat';
+    global.fetch = jest.fn().mockImplementation((_url, options) => {
+      return new Promise((_, reject) => {
+        options.signal.addEventListener('abort', () => {
+          const err = new Error('The operation was aborted');
+          err.name = 'AbortError';
+          reject(err);
+        });
+      });
+    });
+
+    const { streamCoachResponse } = jest.requireActual<typeof import('../coachApi')>('../coachApi');
+    await expect(
+      streamCoachResponse(
+        [],
+        {
+          profile: { displayName: 'Test', preferredUnits: 'metric' },
+          stats: { totalWorkouts: 0, currentStreak: 0 },
+        },
+        { timeoutMs: 10 },
+      ).next(),
+    ).rejects.toThrow('Der Coach antwortet nicht rechtzeitig.');
+  });
 });

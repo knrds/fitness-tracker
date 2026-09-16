@@ -3,6 +3,7 @@ import { MMKV } from 'react-native-mmkv';
 import { createClient } from '@supabase/supabase-js';
 
 import { isExpoGo } from './runtime';
+import { logger } from './logger';
 
 const isServer = typeof globalThis === 'undefined' || !('window' in globalThis);
 
@@ -12,7 +13,7 @@ const createSupabaseStorage = (): MMKV | null => {
   try {
     return new MMKV({ id: 'supabase-auth-storage' });
   } catch (error) {
-    console.warn('[Supabase] MMKV auth storage unavailable. Falling back to AsyncStorage.', error);
+    logger.warn('[Supabase] MMKV auth storage unavailable. Falling back to AsyncStorage.', error);
     return null;
   }
 };

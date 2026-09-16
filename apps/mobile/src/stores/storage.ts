@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MMKV } from 'react-native-mmkv';
 import { z } from 'zod';
 import { isExpoGo } from '../utils/runtime';
+import { logger } from '../utils/logger';
 import { useStorageHealth } from './storageHealth';
 import { getDeviceDatabase, usesDeviceDatabase } from '../data/deviceDatabase';
 import { areStorageWritesSuspended } from '../data/storageTransaction';
@@ -61,7 +62,7 @@ export function createHydratedStorage<T extends object>(
     try {
       mmkv = new MMKV({ id: storageId });
     } catch {
-      console.warn('[Storage] Using AsyncStorage for ' + storageId);
+      logger.warn('[Storage] Using AsyncStorage for ' + storageId);
     }
   }
   // Also protects the interval before asynchronous hydration completes.

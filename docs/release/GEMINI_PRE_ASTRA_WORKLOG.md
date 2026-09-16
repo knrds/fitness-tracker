@@ -243,3 +243,124 @@ dcd58d8
 
 Commit mit Änderung:
 db38ec8
+
+---
+
+# Work Block 03 – Client Resilience & Privacy-Safe Logging (Phases 3 & 4)
+
+Date: 2026-09-16
+Starting Commit: 3435311
+Ending Commit: 50f8a7d
+
+## Ziel
+
+Härtung der externen Netzwerk- und API-Aufrufe (Coach API, AbortSignal, konfigurierbarer Timeout, saubere Fehlerdifferenzierung) sowie Implementierung einer isolierten, datenschutzkonformen Logging-Abstraktion (`logger.ts`) zur Verhinderung von Leaks sensibler Tokens, Credentials, E-Mails und Nutzlasten.
+
+## Vorheriger Zustand
+
+- `coachApi.ts` hatte einen fest verdrahteten 75s Timeout und bot keine Möglichkeit für den Aufrufer, einen laufenden Request vorzeitig via `AbortSignal` abzubrechen. Bei Abbruch wurde ein generischer Timeout-Fehler gemeldet.
+- Keine zentrale Logging-Schicht vorhanden; direkte `console.warn/error/log`-Aufrufe in `supabase.ts`, `syncStore.ts`, `storage.ts` und `history/[id].tsx` bargen das Risiko, sensible Fehlerobjekte oder Auth-Details unmaskiert auszugeben.
+
+## Analyse
+
+Ein Audit aller externen Aufrufe zeigte, dass der Coach-Client die primäre interaktive Netzwerk-Komponente ist. Bei Screen-Wechseln oder Abbruch durch den Nutzer lief der Request weiter und band Ressourcen. Zudem war die Fehlermeldung bei Timeout und Abbruch nicht differenziert.
+Beim Logging-Audit wurde festgestellt, dass Fehlermeldungen von Supabase oder Zod-Validierungsfehler in `syncStore.ts` potentiell Benutzer-E-Mails oder Token-Snippets enthalten können. Eine leichtgewichtige, zustandslose Logging-Abstraktion mit Regex-basierter Schwärzung (JWT, Bearer, Passwörter, E-Mails, Base64) und Schutz gegen Zirkelbezüge löst dieses Problem vollständig, ohne eine schwere externe Analytics-Bibliothek voreilig einzubinden.
+
+## Änderungen
+
+### Datei
+`apps/mobile/src/utils/coachApi.ts`
+
+Änderung:
+`CoachOptions` um `signal?: AbortSignal` und `timeoutMs?: number` erweitert. Externe Abbrüche werden an den internen Fetch-Controller gekoppelt; saubere Unterscheidung zwischen Abbruch (`Anfrage durch Nutzer abgebrochen.`) und Timeout (`Der Coach antwortet nicht rechtzeitig.`).
+
+Warum:
+Ressourcenschonung, sofortige Reaktionsfähigkeit bei UI-Abbrüchen und präzise Fehlermeldungen für Nutzer.
+
+### Datei
+`apps/mobile/src/utils/__tests__/coachApi.test.ts`
+
+Änderung:
+2 neue Unit-Tests für `AbortSignal`-Abbruch und konfigurierbare Timeouts hinzugefügt.
+
+Warum:
+Automatisierte Regressionsabsicherung.
+
+### Datei
+`apps/mobile/src/utils/logger.ts`
+
+Änderung:
+Neue datenschutzkonforme Logging-Abstraktion mit `redactString()` und `sanitizeLogData()` für `debug`, `info`, `warn`, `error` implementiert.
+
+Warum:
+Automatischer Schutz vor Daten- und Tokenleaks in Entwicklungs- und Produktions-Logs.
+
+### Datei
+`apps/mobile/src/utils/__tests__/logger.test.ts`
+
+Änderung:
+10 umfassende Unit-Tests für Schwärzung von JWTs, Bearer-Tokens, E-Mails, Base64 und Zirkelbezügen angelegt.
+
+Warum:
+Verlässlicher Nachweis der Funktionalität für Astra.
+
+### Datei
+`apps/mobile/src/utils/supabase.ts`, `apps/mobile/src/stores/syncStore.ts`, `apps/mobile/src/stores/storage.ts`, `apps/mobile/app/history/[id].tsx`
+
+Änderung:
+Direkte `console.*`-Aufrufe durch `logger.warn` und `logger.error` ersetzt.
+
+Warum:
+Konsistente Nutzung der sicheren Logging-Schicht.
+
+### Datei
+`docs/release/ASTRA_REVIEW_QUEUE.md`
+
+Änderung:
+AR-002 und AR-003 erfasst.
+
+Warum:
+Transparente Queue für nachfolgenden Astra-Review.
+
+## Tests
+
+- `apps/mobile/src/utils/__tests__/coachApi.test.ts` -> PASS (6 Tests)
+- `apps/mobile/src/utils/__tests__/logger.test.ts` -> PASS (10 Tests)
+- `pnpm verify` -> PASS (318 Tests: 58 Test-Suites mobile + 18 Coach API, 0 Type-Fehler, 0 Lint-Fehler)
+
+## Verhalten vorher
+
+Keine Abbruchmöglichkeit für Coach-Anfragen; direkte ungeschwärzte Konsolenausgaben in Kernmodulen.
+
+## Verhalten nachher
+
+Aufrufer können Requests jederzeit deterministisch abbrechen; alle Systemlogs werden vor der Ausgabe automatisch von sensiblen Inhalten bereinigt.
+
+## Risiko
+
+MEDIUM (coachApi) / LOW (logger)
+
+## Rückwärtskompatibilität
+
+Vollständig abwärtskompatibel. Alle neuen Optionen sind optional.
+
+## Bestehende Nutzerdaten betroffen?
+
+NO
+
+## Offene Punkte
+
+- Entscheidung durch Astra über spätere Anbindung externer Observability-Plattformen an `logger.ts`.
+
+## Astra muss später prüfen
+
+- AR-002 (Coach Abort-Signal & Timeout-Verhalten)
+- AR-003 (Privacy-safe Logger & Redaktionsmuster)
+
+## Rollback
+
+Commit vor Änderung:
+3435311
+
+Commit mit Änderung:
+50f8a7d

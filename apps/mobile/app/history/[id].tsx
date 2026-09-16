@@ -18,6 +18,7 @@ import {
 } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
 import { useDialog } from '@fitness-tracker/ui';
+import { logger } from '../../src/utils/logger';
 
 export default function WorkoutDetailScreen() {
   const styles = useThemeStyles(createStyles);
@@ -128,7 +129,7 @@ export default function WorkoutDetailScreen() {
     try {
       await Share.share({ message: shareMessage });
     } catch (e) {
-      console.log('Sharing failed', e);
+      logger.warn('Sharing failed', e);
     }
   };
 

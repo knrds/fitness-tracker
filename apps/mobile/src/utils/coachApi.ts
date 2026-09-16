@@ -66,6 +66,8 @@ export interface CoachOptions {
   mode?: 'fast' | 'plan' | undefined;
   createPlan?: boolean;
   onResult?: (result: { plan?: CoachPlan | undefined; sources?: ChatMessage['sources'] }) => void;
+  signal?: AbortSignal;
+  timeoutMs?: number;
 }
 
 export async function* streamCoachResponse(
@@ -98,7 +100,15 @@ export async function* streamCoachResponse(
     }
   }
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 75000);
+  const timeoutMs = options.timeoutMs ?? 75000;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  if (options.signal) {
+    if (options.signal.aborted) {
+      controller.abort();
+    } else {
+      options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
+  }
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -185,6 +195,8 @@ export async function* streamCoachResponse(
     options.onResult?.({ plan, sources });
     yield data.reply.trim();
   } catch (error) {
+    if (options.signal?.aborted)
+      throw new Error('Anfrage durch Nutzer abgebrochen.');
     if (controller.signal.aborted)
       throw new Error('Der Coach antwortet nicht rechtzeitig. Bitte erneut versuchen.');
     if (error instanceof TypeError)

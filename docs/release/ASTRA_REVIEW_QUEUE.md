@@ -7,6 +7,8 @@ Zentrale Queue aller von Gemini vorbereiteten, analysierten oder implementierten
 | ID | Titel | Priorität | Gemini Status | Risiko | Astra Aktion |
 |---|---|---|---|---|---|
 | [AR-001](#ar-001--native-build--device-readiness-image-picker-plugin--eas-preview-profiles) | Native Build & Device Readiness (Image Picker Plugin & EAS Preview Profiles) | P1 | IMPLEMENTED | LOW | VERIFY |
+| [AR-002](#ar-002--client-resilience--abortsignal--timeout-hardening-in-coach-api) | Client Resilience: AbortSignal & Timeout Hardening in Coach API | P1 | IMPLEMENTED | MEDIUM | VERIFY |
+| [AR-003](#ar-003--privacy-safe-logging-abstraction--sensitive-data-redaction) | Privacy-safe Logging Abstraction & Sensitive Data Redaction | P1 | IMPLEMENTED | LOW | VERIFY |
 
 ---
 
@@ -57,3 +59,113 @@ VERIFY
 
 Rollback commit:
 dcd58d8
+
+---
+
+## AR-002 – Client Resilience: AbortSignal & Timeout Hardening in Coach API
+
+Priority:
+P1
+
+Gemini Status:
+IMPLEMENTED
+
+Risk:
+MEDIUM
+
+Commit:
+50f8a7d
+
+Files:
+- `apps/mobile/src/utils/coachApi.ts`
+- `apps/mobile/src/utils/__tests__/coachApi.test.ts`
+
+Gemini changed:
+1. `apps/mobile/src/utils/coachApi.ts`: `CoachOptions` um optionale Parameter `signal?: AbortSignal` und `timeoutMs?: number` (Standard: 75.000 ms) erweitert.
+2. Der interne Fetch-Controller reagiert nun direkt auf ein externes Abbruch-Signal des Aufrufers (`options.signal`).
+3. Im Catch-Block wird präzise zwischen echtem Verbindungs-Timeout (`Der Coach antwortet nicht rechtzeitig.`) und nutzerseitigem Abbruch (`Anfrage durch Nutzer abgebrochen.`) unterschieden.
+4. Unit-Tests in `coachApi.test.ts` für Client-Cancellation und Timeouts ergänzt.
+
+Why:
+Bislang liefen abgebrochene Coach-Requests bis zu 75 Sekunden lang im Hintergrund weiter und konnten nicht vom Aufrufer (z.B. beim Verlassen des Screens oder Beenden der Audioaufnahme) sauber gestoppt werden. Zudem war ein Timeout nicht konfigurierbar.
+
+Tests:
+- `apps/mobile/src/utils/__tests__/coachApi.test.ts` (6 Tests, inkl. Abort & Timeout) -> PASS
+- `pnpm verify` -> PASS
+
+Expected behavior:
+Aufrufer können AI-Coach-Requests vorzeitig abbrechen, ohne dass Hintergrund-Tasks weiterlaufen oder inkonsistente Fehlermeldungen entstehen.
+
+Potential concerns:
+- Keine. Bestehende Aufrufe ohne `signal` oder `timeoutMs` behalten exakt das bisherige Verhalten bei (rückwärtskompatibel).
+
+Questions for Astra:
+1. Soll die UI im Coach-Screen einen expliziten "Abbrechen"-Button während des Wartens auf eine Antwort anzeigen?
+2. Soll der Standard-Timeout von 75s in Mobilfunknetzen beibehalten oder auf z.B. 45s verkürzt werden?
+
+Astra action:
+VERIFY
+
+Rollback commit:
+3435311
+
+---
+
+## AR-003 – Privacy-safe Logging Abstraction & Sensitive Data Redaction
+
+Priority:
+P1
+
+Gemini Status:
+IMPLEMENTED
+
+Risk:
+LOW
+
+Commit:
+50f8a7d
+
+Files:
+- `apps/mobile/src/utils/logger.ts`
+- `apps/mobile/src/utils/__tests__/logger.test.ts`
+- `apps/mobile/src/utils/supabase.ts`
+- `apps/mobile/src/stores/syncStore.ts`
+- `apps/mobile/src/stores/storage.ts`
+- `apps/mobile/app/history/[id].tsx`
+
+Gemini changed:
+1. `apps/mobile/src/utils/logger.ts`: Zentrale, isolierte Logging-Abstraktion mit automatischer Schwärzung/Redaktion implementiert:
+   - Bearer-Tokens (`Bearer [REDACTED_TOKEN]`)
+   - JWT-Tokens (`[REDACTED_JWT]`)
+   - E-Mail-Adressen (`[REDACTED_EMAIL]`)
+   - Base64-Nutzlasten (`data:[REDACTED_BASE64]`)
+   - Sensible Schlüssel in Objekten (`password`, `token`, `access_token`, `refresh_token`, `secret`, `apikey`, `authorization`, `prompt`, `user_id` -> `[REDACTED]`)
+   - Sanitizing von Error-Objekten (nur Name und geschwärzte Message, kein interner Memory-Leak)
+   - Schutz vor Zirkelbezügen (`[CIRCULAR]`) und Tiefenbegrenzung
+   - In Production (`process.env.NODE_ENV === 'production' && !__DEV__`) ist `debug` deaktiviert.
+2. Direkte `console.log/warn/error`-Aufrufe in Kernmodulen (`supabase.ts`, `syncStore.ts`, `storage.ts`, `history/[id].tsx`) auf `logger` umgestellt.
+3. Dedizierte Unit-Tests in `logger.test.ts` (10 Tests) geschrieben.
+
+Why:
+Verhinderung von Leaks sensibler Benutzer-, Auth- und Gesundheitsdaten in Konsolenausgaben, Terminal-Logs, Crash-Reports oder zukünftigen Observability-Tools. Es wurde bewusst keine externe Plattform (wie Sentry oder Datadog) installiert, um Astras Entscheidung nicht vorzugreifen.
+
+Tests:
+- `apps/mobile/src/utils/__tests__/logger.test.ts` (10 Tests) -> PASS
+- `pnpm verify` -> PASS
+
+Expected behavior:
+Alle Log-Ausgaben werden automatisch maskiert; Tokens, Passwörter und E-Mails tauchen unter keinen Umständen im Klartext auf.
+
+Potential concerns:
+- Keine. Keine externen Abhängigkeiten hinzugefügt; Standard-Console bleibt Unterbau.
+
+Questions for Astra:
+1. Welche Observability-/Crash-Reporting-Plattform (z.B. Sentry, Bugsnag, PostHog) soll an die `logger`-Abstraktion angebunden werden?
+2. Sollen im Production-Betrieb Warnungen und Fehler lokal gepuffert oder ausschließlich an den zukünftigen Crash-Reporter weitergeleitet werden?
+
+Astra action:
+VERIFY
+
+Rollback commit:
+3435311
+

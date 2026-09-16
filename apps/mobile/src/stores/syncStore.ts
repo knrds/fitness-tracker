@@ -31,6 +31,7 @@ import { createHydratedStorage } from './storage';
 import { useAuthStore } from './authStore';
 import { getStorageScope, isScopeCurrent } from '../data/storageScope';
 import { isSupabaseConfigured, supabase } from '../utils/supabase';
+import { logger } from '../utils/logger';
 
 type DbRecord = Record<string, unknown>;
 type SyncTable = SyncOperation['table'];
@@ -340,7 +341,7 @@ function stripUndefinedProperties(value: unknown): unknown {
 function parseRemoteRecord<T>(schema: z.ZodType<unknown>, raw: unknown, label: string): T | null {
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
-    console.warn(`[Sync Store] Ignoring invalid ${label} row`, parsed.error.flatten());
+    logger.warn(`[Sync Store] Ignoring invalid ${label} row`, parsed.error.flatten());
     return null;
   }
   return stripUndefinedProperties(parsed.data) as T;
@@ -1005,7 +1006,7 @@ export const useSyncStore = create<SyncState>()(
         } catch (error: unknown) {
           if (!current()) return;
           const message = getErrorMessage(error);
-          console.error('[Sync Store] Pull from cloud failed:', error);
+          logger.error('[Sync Store] Pull from cloud failed:', error);
           set({ syncError: message || 'Pull failed' });
         } finally {
           if (current()) set({ isSyncing: false });

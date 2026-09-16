@@ -760,4 +760,117 @@ Commit vor Änderung:
 Commit mit Änderung:
 89585ac
 
+---
+
+# Work Block 08 – Monetization: Feature Matrix & Entitlement Spec (Phase 9)
+
+Date: 2026-09-16
+Starting Commit: 081e62a
+Ending Commit: TBD
+
+## Ziel
+
+Vollständige architektonische und konzeptionelle Vorbereitung der In-App-Abonnements (RevenueCat, StoreKit 2, Google Play Billing) und Erstellung der Differenzierungs-Matrix (`EVARO_PRO_FEATURE_MATRIX.md` und `ENTITLEMENT_ARCHITECTURE_SPEC.md`) ohne voreilige native SDK-Installationen oder fiktive Produkt-IDs im Produktivcode.
+
+## Vorheriger Zustand
+
+- Weder `react-native-purchases` noch ein In-App-Purchase-SDK waren im Projekt installiert.
+- Der Client besaß keinen Entitlement-Zustand; das Backend prüfte bei Coach-Anfragen lediglich, ob ein gültiger Supabase-Auth-Token vorliegt, wodurch unbegrenzte Kosten bei OpenRouter entstehen konnten.
+- Es existierte keine strukturierte Abgrenzung, welche Features kostenlos bleiben und welche hinter die Paywall fallen.
+
+## Analyse
+
+Das Freemium-Modell von EVARO muss sicherstellen, dass grundlegendes Krafttraining (Workouts loggen, Sätze, Historie, PRs, Timer, lokaler Datenexport) 100% frei, dauerhaft und offline nutzbar bleibt.
+Kostenintensive Features (KI-Coach mit Text/Voice/Plan-Mode/Vision sowie Multi-Device-Cloud-Synchronisation) müssen durch serverseitige Gates geschützt werden.
+RevenueCat fungiert als Bindeglied zwischen StoreKit 2 / Google Play und dem Supabase-Backend. Über Webhooks wird der Status `users.is_pro` gepflegt, sodass `api/coach-chat.js` vor teuren Modell-Aufrufen die Autorisierung prüfen kann.
+
+## Änderungen
+
+### Datei
+`docs/release/EVARO_PRO_FEATURE_MATRIX.md`
+
+Änderung:
+Erstellung der Feature-Entitlement-Matrix für 13 Domänenbereiche mit Client-Gates, Server-Gates, Offline-Verhalten und Kennzeichnung als `PROPOSED`:
+- Free: Unbegrenztes Workout-Logging, Historie, Katalog, Timer, DSGVO-Export, bis zu 3 Templates, 3 Test-Prompts für den Coach.
+- EVARO Pro: Unbegrenzter AI-Coach (Text, Voice, Plan Mode, Vision), unbegrenzte Templates & Ordner, Multi-Device Cloud-Sync, erweiterte Telemetrie, alle Farbwelten.
+- Klare Offline-Regeln: 72-Stunden Grace Period; kein Datenverlust oder Sperre existierender Vorlagen bei Abo-Kündigung.
+
+Warum:
+Klare Grundlage für die geschäftlichen und technischen Entscheidungen durch Astra.
+
+### Datei
+`docs/release/ENTITLEMENT_ARCHITECTURE_SPEC.md`
+
+Änderung:
+Detaillierter technischer Blueprint für die RevenueCat-Integration:
+- User Identity Mapping: Supabase Auth UUID als App User ID; Aliasing anonymer Gast-Käufe beim späteren Login; `Purchases.logOut()` bei Kontowechsel.
+- Supabase Schema: Spezifikation der Tabelle `public.subscriptions` und des Fast-Flags `public.users.is_pro`.
+- Webhook Architecture: Spezifikation für `api/webhooks/revenuecat.js` mit Bearer-Token-Verifikation zur Verarbeitung von `INITIAL_PURCHASE`, `RENEWAL`, `CANCELLATION`, `EXPIRATION`, `BILLING_ISSUE`.
+- Client Flows: Spezifikation für "Käufe wiederherstellen" (Apple Guideline 3.1.1), Offline-Grace und Trial-Handling.
+- Serverseitiges Gating: Absicherung von `api/coach-chat.js` gegen Client-Spoofing.
+
+Warum:
+Vollständige Vorbereitung der Store-Monetarisierung ohne Risiko von Daten- oder Schemafehlern vor dem Astra-Review.
+
+### Datei
+`docs/release/SUBSCRIPTION_INTEGRATION_MAP.md`
+
+Änderung:
+Mit neuen Spezifikationen verknüpft und aktualisiert.
+
+Warum:
+Dokumentationsintegrität.
+
+### Datei
+`docs/release/ASTRA_REVIEW_QUEUE.md`
+
+Änderung:
+AR-008 hinzugefügt.
+
+Warum:
+Dokumentation für Astra.
+
+## Tests
+
+- Statische Architekturprüfung der Integrationsschnittstellen.
+- `pnpm verify` -> PASS (384 Tests)
+- `pnpm coach:check` -> PASS
+
+## Verhalten vorher
+
+Keine dokumentierte Differenzierung zwischen Free und Pro; ungeschützte Backend-Endpunkte für KI-Modellanfragen; keine StoreKit-/RevenueCat-Spezifikation.
+
+## Verhalten nachher
+
+Lückenlose Spezifikation für Astra zur Implementierung von RevenueCat, Supabase Webhook und serverseitigem Entitlement-Check; konsistente Free/Pro-Feature-Matrix.
+
+## Risiko
+
+HIGH (geschäftliche Preis-/Abo-Entscheidungen und StoreKit-Architektur liegen bei Astra) / LOW (reine Gemini-Vorbereitungsdokumentation)
+
+## Rückwärtskompatibilität
+
+Vollständig gegeben. Bestehende App-Funktionalität bleibt 100% erhalten.
+
+## Bestehende Nutzerdaten betroffen?
+
+NO
+
+## Offene Punkte
+
+- Astra-Entscheidung bezüglich finaler Free-Prompts und nativer Paywall-Komponente.
+
+## Astra muss später prüfen
+
+- AR-008 in `docs/release/ASTRA_REVIEW_QUEUE.md`.
+
+## Rollback
+
+Commit vor Änderung:
+081e62a
+
+Commit mit Änderung:
+TBD
+
+
 

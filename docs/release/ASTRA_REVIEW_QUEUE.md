@@ -13,6 +13,7 @@ Zentrale Queue aller von Gemini vorbereiteten, analysierten oder implementierten
 | [AR-005](#ar-005--secure-storage-migration-plan-auth--token-persistence) | Secure Storage Migration Plan (Auth & Token Persistence) | P0 | PREPARED | HIGH | ARCHITECTURE_DECISION |
 | [AR-006](#ar-006--account-lifecycle-deletion-rpc-spec--gdpr-art-20-data-export) | Account Lifecycle: Deletion RPC Spec & GDPR Art. 20 Data Export | P0 | PREPARED | HIGH | ARCHITECTURE_DECISION |
 | [AR-007](#ar-007--ai-coach-production-safety-matrix--client-resilience-tests) | AI Coach Production Safety Matrix & Client Resilience Tests | P1 | IMPLEMENTED | LOW | VERIFY |
+| [AR-008](#ar-008--monetization-preparation-evaro-pro-feature-matrix--entitlement-architecture-spec) | Monetization Preparation: EVARO Pro Feature Matrix & Entitlement Architecture Spec | P1 | PREPARED | HIGH | ARCHITECTURE_DECISION |
 
 ---
 
@@ -382,6 +383,61 @@ VERIFY
 
 Rollback commit:
 9e535e4
+
+---
+
+## AR-008 – Monetization Preparation: EVARO Pro Feature Matrix & Entitlement Architecture Spec
+
+Priority:
+P1
+
+Gemini Status:
+PREPARED (Architecture Spec & Feature Matrix)
+
+Risk:
+HIGH (In-App Purchases & Billing Architecture Decisions)
+
+Commit:
+TBD
+
+Files:
+- `docs/release/EVARO_PRO_FEATURE_MATRIX.md`
+- `docs/release/ENTITLEMENT_ARCHITECTURE_SPEC.md`
+- `docs/release/SUBSCRIPTION_INTEGRATION_MAP.md`
+
+Gemini changed:
+1. `EVARO_PRO_FEATURE_MATRIX.md`: Erstellt. Vollständige Differenzierungs-Matrix zwischen Free Tier und EVARO Pro für 13 Feature-Bereiche (Workouts, Historie, Katalog, Timer, DSGVO-Export, Templates, AI Coach Text/Voice/Plan/Vision, Cloud-Sync, Telemetrie, Farbwelten) mit Client-Gates, Server-Gates, Offline-Verhalten und Kennzeichnung als `PROPOSED`.
+2. `ENTITLEMENT_ARCHITECTURE_SPEC.md`: Erstellt. Technischer Architektur-Blueprint für die Anbindung von RevenueCat über StoreKit 2 und Google Play Billing:
+   - Identitätsmapping: Supabase UUID als App User ID, Aliasing von anonymen Käufen, Entkopplung bei Account-Wechsel via `Purchases.logOut()`.
+   - Serverseitiges Gating: Supabase-Tabelle `public.subscriptions`, denormalisiertes `users.is_pro`-Flag, abgesicherter Vercel-Webhook-Handler (`api/webhooks/revenuecat.js`).
+   - Client-Abläufe: "Käufe wiederherstellen" (Restore Purchases gem. Guideline 3.1.1), 72-Stunden Offline-Grace-Period für Fitnessstudios ohne Netz, Probeabos (Trials).
+   - Anti-Fraud & Sicherheitskonzepte (keine Client-Vertrauensstellung, serverseitige Verifikation vor OpenRouter-Calls).
+3. `SUBSCRIPTION_INTEGRATION_MAP.md`: Mit den neuen Spezifikationen synchronisiert und aktualisiert.
+4. Keine ungetestete Installation von Drittanbieter-Bibliotheken oder verfrühte Produkt-IDs im Produktivcode.
+
+Why:
+Monetarisierung ist für die wirtschaftliche Tragfähigkeit von EVARO unverzichtbar (insbesondere zur Deckung von KI-Token- und Infrastrukturkosten). Gleichzeitig verlangen die App Stores (insb. Apple Guideline 3.1.1 und 3.1.2) lückenlose Einhaltung formaler Kriterien (Restore Purchases, klare Kündigungsfristen, transparente Freemium-Grenzen). Durch die gründliche Vorbereitung kann Astra die native SDK-Integration und Webhook-Logik direkt aufsetzen.
+
+Tests:
+- Statische Architekturprüfung der Integrationsschnittstellen.
+
+Expected behavior:
+Astra verfügt über eine vollständige Spezifikation zur Integration von RevenueCat, Supabase Webhooks und Server-Gating.
+
+Potential concerns:
+- Apple-Richtlinien fordern zwingend funktionierende Restore-Purchases-Buttons und EULA/Datenschutz-Links auf jeder Paywall.
+- Offline-Verhalten muss zwingend tolerant sein, um Frustration im Studio zu vermeiden (spezifiziert auf 72h Grace).
+
+Questions for Astra:
+1. Soll RevenueCat Paywalls (UI) via RevenueCat SDK Paywall-View gerendert werden oder soll EVARO ein vollständig custom gestaltetes Paywall-Modal nutzen?
+2. Welche Produktpreis-Modelle (z. B. 9,99 €/Monat bzw. 79,99 €/Jahr) sollen für die App Store Connect Konfiguration vorbereitet werden?
+
+Astra action:
+ARCHITECTURE_DECISION
+
+Rollback commit:
+081e62a
+
 
 
 

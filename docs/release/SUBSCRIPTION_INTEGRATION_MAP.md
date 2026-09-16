@@ -96,10 +96,20 @@ Für das kommerzielle Geschäftsmodell von EVARO (Freemium mit EVARO Pro) bieten
 
 ---
 
-## 5. ASTRA_REVIEW_REQUIRED
+## 5. Detaillierte Spezifikationen & Architektur-Blueprints
 
-- [ ] **Freemium Limits festlegen:** Wie viele AI-Coach-Nachrichten sind in der Free-Version enthalten (z. B. 3 Prompts zum Testen oder 0)?
-- [ ] **RevenueCat SDK Setup:** Saubere Installation von `react-native-purchases` und Konfiguration der nativen Pods/Gradle-Settings.
-- [ ] **Webhook Endpoint:** Implementierung eines abgesicherten Webhook-Handlers für RevenueCat-Events.
-- [ ] **Paywall UI:** Design der Paywall passend zum Dark-Mode/Neon-Designsystem von EVARO.
-- [ ] **Restore Flow & App Review Test Account:** Vorkonfigurierter Test-Account mit aktivem Pro-Status für die Apple App Store Reviewer.
+Vollständige Vorbereitungen für die Implementierung durch Astra liegen vor in:
+- **Feature-Matrix (Free vs Pro, Gates, Offline):** [EVARO_PRO_FEATURE_MATRIX.md](file:///d:/TrainingsAppGPT/docs/release/EVARO_PRO_FEATURE_MATRIX.md) (AR-008)
+- **Architektur-Spezifikation (RevenueCat, StoreKit, Webhooks):** [ENTITLEMENT_ARCHITECTURE_SPEC.md](file:///d:/TrainingsAppGPT/docs/release/ENTITLEMENT_ARCHITECTURE_SPEC.md) (AR-008)
+
+---
+
+## 6. ASTRA_REVIEW_REQUIRED
+
+- [ ] **Freemium Limits beschließen:** Finale Festlegung der Free-Kontingente für den AI Coach (3 Test-Prompts vs. 0) und Template-Obergrenze (3 Templates).
+- [ ] **RevenueCat SDK Setup:** Installation von `react-native-purchases` und Initialisierung in `app/_layout.tsx`.
+- [ ] **Webhook Endpoint:** Bereitstellung von `api/webhooks/revenuecat.js` zur atomaren Pflege von `public.subscriptions` und `public.users.is_pro`.
+- [ ] **Serverseitiges Gating:** Aktivierung des `is_pro`-Checks in `api/coach-chat.js` vor Weiterleitung an OpenRouter.
+- [ ] **Paywall UI:** Implementierung des nativen Paywall-Modals inklusive "Käufe wiederherstellen"-Button (Guideline 3.1.1).
+- [ ] **App Review Test Account:** Vorkonfigurierter Sandbox-Test-Account mit aktivem Pro-Status für die Apple App Store Reviewer.
+

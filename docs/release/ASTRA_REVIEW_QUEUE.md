@@ -398,7 +398,7 @@ Risk:
 HIGH (In-App Purchases & Billing Architecture Decisions)
 
 Commit:
-TBD
+d27ca51
 
 Files:
 - `docs/release/EVARO_PRO_FEATURE_MATRIX.md`

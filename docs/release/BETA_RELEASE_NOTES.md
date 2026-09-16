@@ -1,5 +1,49 @@
 # EVARO Beta Release Notes
 
+## EVARO Beta 0.1.0-beta.4 (Pre-Astra UI Polish & Gesture Checkpoint)
+
+**Release-Datum:** 16. September 2026  
+**Commit-Basis:** baut auf `f3a79ff` (`v0.1.0-beta.3`) auf  
+**Status:** `PRE-RELEASE` (Pre-Astra Baseline Safepoint)
+
+### Neu / Verbessert
+- **SessionExerciseCard Animation & Übergänge:**
+  - Sanfte Fade-in / Fade-out Übergänge beim Auf- und Zuklappen von Übungskarten im aktiven Workout (`SessionExerciseCardCollapse`).
+  - Sauberes Ausblenden der Satz-Optionen (Warmup, Drop-Set, Failure), wenn RPE und RIR in den Einstellungen deaktiviert sind (`SessionExerciseCardSetOptions`).
+- **Rest Timer Gesten-Interaktion:**
+  - Swipe-Down und Swipe-Up Gesten zur intuitiven Minimierung und Maximierung des aktiven Pausentimers (`RestTimerGestures`).
+- **Test-Absicherung:**
+  - Dedizierte Komponenten- und Gestentests für RestTimer-Gesten und ExerciseCard-Transitions (57 Suites, 288 Tests in `apps/mobile`).
+
+### Technische Verifikation
+- **Typecheck:** PASS (0 Fehler über alle 3 Monorepo-Pakete)
+- **Lint:** PASS (0 Fehler über alle 3 Monorepo-Pakete)
+- **Tests:** PASS (306 Tests grün: 57 Mobile Suites [288 Tests] + 18 Coach API Tests)
+- **Coach Check:** PASS (Modell und API-Key validiert)
+- **Bundle Export:** PASS (Web-Export single-bundle 4.81 MB fehlerfrei)
+
+---
+
+## EVARO Beta 0.1.0-beta.3 (Fundamental Release Foundation)
+
+**Release-Datum:** 15. September 2026  
+**Commit-Basis:** baut auf `343334a` (`v0.1.0-beta.2`) auf  
+**Tag:** `v0.1.0-beta.3` (`f3a79ff`)  
+**Status:** `PRE-RELEASE`
+
+### Neu / Verbessert
+- **CI Quality Gates:**
+  - Zentrales `pnpm verify` Skript für Typecheck, Lint und Unit-Tests.
+  - Safe Environment Validation (`envValidation.ts`) gegen unvollständige Konfigurationen.
+- **Haptik & Audio-Abstraktion:**
+  - Zentrale sichere Haptik-Helfer (`haptics.ts`) mit Plattform-Fallback.
+  - Dedizierter Audio-Adapter (`audioAdapter.ts`) für zuverlässige Tonwiedergabe.
+- **i18n & A11y:**
+  - Vollständige Sprachparität für Authentifizierung, Workout und Übungen.
+  - A11y-Hardening für Screenreader und Barrierefreiheit.
+
+---
+
 ## EVARO Beta 0.1.0-beta.2 (Final Verification & i18n Checkpoint)
 
 **Release-Datum:** 15. September 2026  

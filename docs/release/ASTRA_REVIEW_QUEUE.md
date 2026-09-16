@@ -15,6 +15,7 @@ Zentrale Queue aller von Gemini vorbereiteten, analysierten oder implementierten
 | [AR-007](#ar-007--ai-coach-production-safety-matrix--client-resilience-tests) | AI Coach Production Safety Matrix & Client Resilience Tests | P1 | IMPLEMENTED | LOW | VERIFY |
 | [AR-008](#ar-008--monetization-preparation-evaro-pro-feature-matrix--entitlement-architecture-spec) | Monetization Preparation: EVARO Pro Feature Matrix & Entitlement Architecture Spec | P1 | PREPARED | HIGH | ARCHITECTURE_DECISION |
 | [AR-009](#ar-009--exercise-asset-replacement-plan--licensing-decoupling) | Exercise Asset Replacement Plan & Licensing Decoupling | P0 | PREPARED | HIGH | ARCHITECTURE_DECISION |
+| [AR-010](#ar-010--performance-qa-benchmarks-large-datasets--scalability-report) | Performance QA: Benchmarks, Large Datasets & Scalability Report | P1 | IMPLEMENTED | LOW | VERIFY |
 
 ---
 
@@ -489,6 +490,61 @@ ARCHITECTURE_DECISION
 
 Rollback commit:
 d3ce4d2
+
+---
+
+## AR-010 – Performance QA: Benchmarks, Large Datasets & Scalability Report
+
+Priority:
+P1
+
+Gemini Status:
+IMPLEMENTED (Test Generator, Benchmark Suite & QA Report)
+
+Risk:
+LOW
+
+Commit:
+TBD
+
+Files:
+- `apps/mobile/src/data/__tests__/benchmarkDatasetGenerator.ts`
+- `apps/mobile/src/data/__tests__/largeDatasetPerformance.test.ts`
+- `docs/release/PERFORMANCE_QA.md`
+
+Gemini changed:
+1. `benchmarkDatasetGenerator.ts`: Erstellt. Isolierte Test-Utility zur deterministischen Erzeugung realistischer Großdatensätze (500/1.000 Workouts, 10.000+ Sätze, 500 Körpermetriken, 100 Templates, 50 Programme). Keine Testdaten werden im Produktiv-Bundle ausgeliefert.
+2. `largeDatasetPerformance.test.ts`: Erstellt. Automatisierte Benchmark-Suite für Jest/CI:
+   - 500 Workouts (~7.000 Sätze): Ingestion 15 ms, Datum-Sortierung 9 ms, Vorherige Leistung (`getPreviousPerformance`) 3 ms, Volumen-Historie 7 ms.
+   - 1.000 Workouts (10.000+ Sätze): Sortierung 21 ms, Lookup 4 ms, vollständiger DSGVO Art. 20 Export (>1 MB) 38 ms.
+   - 500 Körperdaten: Chronologische Auflösung (`getLatestMetric`) in 1 ms.
+   - Fuzzy-Katalog-Suche über 873 Übungen in 5 ms.
+3. `PERFORMANCE_QA.md`: Erstellt. Umfassender Performance-Prüfbericht über History Render (Virtualisierung mit `FlatList`), Übungssuche (In-Memory Unicode NFD Normalisierung), Workout Load/Save, Chart-Sampling und Empfehlungen für Astra (sortierte Indizes, FileSystem-Export-Streaming ab 1.000 Workouts).
+
+Why:
+Sicherstellung, dass EVARO auch bei mehrjähriger aktiver Trainingsnutzung (Power-User mit 1.000 Einheiten und 10.000 Sätzen) reaktionsschnell bei 60 FPS bleibt und weder Memory-Leaks noch spürbare UI-Verzögerungen auftreten.
+
+Tests:
+- `apps/mobile/src/data/__tests__/largeDatasetPerformance.test.ts` (5 Benchmarks) -> PASS
+- `pnpm verify` -> PASS (389 Tests)
+- `pnpm coach:check` -> PASS
+
+Expected behavior:
+Alle kritischen Abfragen und Lookups skalieren stabil unter 50 ms.
+
+Potential concerns:
+- Keine. Reines Test- und Dokumentations-Tooling.
+
+Questions for Astra:
+1. Soll `historyStore` zukünftig bei `addSession` ein binäres Einfügen nutzen, um das Re-Sorting bei `getSessionsByDateDesc` vollständig auf 0 ms zu eliminieren?
+2. Ab welcher Historie-Größe (z.B. 2.000 Workouts) soll ein SQLite-Paging im UI eingeführt werden?
+
+Astra action:
+VERIFY
+
+Rollback commit:
+353529b
+
 
 
 

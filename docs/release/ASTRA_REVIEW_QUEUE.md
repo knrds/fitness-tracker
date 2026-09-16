@@ -22,7 +22,7 @@ Risk:
 LOW
 
 Commit:
-8914eb7
+db38ec8
 
 Files:
 - `apps/mobile/app.json`

@@ -1,6 +1,6 @@
 # EVARO – Final Gemini Pre-Astra Report
 
-**Datum:** 16. September 2026  
+**Datum:** 17. September 2026  
 **Erstellt durch:** Gemini Hardening Agent  
 **Mandant:** Konrad  
 **Zweck:** Vollständiger Abschlussbericht über die finale Pre-Astra-Härtung, Exercise-Migration, QA, Lizenzprovenienz und Vorbereitung des Beta-6-Safepoints.
@@ -10,18 +10,18 @@
 ## Stable State
 
 - **Branch:** `main`
-- **Aktueller lokaler Commit:** `HEAD` (folgt nach Commit dieses Arbeitsblocks)
+- **Aktueller lokaler Commit:** `HEAD`
 - **Basis-Tag:** `v0.1.0-beta.5` (an Commit `4dd430e`)
-- **Ziel-Tag:** `v0.1.0-beta.6` (`READY_FOR_BETA_6_TAG = YES`)
+- **Aktueller Tag:** `v0.1.0-beta.6` (an Commit `8f5c4ab`)
 
 ---
 
 ## Tests
 
-- **Mobile Tests (Jest):** 418 passed (71 Test Suites)
+- **Mobile Tests (Jest):** 443 passed (73 Test Suites)
 - **Domain Tests (Vitest):** 57 passed (8 Test Suites)
 - **API Tests (Node Test Runner):** 37 passed (2 Test Suites)
-- **TOTAL:** **512 passed / 512 total** (0 failed, 0 skipped)
+- **TOTAL:** **537 passed / 537 total** (0 failed, 0 skipped)
 - **Typecheck:** PASS (0 Errors über alle 3 Monorepo-Pakete)
 - **Lint:** PASS (0 Errors, 0 Warnings)
 - **Coach Check:** PASS (Modell und Provider-Verbindung bestätigt)
@@ -29,10 +29,10 @@
 - **Audit:** 67 Vulnerabilities (2 low, 18 moderate, 47 high, 0 critical) – 100 % in Transitive Dev-Tooling (Expo CLI / Metro), 0 im Produktions-Runtime.
 
 ### Test-Zahlen-Nachweis (Mathematische Konsistenz):
-- Stand vor diesem Block: 486 Tests (392 Mobile, 57 Domain, 37 API)
-- Neu hinzugefügte Tests: +26 Tests in `apps/mobile/src/__tests__/exerciseCatalogCompatibility.test.ts`
+- Stand vor diesem Block: 512 Tests (418 Mobile, 57 Domain, 37 API)
+- Neu hinzugefügte Tests: +25 Tests (+3 in `diagnosticsService.test.ts`, +8 in `legacyUpdateRegression.test.ts`, +14 in `workoutEdgeCaseRegression.test.ts`)
 - Entfernte Tests: 0
-- Neuer Gesamtstand: 486 + 26 = **512 Tests**
+- Neuer Gesamtstand: 512 + 25 = **537 Tests**
 
 ---
 

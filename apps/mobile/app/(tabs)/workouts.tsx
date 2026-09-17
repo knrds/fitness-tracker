@@ -365,7 +365,11 @@ export default function WorkoutsScreen() {
   // Helper to render draggable template card row
   const renderTemplateCard = (item: WorkoutTemplate) => {
     const exerciseNames = item.exercises
-      .map((te) => exercises.find((e) => e.id === te.exerciseId)?.name)
+      .map(
+        (te) =>
+          exercises.find((e) => e.id === te.exerciseId)?.name ??
+          (language === 'de' ? 'Unbekannte Übung' : 'Unknown Exercise'),
+      )
       .filter(Boolean)
       .join(', ');
 

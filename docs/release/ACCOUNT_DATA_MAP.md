@@ -27,8 +27,29 @@ Dieses Dokument dient als verbindliche technische Bestandsaufnahme aller im Repo
 | **Achievements & Level/XP** | Ja (SQLite) | Nein (aktuell lokal) | SQLite `state_documents` (`achievement-storage`) | Ja | Ja (Reset via `resetAchievements()`) | Ja (XP, Rank/Level, Unlocked IDs, Counts) | `achievementStore.ts:33` |
 | **AI Coach Chatverlauf** | Ja (SQLite) | Nein (Client-only) | SQLite `state_documents` (`volt-coach-store`) | Ja | Ja (Local Purge `messages: []`) | Ja (Konversationen, Rollen, Zeitstempel) | `coachStore.ts:280`, `saveCoachPlan.test.ts:94` |
 | **Sync Queue & Outbox** | Ja (SQLite) | Nein (lokale Queue) | SQLite `state_documents` (`volt-sync-store`), SQLite `sync_operations` | Ja | Ja (Clear via `clearQueue()`) | Nein (Interne Übertragungswarteschlange) | `syncStore.ts:1016`, `documentDatabase.ts:72` |
-| **Normalisierungs-Backups** | Ja (SQLite) | Nein | SQLite `normalization_backups`, `legacy_imports` | Ja | Ja (Purge via `clearStorageBackups()`) | Nein (Technisches Zwischenformat) | `documentDatabase.ts:68`, `storage.ts:12` |
 | **Audio-Aufnahmen (Coach)** | Ja (Temp File) | Nein (Vercel Relay) | Local Temp File (`readRecording`), ungespeichert nach Base64 | Flüchtig | Ja (Wird nach Upload via `releaseRecording()` gelöscht) | Nein (Nur flüchtige Spracheingabe) | `useCoachRecorder.ts:7`, `recordingFile.ts:7` |
+
+---
+
+## 1.1 Technische Privacy & Telemetrie Matrix
+
+> **Datenschutz-Grundsatz (Technical Boundary):**  
+> Generic Telemetry enthält **NIEMALS RAW VALUES** (keine Körperwerte, keine Übungsnamen, keine E-Mails, keine Tokens, keine Chat-Texte). Diagnostik-Events erfassen ausschließlich anonymisierte technische Status-Codes (z. B. `ERR_NETWORK_TIMEOUT`).
+
+| Datenkategorie | Sensitivitäts-Klasse | Lokal | Supabase | AI Backend | Exportiert | Gelöscht | Telemetrie-Zulässig |
+|---|---|---|---|---|---|---|---|
+| **E-Mail-Adresse** | **SENSITIV** | Ja (Session) | Ja (`auth.users`) | Nein | Ja (Account-Metadaten) | Ja (Auth-User Purge) | **NEIN (NO RAW VALUES)** |
+| **Auth Session / Token** | **SENSITIV** | Ja (Secure/Storage) | Ja (`auth.users`) | Nein | Nein (Sicherheitsausschluss) | Ja (Token Wipe / SignOut) | **NEIN (NO RAW VALUES)** |
+| **Körpergewicht (Body Weight)** | **SENSITIV** | Ja (SQLite) | Ja (`body_metrics`) | Nein | Ja (JSON Export) | Ja (User Delete Cascade) | **NEIN (NO RAW VALUES)** |
+| **Körperfettanteil (Body Fat)** | **SENSITIV** | Ja (SQLite) | Ja (`body_metrics`) | Nein | Ja (JSON Export) | Ja (User Delete Cascade) | **NEIN (NO RAW VALUES)** |
+| **Umfangmaße (Measurements)** | **SENSITIV** | Ja (SQLite) | Ja (`body_metrics`) | Nein | Ja (JSON Export) | Ja (User Delete Cascade) | **NEIN (NO RAW VALUES)** |
+| **Workout Historie (Sessions/Sets)** | **SENSITIV** | Ja (SQLite) | Ja (`workout_sessions`) | Nein | Ja (JSON Export) | Ja (Cascade von `users.id`) | **NEIN (NO RAW VALUES)** |
+| **Coach Nachrichten (Prompts/Chat)** | **SENSITIV** | Ja (SQLite) | Nein (Client-only) | Ja (Flüchtige API-Verarbeitung) | Ja (JSON Export) | Ja (Local Chat Purge) | **NEIN (NO RAW VALUES)** |
+| **Übungskatalog & Custom Exercises** | Standard | Ja (SQLite) | Ja (`is_custom=true`) | Nein | Ja (Custom Exercises) | Ja (Custom Exercises) | **NEIN** |
+| **Trainings-Templates & Programme** | Standard | Ja (SQLite) | Ja (`workout_templates`) | Nein | Ja (JSON Export) | Ja (User Delete Cascade) | **NEIN** |
+| **Hydration & Koffein** | Standard | Ja (SQLite) | Nein (Client-only) | Nein | Ja (JSON Export) | Ja (Store Reset) | **NEIN (NO RAW VALUES)** |
+| **Level / XP / Achievements** | Standard | Ja (SQLite) | Nein (Client-only) | Nein | Ja (JSON Export) | Ja (Store Reset) | **NEIN** |
+| **App-Status & Absturzcodes** | Technisch (Non-PII) | Ja (Ringpuffer) | Nein | Nein | Ja (Support-Report) | Ja (Puffer-Reset) | **JA (Nur technische Codes)** |
 
 ---
 

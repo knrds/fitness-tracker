@@ -1,7 +1,7 @@
 # EVARO P0 Readiness Matrix
 
-**Stand:** 16. September 2026  
-**Checkpoint:** `READY_FOR_BETA_6_TAG` (Head, 512 Tests Passing)  
+**Stand:** 17. September 2026  
+**Checkpoint:** `READY_FOR_ASTRA_CORE_TAKEOVER` (Head, 537 Tests Passing)  
 **Zweck:** Vollständiger, ehrlicher Ist-Zustand aller P0- und geschäftskritischen Bereiche für den nachfolgenden ChatGPT-Astra-Agenten. Keine Behauptung von Production-Readiness ohne hieb- und stichfeste technische Evidenz.
 
 ---

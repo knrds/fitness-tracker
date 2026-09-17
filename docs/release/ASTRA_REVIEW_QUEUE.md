@@ -30,6 +30,8 @@ Zentrale, kanonisch normalisierte Queue aller von Gemini vorbereiteten, analysie
 | **AR-022** | QA Regression | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/__tests__/releaseCandidateCoreRegression.test.ts` |
 | **AR-023** | Diagnostics | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/services/diagnosticsService.ts` |
 | **AR-024** | Exercise Catalog | IMPLEMENTED | MEDIUM | VERIFY | `apps/mobile/src/__tests__/exerciseCatalogCompatibility.test.ts`, `docs/release/EXERCISE_DATA_PROVENANCE.md` |
+| **AR-025** | Legacy & Edge Regression | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/__tests__/legacyUpdateRegression.test.ts`, `apps/mobile/src/__tests__/workoutEdgeCaseRegression.test.ts` |
+| **AR-026** | Store & Device QA Package | IMPLEMENTED | LOW | REVIEW | `docs/release/STORE_METADATA_DRAFT.md`, `docs/release/STORE_SCREENSHOT_PLAN.md`, `docs/release/PHYSICAL_DEVICE_SMOKE_TEST.md` |
 
 
 ---
@@ -1142,6 +1144,117 @@ Tests:
 
 Astra action:
 VERIFY
+
+---
+
+## AR-024 – Exercise Dataset Consolidation & ID Stability (Free Exercise DB)
+
+Priority:
+P0 / P1
+
+Gemini Status:
+IMPLEMENTED
+
+Risk:
+MEDIUM
+
+Commit:
+92aae8f, 8f5c4ab
+
+Files:
+- `packages/domain/src/data/raw/free-exercise-db.json`
+- `packages/domain/src/data/exercises.ts`
+- `apps/mobile/src/__tests__/exerciseCatalogCompatibility.test.ts`
+- `docs/release/EXERCISE_DATA_PROVENANCE.md`
+- `docs/release/EXERCISE_ASSET_INVENTORY.md`
+
+Gemini changed:
+1. ExerciseDB (`exercisedb-v1.json` mit 1,4 MB und `exerciseGifs.json` mit 1.492 Hotlinks) vollständig gelöscht.
+2. Lokale, freie Datenbank (`free-exercise-db.json`, 873 Übungen) als kanonische Quelle etabliert.
+3. 100% deterministische UUID v4 IDs gewahrt. Kompatibilitätstest `exerciseCatalogCompatibility.test.ts` sichert alle 873 IDs und Fallbacks ab.
+4. Dokumentation der Datenprovenienz und Asset-Inventur abgeschlossen.
+
+Why:
+Beseitigung aller unlizenzierten Fremd-Assets und kommerziellen Hotlinks vor Store-Einreichung.
+
+Tests:
+- `pnpm --filter @fitness-tracker/mobile test exerciseCatalogCompatibility.test.ts` (PASS)
+
+Astra action:
+VERIFY
+
+---
+
+## AR-025 – Legacy & Edge-Case Regression Suites (Beta 5 -> Beta 6 Update & Extreme Boundaries)
+
+Priority:
+P1
+
+Gemini Status:
+IMPLEMENTED
+
+Risk:
+LOW
+
+Commit:
+Current HEAD
+
+Files:
+- `apps/mobile/src/__tests__/legacyUpdateRegression.test.ts`
+- `apps/mobile/src/__tests__/workoutEdgeCaseRegression.test.ts`
+- `apps/mobile/src/components/workout/SessionExerciseCard.tsx`
+- `apps/mobile/app/(tabs)/history.tsx`
+- `apps/mobile/app/(tabs)/index.tsx`
+- `apps/mobile/app/(tabs)/workouts.tsx`
+
+Gemini changed:
+1. `legacyUpdateRegression.test.ts`: Testet Auflösung alter Übungs-IDs, unbekannte Übungs-Fallbacks ("Unbekannte Übung"), Custom Exercises Isolation, tolerante Deserialisierung alter/fehlender Felder in Profil und Historie, sowie Erhalt aller Einstellungen nach Update.
+2. `workoutEdgeCaseRegression.test.ts`: Testet Extremfälle: 0 Übungen, 1 Übung, 60 Sätze Stress-Test, 1250 kg Maximalgewichte, Dezimal-Mikroladung, 0 Wdh., RPE 6.0-10.0, RIR 0-5, schnelle Toggle- und Löschsequenzen, Double-Finish Idempotenz, Rest-Timer Engine und Wiederherstellung unvollständiger Workouts.
+3. Defensiver Fallback in `SessionExerciseCard.tsx`, `history.tsx`, `index.tsx`, `workouts.tsx`: Unbekannte Übungen verschwinden nicht still, sondern werden mit lokalisierter Fallback-Bezeichnung und sicherem Medien-Fallback gerendert.
+
+Why:
+Sicherstellung, dass bestehende Beta-5-Nutzerdaten beim Update auf Beta 6 / RC unter keinen Umständen abstürzen oder verloren gehen.
+
+Tests:
+- `pnpm --filter @fitness-tracker/mobile test legacyUpdateRegression.test.ts` (8 Tests PASS)
+- `pnpm --filter @fitness-tracker/mobile test workoutEdgeCaseRegression.test.ts` (14 Tests PASS)
+
+Astra action:
+VERIFY
+
+---
+
+## AR-026 – Store Metadata Preparation, Screenshot Plan & Physical Device Package
+
+Priority:
+P1
+
+Gemini Status:
+IMPLEMENTED
+
+Risk:
+LOW
+
+Commit:
+Current HEAD
+
+Files:
+- `docs/release/STORE_METADATA_DRAFT.md`
+- `docs/release/STORE_SCREENSHOT_PLAN.md`
+- `docs/release/PHYSICAL_DEVICE_SMOKE_TEST.md`
+- `docs/release/STORE_REVIEW_NOTES_TEMPLATE.md`
+
+Gemini changed:
+1. `STORE_METADATA_DRAFT.md`: Technische Entwürfe für Apple App Store und Google Play Store (App-Name, Subtitle, Kurzbeschreibung, Volltext, Keywords; keine Heilaussagen, sauber als Draft deklariert).
+2. `STORE_SCREENSHOT_PLAN.md`: Shot-List für 9 Kernmotive (Home, Workout, Library, Detail, History, Progress, Programs, AI Coach, Achievements) mit Spezifikationen für iOS und Android.
+3. `PHYSICAL_DEVICE_SMOKE_TEST.md`: 15–25 Minuten Schnelltest-Anleitung mit 19 Prüfschritten und systemspezifischen Notizen für Konrad.
+4. `STORE_REVIEW_NOTES_TEMPLATE.md`: Aktualisierter Leitfaden für das Store-Review-Team (Gastmodus, Workout-Ablauf, AI Coach, Account Deletion).
+
+Why:
+Vollständige Vorbereitung der organisatorischen und visuellen Assets für den Store-Launch, damit sich Astra ausschließlich auf P0-Architektur konzentrieren kann.
+
+Astra action:
+REVIEW
 
 
 

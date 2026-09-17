@@ -55,6 +55,63 @@ const MAX_BUFFERED_EVENTS = 50;
  * 2. Strict PII boundary: No workout contents, body weights, emails, tokens, or coach messages.
  * 3. Ring buffer holds non-sensitive technical error codes for user support triage.
  */
+const EMAIL_REGEX = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
+const BEARER_REGEX = /\bBearer\s+[A-Za-z0-9\-._~+/]+=*/gi;
+const JWT_REGEX = /\beyJ[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\b/g;
+const SUPABASE_KEY_REGEX = /(anon|service_role)?:?eyJ[A-Za-z0-9-_.]+/gi;
+const SUPABASE_URL_REGEX = /https:\/\/[a-z0-9-]+\.supabase\.co/gi;
+
+const BLOCKED_META_KEYS = new Set([
+  'email',
+  'token',
+  'jwt',
+  'password',
+  'secret',
+  'auth',
+  'coachmessage',
+  'coachcontent',
+  'prompt',
+  'workoutname',
+  'weight',
+  'weightkg',
+  'bodyfat',
+  'bodyvalues',
+  'measurement',
+  'measurements',
+]);
+
+export function sanitizeDiagnosticString(input: string): string {
+  if (!input || typeof input !== 'string') return '';
+  return input
+    .replace(EMAIL_REGEX, '[REDACTED_EMAIL]')
+    .replace(BEARER_REGEX, '[REDACTED_BEARER]')
+    .replace(JWT_REGEX, '[REDACTED_JWT]')
+    .replace(SUPABASE_KEY_REGEX, '[REDACTED_KEY]')
+    .replace(SUPABASE_URL_REGEX, 'https://[REDACTED].supabase.co')
+    .slice(0, 160);
+}
+
+export function sanitizeDiagnosticMeta(
+  meta?: Record<string, string | number | boolean>
+): Record<string, string | number | boolean> | undefined {
+  if (!meta) return undefined;
+  const sanitized: Record<string, string | number | boolean> = {};
+
+  for (const [key, value] of Object.entries(meta)) {
+    const lowerKey = key.toLowerCase().replace(/[^a-z]/g, '');
+    if (BLOCKED_META_KEYS.has(lowerKey)) {
+      continue;
+    }
+    if (typeof value === 'string') {
+      sanitized[key] = sanitizeDiagnosticString(value);
+    } else if (typeof value === 'number' || typeof value === 'boolean') {
+      sanitized[key] = value;
+    }
+  }
+
+  return Object.keys(sanitized).length > 0 ? sanitized : undefined;
+}
+
 export class DiagnosticsService {
   private featureFlags: FeatureFlags = { ...DEFAULT_FEATURE_FLAGS };
   private eventBuffer: ObservabilityEvent[] = [];
@@ -84,12 +141,13 @@ export class DiagnosticsService {
     code: string,
     meta?: Record<string, string | number | boolean>
   ): void {
+    const sanitizedMeta = sanitizeDiagnosticMeta(meta);
     const event: ObservabilityEvent = {
       id: `evt-${++this.eventCounter}`,
       category,
-      code,
+      code: sanitizeDiagnosticString(code),
       timestamp: new Date().toISOString(),
-      ...(meta ? { meta } : {}),
+      ...(sanitizedMeta ? { meta: sanitizedMeta } : {}),
     };
 
     this.eventBuffer.push(event);

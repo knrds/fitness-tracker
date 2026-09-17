@@ -63,4 +63,70 @@ describe('DiagnosticsService (Privacy-Safe Telemetry & Feature Flags)', () => {
     expect(report).not.toContain('benchPressMaxKg');
     expect(report).not.toContain('@evaro.app');
   });
+
+  test('Test 6: Secret pattern redaction strips Bearer tokens, JWTs, and Supabase credentials', () => {
+    const rawJwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.sflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+    const rawBearer = 'Bearer eyJsecretToken123456789';
+    const supabaseUrlWithToken = 'https://my-project-id.supabase.co/rest/v1/users?apikey=eyJhbGciOiJIUzI1NiJ9';
+
+    diagnostics.recordEvent('auth_error', `Failed with ${rawBearer} and ${rawJwt} on ${supabaseUrlWithToken}`);
+
+    const events = diagnostics.getRecentEvents();
+    expect(events).toHaveLength(1);
+    const recordedCode = events[0]!.code;
+
+    expect(recordedCode).not.toContain(rawJwt);
+    expect(recordedCode).not.toContain('Bearer eyJsecretToken');
+    expect(recordedCode).not.toContain('my-project-id.supabase.co');
+    expect(recordedCode).toContain('[REDACTED_BEARER]');
+    expect(recordedCode).toContain('[REDACTED_JWT]');
+    expect(recordedCode).toContain('https://[REDACTED].supabase.co');
+  });
+
+  test('Test 7: Email address redaction prevents any user emails from entering diagnostics', () => {
+    diagnostics.recordEvent('auth_error', 'Login failure for user konrad.test@example.com on device');
+
+    const events = diagnostics.getRecentEvents();
+    const recordedCode = events[0]!.code;
+
+    expect(recordedCode).not.toContain('konrad.test@example.com');
+    expect(recordedCode).toContain('[REDACTED_EMAIL]');
+  });
+
+  test('Test 8: Blocked metadata keys strip coach content, workout names, body values, and measurements', () => {
+    diagnostics.recordEvent('coach_failure', 'ERR_COACH_TIMEOUT', {
+      coachMessage: 'How do I increase my bench press?',
+      prompt: 'Act as a strength coach and review my squat',
+      workoutName: 'Heavy Leg Day',
+      weightKg: 82.5,
+      bodyFat: 14.2,
+      measurement: 38.5,
+      auth: 'secret-auth-payload',
+      safeTechnicalCode: 'NET_ERR_CONNRESET',
+      httpStatus: 504,
+      isRetryable: true,
+    });
+
+    const events = diagnostics.getRecentEvents();
+    const meta = events[0]!.meta!;
+
+    expect(meta).toBeDefined();
+    expect(meta.coachMessage).toBeUndefined();
+    expect(meta.prompt).toBeUndefined();
+    expect(meta.workoutName).toBeUndefined();
+    expect(meta.weightKg).toBeUndefined();
+    expect(meta.bodyFat).toBeUndefined();
+    expect(meta.measurement).toBeUndefined();
+    expect(meta.auth).toBeUndefined();
+
+    // Safe technical metadata is preserved
+    expect(meta.safeTechnicalCode).toBe('NET_ERR_CONNRESET');
+    expect(meta.httpStatus).toBe(504);
+    expect(meta.isRetryable).toBe(true);
+
+    const report = diagnostics.generateSupportReport();
+    expect(report).not.toContain('bench press');
+    expect(report).not.toContain('Heavy Leg Day');
+    expect(report).not.toContain('82.5');
+  });
 });

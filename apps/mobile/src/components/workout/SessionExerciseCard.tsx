@@ -29,11 +29,14 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import {
+  Exercise,
   SessionExercise,
   ExerciseSet,
   SetType,
   estimateOneRepMax,
   summarizeSessionExercise,
+  Equipment,
+  MovementPattern,
 } from '@fitness-tracker/domain';
 import { useWorkoutStore } from '../../stores/workoutStore';
 import { useExerciseStore } from '../../stores/exerciseStore';
@@ -155,8 +158,18 @@ export const SessionExerciseCard = ({
     () => !!sessionExercise.notes || !!persistentNotes[sessionExercise.exerciseId],
   );
 
-  const exercise = exercises.find((e) => e.id === sessionExercise.exerciseId);
-  if (!exercise) return null;
+  const rawExercise = exercises.find((e) => e.id === sessionExercise.exerciseId);
+  const exercise: Exercise = rawExercise ?? {
+    id: sessionExercise.exerciseId,
+    name: language === 'de' ? 'Unbekannte Übung' : 'Unknown Exercise',
+    primaryMuscles: [],
+    secondaryMuscles: [],
+    equipment: Equipment.Other,
+    movementPattern: MovementPattern.Isolation,
+    isCustom: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
   const isCardio = exercise.movementPattern === 'cardio' || exercise.equipment === 'cardio_machine';
 

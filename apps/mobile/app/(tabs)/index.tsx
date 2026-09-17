@@ -21,6 +21,7 @@ import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
+import { useI18n } from '../../src/i18n';
 
 export default function HomeScreen() {
   const scrollRef = useFocusScroll();
@@ -29,6 +30,7 @@ export default function HomeScreen() {
   const styles = useThemeStyles(createStyles);
   const { showConfirm } = useDialog();
   const insets = useSafeAreaInsets();
+  const { language } = useI18n();
 
   const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
   const { getSessionsByDateDesc } = useHistoryStore();
@@ -234,7 +236,7 @@ export default function HomeScreen() {
                         style={[styles.summaryExRow, { borderColor: theme.colors.border }]}
                       >
                         <Text style={[styles.summaryExName, { color: theme.colors.text }]}>
-                          {exInfo?.name || 'Unknown'}
+                          {exInfo?.name || (language === 'de' ? 'Unbekannte Übung' : 'Unknown Exercise')}
                         </Text>
                         <Text style={[styles.summaryExDetails, { color: theme.colors.primary }]}>
                           {te.targetSets}s × {te.targetReps ?? '8-10'}r

@@ -280,7 +280,7 @@ function HistoryView() {
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                {exerciseDef?.name ?? 'Unknown Exercise'}
+                {exerciseDef?.name ?? (language === 'de' ? 'Unbekannte Übung' : 'Unknown Exercise')}
               </Text>
               <Text style={[styles.summaryExDetails, { color: theme.colors.primary }]}>
                 {getExerciseVolumeLabel(sessionExercise)}
@@ -327,7 +327,11 @@ function HistoryView() {
     const summary = summarizeWorkout(item);
 
     const exerciseNames = item.exercises
-      .map((se) => allExercises.find((e) => e.id === se.exerciseId)?.name)
+      .map(
+        (se) =>
+          allExercises.find((e) => e.id === se.exerciseId)?.name ??
+          (language === 'de' ? 'Unbekannte Übung' : 'Unknown Exercise'),
+      )
       .filter(Boolean)
       .join(', ');
 

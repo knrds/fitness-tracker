@@ -1,9 +1,9 @@
 # EVARO (knrds/fitness-tracker) – Baseline Execution Status
 
-**Stand:** 16. September 2026  
+**Stand:** 17. September 2026  
 **Rolle:** Supporting Mobile/Backend Release Preparation Agent (Gemini)  
 **Lead Architect / Next Agent:** ChatGPT-Astra  
-**Aktueller HEAD Commit:** `0cb299f` (ahead of `origin/main`)  
+**Aktueller HEAD Commit:** `8f5c4ab` / Following Commit  
 **Branch:** `main`  
 **Working Tree:** Sauber  
 
@@ -26,10 +26,10 @@
 | `pnpm install` | Installation aller Workspace-Dependencies | PASS (Lockfile synchron, Node >=24, pnpm 11.5.0) | `package.json`, `pnpm-lock.yaml` |
 | `pnpm -r typecheck` | TypeScript-Prüfung über alle Pakete | **PASS (0 Fehler)** | `apps/mobile`, `packages/domain`, `packages/ui` |
 | `pnpm -r lint` | ESLint über alle Pakete | **PASS (0 Fehler / 0 Warnings)** | `.eslintrc.js` |
-| `pnpm test` | Gesamte automatisierte Testsuite | **PASS (488 Tests grün)** | 57 Domain (Vitest), 394 Mobile (Jest, 70 Suites), 37 Coach API (`node:test`) |
+| `pnpm test` | Gesamte automatisierte Testsuite | **PASS (537 Tests grün)** | 57 Domain (Vitest), 443 Mobile (Jest, 73 Suites), 37 Coach API (`node:test`) |
 | `pnpm verify` | Zentrales Quality Gate (Typecheck + Lint + Test) | **PASS (0 Fehler)** | `package.json`, `.github/workflows/ci.yml` |
 | `pnpm coach:check` | OpenRouter Preflight-Check | **PASS (Modell & Key bestätigt)** | `api/provider-check.cjs`, `.env.coach.local` |
-| `pnpm build` | Web Bundle Export Sanity Check | **PASS (Single-Bundle 4.82MB, Assets exportiert)** | `apps/mobile` |
+| `pnpm build` | Web Bundle Export Sanity Check | **PASS (Single-Bundle 4.71MB, Assets exportiert)** | `apps/mobile` |
 | `pnpm dev` | Lokaler Web-Entwicklungsserver | Funktional auf Port 8081 | `apps/mobile/scripts/web-dev-preview.cjs` |
 | `pnpm coach:local` | Lokaler Coach-Proxy-Server | Funktional auf Port 8096 (127.0.0.1) | `api/local-server.cjs` |
 | `pnpm dev-client` | Start mit Expo Dev Client (LAN) | Vorbereitet | `apps/mobile/scripts/expo-start.cjs` |

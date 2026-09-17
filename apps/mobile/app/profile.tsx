@@ -433,7 +433,13 @@ export default function ProfileScreen() {
   return (
     <View style={styles.safeArea}>
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
-        <Pressable onPress={() => router.back()} hitSlop={15} style={styles.backBtn}>
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={15}
+          style={styles.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel={language === 'de' ? 'Zurück' : 'Back'}
+        >
           <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
         </Pressable>
         <Text style={styles.headerTitle}>{t('settings.profileAndSettings')}</Text>
@@ -452,7 +458,14 @@ export default function ProfileScreen() {
         {/* Profile Picture */}
         <LevelProgress level={achievement.level} xp={achievement.xp} />
         <View style={styles.avatarSection}>
-          <Pressable onPress={handlePickImage} style={styles.avatarContainer}>
+          <Pressable
+            onPress={handlePickImage}
+            style={styles.avatarContainer}
+            accessibilityRole="button"
+            accessibilityLabel={
+              language === 'de' ? 'Profilbild bearbeiten' : 'Edit profile picture'
+            }
+          >
             {profile.profileImageUri ? (
               <Image source={{ uri: profile.profileImageUri }} style={styles.avatarImage} />
             ) : (

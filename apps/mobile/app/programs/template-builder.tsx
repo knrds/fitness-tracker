@@ -21,6 +21,7 @@ import { useI18n } from '../../src/i18n';
 import { useTheme, Card } from '@fitness-tracker/ui';
 import { TemplateExercise } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
+import { hapticFeedback } from '../../src/utils/haptics';
 import {
   KeyboardDoneAccessory,
   KEYBOARD_DONE_ID,
@@ -112,6 +113,7 @@ export default function WorkoutTemplateBuilderScreen() {
         });
       }
     }
+    void hapticFeedback.notification('success');
     router.back();
   };
 
@@ -127,6 +129,14 @@ export default function WorkoutTemplateBuilderScreen() {
     const nextSets = Math.max(1, currentSets + amount);
     updateTemplateExercise(id, { targetSets: nextSets });
   };
+
+  const screenTitle = existingTemplate
+    ? program
+      ? language === 'de' ? 'Workout bearbeiten' : 'Edit Workout'
+      : language === 'de' ? 'Vorlage bearbeiten' : 'Edit Template'
+    : program
+      ? language === 'de' ? 'Neues Workout' : 'New Workout'
+      : language === 'de' ? 'Neue Vorlage' : 'New Template';
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -153,13 +163,7 @@ export default function WorkoutTemplateBuilderScreen() {
           numberOfLines={1}
           style={[styles.headerTitle, { color: theme.colors.text, flex: 1, marginHorizontal: 8 }]}
         >
-          {existingTemplate
-            ? language === 'de'
-              ? 'Workout bearbeiten'
-              : 'Edit Workout'
-            : language === 'de'
-            ? 'Neues Workout'
-            : 'New Workout'}
+          {screenTitle}
         </Text>
         <Pressable
           accessibilityRole="button"

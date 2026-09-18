@@ -16,12 +16,14 @@ import {
   TextInput,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, useDialog } from '@fitness-tracker/ui';
+import { useTheme, useDialog, withAlpha } from '@fitness-tracker/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
+import { hapticFeedback } from '../../src/utils/haptics';
+import * as Crypto from 'expo-crypto';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
@@ -49,6 +51,7 @@ export default function WorkoutsScreen() {
     deleteFolder,
     setTemplateFolder,
     updateFoldersOrder,
+    createProgram,
   } = useProgramStore();
 
   const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
@@ -58,10 +61,16 @@ export default function WorkoutsScreen() {
   const [menuTemplateId, setMenuTemplateId] = useState<string | null>(null);
   const [summaryTemplateId, setSummaryTemplateId] = useState<string | null>(null);
 
-  // Folder UI state
   const [folderModalVisible, setFolderModalVisible] = useState(false);
   const [editingFolderOriginalName, setEditingFolderOriginalName] = useState<string | null>(null);
   const [folderInputText, setFolderInputText] = useState('');
+
+  // Create Menu & Program Creation state
+  const [isCreateMenuVisible, setCreateMenuVisible] = useState(false);
+  const [isCreateProgramModalVisible, setCreateProgramModalVisible] = useState(false);
+  const [newProgramName, setNewProgramName] = useState('');
+  const [newProgramDesc, setNewProgramDesc] = useState('');
+  const [newProgramWeeks, setNewProgramWeeks] = useState('4');
 
   const [folderMenuName, setFolderMenuName] = useState<string | null>(null);
   const [assignFolderTemplateId, setAssignFolderTemplateId] = useState<string | null>(null);
@@ -141,7 +150,7 @@ export default function WorkoutsScreen() {
       setExpandedFolders((prev) => ({ ...prev, [finalFolder]: true }));
     }
 
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    void hapticFeedback.notification('success');
   };
 
   // Sorter for reordering templates smoothly within folders and moving across folders
@@ -362,6 +371,44 @@ export default function WorkoutsScreen() {
     if (tab === 'programs' || tab === 'workouts') setActiveTab(tab);
   }, [tab]);
 
+  const handleCreateProgramFromWorkouts = () => {
+    if (!newProgramName.trim()) {
+      const msg =
+        language === 'de'
+          ? 'Der Programmname ist erforderlich.'
+          : 'Program name is required.';
+      if (Platform.OS === 'web') {
+        if (typeof globalThis !== 'undefined' && 'alert' in globalThis) {
+          (globalThis as { alert?: (msg: string) => void }).alert?.(msg);
+        }
+      } else {
+        showConfirm({
+          title: t('common.error'),
+          message: msg,
+          confirmLabel: 'OK',
+          cancelLabel: '',
+        });
+      }
+      return;
+    }
+
+    const newId = Crypto.randomUUID();
+    createProgram({
+      id: newId,
+      name: newProgramName.trim(),
+      ...(newProgramDesc.trim() ? { description: newProgramDesc.trim() } : {}),
+      durationWeeks: parseInt(newProgramWeeks, 10) || 4,
+    });
+
+    void hapticFeedback.notification('success');
+    setCreateProgramModalVisible(false);
+    setNewProgramName('');
+    setNewProgramDesc('');
+    setNewProgramWeeks('4');
+
+    router.push(`/programs/builder?id=${newId}` as unknown as Parameters<typeof router.push>[0]);
+  };
+
   // Helper to render draggable template card row
   const renderTemplateCard = (item: WorkoutTemplate) => {
     const exerciseNames = item.exercises
@@ -442,14 +489,30 @@ export default function WorkoutsScreen() {
         { backgroundColor: theme.colors.background, paddingTop: Math.max(insets.top, 16) },
       ]}
     >
-      <Text
-        style={[
-          theme.typography.heading,
-          { color: theme.colors.text, marginHorizontal: 16, marginBottom: 16 },
-        ]}
-      >
-        {t('plans.title')}
-      </Text>
+      <View style={styles.tabHeaderRow}>
+        <Text
+          style={[
+            theme.typography.heading,
+            { color: theme.colors.text, fontSize: 24 },
+          ]}
+        >
+          {t('plans.title')}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={language === 'de' ? 'Erstellen' : 'Create'}
+          onPress={() => {
+            void hapticFeedback.selection();
+            setCreateMenuVisible(true);
+          }}
+          style={[styles.createHeaderBtn, { backgroundColor: theme.colors.primary }]}
+        >
+          <Ionicons name="add" size={18} color={theme.colors.background} />
+          <Text style={[styles.createHeaderBtnText, { color: theme.colors.background }]}>
+            {language === 'de' ? 'Erstellen' : 'Create'}
+          </Text>
+        </Pressable>
+      </View>
       <SegmentedControl
         label="Plan views"
         value={activeTab}
@@ -472,6 +535,30 @@ export default function WorkoutsScreen() {
           onScroll={handleScroll}
           scrollEventThrottle={16}
         >
+          {/* Quick Actions Row: Direct Template Create Button */}
+          <View style={styles.quickActionsSection}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={language === 'de' ? 'Vorlage erstellen' : 'Create template'}
+              style={[
+                styles.directCreateTemplateBtn,
+                {
+                  backgroundColor: theme.colors.surfaceElevated,
+                  borderColor: withAlpha(theme.colors.primary, 0.4),
+                },
+              ]}
+              onPress={() => {
+                void hapticFeedback.selection();
+                router.push('/programs/template-builder');
+              }}
+            >
+              <Ionicons name="add-circle" size={18} color={theme.colors.primary} />
+              <Text style={[styles.directCreateTemplateBtnText, { color: theme.colors.text }]}>
+                {language === 'de' ? 'Neue Vorlage erstellen' : 'Create New Template'}
+              </Text>
+            </Pressable>
+          </View>
+
           {/* Quick Start Empty Workout */}
           <View style={styles.quickStart}>
             <Text style={styles.sectionTitle}>{t('workout.quickStart')}</Text>
@@ -1258,6 +1345,243 @@ export default function WorkoutsScreen() {
           </Pressable>
         </Modal>
       )}
+
+      {/* Create Choice Menu Modal */}
+      <Modal
+        visible={isCreateMenuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCreateMenuVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setCreateMenuVisible(false)}
+          accessibilityLabel={t('plans.close')}
+          accessibilityRole="button"
+        >
+          <Pressable
+            style={[
+              styles.createMenuSheet,
+              { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.createMenuHeader}>
+              <Text style={[styles.createMenuTitle, { color: theme.colors.text }]}>
+                {t('plans.createChoiceTitle')}
+              </Text>
+              <Pressable
+                onPress={() => setCreateMenuVisible(false)}
+                hitSlop={10}
+                accessibilityLabel={t('plans.close')}
+                accessibilityRole="button"
+              >
+                <Ionicons name="close" size={22} color={theme.colors.muted} />
+              </Pressable>
+            </View>
+
+            {/* Option 1: Workout-Vorlage erstellen */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.createOptionCard,
+                {
+                  backgroundColor: pressed ? theme.colors.surface : theme.colors.background,
+                  borderColor: theme.colors.border,
+                },
+              ]}
+              onPress={() => {
+                void hapticFeedback.selection();
+                setCreateMenuVisible(false);
+                router.push('/programs/template-builder');
+              }}
+              accessibilityLabel={t('plans.createTemplate')}
+              accessibilityHint={t('plans.createTemplateDesc')}
+              accessibilityRole="button"
+            >
+              <View
+                style={[
+                  styles.createOptionIconWrap,
+                  { backgroundColor: theme.colors.primary + '20' },
+                ]}
+              >
+                <Ionicons name="document-text-outline" size={22} color={theme.colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.createOptionTitle, { color: theme.colors.text }]}>
+                  {t('plans.createTemplate')}
+                </Text>
+                <Text style={[styles.createOptionDesc, { color: theme.colors.muted }]}>
+                  {t('plans.createTemplateDesc')}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
+            </Pressable>
+
+            {/* Option 2: Trainingsplan erstellen */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.createOptionCard,
+                {
+                  backgroundColor: pressed ? theme.colors.surface : theme.colors.background,
+                  borderColor: theme.colors.border,
+                },
+              ]}
+              onPress={() => {
+                void hapticFeedback.selection();
+                setCreateMenuVisible(false);
+                setCreateProgramModalVisible(true);
+              }}
+              accessibilityLabel={t('plans.createPlan')}
+              accessibilityHint={t('plans.createPlanDesc')}
+              accessibilityRole="button"
+            >
+              <View
+                style={[
+                  styles.createOptionIconWrap,
+                  { backgroundColor: theme.colors.primary + '20' },
+                ]}
+              >
+                <Ionicons name="calendar-outline" size={22} color={theme.colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.createOptionTitle, { color: theme.colors.text }]}>
+                  {t('plans.createPlan')}
+                </Text>
+                <Text style={[styles.createOptionDesc, { color: theme.colors.muted }]}>
+                  {t('plans.createPlanDesc')}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Direct Program Creation Modal */}
+      <Modal
+        visible={isCreateProgramModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCreateProgramModalVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setCreateProgramModalVisible(false)}
+        >
+          <Pressable
+            style={[
+              styles.modalCard,
+              { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeaderRow}>
+              <Text
+                style={[
+                  styles.modalTitle,
+                  { color: theme.colors.text, ...theme.typography.heading },
+                ]}
+              >
+                {t('plans.createPlan')}
+              </Text>
+              <Pressable
+                onPress={() => setCreateProgramModalVisible(false)}
+                hitSlop={10}
+                accessibilityLabel={t('plans.close')}
+                accessibilityRole="button"
+              >
+                <Ionicons name="close" size={24} color={theme.colors.muted} />
+              </Pressable>
+            </View>
+
+            <TextInput
+              style={[
+                styles.folderInput,
+                {
+                  backgroundColor: theme.colors.background,
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text,
+                },
+              ]}
+              placeholder={
+                language === 'de' ? 'Programmname (z. B. Push/Pull/Legs)' : 'Program Name (e.g. PPL)'
+              }
+              placeholderTextColor={theme.colors.muted}
+              value={newProgramName}
+              onChangeText={setNewProgramName}
+              autoFocus
+            />
+
+            <TextInput
+              style={[
+                styles.folderInput,
+                {
+                  backgroundColor: theme.colors.background,
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text,
+                  height: 64,
+                },
+              ]}
+              placeholder={
+                language === 'de'
+                  ? 'Beschreibung (optional)'
+                  : 'Description (optional)'
+              }
+              placeholderTextColor={theme.colors.muted}
+              value={newProgramDesc}
+              onChangeText={setNewProgramDesc}
+              multiline
+            />
+
+            <TextInput
+              style={[
+                styles.folderInput,
+                {
+                  backgroundColor: theme.colors.background,
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text,
+                },
+              ]}
+              placeholder={
+                language === 'de' ? 'Dauer in Wochen (z. B. 4)' : 'Duration in weeks (e.g. 4)'
+              }
+              placeholderTextColor={theme.colors.muted}
+              value={newProgramWeeks}
+              onChangeText={setNewProgramWeeks}
+              keyboardType="number-pad"
+            />
+
+            <View style={styles.folderModalButtonsRow}>
+              <Pressable
+                style={[styles.folderModalBtn, { backgroundColor: theme.colors.surface }]}
+                onPress={() => {
+                  setCreateProgramModalVisible(false);
+                  setNewProgramName('');
+                  setNewProgramDesc('');
+                  setNewProgramWeeks('4');
+                }}
+              >
+                <Text style={{ color: theme.colors.muted, fontFamily: 'SpaceGrotesk_600SemiBold' }}>
+                  {t('plans.cancel')}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.folderModalBtn, { backgroundColor: theme.colors.primary }]}
+                onPress={handleCreateProgramFromWorkouts}
+              >
+                <Text
+                  style={{
+                    color: theme.colors.background,
+                    fontFamily: 'SpaceGrotesk_700Bold',
+                  }}
+                >
+                  {language === 'de' ? 'Weiter' : 'Next'}
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -1707,5 +2031,90 @@ const createStyles = (theme: Theme) =>
     assignNewFolderBtnText: {
       fontSize: 14,
       fontFamily: 'SpaceGrotesk_700Bold',
+    },
+
+    // Header create actions
+    tabHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginHorizontal: 16,
+      marginBottom: 16,
+    },
+    createHeaderBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      borderRadius: 20,
+      minHeight: 38,
+    },
+    createHeaderBtnText: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 13,
+    },
+    quickActionsSection: {
+      paddingHorizontal: 16,
+      marginTop: 4,
+      marginBottom: 12,
+    },
+    directCreateTemplateBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 12,
+      borderWidth: 1,
+      minHeight: 44,
+    },
+    directCreateTemplateBtnText: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 14,
+    },
+    createMenuSheet: {
+      width: '100%',
+      maxWidth: 440,
+      borderRadius: 16,
+      borderWidth: 1,
+      padding: 18,
+      gap: 12,
+    },
+    createMenuHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 4,
+    },
+    createMenuTitle: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 16,
+    },
+    createOptionCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      padding: 14,
+      borderRadius: 12,
+      borderWidth: 1,
+      minHeight: 56,
+    },
+    createOptionIconWrap: {
+      width: 42,
+      height: 42,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    createOptionTitle: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 14,
+    },
+    createOptionDesc: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 11,
+      marginTop: 2,
     },
   });

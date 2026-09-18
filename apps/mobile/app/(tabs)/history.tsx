@@ -21,7 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import { hapticFeedback } from '../../src/utils/haptics';
 
 import {
   ExerciseSet,
@@ -112,8 +112,6 @@ function HistoryView() {
       return acc;
     }, {});
   }, [sessions]);
-
-  const selectedDateSessions = selectedDateKey ? (sessionsByDate[selectedDateKey] ?? []) : [];
 
   const getVolumeFunFact = (volumeKg: number): string => {
     const displayVol = isImperial ? Math.round(volumeKg * 2.20462) : Math.round(volumeKg);
@@ -429,6 +427,7 @@ function HistoryView() {
 
   const ConsistencyGrid = () => {
     const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
+    const [monthOffset, setMonthOffset] = useState(0);
     const today = new Date();
 
     const daysOfWeekHeaders =
@@ -445,10 +444,15 @@ function HistoryView() {
       });
     }, [today]);
 
+    const displayedMonth = React.useMemo(() => {
+      const d = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+      return d;
+    }, [today, monthOffset]);
+
     const monthRows = React.useMemo(() => {
-      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      const firstDay = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth(), 1);
       const firstDayOfWeek = (firstDay.getDay() + 6) % 7; // Monday = 0, Sunday = 6
-      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      const lastDay = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth() + 1, 0);
       const daysInMonth = lastDay.getDate();
 
       const monthCells: (Date | null)[] = [];
@@ -456,7 +460,7 @@ function HistoryView() {
         monthCells.push(null);
       }
       for (let i = 1; i <= daysInMonth; i++) {
-        const d = new Date(today.getFullYear(), today.getMonth(), i);
+        const d = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth(), i);
         d.setHours(0, 0, 0, 0);
         monthCells.push(d);
       }
@@ -470,7 +474,7 @@ function HistoryView() {
         rows.push(row);
       }
       return rows;
-    }, [today]);
+    }, [displayedMonth]);
 
     const renderDayCell = (day: Date | null, isPlaceholder: boolean) => {
       if (isPlaceholder || !day) {
@@ -480,30 +484,66 @@ function HistoryView() {
       }
 
       const key = formatDateLocal(day);
-      const count = sessionsByDate[key]?.length ?? 0;
+      const dayWorkouts = sessionsByDate[key] ?? [];
+      const count = dayWorkouts.length;
       const isToday = key === formatDateLocal(today);
+      const isSelected = selectedDateKey === key;
+
+      const dateLabel = new Intl.DateTimeFormat(language === 'de' ? 'de-DE' : 'en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      }).format(day);
+
+      const statusLabel =
+        count > 0
+          ? `${count} ${count === 1 ? (language === 'de' ? 'Training' : 'Workout') : (language === 'de' ? 'Trainings' : 'Workouts')}`
+          : language === 'de'
+            ? 'Kein Training'
+            : 'No workouts';
 
       return (
         <Pressable
           key={key}
           style={[
             styles.consistencyDay,
-            { borderColor: isToday ? theme.colors.primary : theme.colors.border },
-            count > 0 && {
-              backgroundColor:
-                count > 1 ? theme.colors.primarySubtle : theme.colors.surfaceElevated,
-              borderColor: theme.colors.borderActive,
+            {
+              borderColor: isSelected
+                ? theme.colors.primary
+                : isToday
+                  ? withAlpha(theme.colors.primary, 0.7)
+                  : count > 0
+                    ? theme.colors.borderActive
+                    : theme.colors.border,
+              borderWidth: isSelected ? 2 : 1,
+              backgroundColor: isSelected
+                ? withAlpha(theme.colors.primary, 0.18)
+                : count > 1
+                  ? theme.colors.primarySubtle
+                  : count === 1
+                    ? theme.colors.surfaceElevated
+                    : theme.colors.surface,
             },
           ]}
-          disabled={count === 0}
           accessibilityRole="button"
-          accessibilityLabel={`${key}: ${count} Trainings${isToday ? ', heute' : ''}`}
-          onPress={() => setSelectedDateKey(key)}
+          accessibilityState={{ selected: isSelected }}
+          accessibilityLabel={`${dateLabel}: ${statusLabel}${isToday ? (language === 'de' ? ', heute' : ', today') : ''}${isSelected ? (language === 'de' ? ', ausgewählt' : ', selected') : ''}`}
+          onPress={() => {
+            void hapticFeedback.selection();
+            setSelectedDateKey(isSelected ? null : key);
+          }}
         >
           <Text
             style={[
               styles.consistencyDayLabel,
-              { color: isToday ? theme.colors.primary : theme.colors.muted },
+              {
+                color: isSelected
+                  ? theme.colors.primary
+                  : isToday
+                    ? theme.colors.primary
+                    : theme.colors.muted,
+                fontWeight: isSelected || isToday ? '700' : '500',
+              },
             ]}
           >
             {viewMode === 'week'
@@ -525,7 +565,12 @@ function HistoryView() {
               />
             ))}
           </View>
-          <Text style={[styles.consistencyCount, { color: theme.colors.text }]}>
+          <Text
+            style={[
+              styles.consistencyCount,
+              { color: isSelected ? theme.colors.primary : theme.colors.text },
+            ]}
+          >
             {count > 0 ? count : ''}
           </Text>
         </Pressable>
@@ -566,6 +611,36 @@ function HistoryView() {
           </View>
         </View>
 
+        {viewMode === 'month' && (
+          <View style={styles.consistencyNavRow}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={language === 'de' ? 'Vorheriger Monat' : 'Previous month'}
+              hitSlop={10}
+              onPress={() => setMonthOffset((prev) => prev - 1)}
+              style={styles.consistencyNavBtn}
+            >
+              <Ionicons name="chevron-back" size={18} color={theme.colors.text} />
+            </Pressable>
+            <Text style={[styles.consistencyMonthTitle, { color: theme.colors.text }]}>
+              {new Intl.DateTimeFormat(language === 'de' ? 'de-DE' : 'en-US', {
+                month: 'long',
+                year: 'numeric',
+              }).format(displayedMonth)}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={language === 'de' ? 'Nächster Monat' : 'Next month'}
+              hitSlop={10}
+              disabled={monthOffset >= 0}
+              onPress={() => setMonthOffset((prev) => Math.min(0, prev + 1))}
+              style={[styles.consistencyNavBtn, monthOffset >= 0 && { opacity: 0.35 }]}
+            >
+              <Ionicons name="chevron-forward" size={18} color={theme.colors.text} />
+            </Pressable>
+          </View>
+        )}
+
         {viewMode === 'week' ? (
           <View style={styles.calendarRow}>{weekDays.map((day) => renderDayCell(day, false))}</View>
         ) : (
@@ -587,10 +662,132 @@ function HistoryView() {
           </View>
         )}
 
+        {/* Inline Selected Day Detail Box */}
+        {selectedDateKey !== null && (() => {
+          const [y, m, d] = selectedDateKey.split('-').map(Number);
+          const selDate = new Date(y!, m! - 1, d!);
+          const daySessions = sessionsByDate[selectedDateKey] ?? [];
+          const formattedDate = new Intl.DateTimeFormat(language === 'de' ? 'de-DE' : 'en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+          }).format(selDate);
+
+          return (
+            <View
+              style={[
+                styles.inlineDayCard,
+                {
+                  backgroundColor: theme.colors.surfaceElevated,
+                  borderColor: withAlpha(theme.colors.primary, 0.3),
+                },
+              ]}
+            >
+              <View style={styles.inlineDayHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.inlineDayTitle, { color: theme.colors.text }]}>
+                    {formattedDate}
+                  </Text>
+                  <Text style={[styles.inlineDaySubtitle, { color: theme.colors.muted }]}>
+                    {daySessions.length === 0
+                      ? language === 'de'
+                        ? 'Kein Training an diesem Tag'
+                        : 'No workouts on this day'
+                      : `${daySessions.length} ${
+                          daySessions.length === 1
+                            ? language === 'de'
+                              ? 'Training'
+                              : 'Workout'
+                            : language === 'de'
+                              ? 'Trainings'
+                              : 'Workouts'
+                        }`}
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={language === 'de' ? 'Auswahl schließen' : 'Close selection'}
+                  hitSlop={10}
+                  onPress={() => setSelectedDateKey(null)}
+                  style={styles.inlineDayCloseBtn}
+                >
+                  <Ionicons name="close" size={18} color={theme.colors.muted} />
+                </Pressable>
+              </View>
+
+              {daySessions.length > 0 ? (
+                <View style={styles.inlineSessionList}>
+                  {daySessions.map((session) => {
+                    const summary = summarizeWorkout(session);
+                    const displayVolume = isImperial
+                      ? Math.round(summary.totalVolume * 2.20462)
+                      : Math.round(summary.totalVolume);
+                    const volumeUnit = isImperial ? 'lbs' : 'kg';
+                    const exerciseCount = session.exercises.length;
+                    const totalSets = session.exercises.reduce(
+                      (acc, ex) => acc + ex.sets.filter((st) => st.completed).length,
+                      0,
+                    );
+
+                    return (
+                      <Pressable
+                        key={session.id}
+                        style={[
+                          styles.inlineSessionRow,
+                          {
+                            backgroundColor: theme.colors.background,
+                            borderColor: theme.colors.border,
+                          },
+                        ]}
+                        onPress={() => setSelectedSession(session)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${session.name}, ${formatDuration(session.durationSeconds)}`}
+                      >
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text
+                            style={[styles.inlineSessionName, { color: theme.colors.text }]}
+                            numberOfLines={1}
+                          >
+                            {session.name}
+                          </Text>
+                          <Text style={[styles.inlineSessionMeta, { color: theme.colors.muted }]}>
+                            {formatDuration(session.durationSeconds)} · {exerciseCount}{' '}
+                            {exerciseCount === 1
+                              ? language === 'de'
+                                ? 'Übung'
+                                : 'exercise'
+                              : language === 'de'
+                                ? 'Übungen'
+                                : 'exercises'}{' '}
+                            · {totalSets} {t('workout.sets')}
+                            {displayVolume > 0
+                              ? ` · ${displayVolume.toLocaleString()} ${volumeUnit}`
+                              : ''}
+                          </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : (
+                <View style={styles.inlineEmptyState}>
+                  <Ionicons name="bed-outline" size={20} color={theme.colors.muted} />
+                  <Text style={[styles.inlineEmptyText, { color: theme.colors.muted }]}>
+                    {language === 'de'
+                      ? 'Ruhetag · Keine Einheit geloggt'
+                      : 'Rest day · No session logged'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          );
+        })()}
+
         <Text style={[styles.consistencyHint, { color: theme.colors.muted }]}>
           {language === 'en'
-            ? 'Tap a filled day to open its workout history.'
-            : 'Tippe auf einen Tag mit Einheiten, um den Verlauf zu öffnen.'}
+            ? 'Tap any day to view details.'
+            : 'Tippe auf einen Tag, um Details anzuzeigen.'}
         </Text>
       </Card>
     );
@@ -759,114 +956,6 @@ function HistoryView() {
                 </Pressable>
               </>
             )}
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={selectedDateKey !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSelectedDateKey(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelectedDateKey(null)} />
-          <View
-            style={[
-              styles.modalCard,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
-                borderRadius: theme.radius.lg,
-                maxWidth: 420,
-              },
-            ]}
-          >
-            <View style={styles.modalHeaderRow}>
-              <View style={styles.modalTitleBlock}>
-                <Text
-                  style={[
-                    styles.modalTitle,
-                    { color: theme.colors.text, ...theme.typography.heading },
-                  ]}
-                >
-                  {language === 'de' ? 'TAGESVERLAUF' : 'DAY HISTORY'}
-                </Text>
-                <Text style={[styles.modalSubtitleSmall, { color: theme.colors.muted }]}>
-                  {selectedDateSessions[0]
-                    ? new Intl.DateTimeFormat(language === 'de' ? 'de-DE' : 'en-US', {
-                        weekday: 'long',
-                        month: 'long',
-                        day: 'numeric',
-                      }).format(selectedDateSessions[0].startedAt)
-                    : selectedDateKey}
-                </Text>
-              </View>
-              <Pressable onPress={() => setSelectedDateKey(null)} hitSlop={10}>
-                <Ionicons name="close" size={24} color={theme.colors.muted} />
-              </Pressable>
-            </View>
-
-            <VerticalFadeScroll
-              style={styles.daySessionList}
-              contentContainerStyle={styles.daySessionListContent}
-            >
-              {selectedDateSessions.map((session) => {
-                const summary = summarizeWorkout(session);
-                const displayVolume = isImperial
-                  ? Math.round(summary.totalVolume * 2.20462)
-                  : Math.round(summary.totalVolume);
-                const exerciseNames =
-                  session.exercises
-                    .map(
-                      (entry) =>
-                        allExercises.find((exercise) => exercise.id === entry.exerciseId)?.name,
-                    )
-                    .filter(Boolean)
-                    .slice(0, 3)
-                    .join(', ') || `${session.exercises.length} ${language === 'de' ? 'Übungen' : 'exercises'}`;
-
-                return (
-                  <Pressable
-                    key={session.id}
-                    style={[
-                      styles.daySessionRow,
-                      {
-                        borderColor: theme.colors.border,
-                        backgroundColor: theme.colors.background,
-                      },
-                    ]}
-                    onPress={() => {
-                      setSelectedDateKey(null);
-                      setSelectedSession(session);
-                    }}
-                  >
-                    <View style={styles.daySessionHeader}>
-                      <Text
-                        style={[styles.daySessionTitle, { color: theme.colors.text }]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                      >
-                        {session.name}
-                      </Text>
-                      <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
-                    </View>
-                    <Text
-                      style={[styles.daySessionExercises, { color: theme.colors.muted }]}
-                      numberOfLines={2}
-                      ellipsizeMode="tail"
-                    >
-                      {exerciseNames}
-                    </Text>
-                    <Text style={[styles.daySessionMeta, { color: theme.colors.primary }]}>
-                      {formatDuration(summary.durationSeconds)} | {summary.setCount}{' '}
-                      {language === 'de' ? 'Sätze' : 'sets'} | {displayVolume.toLocaleString()}{' '}
-                      {volumeUnit}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </VerticalFadeScroll>
           </View>
         </View>
       </Modal>
@@ -1074,7 +1163,7 @@ function ProgressView() {
         maxWeight: isImperial ? Math.round(item.maxWeight * 2.20462) : Math.round(item.maxWeight),
         e1rm: isImperial ? Math.round(item.maxE1RM * 2.20462) : Math.round(item.maxE1RM),
       });
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      void hapticFeedback.impact('light');
     };
 
     const handleChartTouch = (touchX: number) => {
@@ -2116,6 +2205,87 @@ const createStyles = (theme: Theme) =>
       fontSize: 11,
       lineHeight: 15,
       marginTop: 10,
+    },
+    consistencyNavRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 10,
+      paddingHorizontal: 4,
+    },
+    consistencyMonthTitle: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 13,
+      letterSpacing: 0.5,
+    },
+    consistencyNavBtn: {
+      minWidth: 44,
+      minHeight: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    inlineDayCard: {
+      marginTop: 14,
+      borderRadius: 12,
+      borderWidth: 1,
+      padding: 12,
+      gap: 10,
+    },
+    inlineDayHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    inlineDayTitle: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 14,
+    },
+    inlineDaySubtitle: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 12,
+      marginTop: 2,
+    },
+    inlineDayCloseBtn: {
+      minWidth: 36,
+      minHeight: 36,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    inlineSessionList: {
+      gap: 8,
+      marginTop: 2,
+    },
+    inlineSessionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderWidth: 1,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      gap: 8,
+      minHeight: 44,
+    },
+    inlineSessionName: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 13,
+    },
+    inlineSessionMeta: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 11,
+      marginTop: 2,
+    },
+    inlineEmptyState: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 4,
+    },
+    inlineEmptyText: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 12,
+      fontStyle: 'italic',
     },
     modalIconContainer: {
       width: 48,

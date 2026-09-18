@@ -5,7 +5,8 @@ import { Image, Pressable, Text, View, useWindowDimensions } from 'react-native'
 import { Button, Card, useTheme, withAlpha } from '@fitness-tracker/ui';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle } from 'react-native-svg';
-import { WorkoutTemplate, MuscleGroup } from '@fitness-tracker/domain';
+import { WorkoutTemplate, MuscleGroup, hasWorkoutOnDate, getWorkoutsForDate } from '@fitness-tracker/domain';
+import { hapticFeedback } from '../utils/haptics';
 import { useProfileStore } from '../stores/profileStore';
 import { useHistoryStore } from '../stores/historyStore';
 import { useAchievementStore } from '../stores/achievementStore';
@@ -115,15 +116,16 @@ export function VoltDashboard({
         {Array.from({ length: 7 }, (_, i) => {
           const date = new Date(monday);
           date.setDate(date.getDate() + i);
-          const trained = weekly.some(
-            (s) => new Date(s.startedAt).toDateString() === date.toDateString(),
-          );
+          const trained = hasWorkoutOnDate(weekly, date);
           const active = date.toDateString() === today.toDateString();
           const isSelected = selectedDayIndex === i;
           return (
             <Pressable
               key={i}
-              onPress={() => setSelectedDayIndex(isSelected ? null : i)}
+              onPress={() => {
+                void hapticFeedback.selection();
+                setSelectedDayIndex(isSelected ? null : i);
+              }}
               accessibilityRole="button"
               accessibilityLabel={`${date.toLocaleDateString()}: ${trained ? 'trainiert' : 'kein Training'}`}
               style={{
@@ -181,9 +183,7 @@ export function VoltDashboard({
       {selectedDayIndex !== null && (() => {
         const selDate = new Date(monday);
         selDate.setDate(selDate.getDate() + selectedDayIndex);
-        const daySessions = weekly.filter(
-          (s) => new Date(s.startedAt).toDateString() === selDate.toDateString(),
-        );
+        const daySessions = getWorkoutsForDate(weekly, selDate);
         return (
           <View
             style={{

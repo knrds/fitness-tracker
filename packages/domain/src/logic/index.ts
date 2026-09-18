@@ -9,3 +9,5 @@ export * from './getBestWeights';
 export * from './getBestE1RMs';
 export * from './workoutPlanning';
 export * from './muscleRegions';
+export * from './workoutDateUtils';
+export * from './bodyMetricsLogic';

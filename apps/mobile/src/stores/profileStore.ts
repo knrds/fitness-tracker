@@ -56,6 +56,8 @@ export interface Profile {
   experienceLevel?: ExperienceLevel;
   preferredUnits: UnitSystem;
   biologicalSex?: BiologicalSex;
+  dateOfBirth?: string | undefined;
+  birthYear?: number | undefined;
   heightCm?: number;
   weightKg?: number;
   benchPressMaxKg?: number;
@@ -132,6 +134,8 @@ const profileStateSchema = z.object({
   experienceLevel: ExperienceLevelSchema.optional(),
   preferredUnits: UnitSystemSchema,
   biologicalSex: BiologicalSexSchema.optional(),
+  dateOfBirth: z.string().optional(),
+  birthYear: z.number().optional(),
   heightCm: z.number().optional(),
   weightKg: z.number().optional(),
   benchPressMaxKg: z.number().optional(),

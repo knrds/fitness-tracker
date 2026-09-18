@@ -36,6 +36,7 @@ export interface CoachContext {
     benchPressMaxKg?: number;
     squatMaxKg?: number;
     deadliftMaxKg?: number;
+    age?: number | undefined;
     language?: 'de' | 'en';
   };
   stats: {

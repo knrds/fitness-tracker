@@ -78,6 +78,18 @@ const BLOCKED_META_KEYS = new Set([
   'bodyvalues',
   'measurement',
   'measurements',
+  'birthdate',
+  'dateofbirth',
+  'birthyear',
+  'age',
+  'sex',
+  'biologicalsex',
+  'gender',
+  'height',
+  'heightcm',
+  'bodymetrics',
+  'metric',
+  'metrics',
 ]);
 
 export function sanitizeDiagnosticString(input: string): string {

@@ -37,7 +37,15 @@ import Constants from 'expo-constants';
 import { useProfileStore } from '../src/stores/profileStore';
 import { useBodyMetricStore } from '../src/stores/bodyMetricStore';
 import { useHistoryStore } from '../src/stores/historyStore';
-import { FitnessGoal, ExperienceLevel, UnitSystem, BiologicalSex } from '@fitness-tracker/domain';
+import {
+  FitnessGoal,
+  ExperienceLevel,
+  UnitSystem,
+  BiologicalSex,
+  calculateAge,
+  parseBirthDateInput,
+} from '@fitness-tracker/domain';
+import { hapticFeedback } from '../src/utils/haptics';
 import { useExerciseStore } from '../src/stores/exerciseStore';
 import { extractBigThreePRsFromHistory } from '../src/utils/bigThree';
 import { useAuthStore } from '../src/stores/authStore';
@@ -68,6 +76,15 @@ export default function ProfileScreen() {
   const [goal, setGoal] = useState<FitnessGoal | ''>(profile.fitnessGoal || '');
   const [level, setLevel] = useState<ExperienceLevel | ''>(profile.experienceLevel || '');
   const [sex, setSex] = useState<BiologicalSex | ''>(profile.biologicalSex || '');
+  const [birthDateInput, setBirthDateInput] = useState(() => {
+    if (profile.dateOfBirth) return profile.dateOfBirth;
+    if (profile.birthYear) return String(profile.birthYear);
+    return '';
+  });
+
+  const computedAge = React.useMemo(() => {
+    return calculateAge(birthDateInput);
+  }, [birthDateInput]);
 
   const [height, setHeight] = useState(() => {
     if (profile.heightCm === undefined) return '';
@@ -142,6 +159,21 @@ export default function ProfileScreen() {
       updates.biologicalSex = sex;
     }
 
+    if (birthDateInput.trim()) {
+      const parsed = parseBirthDateInput(birthDateInput);
+      if (!parsed.isValid) {
+        return Alert.alert(
+          language === 'de' ? 'Fehler' : 'Error',
+          t('settings.invalidBirthDate'),
+        );
+      }
+      updates.dateOfBirth = parsed.normalizedIso;
+      updates.birthYear = parsed.birthYear;
+    } else {
+      updates.dateOfBirth = undefined;
+      updates.birthYear = undefined;
+    }
+
     if (height.trim()) {
       const hVal = parseDecimalInput(height);
       if (isNaN(hVal) || hVal <= 0)
@@ -206,6 +238,7 @@ export default function ProfileScreen() {
     }
 
     updateProfile(updates);
+    void hapticFeedback.notification('success');
     setSaveToast(true);
     setTimeout(() => setSaveToast(false), 3500);
     Alert.alert(
@@ -566,6 +599,33 @@ export default function ProfileScreen() {
                 </Pressable>
               );
             })}
+          </View>
+
+          <View style={{ marginBottom: 14 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <Text style={[styles.inputLabel, { marginTop: 12, marginBottom: 0 }]}>
+                {t('settings.dateOfBirth')} / {t('settings.birthYear')}
+              </Text>
+              {computedAge !== null && (
+                <View style={styles.ageBadge}>
+                  <Ionicons name="sparkles-outline" size={12} color={theme.colors.primary} />
+                  <Text style={styles.ageBadgeText}>
+                    {computedAge} {t('settings.yearsOld')}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <TextInput
+              style={styles.input}
+              value={birthDateInput}
+              onChangeText={setBirthDateInput}
+              placeholder={language === 'de' ? 'JJJJ-MM-TT oder JJJJ (optional)' : 'YYYY-MM-DD or YYYY (optional)'}
+              placeholderTextColor={theme.colors.muted}
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
+              onSubmitEditing={() => Keyboard.dismiss()}
+              accessibilityLabel={`${t('settings.dateOfBirth')} ${t('settings.birthYear')}`}
+              accessibilityHint={language === 'de' ? 'Optionales Geburtsdatum oder Geburtsjahr zur Personalisierung' : 'Optional date of birth or birth year for personalization'}
+            />
           </View>
 
           <View style={styles.inputGrid}>
@@ -1373,6 +1433,22 @@ const createStyles = (theme: Theme) =>
       fontSize: 15,
       fontFamily: 'Manrope_500Medium',
       color: theme.colors.text,
+    },
+    ageBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: withAlpha(theme.colors.primary, 0.12),
+      borderWidth: 1,
+      borderColor: withAlpha(theme.colors.primary, 0.3),
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 12,
+    },
+    ageBadgeText: {
+      fontSize: 12,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.primary,
     },
     goalsGrid: {
       flexDirection: 'row',

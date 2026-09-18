@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import * as Crypto from 'expo-crypto';
-import { ChatMessage, ChatMessageSchema, summarizeSessionExercise } from '@fitness-tracker/domain';
+import { ChatMessage, ChatMessageSchema, summarizeSessionExercise, calculateAge } from '@fitness-tracker/domain';
 import { z } from 'zod';
 
 import { createHydratedStorage } from './storage';
@@ -166,6 +166,8 @@ export const useCoachStore = create<CoachState>()(
               bestWeightKg,
             }));
 
+          const computedAge = calculateAge(profile.dateOfBirth || profile.birthYear);
+
           const context = {
             exerciseCatalog: useExerciseStore
               .getState()
@@ -173,6 +175,7 @@ export const useCoachStore = create<CoachState>()(
             profile: {
               displayName: profile.displayName || 'Athlete',
               preferredUnits: profile.preferredUnits,
+              ...(computedAge !== null ? { age: computedAge } : {}),
               ...(profile.experienceLevel !== undefined
                 ? { experienceLevel: profile.experienceLevel }
                 : {}),

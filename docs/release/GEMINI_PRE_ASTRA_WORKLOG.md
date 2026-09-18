@@ -1454,6 +1454,68 @@ EVARO so intensiv wie möglich verifizieren, härten und für einen späteren Re
 - Coach Check: PASS
 - Build: PASS (Expo Web Export 4.82 MB)
 
+---
+
+# Work Block 13 – Targeted UI/UX Improvements (History Calendar, Direct Plan/Template Creation, Profile Personalization)
+
+Date: 2026-09-18
+Starting Commit: c22bbeb
+Status: VERIFIED
+
+## Ziel
+Drei gezielte funktionale UI-/UX-Erweiterungen in EVARO integrieren, ohne bestehende Kernlogik, Trainingszustände oder Beta-Daten zu beeinträchtigen:
+1. Interaktiver History-Kalender mit Tagesauswahl, Workout-Details und konsistenter lokaler Datumsnormalisierung.
+2. Direkte Erstellung von Workout-Vorlagen und Trainingsplänen im Plans-Tab ohne Workout-Ausführung (0 History, 0 XP, 0 Streak, 0 Volumen).
+3. Erweiterung der Profildaten um optionales Geburtsdatum / Geburtsjahr mit dynamischer Altersberechnung, strenger Privatsphäre und Coach-Kontext ohne Rohdaten-Exfiltration.
+
+## Vorheriger Zustand
+- Im History-Tab zeigte das Konsistenzgitter nur farbige Blöcke; Tage ohne Workouts waren deaktiviert; kein Monatswechsel.
+- Im Plans-Tab gab es keine direkte Erstell-Aktion für Templates oder Pläne aus der Hauptansicht.
+- Im Profil gab es kein Feld für Alter oder Geburtsdatum; Coach erhielt kein Altersmerkmal; Diagnostics filterte persönliche Metadaten nicht explizit.
+
+## Durchgeführte Arbeiten & Geänderte Dateien
+
+### 1. Domain Logic & Tests
+- `packages/domain/src/logic/workoutDateUtils.ts` (NEU): Zentrale Date-Helper `toLocalDateKey`, `hasWorkoutOnDate`, `getWorkoutsForDate` mit strikter lokaler Zeitnormalisierung (keine UTC-Shift-Fehler bei Spättrainings um 23:30).
+- `packages/domain/src/logic/bodyMetricsLogic.ts` (NEU): Pure Domain-Funktionen `calculateAge` (Date/ISO/Jahr-kompatibel, Datumsrand-sicher), `parseBirthDateInput` (JJJJ-MM-TT, DD.MM.YYYY, JJJJ) und `calculateBMI` (rein kanonisches `weight / height^2` ohne Alters-/Geschlechtsbias).
+- `packages/domain/src/logic/index.ts`: Re-Export aller neuen Hilfsfunktionen.
+- `packages/domain/src/__tests__/workoutDateUtils.test.ts` (NEU, 5 Tests) & `packages/domain/src/__tests__/bodyMetricsLogic.test.ts` (NEU, 15 Tests).
+
+### 2. Internationalisierung (i18n)
+- `apps/mobile/src/i18n/translations.ts`: Vollständige DE/EN-Parität für alle neuen UI-Strings in `plans`, `workout`, `settings` (z. B. `createChoiceTitle`, `createTemplateDesc`, `createPlanDesc`, `dateOfBirth`, `birthYear`, `invalidBirthDate`, `yearsOld`).
+
+### 3. Phase A – Interaktiver History-Kalender
+- `apps/mobile/app/(tabs)/history.tsx`: Alle Tage interaktiv antippbar (auch Tage mit 0 Workouts); visuelle Selektion (Primary Border & Background); Inline-Tageskachel unter dem Grid mit Datum, Trainingsanzahl bzw. "Kein Training an diesem Tag" und Session-Karten mit Detail-Navigation; Monatsnavigation vor/zurück; barrierefreie Accessibility-Labels; direkte `expo-haptics`-Imports durch zentralen `hapticFeedback`-Wrapper ersetzt.
+- `apps/mobile/src/components/VoltDashboard.tsx`: Shared Date-Helper und Haptics-Wrapper synchronisiert.
+
+### 4. Phase B – Direkte Template- & Plan-Erstellung im Plans-Tab
+- `apps/mobile/app/(tabs)/workouts.tsx`: Prominenter "+ Erstellen"-Button im Header mit Choice-Sheet ("Workout-Vorlage erstellen" -> Template Builder, "Trainingsplan erstellen" -> Programm-Erstellungsmodal); dedizierter Button "+ Vorlage erstellen" in der Template-Übersicht; Speichern führt zu sauberer Store-Aktualisierung mit Erfolgs-Haptik.
+- `apps/mobile/app/programs/template-builder.tsx`: Erfolgs-Haptik bei Vorlagenspeicherung integriert; Header passt sich an standalone Vorlagen vs. Programm-Workouts an.
+- Absicherung: Template- und Planerstellung ist rein planerisch und erzeugt weder Workout-Sessions noch XP, Streaks oder Trainingsvolumen.
+
+### 5. Phase C – Profil-Personalisierung, Privatsphäre & Coach-Kontext
+- `apps/mobile/src/stores/profileStore.ts`: `Profile`-Interface und Zod-Persistenzschema um optionale Felder `dateOfBirth?: string` und `birthYear?: number` erweitert. Vollständig abwärtskompatibel (Default `undefined`, keine SQL-/Supabase-Migration nötig). `exportData()` und `clearAllData()` angepasst.
+- `apps/mobile/src/services/diagnosticsService.ts`: `BLOCKED_META_KEYS` um `birthdate`, `dateofbirth`, `birthyear`, `age`, `sex`, `biologicalsex`, `gender`, `height`, `heightcm`, `bodymetrics`, `metric`, `metrics` erweitert.
+- `apps/mobile/src/utils/coachApi.ts`: `CoachContext.profile` um optionales `age?: number` ergänzt.
+- `apps/mobile/src/stores/coachStore.ts`: Übermittelt ausschließlich berechnetes `age: number` an den Coach. Das exakte Geburtsdatum wird aus Datenschutzgründen niemals an den Coach übertragen.
+- `apps/mobile/app/profile.tsx`: Eingabefeld für Geburtsdatum / Geburtsjahr mit Live-Altersanzeige (Chip), flexibler Validierung, Barrierefreiheit und Erfolgs-Haptik auf Basis des zentralen Haptic-Wrappers.
+
+### 6. Regression Suite
+- `apps/mobile/src/__tests__/targetedUiEnhancementsRegression.test.ts` (NEU, 15 Tests):
+  - Phase A: Leerer Tag (0 Workouts), Mehrfachtrainings an einem Tag, Zeitzonenrand um 23:30 ohne UTC-Shift.
+  - Phase B: Template-Erstellung, Program-Erstellung, Löschen; Verifikation von 0 Workout-Sessions, 0 XP, 0 Streak, 0 Volumen.
+  - Phase C: Profil ohne Alter (undefined), Altersberechnung, flexible Eingabeformate, neutraler BMI, Persistenz, Export, vollständiger Wipe bei ClearAllData, Diagnostics-Redaction, Coach-Kontext enthält nur `age` und keine Rohdaten.
+
+## Qualitätsmetriken
+- Typecheck: PASS (packages/domain, packages/ui, apps/mobile: 0 Fehler)
+- Lint: PASS (packages/domain, packages/ui, apps/mobile: 0 Fehler, 0 Warnings)
+- Tests: 572 / 572 Tests PASS (458 Mobile, 77 Domain, 37 API)
+- Coach Check: PASS
+- Build: PASS (Expo Web Export erfolgreich nach dist)
+- Datenintegrität: Keine zerstörerischen Schema- oder Cloud-Änderungen.
+- Astra Review: ASTRA_REVIEW_REQUIRED: NO (Lokale, risikoarme UI- und Domain-Verbesserungen).
+
+
 
 
 

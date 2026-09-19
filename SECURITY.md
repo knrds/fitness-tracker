@@ -1,5 +1,7 @@
 # Security und Privacy
 
+S6-Korrektur 19.09.2026: ALLOW_PROTOTYPE_COACH ist wirkungslos; öffentliche Requests benötigen geprüfte Supabase-Authentifizierung. Header/Body/Forwarded-IP können keine lokale Identität setzen; diese serverinterne Entwicklungsausnahme ist bei NODE_ENV=production oder VERCEL gesperrt. Alte anonyme Prototype-Quota entfällt. Keine Änderung an Providerkeys, Datenpersistenz oder Remote-Deployment. Echte Serverentitlements, verteilte Limits/Budget, Kill-Switch, zweisprachige Safety und Live-Abnahme fehlen weiterhin.
+
 ## Dauerhafter Security-Vertrag (19.09.2026)
 
 ### S1: gezielte Dependency-Korrekturen
@@ -21,7 +23,7 @@ Verbindlich für alle Agenten: [Guardrails](evaro_release_execution_pack/EVARO_S
 | UI → Domain → SQLite: Training, Maße, Profil, Programme/Templates | Unvertrauenswürdige Eingaben; beschädigte Daten; Accountwechsel/Crash | Validierung, gebundene SQL-Werte, Transaktionen, lokale Scopes | Altbesitzer/Gastzuordnung; Low-Space/Prozessabbruch/Backup auf Geräten |
 | App → Supabase Auth → OS-Keychain/Keystore | Tokenverlust/-diebstahl; Migration/Logout-Race; Deep-Link-Replay | Dual-Read mit Readback, serialisierte Operationen, Logout-Marker | Native Payloadgrenzen, Reboot/Restore, Callback-/Reauth-Abnahme |
 | Outbox → Supabase REST/Postgres | BOLA/fremde FK-IDs, Replay, unvollständige Aggregate, parallele Geräte | Client-Scope/FIFO und dokumentierte RLS | Servertransaktionen, echte CRUD-Isolation, Idempotenz/Konfliktmodell |
-| App → Coach API → OpenRouter | Auth-Bypass, Prompt Injection, medizinische Schäden, Kostenmissbrauch, Kontextabfluss | Serverkey, Validierung, Timeout, deterministische Safety | Produktions-Bypass, Serverentitlement/Budget, locale-aware Safety; Hosting/DPA |
+| App → Coach API → OpenRouter | Auth-Bypass, Prompt Injection, medizinische Schäden, Kostenmissbrauch, Kontextabfluss | Serverkey, Validierung, Timeout, deterministische Safety; Prototyp-Bypass geschlossen | Serverentitlement/Budget, locale-aware Safety; Hosting/DPA und echte Auth-Abnahme |
 | Delete/Export → Cloud/Auth → lokaler Cleanup | Fremdkontolöschung, Race nach Accountwechsel, falscher Erfolg | Defensiver Cliententwurf/lokaler Export | Expliziter Backend-Erfolg, Cascade/Auth-Delete, Scope, vollständiger Export |
 | Store/Billing → App/API | Manipuliertes Client-Pro, Replay/Webhook-Fälschung | Providerunabhängiger Entwurf | Native Käufe/Restore und serverseitige Quelle, Beta-Bypass |
 | Git/Dependencies/CI → signiertes Binary | Exfiltration durch Buildtools, kompromittierte Actions/Secrets, verletzliche Pakete | Frozen Lockfile, SHA-Pins, Leserechte, History-/Bundle-Scanner | Audit-Fixes, SAST/Lizenzen, geschützte Branches/Environments, Signing-IAM |
@@ -53,7 +55,7 @@ Native lokale Persistenz verwendet gebundene SQL-Werte, validierte Zeilen/Dokume
 
 Noch offen und releaseblockierend: historische Eigentümerzuordnung und reale Geräte-/RLS-Abnahme der Benutzergrenzen B04, Token-Speicher/Migration, Coach-Auth/Limits B06, serverseitige Transaktionen/RLS-Nachweise, vollständiger Export und Accountlöschung. SQLite ist noch nicht per SQLCipher verschlüsselt; OS-Schutz, Backups und physische Löschung von SQLite-/WAL-Seiten sind auf Geräten zu prüfen. Kein behaupteter DSGVO-/Security-Abschluss.
 
-Dependency-Audit: 67 Befunde (0 critical, 47 high, 18 moderate, 2 low). Der kritische tar-Befund betrifft den Expo-CLI-Abhängigkeitsbaum und wurde gezielt mit 7.5.19 gepatcht. Weitere Befunde nach realer Build-/Runtime-Exposition bearbeiten, keine pauschale Entwarnung.
+Aktueller Dependency-Audit nach S1: 57 Befunde (0 critical, 43 high, 14 moderate, 0 low), prod 52. Die ursprünglichen 67 Befunde sind die Eingangsbaseline. tar inzwischen 7.5.21, zusätzlich nanoid/undici korrigiert; Details oben. Weitere Befunde nach realer Build-/Runtime-Exposition bearbeiten, keine pauschale Entwarnung.
 
 Quelle zum tar-Patch: https://github.com/isaacs/node-tar/security/advisories/GHSA-23hp-3jrh-7fpw
 

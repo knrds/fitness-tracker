@@ -2,6 +2,14 @@
 
 Stand: 2026-09-19. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
+## Neuester Security-Block — S6 öffentlicher Auth-Bypass
+
+Nach gepushtem S1-Patch **26e29d1** die unabhängig behebbare CRITICAL-Lücke im Coach geschlossen: ALLOW_PROTOTYPE_COACH wird ignoriert, keine IP-basierte anonyme Identität; fehlender Bearer 401 vor Providerkontakt, ungültiger Bearer durch Supabase verifiziert/abgelehnt. Local-Development-Identität ist bei NODE_ENV=production oder VERCEL gesperrt. Der bereits auf Loopback begrenzte lokale Server bleibt nutzbar. Absichtliche Verhaltensänderung: öffentliche anonyme Prototyprequests funktionieren nicht mehr.
+
+Drei neue/korrigierte Negativszenarien gegen bisherigen Code reproduziert (ohne Token in mehreren Umgebungen/gefälschte Header+Body, ungültiger Bearer trotz Flag, lokale Identität in Production/Hosting); jetzt 38 API-/Safety-Tests PASS. Kein Provider-/Supabase-Live-Test, kein Deployment. Weiterhin CRITICAL offene S6-Gates: Server-Pro, verteilte Quoten und Budget/Kill-Switch, DE/EN Safety, reale Hosting-/Auth-Abnahme. RLS bleibt nächster Daten-P0; lokale DB-Werkzeuge fehlen hier.
+
+Finales `pnpm verify` PASS: **603 Tests = 77 Domain + 484 Mobile + 38 API + 4 Security**, Typecheck/Lint PASS. Vorheriger Gesamtlauf: bestehender Fuzzy-Such-Benchmark 57 ms statt <50 ms; isoliert 22 ms und 5/5 PASS, anschließender unveränderter Gesamtlauf vollständig grün. Keine Testgrenze gelockert. Web-Build/Expo-Config unverändert seit grünem S1-Abschluss. Keine neue Dependency in diesem S6-Block.
+
 ## Neuester Abschluss — S1 Dependency-Patches
 
 Governance-Commit `27fccac` ist gepusht. Anschließend drei gezielte Overrides: nanoid 3.3.18, undici 6.28.0, tar 7.5.21. Risiko HIGH, keine Datenmigration oder neue Hauptversion. Lockfile geprüft: nur diese drei Auflösungen/Integritäten/Referenzen geändert. Frozen-Reinstall PASS.
@@ -90,7 +98,7 @@ Offen: reale iPhone-/Android-Upgrades mit gleicher Bundle-ID, Sperre/Reboot/Proz
 1. **RLS / CRITICAL:** Alle 11 Tabellen inklusive vererbter Ownership und fremder FK-Verweise mit A/B/Anonymous CRUD testen. Bestehender Harness verwendet z.B. `full_name`, `plan`, `duration_seconds`, `volume_kg`, `date`, `target_muscle_group` entgegen dem Schema; Pflichtfelder fehlen; `ON_ERROR_STOP off` und Kommentare sind keine Assertions. Deploymentzustand unbekannt. Weder Docker (auch nicht im Standardpfad), Supabase CLI noch psql hier verfügbar. Kein Remote-Apply.
 2. **Sync / CRITICAL:** Child-Delete-/Pull-Fehler nicht durchgehend geprüft; Aggregate werden ohne Transaktion gelöscht/neu geschrieben. Cloud-RPCs, fachliches Konflikt-/Revisionsmodell und Tombstones begründet implementieren, dann echte Multi-Device-Abnahme. Lokale Outbox schützt nicht vor unvollständigen Cloud-Aggregaten.
 3. **Account Deletion / CRITICAL:** Echter parameterloser, authentifizierter Serververtrag fehlt. Client prüft keinen expliziten Erfolg und keine Ursprungsgeneration vor lokalem Cleanup; verschluckt Cleanupfehler. Erst Backend+Scope+Idempotenz+Fehlertests, dann Aktivierung.
-4. **AI / CRITICAL:** ALLOW_PROTOTYPE_COACH umgeht Auth unabhängig vom Deploymenttyp; globale Pro-Freigabe im Client, kein Serverentitlement, verteiltes Budget/Limits oder bestätigtes HTTPS-Deployment. Safety antwortet nur DE. Keine Produktivfreigabe.
+4. **AI / CRITICAL:** Öffentlicher Prototyp-Bypass inzwischen geschlossen; weiterhin globale Pro-Freigabe im Client, kein Serverentitlement, verteiltes Budget/Limits oder bestätigtes HTTPS-Deployment. Safety antwortet nur DE. Keine Produktivfreigabe.
 5. **Privacy/Billing:** Vollständigen Cloud-Export, Consent, Rechtstexte und native Billing-/Serverentitlements vervollständigen. Dependency-Exposition gezielt prüfen.
 
 ## USER_ACTION_REQUIRED

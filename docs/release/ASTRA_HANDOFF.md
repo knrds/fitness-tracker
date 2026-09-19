@@ -4,6 +4,8 @@ Basis `origin/main`: `6471138`. Review-Branch: `astra/p0-release-core`. Neuester
 
 ## Erledigter lokaler Engineering-Block
 
+S1-Patch-Commit **26e29d1** ist gepusht. Nachfolgender S6-Fix: öffentlicher ALLOW_PROTOTYPE_COACH-Bypass entfernt; 401 ohne Token, ungültige Tokens werden bei Supabase geprüft. Serverinterne Local-Identity bei production/VERCEL gesperrt. Drei vorher rote Negativszenarien jetzt grün, 38 API-/Safety-Tests. Keine Remote-Bereitstellung. Restliche Pro-/Budget-/DE/EN-/Hosting-Gates bleiben offen.
+
 Security-Governance ist als `27fccac` gepusht (Regeln/Threat Model/S0–S12/CI-Gates). Danach nanoid/undici/tar gezielt gepatcht: vier vorher rote Angriffsregressionen grün; **602 Tests, Typecheck/Lint, Build und Expo-Konfigurationen PASS**. Audit jetzt **57 (43 high/14 moderate)**, prod **52 (41 high/11 moderate)**. S1 bleibt PARTIAL; CI-Audit blockiert weiterhin. Keine Freigabe trotz grüner Funktionstests. Exakte Details: EXECUTION_STATUS.md und SECURITY.md.
 
 P0-A SecureStore ist jetzt nativ in Supabase integriert. Gemini-Adapter wiederverwendet und unsichere Garantien korrigiert: kein flüchtiger Fallback, keine als leer verschluckten Lesefehler, verifizierte Writes, serialisierte Migration/Refresh/Logout, geprüfte Sessionstruktur und nicht sensible v1-Marker gegen Token-Resurrection. Beide Legacy-Quellen werden bereinigt. Authfehler zeigen feste DE/EN-Texte, keine Secrets. Bestehende SQLite-/Workoutdaten werden nicht geändert.
@@ -30,10 +32,10 @@ Verified: `pnpm verify` mit 598 Tests (77 Domain, 484 Mobile, 37 API); Typecheck
 ## Weitere bestätigte P0-Risiken
 
 - Account-Löschung: Client-Capability prüft nur Config/Auth; Erfolg nur `error:null`; Scope-Wechsel während Request nicht abgesichert, Cleanupfehler verschluckt. Backend-RPC/Auth-Cascade fehlt. Keinen Guard allein anhand alter Spec aktivieren.
-- AI: `ALLOW_PROTOTYPE_COACH=true` kann öffentliche Auth umgehen. Keine serverseitigen Pro-Entitlements, verteilten Quoten/Budgets oder nachgewiesenes HTTPS-Deployment. Deterministische Safety-Replies sind ausschließlich Deutsch; DE/EN selbst im Safety-Layer lösen.
+- AI: Öffentlicher Prototyp-Bypass geschlossen. Weiterhin keine serverseitigen Pro-Entitlements, verteilten Quoten/Budgets oder nachgewiesenes HTTPS-Deployment. Deterministische Safety-Replies sind ausschließlich Deutsch; DE/EN selbst im Safety-Layer lösen.
 - Billing: `BETA_ALL_FEATURES_ENABLED=true`, kein natives Kauf-SDK; Providerabstraktion vorbereitet. Keine Produktionsfreigabe aus Client-Pro ableiten.
 - Export: lokal, kein vollständiger Cloud-/DSGVO-Nachweis. Medien: ExerciseDB technisch entfernt; Foto-Rechtekette weiterhin unbestätigt.
-- Audit: 67 Befunde (47 high/18 moderate/2 low). Kein pauschaler Ausschluss der Runtime-Exposition aus alten Berichten.
+- Audit nach S1-Patches: 57 Befunde (43 high/14 moderate), prod 52. Kein pauschaler Ausschluss der Runtime-Exposition aus alten Berichten.
 
 ## Bestehende Vorarbeit erhalten
 

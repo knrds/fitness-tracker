@@ -1,5 +1,7 @@
 # EVARO – Astra Review Queue
 
+Aktuellster S6-Fix: öffentlicher Prototype-Auth-Bypass entfernt, lokale interne Identität in Production/VERCEL gesperrt. Drei zuvor rote Auth-Negativszenarien grün; 38 API-/Safety-Tests. S6 PARTIAL bis Serverentitlement, verteilte Quoten/Budget/Kill-Switch, DE/EN und reale Abnahme. Kein Remote-Rollout. Vorheriger S1-Patch `26e29d1` gepusht.
+
 ## Security Governance S0/S1 — 19.09.2026
 
 Checkpoint `6c01522` gesichert. Security-Guardrails sind dauerhaft über AGENTS.md verbindlich; S0–S12-Matrix ersetzt den bisherigen Feature-Ausführungspfad. Threat Model/Betriebsrhythmus: SECURITY.md. Secrets/CI-Härtung implementiert, S1 bleibt PARTIAL wegen 67 Dependency-Befunden, fehlender SAST-/Lizenz-/Remote-Abnahme. Exakte historische Fixture-Ausnahmen prüfen; keine generellen Ignore-Regeln. GitHub-Branch-Protection und erforderliche Checks durch Repositoryowner bestätigen. Aktuelle Nachweise in EXECUTION_STATUS.md.

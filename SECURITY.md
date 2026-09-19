@@ -1,5 +1,38 @@
 # Security und Privacy
 
+## Dauerhafter Security-Vertrag (19.09.2026)
+
+Verbindlich für alle Agenten: [Guardrails](evaro_release_execution_pack/EVARO_SECURITY_GUARDRAILS.md), [AGENTS.md](AGENTS.md), [Security-Roadmap](evaro_release_execution_pack/EVARO_SECURITY_RELEASE_ROADMAP.pdf). Aktuelle S0–S12-Abnahme: [Readiness-Matrix](docs/release/P0_READINESS_MATRIX.md). Der SecureStore-Checkpoint ist `6c01522`. Die folgenden Kontrollen beschreiben den geprüften Branch, keinen nachgewiesenen Produktionszustand.
+
+### Datenflüsse, Grenzen und priorisierte Bedrohungen
+
+| Fluss / Schutzgut | Vertrauensgrenze / Angriff | Vorhandene Kontrolle | Offenes Gate |
+|---|---|---|---|
+| UI → Domain → SQLite: Training, Maße, Profil, Programme/Templates | Unvertrauenswürdige Eingaben; beschädigte Daten; Accountwechsel/Crash | Validierung, gebundene SQL-Werte, Transaktionen, lokale Scopes | Altbesitzer/Gastzuordnung; Low-Space/Prozessabbruch/Backup auf Geräten |
+| App → Supabase Auth → OS-Keychain/Keystore | Tokenverlust/-diebstahl; Migration/Logout-Race; Deep-Link-Replay | Dual-Read mit Readback, serialisierte Operationen, Logout-Marker | Native Payloadgrenzen, Reboot/Restore, Callback-/Reauth-Abnahme |
+| Outbox → Supabase REST/Postgres | BOLA/fremde FK-IDs, Replay, unvollständige Aggregate, parallele Geräte | Client-Scope/FIFO und dokumentierte RLS | Servertransaktionen, echte CRUD-Isolation, Idempotenz/Konfliktmodell |
+| App → Coach API → OpenRouter | Auth-Bypass, Prompt Injection, medizinische Schäden, Kostenmissbrauch, Kontextabfluss | Serverkey, Validierung, Timeout, deterministische Safety | Produktions-Bypass, Serverentitlement/Budget, locale-aware Safety; Hosting/DPA |
+| Delete/Export → Cloud/Auth → lokaler Cleanup | Fremdkontolöschung, Race nach Accountwechsel, falscher Erfolg | Defensiver Cliententwurf/lokaler Export | Expliziter Backend-Erfolg, Cascade/Auth-Delete, Scope, vollständiger Export |
+| Store/Billing → App/API | Manipuliertes Client-Pro, Replay/Webhook-Fälschung | Providerunabhängiger Entwurf | Native Käufe/Restore und serverseitige Quelle, Beta-Bypass |
+| Git/Dependencies/CI → signiertes Binary | Exfiltration durch Buildtools, kompromittierte Actions/Secrets, verletzliche Pakete | Frozen Lockfile, SHA-Pins, Leserechte, History-/Bundle-Scanner | Audit-Fixes, SAST/Lizenzen, geschützte Branches/Environments, Signing-IAM |
+| Diagnostics/Support/Backups | Gesundheitsdaten-/Tokenleak, Linkability/zu lange Speicherung | Lokaler begrenzter Buffer und Redaktion | Metadaten-Allowlist, Betriebs-Retention, Cloud-Restore-/Incidentnachweis |
+
+Damit sind Spoofing, Manipulation, unzureichende Nachweisbarkeit, Offenlegung, Verfügbarkeit und Rechteausweitung sowie Verknüpfbarkeit/Datensparsamkeit erfasst. Kein formaler Pentest oder vollständiger LINDDUN-Nachweis. Bei neuen Datenflüssen, Providern oder Verträgen muss diese Tabelle aktualisiert werden.
+
+### Wiederkehrender Betrieb und Eskalation
+
+Technische Pflege: Astra bzw. beauftragter Engineering-Owner. Produktions-/Account-/Legal-Verantwortliche: Nutzer muss sie vor Launch benennen (USER_ACTION_REQUIRED). Keine erfundenen Betriebszusagen oder automatisch eingerichteten Erinnerungen.
+
+- Wöchentlich: Dependency-/Secret-/Providerwarnungen und AI-Kosten prüfen; kritische Befunde sofort triagieren.
+- Monatlich: IAM, aktive Tokens/Integrationen und Dependency-Updates prüfen; keine Secrets in Berichten.
+- Vierteljährlich: isolierte Restoreprobe, Threat-Model-Review, AuthZ-/DAST-Negativtests.
+- Halbjährlich: Incident-Übung, Retention-/Export-/Löschpfade und Provider-/Privacy-Prüfung.
+- Jährlich bzw. vor wesentlichem Release: unabhängige Security-Prüfung organisieren.
+
+Bei bestätigtem Secret: als kompromittiert behandeln; Owner informieren, widerrufen/rotieren und Reichweite prüfen. Entfernen aus Git allein genügt nicht. Bei Datenintegritäts-/Auth-Vorfällen betroffene Writes/Funktionen kontrolliert sperren, Belege ohne Rohdaten sichern, Wiederherstellung isoliert prüfen. Kommunikation/rechtliche Fristen durch verantwortliche Personen beurteilen lassen.
+
+Vor jedem Commit Secret-Precheck mit Gitleaks v8.30.1 (`--redact=100 --ignore-gitleaks-allow`), relevante Tests und Typecheck/Lint. CI prüft erreichbare Historie und exportiertes Web-Bundle; fünf ausschließlich historische Test-Fixtures sind mit exakten Commit/Datei/Regel/Zeilen-Fingerprints ausgenommen. Keine pauschalen Testordner-Ausnahmen. Native signierte Artefakte müssen separat geprüft werden. SAST-/Lizenz-/Remote-Schutzkontrollen bleiben ausdrücklich offen.
+
 19.09.2026 — Native Session-Tokens werden auf der Astra-Review-Branch über OS-SecureStore migriert; ursprüngliche MMKV-/AsyncStorage-Werte werden erst nach bestätigtem Write entfernt. Fehler erzeugen keinen RAM-Fallback und keine Tokenlogs. Logout verhindert Legacy-Resurrection durch einen nicht sensiblen Marker. Rollback benötigt einen kompatiblen Reader. Geräte-/Größen-/Backup-Gates bleiben offen; siehe `docs/release/SECURE_STORAGE_MIGRATION_PLAN.md`. Der aktuelle Audit bestätigt 67 Dependency-Befunde (47 high / 18 moderate / 2 low / 0 critical); keine pauschale Runtime-Entwarnung ohne Expositionsprüfung.
 
 13.09.2026: Medien werden nach bewusster Auswahl/Aufnahme über den bestehenden Server und OpenRouter verarbeitet. Bilder nur als begrenzte data-URLs, keine Serverabrufe beliebiger Bild-URLs; Rohbilder nicht im Chat persistiert. Eigene temporäre Audiodateien werden freigegeben. Literaturabfrage verwendet feste Suchbegriffe ohne Profil-/Gesundheitsdaten. Modellantworten dürfen keine beliebigen Aktionen ausführen: ausschließlich validierte Planstruktur, Vorschau und expliziter lokaler Speicherknopf, Kontogeneration und SQLite-Transaktion.

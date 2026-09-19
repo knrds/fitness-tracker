@@ -1,5 +1,9 @@
 # EVARO – Astra Review Queue
 
+## Security Governance S0/S1 — 19.09.2026
+
+Checkpoint `6c01522` gesichert. Security-Guardrails sind dauerhaft über AGENTS.md verbindlich; S0–S12-Matrix ersetzt den bisherigen Feature-Ausführungspfad. Threat Model/Betriebsrhythmus: SECURITY.md. Secrets/CI-Härtung implementiert, S1 bleibt PARTIAL wegen 67 Dependency-Befunden, fehlender SAST-/Lizenz-/Remote-Abnahme. Exakte historische Fixture-Ausnahmen prüfen; keine generellen Ignore-Regeln. GitHub-Branch-Protection und erforderliche Checks durch Repositoryowner bestätigen. Aktuelle Nachweise in EXECUTION_STATUS.md.
+
 ## Astra Review 19.09.2026 — maßgeblicher aktueller Stand
 
 - **AR-005/013: MODIFY + ACTIVATE im nativen Review-Branch.** Unsichere RAM-Fallbacks, verschluckte Lesefehler/Logoutfehler und unzureichende Sessionprüfung ersetzt. Serialisierung, Readback, v1-Marker, MMKV/AsyncStorage-Migration und Supabase-Integration getestet. PARTIAL bis native Größen-/Upgrade-/Rollback-Abnahme; kein Rollout.

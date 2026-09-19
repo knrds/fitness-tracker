@@ -122,4 +122,36 @@ Checkpoint-Build PASS (4.74 MB Web-JS), Expo public/introspect PASS. Erneuter `p
 | Device QA | PREPARED | Checklisten, keine reale Geräteabnahme |
 | Profile / History / Plans | VERIFIED | Code und Store-Regressionen vorhanden; visuelle/native Abnahme offen |
 
-Nach diesem Checkpoint hat die Security-Roadmap aus dem Release-Pack Vorrang vor der normalen P00–P11-Ausführung. Dauerhafte Security Governance und S0–S12-Matrix folgen im nächsten abgegrenzten Block, beginnend mit Secrets/Supply Chain.
+Checkpoint **6c01522** ist auf `origin/astra/p0-release-core` gepusht. CHECKPOINT_COMPLETE. Keine Main-Integration oder Produktionsänderung.
+
+## Security Takeover — S0 / S1 (19.09.2026)
+
+Status **PARTIAL**, Risiko **HIGH**. Nutzer-Guardrails, Prompt und zehnseitige Roadmap übernommen. AGENTS.md bindet alle Agenten dauerhaft an die Regeln; README/SECURITY.md verlinken sie. S0–S12-Istmatrix in P0_READINESS_MATRIX.md; codebezogenes Threat Model und wiederkehrender Betriebsrhythmus in SECURITY.md. Feature Expansion bleibt eingefroren.
+
+### Verifiziert und implementiert
+
+- Gitleaks v8.30.1 vom offiziellen Release, Windows-SHA256 `d29144deff3a68aa93ced33dddf84b7fdc26070add4aa0f4513094c8332afc4e` gegen Manifest geprüft.
+- Alle 196 erreichbaren Commits (7.93 MB): fünf ausschließlich synthetische Redaktions-Testfixtures. Zwei bekannte JWT-Beispiele, ein sequenzieller Fake-Key, zwei unvollständige JWT-Platzhalter. Ausschließlich deren exakte historische Fingerprints ausgenommen; Wiederholung ohne weitere Treffer. Keine History-Umschreibung.
+- Aktueller getrackter/unignorierter Dateistand plus Expo-public/introspect-Ausgaben (4.19 MB): dieselben fünf Fixtures, keine zusätzlichen Treffer. Exportiertes Web-Bundle (4.75 MB): null Treffer. Frisch generierter künstlicher Canary wird mit Exit 1 zurückgewiesen. Keine Credentialwerte in diesem Bericht.
+- Kein Vollständigkeitsbeweis für unbekannte Secretformate, unerreichbare gelöschte Refs, Remote-Secrets oder native signierte Artefakte. Kein echter Credentialfund, deshalb keine grundlose Rotation. Remote-Secrets/IAM bleiben USER_ACTION_REQUIRED.
+- CI: contents:read, keine persistierten Checkout-Credentials, unveränderliche SHA-Pins für Checkout/Node/pnpm, Job-Timeouts, Gitleaks-History-/Bundle-Gates und blockierendes `pnpm audit --audit-level=high`. Scannerdownload versions-/SHA256-gebunden. Kein continue-on-error und keine globale Regel-/Testordnerausnahme.
+- Typecheck/Lint PASS; Shell-Syntax und Diff-Whitespace-Prüfung PASS. Unveränderte App: vorangehende 598 Tests und Web-Build PASS. GitHub-Runner-Ausführung dieser neuen CI nicht lokal behauptet; wegen der bestehenden High-Befunde wird das Audit-Gate derzeit scheitern.
+
+### Supply-Chain-Exposition, keine Risikoakzeptanz
+
+67 Advisory-/Versionsbefunde: 47 high, 18 moderate, 2 low in 17 Paketgruppen. Separater erneuter Registry-Audit mit `--prod`: **62 Befunde (45 high, 15 moderate, 2 low)**. Der erste Netzwerkversuch schlug fehl; Wiederholung mit Netzwerkzugriff lieferte diese Werte. Expo führt auch Buildwerkzeuge über Produktionsdependencies; `--prod` beweist weder Runtime-Ausnutzbarkeit noch deren Ausschluss. Kürzeste aufgelöste Pfade und nächste Aktionen:
+
+| Gruppe | Anzahl | Beobachteter Pfad / nächste Aktion |
+|---|---:|---|
+| @xmldom/xmldom | 23 | Expo CLI → plist/config-plugins; XML-Buildinputs und Patchkompatibilität |
+| brace-expansion | 9 | eslint/minimatch und Expo CLI; kompatible Branch-Patches |
+| js-yaml | 8 | eslint und Jest/Expo; YAML-Tooling-Patches |
+| undici | 7 | Expo CLI; HTTP-/WebSocket-Tooling, kein Runtime-Attest |
+| postcss | 4 | Expo Metro und Vitest/Vite; CSS-Verarbeitung |
+| vite / vitest / @vitest/mocker | 4 | Domain-Testwerkzeuge; kompatible Patches, keine öffentlichen Testserver |
+| image-size | 2 | Metro; bösartige Asset-Metadaten beim Build |
+| nanoid / decode-uri-component | 3 | Expo Router/query-string; mögliche Clientpfade untersuchen |
+| browserslist / baseline-browser-mapping | 3 | Babel/Metro Buildkette; Patch-/Lizenzprüfung |
+| tar / shell-quote / form-data / uuid | 4 | Expo CLI, RN DevTools, jsdom, xcode; früherer tar-Patch beseitigt nicht alle aktuellen Advisories |
+
+Keine ungetesteten Massenupdates oder stillen Lockfileänderungen. Offene S1-Gates: kompatible Fixes/Reachability, SAST, Lizenz-/SBOM-Nachweis, Branch Protection/required checks, Signing-/EAS-/Hosting-IAM. Projektowner muss Remote-Kontrollen bestätigen. Native/Cloud-/RLS- und Legal-Gates unverändert.

@@ -1,5 +1,29 @@
 # EVARO Current State Matrix — Astra 2026-09-19
 
+## Security Roadmap S0–S12 — maßgeblicher Ausführungspfad
+
+Basis: Code-Audit und Checkpoint `6c01522`, Guardrails und zehnseitige Security-Roadmap im Release-Pack. Owner bedeutet technische Zuständigkeit, keine bereits erteilte Produktionsfreigabe. Kein Bereich ist allein aufgrund vorhandener Dokumente DONE. Feature Expansion bleibt eingefroren.
+
+| Block | Current state / Gemini preparation | Verified controls | Missing controls | Risk / release relevance | Astra action / owner | Status |
+|---|---|---|---|---|---|---|
+| S0 Governance / Threat Model | Architektur, Datenkarte, Security-Specs; neue verbindliche Guardrails | Codebezogene Grenzen und Angriffe in SECURITY.md; Agent-Einstieg verlinkt | Team-/Betriebsabnahme, deployed Datenflüsse und Owner bestätigen | HIGH / P0 | Threat Model bei Vertragsänderung pflegen; Astra + Nutzer Betrieb | PARTIAL |
+| S1 Secrets / Supply Chain | Frozen Lockfile, CI, früher tar-Patch | 196-Commit-Scan, Bundle-Scan; eng begrenzte Fixture-Triage; Actions-SHA/Tokenrechte | 67 Audit-Befunde beheben/bewerten; SAST/Lizenzen/SBOM, Branch Protection, EAS/Hosting-Secrets | HIGH / P0 | CI-Gates aktivieren, Dependencies kompatibel patchen; Astra, Nutzer Remote-Settings | PARTIAL |
+| S2 Auth / Session | Gemini Adapter jetzt native Integration | 598 Gesamt-Tests; Dual-Read, Readback, Serialisierung, Fehler-/Logoutguards | Echte iOS/Android-Migration, große Sessions, Reboot/Backup; Deep Links/Refresh/Reauth | HIGH / P0 | Native Abnahme + Auth-Missbrauchstests; Astra / Geräteowner | PHYSICAL_DEVICE_REQUIRED |
+| S3 Authorization / RLS | 11 Tabellen, Policies, fehlerhafter Gemini-Harness | Statische Schema-/FK-Lücken belegt | Ausführbare CRUD A/B/anon-/Cross-FK-Tests, produktiver Policy-Nachweis | CRITICAL / P0 | Harness korrigieren, lokal isoliert testen, Migration reviewen; Astra | ASTRA_REQUIRED |
+| S4 Sync / Data Integrity | SQLite/Scope/FIFO und Failure-Harness | Lokale Vertrags-/Recoverytests | Cloud-Atomizität, Fehlerweitergabe, Idempotenz, Konflikte, Tombstones, Multi-Device | CRITICAL / P0 | Transaktionsvertrag und Regressionen; Astra | ASTRA_REQUIRED |
+| S5 Account / Privacy | Defensiver Delete-Client, lokaler Export, Datenkarte | Lokale Export-/Fehlerpfade | Delete-RPC/Auth-Cascade/Idempotenz, Cloud-Export, Cleanup-Scope, Retention | CRITICAL / P0 | Backendvertrag + Erfolg vor Cleanup; Astra, Nutzer Privacy | ASTRA_REQUIRED |
+| S6 AI Production | Serverproxy, Timeout/Validierung, Safety-Tests | 37 API-Tests, keine Providerkeys im Bundle erkannt | Produktions-Bypass schließen, Server-Pro, verteilte Limits/Budget, Kill Switch, DE/EN Safety | CRITICAL / P0 | Fail-closed Auth zuerst; Astra / Nutzer Providerbetrieb | ASTRA_REQUIRED |
+| S7 Billing | Entitlement-Abstraktion, globaler Beta-Bypass | Client-Vertragstests | Store-IAP, Serverquelle/Webhooks/Restore, Produktkonfiguration | HIGH / P1, vor Paid Release | Keine Client-Pro-Autorität; Astra / Nutzer Store-Verträge | PREPARED |
+| S8 Infrastructure / Recovery | Lokale Backups und Diagnosebuffer | Lokale Recovery-Tests | Echte Cloud-Restoreprobe, IAM, Alarmierung, Incident-/Deploymentprozesse | HIGH / P0–P1 | Restore/Runbooks ohne Rohdaten; Astra / Nutzer Betrieb | PARTIAL |
+| S9 Application Security | Validierung, gebundene lokale SQL, bestehende Media-Grenzen | Ausgewählte Validierungs-/Scope-Regressionen | SAST/DAST, Deep-Link-/Upload-/Netzwerk-Missbrauch, Plattformkonfiguration | HIGH / P0–P1 | Angriffsflächen gezielt testen; Astra | PARTIAL |
+| S10 Legal / Store / Accessibility | Checklisten, Herkunftsdokumente, DE/EN UI | Dataset-Blob kompatibel; Foto-Rechte nicht bewiesen | Medienrechte, Texte/Verträge/Retention, Store-Privacy, echte A11y-Abnahme | HIGH / P0–P1 | Technische Fakten liefern; Nutzer Recht/Business, Astra A11y | USER_ACTION_REQUIRED |
+| S11 Device / Red Team / Release | Geräte-/Beta-Matrizen | Hosttests und Web-Build | Reale iOS/Android-Abnahme, Pen-/Missbrauchstests, signierte Builds, Restore/Purchase | CRITICAL / P0 | Checklisten auf Builds ausführen; Geräteowner + Astra | PHYSICAL_DEVICE_REQUIRED |
+| S12 Postlaunch Security | Guardrails nennen Betriebsrhythmus | Rhythmus und Eskalation in SECURITY.md verankert | Verantwortliche, Infrastruktur, praktische IR-/Restoreübungen | HIGH / P2+ dauerhaft | Regelbetrieb vor Launch besetzen; Nutzer Betrieb + Astra | PREPARED |
+
+Security-Gates bleiben releaseblockierend, auch wenn die technische Test-Suite grün ist. Reihenfolge: S0/S1, S2-Gerätenachweis, S3/S4/S5; parallel unabhängig vorbereitbare S6-Korrekturen. Keine Remote-Migration ohne Review.
+
+## Produkt- und technische Ausgangsmatrix
+
 Auditbasis: `6471138`, frisch gefetchtes `origin/main`; Branch `astra/p0-release-core`. Diese Bewertung hat Vorrang vor dem historischen Gemini-Stand unten. Hosttests ersetzen keine Geräte-/Cloud-Abnahme. Messergebnisse: `EXECUTION_STATUS.md`.
 
 | Area | Current implementation | Gemini preparation | Tests / evidence | Risk | Remaining work | Astra action |

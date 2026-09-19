@@ -10,7 +10,7 @@ Status bleibt PARTIAL bis zur nativen Abnahme, insbesondere große vollständige
 
 ## Pre-Security Checkpoint
 
-Commit: dieser SecureStore-/Takeover-Commit; Hash wird im folgenden Governance-Commit eingetragen.
+Checkpoint-Commit: `6c01522`, auf `origin/astra/p0-release-core` gepusht. Keine Main-Integration oder Produktionsänderung.
 Branch: `astra/p0-release-core`. Date: 2026-09-19.
 
 Gemini work reviewed: SecureStore, RLS/Sync, Account-Lifecycle/Export, AI/Billing, Diagnostics, Dataset, Regressionen und UI-/Releasevorarbeit. Klassifizierung steht in `EXECUTION_STATUS.md`.

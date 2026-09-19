@@ -77,3 +77,32 @@ jobs:
           node-version: '24'
       - name: Audit locked dependencies (known high findings block release)
         run: pnpm audit --audit-level=high
+
+  rls:
+    name: PostgreSQL ownership & RLS
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17.11-bookworm@sha256:639ab7ceb90e13123085b741fb31ef493fba25463002f6da665352e7b534b652
+        env:
+          POSTGRES_PASSWORD: evaro-ci-disposable
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPORT: '5432'
+      PGUSER: postgres
+      # Public credential for this disposable, job-local test service only.
+      PGPASSWORD: evaro-ci-disposable
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - name: Real PostgreSQL RLS assertions and rollback proof
+        run: bash scripts/security/run-rls-tests.sh

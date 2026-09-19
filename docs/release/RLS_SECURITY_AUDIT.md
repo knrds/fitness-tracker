@@ -1,8 +1,14 @@
 # EVARO – Row Level Security (RLS) Deep Audit
 
+## Aktueller Astra-Nachweis: PARTIAL / CRITICAL
+
+PostgreSQL 17.11: Baseline-Cross-Account-FK-Verweis tatsächlich reproduziert. Migration `supabase/migrations/202609190001_rls_reference_ownership.sql` ergänzt restrictive Ownership-/FK-Guards. 304 SQL-Assertions für alle elf Tabellen, A/B/anon, Inserts/Updates fremder Referenzen, gemeinsame Library, PR-Konsistenz und Privilegien PASS; derselbe Lauf mit adversarial permissive Policies PASS. Haupt-Fixtures werden rückgerollt; unsicherer Bestandszustand in separater Test-DB blockiert Migration ohne Datenverlust. Ausführung/Provenienz/Grenzen: RLS_LOCAL_TEST_HARNESS.md. Supabase Auth/JWT/PostgREST und Remote-Deployment sind weiterhin nicht abgenommen.
+
+Der folgende Abschnitt beschreibt den ursprünglichen, inzwischen ersetzten Gemini-Harness. Korrektur zur ursprünglichen Bestandsaufnahme: `workout_sessions.duration_seconds` ist eine gültige Spalte; falsch war dort `volume_kg`.
+
 ## Astra-Korrektur 19.09.2026 — ASTRA_REQUIRED / CRITICAL
 
-Die statische Tabellen-/CRUD-Policy-Zuordnung unten wurde gegen `docs/schema.sql` nachvollzogen. Ihre Existenz beweist weder Deployment noch wirksame Isolation. Die kategorischen „Nein“-Aussagen des historischen Audits sind **nicht runtime-verifiziert**. Der vorhandene SQL-Harness benutzt falsche Spalten (u.a. users.full_name/plan, workout_sessions.duration_seconds/volume_kg, body_metrics.date, exercises.target_muscle_group), lässt Pflichtfelder aus, setzt ON_ERROR_STOP off und enthält keine ausführbaren Ergebnis-Assertions. Nicht gegen Produktion ausführen; Fixtures werden dort teilweise committet.
+Die statische Tabellen-/CRUD-Policy-Zuordnung unten wurde gegen `docs/schema.sql` nachvollzogen. Ihre Existenz beweist weder Deployment noch wirksame Isolation. Die kategorischen „Nein“-Aussagen des historischen Audits sind **nicht runtime-verifiziert**. Der ursprüngliche SQL-Harness benutzte falsche Spalten (u.a. users.full_name/plan, workout_sessions.volume_kg, body_metrics.date, exercises.target_muscle_group), ließ Pflichtfelder aus, setzte ON_ERROR_STOP off und enthielt keine ausführbaren Ergebnis-Assertions. Er wurde durch den oben beschriebenen lokalen Nachweis ersetzt.
 
 Zusätzlich zu Owner A/B/anon für SELECT/INSERT/UPDATE/DELETE aller elf Tabellen müssen die folgenden Referenzen geprüft werden. Die derzeitigen WITH-CHECK-Klauseln prüfen den Besitzer der Zeile/ihres Elternobjekts, aber nicht die erlaubte Ownership aller weiteren Fremdschlüssel:
 

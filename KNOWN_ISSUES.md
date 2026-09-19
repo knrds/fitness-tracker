@@ -1,5 +1,7 @@
 # Bekannte Probleme und Freigabegrenzen
 
+S3-Update: Der ursprünglich fehlerhafte RLS-Harness ist ersetzt, 304 Assertions laufen gegen echtes PostgreSQL 17.11. Cross-Account-FK-Lücke reproduziert und durch additive restrictive Migration geschlossen; Bestandsdaten-/Rollback-Gates getestet. Remote-Supabase/Auth/PostgREST, tatsächliche Grants/Policies und Deployment weiterhin offen. Frühere Aussagen zum fehlenden lokalen RLS-Nachweis unten sind überholt.
+
 Security-Fortschritt 19.09.2026: Der unten im Eingangsaudit genannte öffentliche ALLOW_PROTOTYPE_COACH-Auth-Bypass ist inzwischen geschlossen. S6 bleibt offen für Server-Pro, verteilte Budgets/Limits, DE/EN Safety und Live-Abnahme. Nach drei S1-Paketfixes bleiben 57 Audit-Befunde (43 high/14 moderate).
 
 Host-Teststabilität: Im S6-Gesamtlauf überschritt largeDatasetPerformance die Fuzzy-Such-Grenze 50 ms mit 57 ms; isoliert 22 ms und alle fünf Performance-Tests PASS. Kein Suchcode geändert und keine Grenze aufgeweicht. Diese Host-Zeitmessung ersetzt keine native Performance-Abnahme; Wiederholungslauf/Nachweise in EXECUTION_STATUS.md.

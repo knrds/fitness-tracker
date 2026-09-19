@@ -1,5 +1,7 @@
 # EVARO – RLS Negative Test Matrix & Harness Specification
 
+Aktuelle Abnahme 19.09.2026: 304 echte PostgreSQL-Assertions implementieren und erweitern diese frühere Spezifikation; A/B/Anonymous CRUD aller elf Tabellen, fremde sekundäre FKs, Shared Library, PR-Verknüpfungen, Grants, adversarial permissive Policies und Rollback. Laufbefehle/Grenzen in RLS_LOCAL_TEST_HARNESS.md. Keine Remote-Supabase-/JWT-Abnahme behauptet.
+
 **Stand:** 16. September 2026  
 **Dokumentierter Stand:** `docs/schema.sql`  
 **Zweck:** Deterministischer Testplan zur Absicherung gegen Cross-Tenant Data Leaks, Privilegieneskalation und unauthorisierte Zugriffe auf Supabase-Ebene.

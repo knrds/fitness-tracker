@@ -4,6 +4,8 @@ Basis `origin/main`: `6471138`. Review-Branch: `astra/p0-release-core`. Neuester
 
 ## Erledigter lokaler Engineering-Block
 
+Coach-Auth-Fix **3585062** gepusht, 603 Hosttests grün. Anschließend S3 lokal umgesetzt: PostgreSQL 17.11 isoliert ohne Docker; alter Cross-Account-FK-Angriff reproduziert; Migration `202609190001_rls_reference_ownership.sql` mit restrictive Guards und Bestands-/Lock-Gates. 304 SQL-Assertions PASS, nochmals mit zu großzügigen Testpolicies; negativer Migrations-Preflight erhält synthetischen Altbestand. Keine produktive Supabase-Änderung. Runner/Details: RLS_LOCAL_TEST_HARNESS.md. Nächster Datenblock: S4 Sync-Atomizität und Fehlersicherheit.
+
 S1-Patch-Commit **26e29d1** ist gepusht. Nachfolgender S6-Fix: öffentlicher ALLOW_PROTOTYPE_COACH-Bypass entfernt; 401 ohne Token, ungültige Tokens werden bei Supabase geprüft. Serverinterne Local-Identity bei production/VERCEL gesperrt. Drei vorher rote Negativszenarien jetzt grün, 38 API-/Safety-Tests. Keine Remote-Bereitstellung. Restliche Pro-/Budget-/DE/EN-/Hosting-Gates bleiben offen.
 
 Security-Governance ist als `27fccac` gepusht (Regeln/Threat Model/S0–S12/CI-Gates). Danach nanoid/undici/tar gezielt gepatcht: vier vorher rote Angriffsregressionen grün; **602 Tests, Typecheck/Lint, Build und Expo-Konfigurationen PASS**. Audit jetzt **57 (43 high/14 moderate)**, prod **52 (41 high/11 moderate)**. S1 bleibt PARTIAL; CI-Audit blockiert weiterhin. Keine Freigabe trotz grüner Funktionstests. Exakte Details: EXECUTION_STATUS.md und SECURITY.md.
@@ -25,8 +27,8 @@ Verified: `pnpm verify` mit 598 Tests (77 Domain, 484 Mobile, 37 API); Typecheck
 
 ## Bereits inventarisierter nächster Daten-Security-Block: RLS, dann Sync
 
-1. Lokalen PostgreSQL/Supabase-Nachweis herstellen. Docker, Supabase CLI und psql sind auf diesem Desktop nicht verfügbar. Vorhandenen `rls_negative_tests.sql` nicht als gültigen Test übernehmen: falsche Spalten/Pflichtfelder, keine Assertions, Fehlerfortsetzung und persistente Fixtures. Erst auf tatsächlich ausführbare, rückrollende Tests umbauen.
-2. SELECT/INSERT/UPDATE/DELETE aller 11 Tabellen für Owner, fremden User und anon; zusätzlich FK-Verknüpfungen mit fremden Übungen/Templates/Programmen/Sessions prüfen. Versionierte Migration erst aus diesen Ergebnissen ableiten. Keine Production-Policy blind deployen.
+1. Lokaler PostgreSQL-Nachweis inzwischen hergestellt; portabler Server in output/, nicht systemweit installiert. Korrigierter Harness nutzt Assertions und Rollback. Weiterhin kein vollständiger Supabase Auth-/PostgREST-Nachweis.
+2. 304 lokale Assertions prüfen alle elf Tabellen und fremde Referenzen. Vorbereitete Migration nicht blind deployen: tatsächliche Grants/Policies/Altbestände und Backup prüfen. Details und Reproduktion: RLS_LOCAL_TEST_HARNESS.md.
 3. `syncStore.ts`: ignorierte Child-Delete-/Pull-Fehler; sequenzielle Aggregate-Ersetzung ohne Cloudtransaktion. Lokale FIFO-Outbox ist kein Cloud-Idempotenz-/Konfliktnachweis. Atomare RPCs plus begründete Revision-/Tombstone-Strategie gemeinsam mit echtem Backend testen.
 
 ## Weitere bestätigte P0-Risiken

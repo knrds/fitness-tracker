@@ -1,5 +1,7 @@
 # EVARO – Astra Review Queue
 
+Aktuellster S3-Block: lokale PostgreSQL-17.11-RLS-Abnahme mit 304 Assertions und adversarial Policy-/Preflight-/Rollback-Szenarien; restrictive Migration vorbereitet. Ursprungslücke real reproduziert. Review: Remote-Policy-/Grant-/Dateninventar, Sperrzeitfenster/Backup und Supabase-HTTP-Abnahme erforderlich; keine Produktion migriert. S4 kann auf dem lokal geprüften Ownership-Vertrag weiterarbeiten.
+
 Aktuellster S6-Fix: öffentlicher Prototype-Auth-Bypass entfernt, lokale interne Identität in Production/VERCEL gesperrt. Drei zuvor rote Auth-Negativszenarien grün; 38 API-/Safety-Tests. S6 PARTIAL bis Serverentitlement, verteilte Quoten/Budget/Kill-Switch, DE/EN und reale Abnahme. Kein Remote-Rollout. Vorheriger S1-Patch `26e29d1` gepusht.
 
 ## Security Governance S0/S1 — 19.09.2026

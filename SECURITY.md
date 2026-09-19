@@ -1,5 +1,7 @@
 # Security und Privacy
 
+S3-Nachweis 19.09.2026: Restrictive RLS-/FK-Guards in versionierter Migration, auf echter lokaler PostgreSQL-17.11-Engine mit 304 Assertions und adversarial permissive Policies geprüft. Bestands-Preflight blockiert inkonsistente Verknüpfungen atomar; Haupt-Fixtures/Helper werden rückgerollt. Keine Remote-Supabase-Änderung und kein JWT-/PostgREST-Abnahmeersatz. Details: docs/release/RLS_LOCAL_TEST_HARNESS.md.
+
 S6-Korrektur 19.09.2026: ALLOW_PROTOTYPE_COACH ist wirkungslos; öffentliche Requests benötigen geprüfte Supabase-Authentifizierung. Header/Body/Forwarded-IP können keine lokale Identität setzen; diese serverinterne Entwicklungsausnahme ist bei NODE_ENV=production oder VERCEL gesperrt. Alte anonyme Prototype-Quota entfällt. Keine Änderung an Providerkeys, Datenpersistenz oder Remote-Deployment. Echte Serverentitlements, verteilte Limits/Budget, Kill-Switch, zweisprachige Safety und Live-Abnahme fehlen weiterhin.
 
 ## Dauerhafter Security-Vertrag (19.09.2026)

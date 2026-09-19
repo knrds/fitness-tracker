@@ -2,6 +2,16 @@
 
 Stand: 2026-09-19. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
+## Neuester Daten-Security-Block — S3 RLS lokal verifiziert
+
+Vorheriger S6-Commit **3585062** gepusht. S3 Risiko **CRITICAL**, Status **PARTIAL** bis Remote-/Supabase-API-Abnahme. PostgreSQL 17.11 portabel unter output/ gestartet, nur Loopback, SCRAM/Zufallspasswort; keine Systeminstallation oder Produktionsverbindung. Herkunft und Grenzen dokumentiert in RLS_LOCAL_TEST_HARNESS.md.
+
+Der echte DB-Baseline-Test reproduziert einen fremden exercise_id-Verweis aus eigenem Template. Additive Migration `202609190001_rls_reference_ownership.sql` ergänzt restrictive Ownership-/Referenzprüfungen, sodass weitere permissive Policies sie nicht per OR umgehen. TRUNCATE/REFERENCES/TRIGGER-/Schema-CREATE-Clientprivilegien entzogen. Schreibsperren vor Bestandsprüfung, begrenzte Lock-/Statementzeit; ungültige Altdaten führen zum atomaren Abbruch, nicht zur automatischen Reparatur/Löschung.
+
+**304 PostgreSQL-Assertions PASS**, wiederholt mit absichtlich großzügigen Policies; vollständiger Haupt-Fixture-/Helper-/Policy-Rollback zusätzlich bestätigt. Zweite isolierte Negativdatenbank: Migration verweigert inkonsistente Bestandsdaten und erhält sie unverändert. Runner in CI mit gepinntem offiziellem PG-Image eingebaut; GitHub-Ausführung separat offen. SQL-Tests setzen Claims selbst: keine Behauptung einer GoTrue/JWT/PostgREST-Abnahme. PostgreSQL-Engine ist echt, Auth-Transportschicht wird nicht simuliert als Beweis verwendet.
+
+Abschlussmessung: erneuter Runner nach Einbau der Schreibsperren PASS; `pnpm verify` PASS mit **603 Hosttests**, Typecheck/Lint PASS; CI-YAML und Image-Digest geprüft. 14 neue restrictive Policies auf elf Tabellen, lokale Haupt-Testdatenbank danach null öffentliche Profile und null Auth-Fixtures. Keine App-/Lockfileänderung im S3-Block; vorheriger Build bleibt unverändert.
+
 ## Neuester Security-Block — S6 öffentlicher Auth-Bypass
 
 Nach gepushtem S1-Patch **26e29d1** die unabhängig behebbare CRITICAL-Lücke im Coach geschlossen: ALLOW_PROTOTYPE_COACH wird ignoriert, keine IP-basierte anonyme Identität; fehlender Bearer 401 vor Providerkontakt, ungültiger Bearer durch Supabase verifiziert/abgelehnt. Local-Development-Identität ist bei NODE_ENV=production oder VERCEL gesperrt. Der bereits auf Loopback begrenzte lokale Server bleibt nutzbar. Absichtliche Verhaltensänderung: öffentliche anonyme Prototyprequests funktionieren nicht mehr.
@@ -95,7 +105,7 @@ Offen: reale iPhone-/Android-Upgrades mit gleicher Bundle-ID, Sperre/Reboot/Proz
 
 ## Critical Remaining — nächste Reihenfolge
 
-1. **RLS / CRITICAL:** Alle 11 Tabellen inklusive vererbter Ownership und fremder FK-Verweise mit A/B/Anonymous CRUD testen. Bestehender Harness verwendet z.B. `full_name`, `plan`, `duration_seconds`, `volume_kg`, `date`, `target_muscle_group` entgegen dem Schema; Pflichtfelder fehlen; `ON_ERROR_STOP off` und Kommentare sind keine Assertions. Deploymentzustand unbekannt. Weder Docker (auch nicht im Standardpfad), Supabase CLI noch psql hier verfügbar. Kein Remote-Apply.
+1. **RLS / CRITICAL:** Lokaler SQL-Vertrag inzwischen mit 304 Assertions auf echter PostgreSQL-Engine verifiziert; vorhandener Gemini-Harness korrigiert und FK-Lücken geschlossen. Supabase-/PostgREST-/Deploymentzustand und reale Bestandsdaten weiterhin unbekannt. Kein Remote-Apply.
 2. **Sync / CRITICAL:** Child-Delete-/Pull-Fehler nicht durchgehend geprüft; Aggregate werden ohne Transaktion gelöscht/neu geschrieben. Cloud-RPCs, fachliches Konflikt-/Revisionsmodell und Tombstones begründet implementieren, dann echte Multi-Device-Abnahme. Lokale Outbox schützt nicht vor unvollständigen Cloud-Aggregaten.
 3. **Account Deletion / CRITICAL:** Echter parameterloser, authentifizierter Serververtrag fehlt. Client prüft keinen expliziten Erfolg und keine Ursprungsgeneration vor lokalem Cleanup; verschluckt Cleanupfehler. Erst Backend+Scope+Idempotenz+Fehlertests, dann Aktivierung.
 4. **AI / CRITICAL:** Öffentlicher Prototyp-Bypass inzwischen geschlossen; weiterhin globale Pro-Freigabe im Client, kein Serverentitlement, verteiltes Budget/Limits oder bestätigtes HTTPS-Deployment. Safety antwortet nur DE. Keine Produktivfreigabe.
@@ -107,7 +117,7 @@ Offen: reale iPhone-/Android-Upgrades mit gleicher Bundle-ID, Sperre/Reboot/Proz
 - Provider-/Hosting-/Supabase-Konfiguration und Credential-Verantwortung; Secrets nicht im Chat/Repo ablegen.
 - RevenueCat/Storeprodukte, Preise, finanzielle Verträge.
 - Rechtstexte/Business-/Supportdaten sowie Medienrechte bzw. Ersatzstrategie.
-- Lokale Docker/Supabase-Testumgebung für echte RLS-Abnahme bereitstellen. Produktionsfreigabe ist davon getrennt.
+- Supabase-Testprojekt oder lokale vollständige Supabase-Umgebung für Auth-/PostgREST-Abnahme; reine SQL-RLS-Tests laufen inzwischen ohne Docker. Produktionsfreigabe bleibt getrennt.
 
 ## PHYSICAL_DEVICE_REQUIRED
 

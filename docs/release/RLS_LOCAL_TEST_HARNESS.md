@@ -1,83 +1,40 @@
-# EVARO – RLS Local Test Harness & Execution Guide
+# EVARO – RLS Local Test Harness
 
-**Zielgruppe:** Astra Reviewer  
-**Bezug:** Review Item [AR-014](file:///d:/TrainingsAppGPT/docs/release/ASTRA_REVIEW_QUEUE.md)  
-**Testskript:** [rls_negative_tests.sql](file:///d:/TrainingsAppGPT/docs/release/rls_negative_tests.sql)  
-**Schema-Quelle:** [docs/schema.sql](file:///d:/TrainingsAppGPT/docs/schema.sql)
+Stand: 19.09.2026. Risiko CRITICAL. Dieser Ablauf testet echte PostgreSQL-Policies mit synthetischen Daten. Er ist keine Freigabe der produktiven Supabase-Instanz und ersetzt keine GoTrue-/PostgREST-/JWT-Abnahme.
 
----
+## Geprüfter Stand
 
-## 1. Zweck des Test-Harness
+- PostgreSQL 17.11 nativ unter Windows, isoliert unter `output/`, nur `127.0.0.1:55432`, SCRAM mit lokal generiertem Zufallspasswort. Kein Systemdienst, kein Docker erforderlich, keine Remote-Verbindung.
+- Ursprüngliches `docs/schema.sql`: bidirektionale Basis-CRUD-Tests funktionieren, aber User A kann einen eigenen Template-Eintrag auf eine private Übung von B umstellen. Die Assertion scheitert vor der Migration genau an diesem unerlaubten FK-Verweis.
+- Nach `supabase/migrations/202609190001_rls_reference_ownership.sql`: **304 Assertions PASS**; nochmals **304 PASS mit absichtlich zu großzügigen permissiven Policies**. Das sind zwei Szenarien derselben Suite, nicht 608 verschiedene Tests.
+- A/B: eigene CRUD-Operationen, fremde CRUD-Operationen, Besitzerwechsel, acht sekundäre FK-Typen jeweils INSERT/UPDATE, PR-Session-/Exercise-Konsistenz, optionale Referenzen und Library-Verweise. Anonymous: CRUD aller elf privaten Tabellen sowie erlaubtes Lesen/unerlaubtes Schreiben des gemeinsamen Übungskatalogs. TRUNCATE-/CREATE-Privilegien und aktiviertes RLS werden geprüft.
+- Haupt-Harness läuft in einer Transaktion mit abschließendem ROLLBACK; fehlgeschlagene Assertions stoppen sofort. Zusätzlich prüft der Runner, dass Daten/Helper/Testpolicies verschwunden sind.
+- Ein zweites, ausdrücklich `_unsafe_rls_test` genanntes Wegwerf-DB-Szenario enthält absichtlich einen fremden FK-Verweis. Die Migration muss abbrechen und die künstlichen Bestandsdaten unverändert erhalten. Nur diese synthetischen Negativ-Fixtures bleiben in dieser isolierten DB für den Nachweis bestehen.
 
-Gemäß Phase I der Pre-Astra-Vorgaben werden RLS-Policies nicht ungeprüft auf Remote-Instanzen deployed.
-Dieses Dokument und das begleitende SQL-Skript ermöglichen Astra, die RLS-Architektur nach lokalem Start der Supabase-Container sofort automatisiert und reproduzierbar auf alle wesentlichen Sicherheitsgrenzen zu testen:
+## Dateien und Ausführung
 
-1. **Anonymous Denied:** Unauthentifizierte Clients können keine Benutzer- oder Session-Daten lesen oder einfügen.
-2. **User A cannot read User B:** Mandantentrennung bei SELECT auf allen Tabellen (`workout_sessions`, `body_metrics`, custom `exercises`).
-3. **User A cannot update User B:** UPDATE-Versuche auf fremde Datensätze modifizieren 0 Zeilen (stilles Leeren ohne Fehler oder Datenkorruption).
-4. **User A cannot delete User B:** DELETE-Versuche auf fremde Datensätze löschen 0 Zeilen.
-5. **Owner Spoofing Denied:** INSERT mit fremder `user_id` schlägt mit PostgreSQL-Policy-Fehler fehl (`WITH CHECK`-Validierung greift deterministisch).
+`scripts/security/rls-bootstrap.sql` erzeugt ausschließlich in einer frischen Testdatenbank `auth.users(id)`, `auth.uid()` und die nicht privilegierten Rollen authenticated/anon. Die Funktion liest gesetzte Testclaims. Sie validiert keine JWTs und implementiert keinen Auth-Server. Breite CRUD-Grants sorgen dafür, dass die SQL-Assertions tatsächlich RLS testen.
 
----
-
-## 2. Voraussetzungen
-
-- Docker Desktop aktiv
-- Supabase CLI installiert (`npm install -g supabase` oder via Homebrew / Scoop)
-
----
-
-## 3. Ausführungsschritte für Astra
-
-### Schritt 1: Lokale Supabase-Instanz starten
+`scripts/security/run-rls-tests.sh` verlangt einen bereits gestarteten lokalen PostgreSQL-Server und verfügbare `psql`/`createdb`. PGHOST ist fest Loopback; PGPORT standardmäßig 55432 und PGUSER standardmäßig evaro_test_admin. PGPASSWORD nur lokal als Environment, nie als Kommandoargument oder im Repo. Der Runner erzeugt neue zufällig benannte Datenbanken, überschreibt/löscht keine vorhandenen und führt Baseline, Migration, beide RLS-Szenarien und den negativen Preflight aus.
 
 ```bash
-# Im Projektverzeichnis ausführen
-supabase init
-supabase start
+bash scripts/security/run-rls-tests.sh
 ```
 
-### Schritt 2: EVARO Datenbankschema einspielen
+Unter Git Bash müssen dessen `/usr/bin` und das portable PostgreSQL-`bin` im PATH liegen. Auf diesem Desktop sind die portablen Binaries in `output/security-tools/postgresql-17.11-3/pgsql/bin`. Serverdaten/Passwort/Logs bleiben ignoriert in `output/`. Nach der Arbeit den eigenen Testserver mit `pg_ctl -D output/rls-postgres-data -m fast -w stop` beenden; kein fremder Prozess wird beendet.
 
-```bash
-# Schema aus docs/schema.sql anwenden
-supabase db execute --file docs/schema.sql
-```
+CI verwendet das offizielle PostgreSQL-17.11-Bookworm-Image mit festem Registry-Digest und ausschließlich öffentlichen Wegwerf-Testcredentials. Der gleiche Shell-Runner wurde auf Windows mit Git Bash und echtem PostgreSQL ausgeführt. Die tatsächliche GitHub-Runner-Ausführung und Required-Check-Einstellungen sind separat nachzuweisen.
 
-### Schritt 3: RLS Negative Tests ausführen
+## Migration / Review / Rollback
 
-```bash
-# Testskript via psql oder Supabase CLI ausführen
-supabase db execute --file docs/release/rls_negative_tests.sql
-```
+Die Migration ist additiv: restrictive Policies ergänzen die bisherigen permissiven Policies. Ownership muss somit auch bei weiteren permissiven Regeln gelten. Tabellenweite TRUNCATE/REFERENCES/TRIGGER- und Schema-CREATE-Rechte für Clientrollen/PUBLIC werden entzogen. RLS wird für alle elf Tabellen aktiviert. Service-/Owner-/BYPASSRLS-Rollen bleiben bewusst außerhalb der RLS-Garantie; ihre Credentials gehören niemals in die App.
 
-Alternativ direkt per `psql`:
+Alle Tabellen werden vor dem Bestandscheck gegen konkurrierende Writes gesperrt; fünf Sekunden Lock-Timeout und 60 Sekunden Statement-Timeout. Ungültige vorhandene Verknüpfungen führen zum vollständigen Abbruch. Es gibt keine automatische Löschung, Eigentümer-Neuzuordnung oder History-Reparatur. Abbruch rollt Policy-/Grantänderungen zurück. Nach erfolgreichem Apply wäre Entfernen der Guards eine Wiederöffnung der Lücke; kein automatisches Production-Downgrade.
 
-```bash
-psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -f docs/release/rls_negative_tests.sql
-```
+Vor Remote-Apply: tatsächliche Schema-/Policy-/Grant-/Rollen-Differenzen, PostgreSQL-Version, Bestandsdaten, Sperrzeitfenster, Backup/Restore und API-Integration prüfen. Bestehende Tabellen mit anderen Spalten müssen gesondert migriert werden. Kein Remote-Apply in dieser Session. Supabase-Auth, PostgREST und reale A/B/Anonymous-HTTP-Anfragen bleiben USER_ACTION_REQUIRED / ASTRA_REQUIRED, abhängig von Zugang und Testumgebung.
 
----
+## Herkunft der lokalen Engine
 
-## 4. Erwartetes Testergebnis
+Offizielle [PostgreSQL-Windows-Seite](https://www.postgresql.org/download/windows/) verweist auf [EDB-Binaryarchive](https://www.enterprisedb.com/download-postgresql-binaries). Verwendet: `postgresql-17.11-3-windows-x64-binaries.zip` vom HTTPS-Host get.enterprisedb.com. Gemessener SHA256: `4b8db0930c38f6ef845db919551dedda3b6b845aeb0927b3d79a6e8e9e4537cf`. Kein separat publizierter Soll-Hash nachgewiesen, postgres.exe ist nicht Authenticode-signiert; der Hash dokumentiert die verwendeten Bytes und ist kein unabhängiger Hersteller-Signaturnachweis. Die Runtime ist ausschließlich lokales Testwerkzeug und keine App-Abhängigkeit.
 
-| Test # | Beschreibung | Erwartetes Verhalten | Sicherheitsziel |
-|---|---|---|---|
-| **Test 1** | Anonymous SELECT auf `users` | `0` Zeilen | Kein Datenleck unauthentifizierter Clients |
-| **Test 2** | Anonymous SELECT auf `workout_sessions` | `0` Zeilen | Trainingshistorie vor Web-Scraping geschützt |
-| **Test 3** | Anonymous INSERT auf `workout_sessions` | `ERROR: new row violates row-level security policy` | Keine fremden Injections ohne Auth-Token |
-| **Test 4** | User A SELECT auf User B Session | `0` Zeilen | Strikte Isolation privater Workouts |
-| **Test 5** | User A SELECT auf User B Körpermaße | `0` Zeilen | Höchster Datenschutz für Gesundheitsdaten |
-| **Test 6** | User A SELECT auf User B Custom Übung | `0` Zeilen | Eigene Übungskreationen bleiben privat |
-| **Test 7** | User A UPDATE auf User B Session | `UPDATE 0` (0 Zeilen geändert) | Keine Fremdmanipulation möglich |
-| **Test 8** | User A DELETE auf User B Session | `DELETE 0` (0 Zeilen gelöscht) | Fremdes Löschen unmöglich |
-| **Test 9** | User A INSERT mit fremder `user_id` (Spoofing) | `ERROR: new row violates row-level security policy` | Token `auth.uid()` zwingend identisch mit `user_id` |
-| **Test 10** | User A regulärer INSERT & SELECT eigener Daten | `1 row` erfolgreich persistiert | Regulärer Trainingsbetrieb ungestört |
-
----
-
-## 5. Astra Review Bestätigung
-
-Sobald diese 10 Tests auf der lokalen Supabase-Instanz fehlerfrei durchlaufen:
-- In `docs/release/ASTRA_REVIEW_QUEUE.md` den Punkt `AR-014` auf `APPROVED` setzen.
-- Migration `schema.sql` in die offizielle Supabase Migration Pipeline (`supabase/migrations/`) übernehmen.
+RLS-Semantik: [PostgreSQL-Dokumentation](https://www.postgresql.org/docs/17/ddl-rowsecurity.html). Aktuelle Ergebnisse/Deployment-Gates: EXECUTION_STATUS.md und P0_READINESS_MATRIX.md.

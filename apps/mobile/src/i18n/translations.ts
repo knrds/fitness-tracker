@@ -361,6 +361,8 @@ export const translations = {
     },
     auth: {
       loginTitle: 'Willkommen zurück',
+      sessionStorageFailed: 'Die Anmeldung konnte nicht sicher gespeichert werden. Bitte erneut versuchen.',
+      sessionCleanupFailed: 'Die Anmeldung konnte nicht vollständig entfernt werden. Bitte erneut abmelden.',
       registerTitle: 'Konto erstellen',
       emailLabel: 'E-Mail-Adresse',
       emailPlaceholder: 'email@example.com',
@@ -742,6 +744,8 @@ export const translations = {
     },
     auth: {
       loginTitle: 'Welcome back',
+      sessionStorageFailed: 'The session could not be stored securely. Please retry.',
+      sessionCleanupFailed: 'The session could not be fully removed. Please retry sign out.',
       registerTitle: 'Create your account',
       emailLabel: 'Email Address',
       emailPlaceholder: 'email@example.com',

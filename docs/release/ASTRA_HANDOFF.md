@@ -1,97 +1,40 @@
-# ASTRA START HERE
+# ASTRA START HERE — aktueller Handoff 2026-09-19
 
-**Stable Commit:** `8f5c4ab` (Base) | Current HEAD  
-**Stable Tag:** `v0.1.0-beta.6`  
-**Quality Gates:** Typecheck: PASS (0 errors) | Lint: PASS (0 errors) | Tests: 534 PASS | Build: PASS | Coach: PASS  
-**Working Tree:** Clean  
+Basis `origin/main`: `6471138`. Review-Branch: `astra/p0-release-core`. Neuester vorhandener Beta-Tag: `v0.1.0-beta.6`. Kein Main-Merge, keine Produktionsmigration, kein EAS-/OTA-Rollout. Konkrete Gates und Session-Ergebnis: [EXECUTION_STATUS](EXECUTION_STATUS.md). Vollständige Ist-/Roadmap-Matrix: [P0_READINESS_MATRIX](P0_READINESS_MATRIX.md).
 
----
+## Erledigter lokaler Engineering-Block
 
-## Critical path (Astra P0 Architecture)
+P0-A SecureStore ist jetzt nativ in Supabase integriert. Gemini-Adapter wiederverwendet und unsichere Garantien korrigiert: kein flüchtiger Fallback, keine als leer verschluckten Lesefehler, verifizierte Writes, serialisierte Migration/Refresh/Logout, geprüfte Sessionstruktur und nicht sensible v1-Marker gegen Token-Resurrection. Beide Legacy-Quellen werden bereinigt. Authfehler zeigen feste DE/EN-Texte, keine Secrets. Bestehende SQLite-/Workoutdaten werden nicht geändert.
 
-1. **Secure Storage activation (`AR-013`):**
-   - *Status:* PREPARED & TESTED (`secureStorage.ts`).
-   - *Astra Action:* Validate hardware Keychain/Keystore on physical iOS & Android devices. Connect adapter as custom storage in `apps/mobile/src/utils/supabase.ts`. Execute zero-logout session migration.
-2. **Supabase RLS verification + deployment (`AR-004`, `AR-019`):**
-   - *Status:* AUDITED & TEST-HARNESS READY (`docs/schema.sql`, `docs/release/rls_negative_tests.sql`).
-   - *Astra Action:* Deploy production policies to Supabase. Execute negative isolation tests against multi-tenant schemas.
-3. **Sync integrity architecture (`AR-004`, `AR-019`):**
-   - *Status:* LOCAL OUTBOX VERIFIED (`syncStore.ts`, `syncWorker.test.ts`).
-   - *Astra Action:* Implement conflict resolution, vector/version clocks, revisions, and server tombstones without destructive data loss.
-4. **Account deletion backend RPC (`AR-014`):**
-   - *Status:* SPECIFIED & CLIENT-GUARDED (`accountDeletionService.ts`).
-   - *Astra Action:* Deploy PostgreSQL `delete_user_account(user_id UUID)` RPC with `SECURITY DEFINER` on Supabase. Remove client safety barrier once live.
-5. **Production AI backend (`AR-007`, `AR-018`):**
-   - *Status:* HARDENED PROXY & SAFETY MATRIX PASS (`api/coach-safety.cjs`, `api/coach-chat.js`).
-   - *Astra Action:* Deploy distributed Redis rate limiting (Upstash), server-side token accounting, and subscription enforcement.
-6. **RevenueCat + entitlements (`AR-016`):**
-   - *Status:* ABSTRACTION & FALLBACKS READY (`entitlementService.ts`).
-   - *Astra Action:* Configure RevenueCat projects, App Store / Play Billing product IDs, install `react-native-purchases`, and bind to client service.
+Status bleibt PARTIAL bis zur nativen Abnahme, insbesondere große vollständige Sessionwerte, App-Update mit gleicher Identität, Reboot/Lock/Kill/Offline, Backup/Neuinstallation und Rollback. [Migrationsvertrag](SECURE_STORAGE_MIGRATION_PLAN.md) vor Release lesen. Ein Revert auf die alte MMKV-only-App ist nach Migration **kein** Zero-Logout-Rollback. Keine automatische Veröffentlichung dieses Branches.
 
----
+## Pre-Security Checkpoint
 
-## Gemini verified
+Commit: dieser SecureStore-/Takeover-Commit; Hash wird im folgenden Governance-Commit eingetragen.
+Branch: `astra/p0-release-core`. Date: 2026-09-19.
 
-- **Exercise Dataset Consolidation & ID Stability (`AR-024`):**
-  - ExerciseDB (`exerciseGifs.json` & `exercisedb-v1.json`) completely deleted from codebase. Zero commercial hotlinks remain.
-  - Free exercise catalog (`free-exercise-db.json`, 873 exercises) active with 100% deterministic UUID v4 keys.
-  - Image fallback and error handling hardened (`barbell-outline` fallback on Card, Row, and Detail views).
-  - License status documented in `EXERCISE_DATA_PROVENANCE.md` and `EXERCISE_ASSET_INVENTORY.md`.
-- **Legacy & Update Regression Suite (`legacyUpdateRegression.test.ts`):**
-  - Canonical exercise resolution from past workouts, templates, and programs.
-  - Unknown/removed exercise fallback ("Unbekannte Übung" / "Unknown Exercise") without crashes or history corruption.
-  - Custom user exercises isolated and intact.
-  - Persisted state backward compatibility (missing/removed fields tolerated across Profile, History, Workouts, Settings).
-  - Beta 5 -> Beta 6 state reload preserves colorway, RPE/RIR modes, timer intervals, haptics, and audio settings.
-- **Workout Edge-Case & Extreme Boundaries Suite (`workoutEdgeCaseRegression.test.ts`):**
-  - 0-exercise empty workout guard (returns null, prevents ghost records, cleanly resets to idle).
-  - 1-exercise single-set flow.
-  - 12 exercises / 60 sets volume stress test with zero corruption.
-  - Extreme weights (1250.5 kg) and fine-grained microloading decimal weights (1.25 kg, 17.25 kg).
-  - 0 reps handling, boundary RPE (6.0 - 10.0), boundary RIR (0 - 5).
-  - Rapid set completion toggle and set deletion sequences.
-  - Double finish / save idempotency.
-  - Rest timer engine: start, pause, stop, reset (to default 90s), and minimize/restore persistence.
-  - App recovery: unfinished workout restored from storage, guest partition isolation.
-- **Local Privacy-Safe Diagnostics (`diagnosticsService.ts`, `diagnosticsService.test.ts`):**
-  - Ring buffer (max 50 events) with zero PII and zero 3rd-party network calls.
-  - Automated regex sanitization strips Bearer tokens, JWTs, Supabase URLs/keys, and user emails.
-  - Meta filter blocks sensitive keys: `coachMessage`, `prompt`, `workoutName`, `weightKg`, `bodyFat`, `measurement`.
-- **Data Integrity & Export (`dataExportService.ts`):**
-  - 10 Data integrity contracts verified.
-  - Complete JSON data export covering all stores with zero schema errors.
-- **Performance Benchmarks (`largeDatasetPerformance.test.ts`):**
-  - 1,000 workouts and 10,000 sets processed in 39 ms.
-  - 500 body metrics processed in 2 ms.
-  - Fuzzy search across 873 catalog exercises in 5 ms.
-- **Store & Native Readiness:**
-  - `docs/release/STORE_METADATA_DRAFT.md`: Drafts for Apple App Store and Google Play (zero medical claims, marked as draft).
-  - `docs/release/STORE_SCREENSHOT_PLAN.md`: Shot list for 9 core screens.
-  - `docs/release/STORE_REVIEW_NOTES_TEMPLATE.md`: Guide for store review teams.
-  - `docs/release/PHYSICAL_DEVICE_SMOKE_TEST.md`: 15–25 min manual test package.
-  - Native configuration verified (`npx expo config --type public` / `--type introspect` PASS).
+Gemini work reviewed: SecureStore, RLS/Sync, Account-Lifecycle/Export, AI/Billing, Diagnostics, Dataset, Regressionen und UI-/Releasevorarbeit. Klassifizierung steht in `EXECUTION_STATUS.md`.
 
----
+Verified: `pnpm verify` mit 598 Tests (77 Domain, 484 Mobile, 37 API); Typecheck/Lint und Expo-Konfigurationen. Prepared but inactive: echtes Delete-Backend, Billing/Serverentitlements und vollständige Production-AI-Kontrollen. Known blockers: native Migration/Größe/Rollback, RLS-/Cloud-Abnahme, Providerkonfiguration, Legal/Billing/Devices.
 
-## Requires physical device
+**Security roadmap takeover starts after this checkpoint.** Neuer Nutzerauftrag: Security-Dateien im `evaro_release_execution_pack` lesen, Guardrails dauerhaft verankern, S0–S12 gegen Istzustand mappen; erster Security-Block Secrets/Supply Chain. Normale Feature-/Roadmap-Expansion bleibt eingefroren.
 
-- **Physical Device Smoke Test (`PHYSICAL_DEVICE_SMOKE_TEST.md`):** Complete the 19-step manual checklist on a real iOS and Android device.
-- **Hardware Secure Storage:** Validate iOS Keychain and Android Keystore encryption with real biometric / device lock states.
-- **Audio & Haptics:** Verify Taptic Engine set completion pulse, silent switch bypass / behavior, and timer completion audio alert.
-- **Gesture Performance:** Verify 60/120fps gesture fluidity for Rest Timer swipe-to-dismiss and set row deletion swipe.
-- **Keyboard Handling:** Test Gboard, Samsung Keyboard, and iOS Keyboard avoidance with decimal inputs.
+## Bereits inventarisierter nächster Daten-Security-Block: RLS, dann Sync
 
----
+1. Lokalen PostgreSQL/Supabase-Nachweis herstellen. Docker, Supabase CLI und psql sind auf diesem Desktop nicht verfügbar. Vorhandenen `rls_negative_tests.sql` nicht als gültigen Test übernehmen: falsche Spalten/Pflichtfelder, keine Assertions, Fehlerfortsetzung und persistente Fixtures. Erst auf tatsächlich ausführbare, rückrollende Tests umbauen.
+2. SELECT/INSERT/UPDATE/DELETE aller 11 Tabellen für Owner, fremden User und anon; zusätzlich FK-Verknüpfungen mit fremden Übungen/Templates/Programmen/Sessions prüfen. Versionierte Migration erst aus diesen Ergebnissen ableiten. Keine Production-Policy blind deployen.
+3. `syncStore.ts`: ignorierte Child-Delete-/Pull-Fehler; sequenzielle Aggregate-Ersetzung ohne Cloudtransaktion. Lokale FIFO-Outbox ist kein Cloud-Idempotenz-/Konfliktnachweis. Atomare RPCs plus begründete Revision-/Tombstone-Strategie gemeinsam mit echtem Backend testen.
 
-## Requires Konrad decision/action
+## Weitere bestätigte P0-Risiken
 
-1. **Exercise Images Strategy:**
-   - *Option A (Default):* Ship with `yuhonas/free-exercise-db` 2-photo step sequence (`0.jpg`/`1.jpg`) backed by automatic fallback.
-   - *Option B (Zero Risk):* Activate `modeOverride = 'ANATOMY_FALLBACK'` to use only MIT-licensed SVG figures for Store approval.
-2. **EAS Account & Cloud Build Credentials:**
-   - Run `npx eas-cli login` on build workstation before initiating cloud preview builds.
-   - Link Apple Developer Team ID and Google Play Console credentials.
-3. **AI Backend Production Credits:**
-   - Deposit production budget on OpenRouter / Groq and set monthly hard limit.
-4. **Support & Legal Contact Data:**
-   - Provide official support URL and support email to replace `[USER_ACTION_REQUIRED]` in `STORE_REVIEW_NOTES_TEMPLATE.md` and `STORE_METADATA_DRAFT.md`.
+- Account-Löschung: Client-Capability prüft nur Config/Auth; Erfolg nur `error:null`; Scope-Wechsel während Request nicht abgesichert, Cleanupfehler verschluckt. Backend-RPC/Auth-Cascade fehlt. Keinen Guard allein anhand alter Spec aktivieren.
+- AI: `ALLOW_PROTOTYPE_COACH=true` kann öffentliche Auth umgehen. Keine serverseitigen Pro-Entitlements, verteilten Quoten/Budgets oder nachgewiesenes HTTPS-Deployment. Deterministische Safety-Replies sind ausschließlich Deutsch; DE/EN selbst im Safety-Layer lösen.
+- Billing: `BETA_ALL_FEATURES_ENABLED=true`, kein natives Kauf-SDK; Providerabstraktion vorbereitet. Keine Produktionsfreigabe aus Client-Pro ableiten.
+- Export: lokal, kein vollständiger Cloud-/DSGVO-Nachweis. Medien: ExerciseDB technisch entfernt; Foto-Rechtekette weiterhin unbestätigt.
+- Audit: 67 Befunde (47 high/18 moderate/2 low). Kein pauschaler Ausschluss der Runtime-Exposition aus alten Berichten.
+
+## Bestehende Vorarbeit erhalten
+
+History-Tagesauswahl, direkte Plans-Erstellung und optionale Profildaten sind in `6471138` vorhanden. Free-DB-JSON entspricht exakt dem Beta-5-Blob; vorhandene Kompatibilitäts-/SQLite-/Scope-/UI-/Diagnostics-/API-Tests weiterverwenden. Vollständige i18n-/Screenreader-/Geräteabnahme bleibt offen. Feature Expansion bleibt eingefroren.
+
+Alte Gemini-Berichte dokumentieren frühere Absichten und Testläufe; sie überschreiben diesen Handoff nicht. Keine Subagents ohne ausdrücklichen Auftrag. Ein sauberer P0-Block pro Commit, Review-Branch pushen, nicht automatisch nach main integrieren.

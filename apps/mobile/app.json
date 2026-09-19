@@ -33,6 +33,7 @@
       "expo-router",
       "expo-font",
       "expo-sqlite",
+      ["expo-secure-store", { "configureAndroidBackup": true, "faceIDPermission": false }],
       [
         "expo-av",
         {

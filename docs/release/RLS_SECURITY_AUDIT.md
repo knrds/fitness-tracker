@@ -1,5 +1,25 @@
 # EVARO – Row Level Security (RLS) Deep Audit
 
+## Astra-Korrektur 19.09.2026 — ASTRA_REQUIRED / CRITICAL
+
+Die statische Tabellen-/CRUD-Policy-Zuordnung unten wurde gegen `docs/schema.sql` nachvollzogen. Ihre Existenz beweist weder Deployment noch wirksame Isolation. Die kategorischen „Nein“-Aussagen des historischen Audits sind **nicht runtime-verifiziert**. Der vorhandene SQL-Harness benutzt falsche Spalten (u.a. users.full_name/plan, workout_sessions.duration_seconds/volume_kg, body_metrics.date, exercises.target_muscle_group), lässt Pflichtfelder aus, setzt ON_ERROR_STOP off und enthält keine ausführbaren Ergebnis-Assertions. Nicht gegen Produktion ausführen; Fixtures werden dort teilweise committet.
+
+Zusätzlich zu Owner A/B/anon für SELECT/INSERT/UPDATE/DELETE aller elf Tabellen müssen die folgenden Referenzen geprüft werden. Die derzeitigen WITH-CHECK-Klauseln prüfen den Besitzer der Zeile/ihres Elternobjekts, aber nicht die erlaubte Ownership aller weiteren Fremdschlüssel:
+
+| Tabelle | Zusätzlich zu prüfende fremde Referenz |
+|---|---|
+| template_exercises | exercise_id: gemeinsamer Katalog oder eigene Custom Exercise |
+| program_workouts | template_id: eigenes Template |
+| workout_sessions | template_id / program_id: jeweils eigenes Objekt oder NULL |
+| session_exercises | exercise_id: gemeinsamer Katalog oder eigene Custom Exercise |
+| personal_records | exercise_id / session_id / set_id: konsistente eigene Hierarchie bzw. Katalog |
+
+Potenzielle Folge aus dem Schema: Mandantenübergreifende FK-Kopplungen trotz korrekter user_id können Integrität/Cascade/Restrict-Verhalten beeinflussen. Das ist ein statischer Befund, noch kein gemessener Exploit. Auch Owner-Reassignment, Parent-Reassignment, NULL-Katalog-Leserechte für anon, Grants, RPC-Privilegien, Trigger/search_path und tatsächliche Cloud-Schemadrift müssen im echten DB-Test abgedeckt werden. Kein Realtime-Schalter ersetzt diese Tests.
+
+Auf diesem Desktop sind Docker/Supabase CLI/psql nicht verfügbar. Keine Datenbankmigration oder Remote-Policy wurde angewendet. Nächster Block: assertender, transaktional rückrollender lokaler Harness; dann gezielte versionierte Migration mit demselben Nachweis. Aktueller Status: `EXECUTION_STATUS.md` und `P0_READINESS_MATRIX.md`.
+
+## Historischer Gemini-Audit (Vorbereitung, keine Freigabe)
+
 **Stand:** 16. September 2026  
 **Status:** AUDITED (Static Analysis & Architecture Verification)  
 **Dokumentierter Schema-Stand:** `docs/schema.sql`  

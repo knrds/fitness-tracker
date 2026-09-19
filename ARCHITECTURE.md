@@ -1,5 +1,7 @@
 # Architektur
 
+19.09.2026 — Native Supabase-Sessionpersistenz verwendet jetzt `nativeAuthStorage`/`secureStorage`: OS-SecureStore, serialisierte Dual-Read-Migration aus MMKV/AsyncStorage, verifizierte Writes und nicht sensible v1-Migrations-/Logout-Marker. Speicherfehler blockieren statt einen Gastzustand zu erfinden. Supabase-Prozesslock serialisiert native Auth-Operationen. Web-Preview bleibt separat. Vertrag, Rollback und offene Geräte-/Größengates: `docs/release/SECURE_STORAGE_MIGRATION_PLAN.md`. SQLite-/Domainverträge unverändert; reale RLS-/Cloud-Abnahme weiterhin offen.
+
 UI-Interaktion: useMeasuredReorder bündelt gemessene Zeilen, Drag-/Nachbaranimation, Randscrollen und abschließenden Commit in fünf Sortieransichten. Domain muscleRegions bündelt regionale Übungsfilter und abgeschlossene Arbeitssätze für die Heatmap. Coach-Client spricht einen HTTP-Server an; lokale und öffentliche Betriebsarten sind in BACKEND.md beschrieben. Kein Providerkey und keine erfundene Ersatzantwort im Client.
 
 Hybrid-Modernisierung im Monorepo: apps/mobile/app enthält Expo-Routen, packages/domain React-freie Business Logic, packages/ui Volt-Primitives.

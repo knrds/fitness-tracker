@@ -1,5 +1,18 @@
 # EVARO – Astra Review Queue
 
+## Astra Review 19.09.2026 — maßgeblicher aktueller Stand
+
+- **AR-005/013: MODIFY + ACTIVATE im nativen Review-Branch.** Unsichere RAM-Fallbacks, verschluckte Lesefehler/Logoutfehler und unzureichende Sessionprüfung ersetzt. Serialisierung, Readback, v1-Marker, MMKV/AsyncStorage-Migration und Supabase-Integration getestet. PARTIAL bis native Größen-/Upgrade-/Rollback-Abnahme; kein Rollout.
+- **AR-004/019: ASTRA_REQUIRED / CRITICAL.** Kein blindes Ausrollen von `docs/schema.sql`. RLS-Harness benutzt falsche Spalten und keine Assertions; tatsächliche DB-Nachweise fehlen. Fremde FK-Verweise zusätzlich zur Owner-Spalte prüfen. Cloud-Aggregate werden weiterhin mehrstufig gelöscht/neu geschrieben; Delete-/Pull-Fehler werden teils ignoriert.
+- **AR-014: MODIFY, nicht einfach ACTIVATE.** Capability behauptet Backendbereitschaft allein anhand Config/Auth. Erfolg nur `error:null`, Cleanupfehler verschluckt, Scope-Bindung fehlt; echtes Delete/Auth-Backend bleibt offen.
+- **AR-015: PARTIAL.** Lokaler Export ist kein vollständiger Cloud-/DSGVO-Nachweis; zwei Exportpfade und Datenumfang abgleichen.
+- **AR-007/018: ASTRA_REQUIRED / CRITICAL.** Prototyp-Flag kann Auth umgehen; kein serverseitiges Pro/Budget. Safety-Antworten nur Deutsch. Keine externe Freigabe aus Hosttests ableiten.
+- **AR-016: PREPARED.** Provider-Abstraktion wiederverwenden, globalen Beta-Bypass vor Produktion absichern; native Käufe/Serverautorität fehlen.
+- **AR-024/025: technische Katalogkompatibilität bestätigt.** Aktueller JSON-Blob identisch zu Beta 5 (`494916a8c0b48a50ff726e18b82084fa54ba087b`); bestehende Regressionen laufen. Medienrechte bleiben unbestätigt; kein erledigter Lizenzblocker.
+- **AR-001/021/026: PHYSICAL_DEVICE_REQUIRED / USER_ACTION_REQUIRED.** Config/Checklisten sind Vorbereitung, keine signierten Builds oder Storefreigabe.
+
+Die folgende Gemini-Tabelle ist historische Vorbereitung, keine heutige Astra-Freigabe. Aktuelle Gesamtmatrix: `P0_READINESS_MATRIX.md`.
+
 Zentrale, kanonisch normalisierte Queue aller von Gemini vorbereiteten, analysierten oder implementierten technischen Änderungen, die der nachfolgende Astra-Agent strukturiert überprüfen, entscheiden oder aktivieren soll.
 
 ## Kanonische Prioritätsübersicht

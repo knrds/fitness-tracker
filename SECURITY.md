@@ -1,5 +1,7 @@
 # Security und Privacy
 
+19.09.2026 — Native Session-Tokens werden auf der Astra-Review-Branch über OS-SecureStore migriert; ursprüngliche MMKV-/AsyncStorage-Werte werden erst nach bestätigtem Write entfernt. Fehler erzeugen keinen RAM-Fallback und keine Tokenlogs. Logout verhindert Legacy-Resurrection durch einen nicht sensiblen Marker. Rollback benötigt einen kompatiblen Reader. Geräte-/Größen-/Backup-Gates bleiben offen; siehe `docs/release/SECURE_STORAGE_MIGRATION_PLAN.md`. Der aktuelle Audit bestätigt 67 Dependency-Befunde (47 high / 18 moderate / 2 low / 0 critical); keine pauschale Runtime-Entwarnung ohne Expositionsprüfung.
+
 13.09.2026: Medien werden nach bewusster Auswahl/Aufnahme über den bestehenden Server und OpenRouter verarbeitet. Bilder nur als begrenzte data-URLs, keine Serverabrufe beliebiger Bild-URLs; Rohbilder nicht im Chat persistiert. Eigene temporäre Audiodateien werden freigegeben. Literaturabfrage verwendet feste Suchbegriffe ohne Profil-/Gesundheitsdaten. Modellantworten dürfen keine beliebigen Aktionen ausführen: ausschließlich validierte Planstruktur, Vorschau und expliziter lokaler Speicherknopf, Kontogeneration und SQLite-Transaktion.
 
 Client-Providerkey-Pfad entfernt. Keine Provider-/Service-Role-Secrets im Client. EXPO_PUBLIC_ ist öffentlich. Der öffentliche Coach-Handler prüft Supabase-Sessions und begrenzt Requests im Prozess; verteilte Quoten, Deployment-Härtung und reale Auth-Abnahme bleiben vor öffentlicher Freigabe offen. Supabase URL/Anon-Key sind öffentliche Konfiguration, keine Autorisierung.

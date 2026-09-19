@@ -1,4 +1,49 @@
-# EVARO P0 Readiness Matrix
+# EVARO Current State Matrix — Astra 2026-09-19
+
+Auditbasis: `6471138`, frisch gefetchtes `origin/main`; Branch `astra/p0-release-core`. Diese Bewertung hat Vorrang vor dem historischen Gemini-Stand unten. Hosttests ersetzen keine Geräte-/Cloud-Abnahme. Messergebnisse: `EXECUTION_STATUS.md`.
+
+| Area | Current implementation | Gemini preparation | Tests / evidence | Risk | Remaining work | Astra action |
+|---|---|---|---|---|---|---|
+| Native | Expo 54 / RN 0.81, SQLite, EAS-Profile | Preview/Simulator, Permissions | Config + Hosttests | HIGH | Signierte Builds, Geräte; Bundle-ID erhalten | VERIFY |
+| Auth | Supabase, Partitionen/Generation-Guard | Auth-/Scope-Tests | `authStore`, `accountScope` | HIGH | Persistenz, Fehlerpfade, Deep-Links/Refresh | MODIFY |
+| Secure Storage | Native Supabase-Integration mit serialisiertem Dual-Read, Readback/Logout-Marker; keine RAM-Fallbacks | Adapter/Tests korrigiert und wiederverwendet | Regressionen + installierter Supabase-SDK; keine Geräteabnahme | HIGH | Reale Migration, große Payloads, Reboot/Backup/Rollback prüfen | PARTIAL / PHYSICAL_DEVICE_REQUIRED |
+| RLS | 11 Tabellen; direkte/vererbte Owner-Policies | Audit, Matrix, SQL-Harness | Falsche Spalten, keine Assertions, ON_ERROR_STOP off; kein DB-Nachweis | CRITICAL | CRUD A/B/anon, fremde FK-Verweise, Migration; Deployment unbekannt | MODIFY |
+| Sync | FIFO-Outbox, Retry-Erhalt, Scope; sequenzielle Cloud-Writes | Failure-Harness | Hosttests; kein Multi-Device-Backendtest | CRITICAL | Ignorierte Delete-/Pull-Fehler, atomare Aggregate, Konflikte/Tombstones, Seeds | MODIFY |
+| Data Integrity | SQLite v2, Finish-Transaktion, Backups/Hydration | Vertrags-/Recovery-Tests | Echte Host-SQLite-Tests vorhanden | CRITICAL | Cloud-Atomizität, Altbesitzer, Gastidentität, Crash/Low-Space | VERIFY / MODIFY |
+| Account Deletion | Client-RPC; Cleanup nach error:null | Spec, Mock-Tests | Capability prüft nur Konfiguration/Auth; Cleanup-Fehler verschluckt | CRITICAL | Erfolgskontrakt, Scope über Request, Backend-Cascade/Auth-Delete | MODIFY |
+| Data Export | Lokaler Collector plus Profil-Export | Spec, Collector-Tests | LOCAL_EXPORT_ONLY; kein Cloud-Export | HIGH | Exportpfade/Umfang prüfen; aktuelles Workout/Settings/Queue/Cloud | VERIFY / MODIFY |
+| AI Backend | Node-Proxy, Tokenprüfung, Timeout, Serverkey; ALLOW_PROTOTYPE_COACH umgeht Auth | Client-/API-Tests | Provider hier nicht konfiguriert | CRITICAL | HTTPS-Deployment, Produktionssperre des Prototyp-Bypasses, reale Auth-Abnahme | MODIFY |
+| AI Safety | Deterministische Regeln, Planvalidierung | Safety-Suite | Safety-Antworten ausschließlich DE, keine locale | HIGH | DE/EN direkt im Safety-Layer; Regressionen | MODIFY |
+| AI Cost Control | In-Memory-Limit | Produktions-Testplan | Kein verteiltes Usage-/Budget-Ledger | CRITICAL | Server-Pro, verteilte Limits, Budget, wirksamer Kill-Switch | ASTRA_REQUIRED |
+| Subscriptions | Kein natives Billing-SDK | Integrationsplan, Fehler-Mocks | Keine echten Käufe/Restore | HIGH | SDKs, Produkte, Webhooks, Verträge | ASTRA_REQUIRED / USER_ACTION_REQUIRED |
+| Entitlements | Provider-Abstraktion, evaro_pro, globaler Beta-Bypass true | Cache-/Provider-Tests | Clientzustand ist keine Autorisierung | HIGH | Produktions-Bypass sperren, Serverautorität, Scope | MODIFY |
+| Exercise Dataset | 873 Free-DB-Übungen, deterministische IDs, Fotofallback | Kompatibilität/Provenienz | Dataset-Blob identisch mit Beta 5 (`494916a8`); Foto-Rechtekette unbewiesen | HIGH | Medienrechte/Alternative, Quellen pinnen | VERIFY / USER_ACTION_REQUIRED |
+| Privacy | Logger, Platzhaltertexte, lokaler Export | Datenkarte/Redaktionstests | Keine vollständige Rechts-/Consent-Freigabe | HIGH | Consent, Texte/Kontakte, Cloud-Export | ASTRA_REQUIRED / USER_ACTION_REQUIRED |
+| Observability | Lokaler Ringbuffer, ErrorBoundary | Eventmodell/Sanitizer | Keine Drittanbieter-Telemetrie; beliebige Metadaten als Restrisiko | MEDIUM | Allowlist vor externem Versand; Flags auf Durchsetzung prüfen | VERIFY / MODIFY |
+| Accessibility | Labels/Roles, UI-Härtung | Checklisten/Komponententests | Kein VoiceOver/TalkBack-Nachweis | MEDIUM | Screenreader, Dynamic Type, Touch, DE/EN | PHYSICAL_DEVICE_REQUIRED |
+| Device QA | Host-Regressionssuite | Smoke-/Beta-/Device-Matrizen | Keine reale iOS-/Android-Abnahme | HIGH | Haptik/Audio/Keyboard/Gesten/Lock/Kill/Permissions/Käufe/Restore | PHYSICAL_DEVICE_REQUIRED |
+| Store Readiness | EAS, Metadata-/Review-Entwürfe | Submission-/Screenshot-Plan | Keine Einreichung | HIGH | P0-Gates, Identität, Legal, Produkte, Reviewzugang | USER_ACTION_REQUIRED |
+
+## Roadmap gegen Code
+
+| Phase | Status | Offenes Gate |
+|---|---|---|
+| P00 Baseline / Freeze | PARTIAL | Frische Gates dokumentieren; Feature Freeze gilt |
+| P01 Native Foundation | PARTIAL | Signierte Builds und Geräteabnahme |
+| P02 Security / Data Integrity | ASTRA_REQUIRED | SecureStore, reale RLS, Cloud-Konflikte/Atomizität, Account-Löschung |
+| P03 AI Backend | ASTRA_REQUIRED | HTTPS/Auth/Pro, verteilte Quoten/Budget, DE/EN Safety |
+| P04 Privacy / Legal / Licensing | USER_ACTION_REQUIRED | Rechtstexte/Kontakte, Foto-Rechte; Consent/Export technisch offen |
+| P05 Subscriptions | PREPARED | SDKs/Serverentitlements, Produkte/Verträge |
+| P06 Onboarding / Paywall | PARTIAL | Onboarding vorhanden, reale Paywall fehlt |
+| P07 Push / Haptics / Audio | PARTIAL | Audio/Haptik vorhanden, Push fehlt, Geräteabnahme |
+| P08 Analytics / Monitoring / Support | PARTIAL | Lokale Diagnostics; Support/Production-Monitoring offen |
+| P09 QA / Accessibility / Performance | PARTIAL | Hosttests; Geräte/Screenreader/Performance offen |
+| P10 Store Submission | PREPARED | Checklisten/Entwürfe; P0-Gates/Submission offen |
+| P11 Launch | BLOCKED | Keine Releasefreigabe |
+
+History-Tagesauswahl (inklusive leerem Tag/mehreren Sessions), direkte Template-/Programmanlage und optionale Profilangaben sind im Code vorhanden. `targetedUiEnhancementsRegression.test.ts` prüft Storepfade ohne History/XP-Nebeneffekte, nicht vollständige UI-End-to-End-Abläufe. Vollständige DE/EN-Abnahme bleibt offen; Safety ist ein bestätigtes P0-Detail.
+
+## Historischer Gemini-Stand (überholt; keine aktuelle Freigabe)
 
 **Stand:** 17. September 2026  
 **Checkpoint:** `READY_FOR_ASTRA_CORE_TAKEOVER` (Head, 537 Tests Passing)  

@@ -1,5 +1,9 @@
 # Roadmap
 
+## Aktueller Releasepfad — 19.09.2026
+
+Die aktuelle P00–P11-Bewertung steht in [P0_READINESS_MATRIX](docs/release/P0_READINESS_MATRIX.md), die frisch ausgeführten Gates in [EXECUTION_STATUS](docs/release/EXECUTION_STATUS.md). Feature Expansion bleibt eingefroren. Native SecureStore-Integration ist auf der Astra-Review-Branch implementiert; iPhone-/Android-Migration, große Sessionwerte und kompatibler Rollback bleiben PHYSICAL_DEVICE_REQUIRED. Danach: echte RLS-Negativtests und atomare Cloud-Synchronisation. Keine Releasefreigabe; die folgenden September-13-Einträge sind historische Zwischenstände.
+
 13.09.2026: Neueste Nutzerliste abgeschlossen: zurückhaltende Koffeinnotiz, Quick-Entry-Overflow, Desktop-Rahmen, Heatmap-Hintergrund, Glas-/Wasseranimation, Bild- und Sprachcoach, validierte Plananlage und aktuelle Quellenabfrage. 246 Tests und Exporte; Geräte-/Cloud-Gates bleiben offen. Größerer UI-/Planeditor-Umbau ist vom Nutzer für den nächsten Schritt vorgesehen. Phase 4b.2 ist weiterhin nicht als erledigt markiert.
 
 12.09.2026 – Nutzerergänzungen implementiert: Navigation/Scroll-Fokus, Suchnormalisierung, Coach-Themenbegrenzung, Kreis-Timer, Abschlussdialoge, Achievement-Status und Vergabekorrektur, anatomische Karten, Body-/Profil-/XP-/Trinkanzeige und Wochenbearbeitung. 237 Tests sowie Web-/Hermes-Exporte erfolgreich. Nächste Kernarbeit bleibt Phase 4b.2; native Geräte-/Account-/Backend-Release-Gates sind weiterhin offen.

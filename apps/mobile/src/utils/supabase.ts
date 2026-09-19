@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MMKV } from 'react-native-mmkv';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, processLock } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
+import { createNativeAuthStorage } from './nativeAuthStorage';
 
 import { isExpoGo } from './runtime';
 import { logger } from './logger';
@@ -19,7 +21,7 @@ const createSupabaseStorage = (): MMKV | null => {
 };
 
 // Setup dedicated MMKV storage for Supabase auth sessions when available.
-const storage = createSupabaseStorage();
+const storage = Platform.OS === 'web' ? createSupabaseStorage() : null;
 
 type WebStorageLike = {
   getItem: (key: string) => string | null;
@@ -55,7 +57,7 @@ const removeTemporaryWebStorageItem = (key: string) => {
   }
 };
 
-const supabaseStorage = {
+const webPreviewStorage = {
   getItem: async (key: string): Promise<string | null> => {
     if (isServer) return null;
     if (!storage) return AsyncStorage.getItem(key);
@@ -90,6 +92,9 @@ const supabaseStorage = {
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
+const sessionKey = `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`;
+const supabaseStorage =
+  Platform.OS === 'web' ? webPreviewStorage : createNativeAuthStorage(sessionKey);
 
 export const isSupabaseConfigured =
   supabaseUrl !== 'https://placeholder.supabase.co' &&
@@ -100,8 +105,11 @@ export const isSupabaseConfigured =
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: supabaseStorage,
-    autoRefreshToken: true,
-    persistSession: true,
+    storageKey: sessionKey,
+    ...(Platform.OS !== 'web' ? { lock: processLock } : {}),
+    // Local-only/guest installations must not probe a placeholder auth project.
+    autoRefreshToken: isSupabaseConfigured,
+    persistSession: isSupabaseConfigured,
     detectSessionInUrl: false,
   },
 });

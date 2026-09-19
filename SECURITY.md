@@ -2,6 +2,16 @@
 
 ## Dauerhafter Security-Vertrag (19.09.2026)
 
+### S1: gezielte Dependency-Korrekturen
+
+Nach Governance-Commit `27fccac`: drei eng begrenzte Overrides, ohne SDK-/Hauptversionswechsel: nanoid 3.3.12 → 3.3.18, undici 6.26.0 → 6.28.0, tar 7.5.19 → 7.5.21 (ursprüngliche Expo-Anforderung 7.5.16). Lockfile-Diff enthält ausschließlich diese drei Paketauflösungen samt Integritäten und ihren Referenzen. Nutzen: DoS in ID-Generierung/Archivfilter und HTTP-Header-Injection schließen. Nanoid liegt auch im tatsächlichen React-Navigation-/Router-Clientpfad; Expo CLI konsumiert tar/undici. Kein Nachweis, dass jede Advisory über EVARO extern ausnutzbar war.
+
+`pnpm test:security` ist in `pnpm test`/`pnpm verify` integriert und prüft die vom installierten Expo-/Router-Baum tatsächlich aufgelösten Pakete. Vier vor dem Update reproduzierbar fehlgeschlagene Angriffsregressionen: negative nicht-kryptografische ID-Länge, Null-Länge im Custom-Generator, GNU-LongPath-Archiv mit Member-Filter, CRLF in blob-artigem Content-Type. Begrenzte Kindprozesse (64 MB Heap, fünf Sekunden Timeout), HTTP ausschließlich Loopback; normale ID-Erzeugung und gültiger HTTP-Request als Positivkontrollen. Keine Datenmigration oder Produktivdaten berührt.
+
+Lizenzmetadaten der drei installierten Versionen: nanoid/undici MIT, tar BlueOak-1.0.0; vorhandene Hinweise erhalten. Node-Engine-Anforderungen passen zu Node 24. Dies ersetzt keinen vollständigen Dependency-/Medien-Lizenznachweis. Rollback des Lockfiles würde bekannte Lücken zurückbringen und ist keine erlaubte Release-Risikoakzeptanz.
+
+Quellen: [Nanoid Null-Längen-DoS](https://github.com/advisories/GHSA-2v37-7h3g-55p8), [Undici CRLF-Injection](https://github.com/nodejs/undici/security/advisories/GHSA-m8rv-5g2x-5cg5), [tar LongPath-Rekursion](https://github.com/isaacs/node-tar/security/advisories/GHSA-r292-9mhp-454m). Aktuelle Audit-Zahlen und Abnahme in EXECUTION_STATUS.md.
+
 Verbindlich für alle Agenten: [Guardrails](evaro_release_execution_pack/EVARO_SECURITY_GUARDRAILS.md), [AGENTS.md](AGENTS.md), [Security-Roadmap](evaro_release_execution_pack/EVARO_SECURITY_RELEASE_ROADMAP.pdf). Aktuelle S0–S12-Abnahme: [Readiness-Matrix](docs/release/P0_READINESS_MATRIX.md). Der SecureStore-Checkpoint ist `6c01522`. Die folgenden Kontrollen beschreiben den geprüften Branch, keinen nachgewiesenen Produktionszustand.
 
 ### Datenflüsse, Grenzen und priorisierte Bedrohungen

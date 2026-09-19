@@ -2,6 +2,14 @@
 
 Stand: 2026-09-19. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
+## Neuester Abschluss — S1 Dependency-Patches
+
+Governance-Commit `27fccac` ist gepusht. Anschließend drei gezielte Overrides: nanoid 3.3.18, undici 6.28.0, tar 7.5.21. Risiko HIGH, keine Datenmigration oder neue Hauptversion. Lockfile geprüft: nur diese drei Auflösungen/Integritäten/Referenzen geändert. Frozen-Reinstall PASS.
+
+Vier Angriffsregressionen schlugen vor dem Patch fehl und bestehen danach; in reguläre Test-Suite integriert. **pnpm verify PASS: 602 Tests (77 Domain + 484 Mobile + 37 API + 4 Dependency-Security), Typecheck/Lint PASS. Web-Build PASS (4.74 MB), Expo public/introspect PASS, neuer Bundle-Secret-Scan ohne Treffer.** Keine Provider-/Device-/Production-Abnahme daraus ableiten.
+
+Neuer Registry-Audit: **57 Befunde = 43 high + 14 moderate**, vorher 67. Produktionsdependencies: **52 = 41 high + 11 moderate**, vorher 62. Damit zehn Advisory-/Versionsbefunde beseitigt, keine Risikoakzeptanz für die übrigen. CI-Audit bleibt absichtlich blockierend. Quellen, Exposition, Lizenzmetadaten und Regressionen: SECURITY.md. Alle älteren Zahlen unten sind die bezeichneten Baselines.
+
 ## Repository / Desktop
 
 - Workspace: `C:\Users\skwar\Desktop\TrainingsAppGPT` (ausdrücklicher aktueller Nutzerauftrag; D:-Verweise sind historisch).
@@ -10,7 +18,7 @@ Stand: 2026-09-19. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte blei
 - `git fetch --all --tags --prune` erfolgreich; HEAD/origin-main-Differenz 0/0. Kein Pull nötig, keine fremden Änderungen, kein Reset/Clean/Force-Push.
 - Neue Review-Branch: `astra/p0-release-core`, von frisch gefetchtem `origin/main`. Kein Main-Merge und kein Production-Deployment.
 - Neuester vorhandener Tag: `v0.1.0-beta.6` (`8f5c4ab`); vier spätere UI-/Regression-Commits bis `6471138` berücksichtigt.
-- Node: `24.14.0` (Repo >=24; EAS pinnt 24.13.0). pnpm `11.5.0` per Corepack lokal bereitgestellt, `pnpm install --frozen-lockfile` erfolgreich. Lockfile unverändert, keine neue Dependency.
+- Node: `24.14.0` (Repo >=24; EAS pinnt 24.13.0). pnpm `11.5.0` per Corepack lokal bereitgestellt. Initiales Frozen-Install ohne Lockfileänderung; anschließend genau drei dokumentierte Security-Auflösungen und erneutes Frozen-Install erfolgreich.
 - Für lokale Folgekommandos in PowerShell: `$env:COREPACK_HOME = "$PWD/output/corepack"; $env:PATH = "$PWD/output/toolchain;$env:PATH"`. Toolcache/Logs liegen ignoriert in `output/`.
 
 ## Frische Baseline vor Implementierung

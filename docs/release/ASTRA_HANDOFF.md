@@ -4,6 +4,8 @@ Basis `origin/main`: `6471138`. Review-Branch: `astra/p0-release-core`. Neuester
 
 ## Erledigter lokaler Engineering-Block
 
+Security-Governance ist als `27fccac` gepusht (Regeln/Threat Model/S0–S12/CI-Gates). Danach nanoid/undici/tar gezielt gepatcht: vier vorher rote Angriffsregressionen grün; **602 Tests, Typecheck/Lint, Build und Expo-Konfigurationen PASS**. Audit jetzt **57 (43 high/14 moderate)**, prod **52 (41 high/11 moderate)**. S1 bleibt PARTIAL; CI-Audit blockiert weiterhin. Keine Freigabe trotz grüner Funktionstests. Exakte Details: EXECUTION_STATUS.md und SECURITY.md.
+
 P0-A SecureStore ist jetzt nativ in Supabase integriert. Gemini-Adapter wiederverwendet und unsichere Garantien korrigiert: kein flüchtiger Fallback, keine als leer verschluckten Lesefehler, verifizierte Writes, serialisierte Migration/Refresh/Logout, geprüfte Sessionstruktur und nicht sensible v1-Marker gegen Token-Resurrection. Beide Legacy-Quellen werden bereinigt. Authfehler zeigen feste DE/EN-Texte, keine Secrets. Bestehende SQLite-/Workoutdaten werden nicht geändert.
 
 Status bleibt PARTIAL bis zur nativen Abnahme, insbesondere große vollständige Sessionwerte, App-Update mit gleicher Identität, Reboot/Lock/Kill/Offline, Backup/Neuinstallation und Rollback. [Migrationsvertrag](SECURE_STORAGE_MIGRATION_PLAN.md) vor Release lesen. Ein Revert auf die alte MMKV-only-App ist nach Migration **kein** Zero-Logout-Rollback. Keine automatische Veröffentlichung dieses Branches.

@@ -118,6 +118,90 @@ describe('sync response failure boundaries', () => {
     mockRepository = undefined;
   });
 
+  it('restores the in-memory queue when persisting a new operation fails', async () => {
+    database.exec(
+      "CREATE TRIGGER fail_enqueue BEFORE INSERT ON sync_operations BEGIN SELECT RAISE(ABORT, 'test enqueue failure'); END",
+    );
+    expect(() =>
+      useSyncStore.getState().addToQueue('workout_sessions', 'UPDATE', localSession),
+    ).toThrow();
+    expect(useSyncStore.getState().queue).toEqual([]);
+    await Promise.resolve();
+    expect(mockRequest).not.toHaveBeenCalled();
+    database.exec('DROP TRIGGER fail_enqueue');
+    await useSyncStore.persist.rehydrate();
+    expect(useSyncStore.getState().queue).toEqual([]);
+  });
+
+  it('retains a cloud-accepted operation when local acknowledgement fails, then retries', async () => {
+    const queued = operation('body_metrics', {
+      id,
+      userId: mockUser.id,
+      weightKg: 80,
+      recordedAt: date,
+      createdAt: date,
+    });
+    useSyncStore.setState({ queue: [queued] });
+    database.exec(
+      "CREATE TRIGGER fail_ack BEFORE DELETE ON sync_operations BEGIN SELECT RAISE(ABORT, 'test acknowledgement failure'); END",
+    );
+    await useSyncStore.getState().processQueue();
+    expect(mockRequest).toHaveBeenCalledWith('body_metrics', 'upsert');
+    expect(useSyncStore.getState().queue).toEqual([{ ...queued, retryCount: 1 }]);
+    expect(useSyncStore.getState().lastSyncedAt).toBeNull();
+    expect(useSyncStore.getState().syncError).toBeTruthy();
+    database.exec('DROP TRIGGER fail_ack');
+    await useSyncStore.persist.rehydrate();
+    expect(useSyncStore.getState().queue[0]?.id).toBe(queued.id);
+    await useSyncStore.getState().processQueue();
+    expect(
+      mockRequest.mock.calls.filter(
+        ([table, action]) => table === 'body_metrics' && action === 'upsert',
+      ),
+    ).toHaveLength(2);
+    expect(useSyncStore.getState().queue).toEqual([]);
+    expect(useSyncStore.getState().lastSyncedAt).toBeInstanceOf(Date);
+    await useSyncStore.persist.rehydrate();
+    expect(useSyncStore.getState().queue).toEqual([]);
+  });
+
+  it('does not expose an empty queue when an explicit clear fails to persist', async () => {
+    const queued = operation('workout_sessions', localSession);
+    useSyncStore.setState({ queue: [queued] });
+    const original = mockRepository!.read('volt-sync-store');
+    database.exec(
+      "CREATE TRIGGER fail_clear BEFORE DELETE ON sync_operations BEGIN SELECT RAISE(ABORT, 'test clear failure'); END",
+    );
+    expect(() => useSyncStore.getState().clearQueue()).toThrow();
+    expect(useSyncStore.getState().queue).toEqual([queued]);
+    expect(mockRepository!.read('volt-sync-store')).toBe(original);
+  });
+
+  it('keeps the durable retry state when updating failure metadata also fails', async () => {
+    const queued = operation('body_metrics', {
+      id,
+      userId: mockUser.id,
+      weightKg: 80,
+      recordedAt: date,
+      createdAt: date,
+    });
+    useSyncStore.setState({ queue: [queued] });
+    database.exec(
+      "CREATE TRIGGER fail_retry BEFORE UPDATE ON sync_operations BEGIN SELECT RAISE(ABORT, 'test retry failure'); END",
+    );
+    mockRequest.mockResolvedValue({ error: { message: 'Cloud write failed' } });
+    await useSyncStore.getState().processQueue();
+    expect(useSyncStore.getState().queue).toEqual([queued]);
+    expect(useSyncStore.getState().syncError).toBeTruthy();
+    expect(useSyncStore.getState().isSyncing).toBe(false);
+    expect(useSyncStore.getState().lastSyncedAt).toBeNull();
+    database.exec('DROP TRIGGER fail_retry');
+    await useSyncStore.persist.rehydrate();
+    expect(useSyncStore.getState().queue[0]?.retryCount).toBe(0);
+    mockRequest.mockImplementation(async (table, action) => defaults(table, action));
+    await useSyncStore.getState().processQueue();
+    expect(useSyncStore.getState().queue).toEqual([]);
+  });
   const aggregates: [SyncOperation['table'], unknown, string, string][] = [
     ['workout_sessions', localSession, 'session_exercises', 'select'],
     ['workout_sessions', localSession, 'exercise_sets', 'delete'],

@@ -1,4 +1,18 @@
 # EVARO – Beta Regression Suite & Quality Assurance Matrix
+## Aktuelle Abnahme pro freizugebendem Block — 20.09.2026
+
+Die historischen Vollständigkeitsbehauptungen unten ersetzen keine aktuelle Geräte-/Cloud-Abnahme. Pro Block Testbuild/Commit, Gerät/OS, Testkonto, Ergebnis und beobachtete Abweichung festhalten. Keine echten Gesundheitsdaten für Fehlerprovokation verwenden. Gleiche App-Identität beim Upgrade erhalten; vor Migration lokalen Export sichern (kein vollständiges Cloud-Backup).
+
+| Block | Schritte auf dem zugehörigen Testbuild | Erwartetes Ergebnis | Offenes Gate |
+|---|---|---|---|
+| Sync / Offline-Warteschlange | Mit Testkonto online anmelden; Flugmodus aktivieren; kurzes Workout mit zwei unterscheidbaren Sätzen abschließen und eine Messung speichern; App vollständig schließen und neu öffnen; Werte prüfen; Netzwerk aktivieren und Sync-Indikator antippen; erneut öffnen | Verlauf/Sätze/Messung bleiben vorhanden, Warteschlange bleibt offline sichtbar und wird erst nach erfolgreicher Übertragung leer; keine doppelte lokale Session | iPhone und Android; Cloud-Bestand separat mit Testkonto prüfen, zweites Gerät ausschließlich lesend während dieses Tests |
+| Sync / Cloud-Fehler | Auf isolierter Testumgebung Netzwerk beim Übertragen unterbrechen; anschließend neu verbinden und erneut synchronisieren | Offene Operationen bleiben erhalten, Fehler statt Fake-Erfolg; erfolgreicher Retry. Dieser manuelle Test beweist keinen SQLite-Schreibfehler | SQLite-Faults automatisiert mit echter DB geprüft; echte Supabase-/Prozessabbruch-Abnahme offen |
+| Native Session-Migration | Alte Beta mit Testkonto anmelden und bekannte lokale Daten anlegen; kompatiblen neuen nativen Build darüber installieren; starten, App beenden, Gerät neu starten, wieder öffnen; Logout und Neustart | Daten bleiben vorhanden; gültige Session möglichst erhalten; nach erfolgreichem Logout kein altes Login wiederhergestellt. Fehler dürfen weder Datenreset noch versteckten Gastwechsel erzeugen | Vor breiter Beta auf beiden Plattformen, große Sessionwerte und Backup/Restore separat; kein blindes OTA und kein MMKV-only-Downgrade |
+| Öffentlicher Coach-Auth-Fix | In isolierter öffentlicher Testbereitstellung ohne Anmeldung anfragen, dann mit gültigem Testkonto; ungültigen Token nur im API-Test verwenden | Ohne gültige Authentifizierung 401 und kein Provideraufruf; angemeldet reguläre Verarbeitung oder ehrlicher Providerfehler | Öffentlicher HTTPS-Endpoint/Providerzugang; kostenpflichtige Providerantwort nicht durch lokale Mocks bewiesen |
+| RLS-Migration | Maintainer führt den lokalen SQL-Harness aus; danach kontrollierte Supabase-Staging-Abnahme mit zwei Testkonten und anonymem Client | Kein Lesen/Schreiben fremder Daten/Referenzen; fehlerhafter Altbestand stoppt Migration ohne Löschung | Keine Aktion normaler Betatester; kein Production-Apply allein aufgrund des lokalen Tests |
+
+Main-Integration ist vom Nutzer für abgeschlossene geeignete Blöcke autorisiert. Merge ist nicht gleich Auslieferung. Repository enthält Vercel-Konfiguration und manuelle EAS-Buildprofile, aber der aktive Hosting-Production-Branch/Updatekanal ist nicht verifiziert. Vor Main-Push den tatsächlichen Auslieferungsweg und erforderliche Checks bestätigen; Sicherheits-Gates nicht abschwächen. Aktuell keine pauschale Freigabe der gesamten astra/p0-release-core-Branch.
+
 
 **Version:** 1.0.0  
 **Baseline:** `v0.1.0-beta.5`  

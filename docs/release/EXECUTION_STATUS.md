@@ -2,6 +2,18 @@
 
 Stand: 2026-09-20. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
+## Fortsetzung 20.09.2026 — dauerhafte lokale Outbox und Beta-Abnahme
+
+Nutzer hat geeignete Main-Integrationen jetzt autorisiert, mit Testanleitung pro abgeschlossenem Block; AGENTS.md/ROADMAP.md entsprechend aktualisiert. Das frühere pauschale Main-Verbot gilt nicht mehr. Der aktive Beta-/Hostingkanal ist noch unbestätigt (Vercel-Konfiguration und EAS-Profile sind nur vorbereitete Repository-Konfiguration). Kein Main-Push/Deployment in diesem Block: Gesamtbranch enthält offene native Migrationsgates und die bekannten Security-Gates. Konkrete Nutzer-Testschritte mit Soll-Ergebnissen jetzt in BETA_REGRESSION_MATRIX.md.
+
+**P02 / S4, HIGH:** Fehler beim lokalen Enqueue/ACK/Retry/Clear dürfen Memory-Queue und persistierte Queue nicht auseinanderlaufen lassen. Besonders Cloud-Erfolg + SQLite-ACK-Fehler konnte die Operation zunächst im Speicher entfernen und anschließend endgültig verlieren. Vier echte SQLite-Triggerregressionen ergänzen den vorhandenen Harness; drei ursprüngliche Fehlerfälle reproduziert. Vorhandene Transaktions-/Rollback-Helfer wiederverwendet; geschachtelte Workout-/Coach-Plan-Befehle nehmen an der äußeren Transaktion teil. Kein Schemawechsel, keine neue Dependency, keine Rohdatenlogs, keine Remote-Migration. Rollback des Codes braucht keine Datenkonvertierung, würde die Lücke aber wieder öffnen. Schutzbedarf SENSITIVE/HIGH_SENSITIVITY, Grenze lokale Memory-Projektion → dauerhafte kontogebundene Queue.
+
+Gezielte Integration **40 Tests PASS**. Erster Volltest fand neun Integrationsfehler durch unerlaubte verschachtelte SQL-Transaktionen; Ursache korrigiert, nicht ignoriert. Erneutes vollständiges **pnpm verify PASS: 625 Tests = 77 Domain + 506 Mobile (77 Suites) + 38 API + 4 Security**, Typecheck/Lint PASS. Logs: output/outbox-durability-red.log, outbox-durability-integration.log, outbox-durability-final-verify.log. Keine Änderung an zuvor getesteter RLS-Migration (304 PostgreSQL-Assertions unverändert gültig).
+
+Abschluss dieses Blocks: Web-Build PASS (4.74 MB), Staged- und Bundle-Secret-Scan ohne Treffer. Kein nativer Build/OTA und keine Produktionsänderung. Testlogs: output/outbox-durability-build.log und outbox-durability-bundle-secrets.log.
+
+Gates bleiben offen: Audit zuletzt heute **57 Befunde (43 high/14 moderate)**, SAST/SBOM/Lizenz-Gesamtabnahme, native Geräte und tatsächlicher Auslieferungsweg. Paket-/Lockfile seit diesem Scan unverändert. Cloud-Erfolg ohne lokalen ACK kann Retry auslösen: keine Exactly-once-Behauptung. S4 bleibt PARTIAL bis atomare serverseitige Aggregate, Idempotenz/Revisionen/Konflikte/Tombstones und reale Supabase-End-to-End-Abnahme fertig sind. Anschließend S5 Account-Löschung; Produkt- und Security-Roadmap bleiben abgestimmt.
+
 ## Sicherer Engineering-Checkpoint — S4 Sync-Fehlergrenzen, 20.09.2026
 
 Fortsetzung nach **8b0a6e1**. Risiko **CRITICAL**, S4 **PARTIAL**. Schutzbedarf: Profil, Workout-History, Programme/Templates, eigene Übungen und Körpermesswerte. Cloud-Antworten sind untrusted; Ownership und vollständige Beziehungen werden vor jeder lokalen Anwendung validiert. Clientprüfung ersetzt keine serverseitige Autorisierung.

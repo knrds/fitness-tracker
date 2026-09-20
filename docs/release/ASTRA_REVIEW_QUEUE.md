@@ -1,5 +1,9 @@
 # EVARO – Astra Review Queue
 
+## S4 Outbox-Fortsetzung — 20.09.2026
+
+HIGH: Zustand im Speicher erst nach erfolgreichem lokalen Queue-Write bestätigen bzw. bei Fehler zurückrollen; betrifft Enqueue/ACK/Retry/Clear. Vier SQLite-Fault-Szenarien ergänzen die Pull-Tests. Kein Exactly-once-Versprechen: bei Cloud-Erfolg und lokalem ACK-Fehler wird dieselbe Operation erneut gesendet; serverseitige idempotente Aggregate bleiben Pflicht. Kein neuer Datenvertrag oder Dependency. Main jetzt für geprüfte geeignete Blöcke autorisiert; Gesamtauslieferung bleibt an Security-/Geräte-/Deployment-Gates gebunden. Tester-Anleitung in BETA_REGRESSION_MATRIX.md.
+
 ## Aktueller Checkpoint 20.09.2026 — S4 PARTIAL
 
 Cloud-Child-Read/Delete- und Pull-Fehler werden weitergegeben; die fehlgeschlagene Outbox-Operation bleibt erhalten. Pull übernimmt erst vollständig validierte eigene Daten, überspringt offene lokale Änderungen und verwendet native SQLite-Atomizität plus Memory-Rollback. 18 Regressionen, darunter echter SQLite-Schreibfehler nach Profil-/History-Änderung. Review: keine serverseitige Transaktion, kein konsistenter DB-Snapshot über sechs Requests, keine gelösten Mehrgeräte-/Uhrenkonflikte. Web-Preview hat keine gleichwertige dauerhafte Rollback-Garantie. Frühere Befunde zu ignorierten Fehlern unten sind durch diesen Teilblock überholt; übrige S4-Gates bleiben CRITICAL.

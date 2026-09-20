@@ -1,6 +1,6 @@
 # Projektregeln – EVARO Security Takeover
 
-Aktueller Workspace: C:\Users\skwar\Desktop\TrainingsAppGPT. Benutzerauftrag vom 19.09.2026: sicherer Takeover, danach permanente Security Governance und Security-Roadmap. Review-Branch: astra/p0-release-core. Nicht nach main pushen oder mergen. Historischer Kontext: docs/AGENTS_REFERENCE.md.
+Aktueller Workspace: C:\Users\skwar\Desktop\TrainingsAppGPT. Benutzerauftrag vom 19.09.2026: sicherer Takeover, danach permanente Security Governance und Security-Roadmap. Review-Branch: astra/p0-release-core. Aktualisierung vom 20.09.2026: Abgeschlossene, ausreichend geprüfte und unabhängig auslieferbare Blöcke dürfen nach main integriert werden; der Nutzer erhält konkrete Testschritte mit erwarteten Ergebnissen. Vor Main-Push tatsächlichen Beta-/Deploymentweg prüfen. Keine pauschale Integration noch offener kritischer Migrationen oder Umgehung der Release-Gates. Feature- und Security-Roadmap weiterführen. Historischer Kontext: docs/AGENTS_REFERENCE.md.
 
 ## Verbindliche Security Governance für alle Agenten
 

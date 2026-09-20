@@ -1,5 +1,11 @@
 # Roadmap
 
+## Fortsetzung 20.09.2026 — sichere inkrementelle Beta
+
+Abgeschlossene, separat geprüfte Blöcke dürfen nach aktuellem Nutzerauftrag nach main integriert werden. Zu jedem Block gehören konkrete Schritte und Soll-Ergebnisse in docs/release/BETA_REGRESSION_MATRIX.md. Vor Main-Push tatsächlichen automatischen/manuellen Auslieferungsweg und Release-Gates prüfen. Aktuelle Gesamtbranch bleibt wegen offener nativer Session-Abnahme und Security-Gates nicht pauschal freigegeben.
+
+Produktpfad P02 und Securitypfad S4: Pull-Fehlergrenzen und lokale Outbox-Dauerhaftigkeit härten. Danach atomare serverseitige Aggregate samt Idempotenz-/Konflikt-/Tombstone-Vertrag mit echten Backendtests; anschließend S5 Account-Löschung. P03/S6, Billing, Legal und Geräte bleiben gemäß P0_READINESS_MATRIX offen. Keine Feature-Erweiterung.
+
 ## Aktueller Releasepfad — 19.09.2026
 
 Die aktuelle P00–P11-Bewertung steht in [P0_READINESS_MATRIX](docs/release/P0_READINESS_MATRIX.md), die frisch ausgeführten Gates in [EXECUTION_STATUS](docs/release/EXECUTION_STATUS.md). Feature Expansion bleibt eingefroren. Native SecureStore-Integration ist auf der Astra-Review-Branch implementiert; iPhone-/Android-Migration, große Sessionwerte und kompatibler Rollback bleiben PHYSICAL_DEVICE_REQUIRED. Danach: echte RLS-Negativtests und atomare Cloud-Synchronisation. Keine Releasefreigabe; die folgenden September-13-Einträge sind historische Zwischenstände.

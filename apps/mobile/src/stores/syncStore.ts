@@ -30,7 +30,11 @@ import type {
 import { createHydratedStorage } from './storage';
 import { useAuthStore } from './authStore';
 import { getStorageScope, isScopeCurrent } from '../data/storageScope';
-import { runStorageTransaction } from '../data/storageTransaction';
+import {
+  isStorageTransactionActive,
+  runStorageTransaction,
+  withoutStorageWrites,
+} from '../data/storageTransaction';
 import { isSupabaseConfigured, supabase } from '../utils/supabase';
 import { logger } from '../utils/logger';
 
@@ -89,6 +93,21 @@ interface SyncState extends SyncPersistState {
   pullFromCloud: () => Promise<void>;
   clearQueue: () => void;
   setOnline: (online: boolean) => void;
+}
+
+function commitQueueMutation(work: () => void, rollbackMemory: () => void): void {
+  if (!isStorageTransactionActive()) {
+    runStorageTransaction(work, rollbackMemory);
+    return;
+  }
+  // Finish-workout and save-plan already own the SQL transaction and aggregate rollback.
+  // Join that boundary; never independently commit or swallow a queue write failure.
+  try {
+    work();
+  } catch (error) {
+    withoutStorageWrites(rollbackMemory);
+    throw error;
+  }
 }
 
 const USER_COLUMNS = [
@@ -719,9 +738,11 @@ export const useSyncStore = create<SyncState>()(
           retryCount: 0,
         };
 
-        set((state) => ({
-          queue: [...state.queue, newOp],
-        }));
+        const previousQueue = get().queue;
+        commitQueueMutation(
+          () => set({ queue: [...previousQueue, newOp] }),
+          () => set({ queue: previousQueue }),
+        );
 
         // Start external work only after the synchronous local transaction has committed.
         void Promise.resolve().then(() => get().processQueue());
@@ -732,7 +753,11 @@ export const useSyncStore = create<SyncState>()(
       },
 
       clearQueue: () => {
-        set({ queue: [] });
+        const previousQueue = get().queue;
+        commitQueueMutation(
+          () => set({ queue: [] }),
+          () => set({ queue: previousQueue }),
+        );
       },
 
       processQueue: async () => {
@@ -771,16 +796,26 @@ export const useSyncStore = create<SyncState>()(
               }
               if (!current()) return;
               // Acknowledge only this operation, preserving entries appended during the request.
-              set((state) => ({ queue: state.queue.filter((entry) => entry.id !== op.id) }));
+              // A failed durable acknowledgement must also restore the in-memory operation.
+              const previousQueue = get().queue;
+              commitQueueMutation(
+                () => set({ queue: previousQueue.filter((entry) => entry.id !== op.id) }),
+                () => set({ queue: previousQueue }),
+              );
             } catch (error: unknown) {
               if (!current()) return;
               const message = getErrorMessage(error);
-              set((state) => ({
-                queue: state.queue.map((entry) =>
-                  entry.id === op.id ? { ...entry, retryCount: entry.retryCount + 1 } : entry,
-                ),
-                syncError: message,
-              }));
+              const previousQueue = get().queue;
+              commitQueueMutation(
+                () =>
+                  set({
+                    queue: previousQueue.map((entry) =>
+                      entry.id === op.id ? { ...entry, retryCount: entry.retryCount + 1 } : entry,
+                    ),
+                    syncError: message,
+                  }),
+                () => set({ queue: previousQueue }),
+              );
               // Stop at the first error. Retain FIFO dependencies and allow explicit retry.
               if (
                 message.includes('Network request failed') ||

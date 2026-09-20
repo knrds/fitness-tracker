@@ -1,5 +1,11 @@
 # ASTRA START HERE — aktueller Handoff 2026-09-19
 
+## Neuester Auftrag 20.09.2026 — inkrementelle Main-Freigabe
+
+Nutzer erlaubt jetzt Main-Integration abgeschlossener geeigneter Blöcke, mit konkreten Testanleitungen. Das hebt das frühere pauschale Main-Verbot auf, nicht die Release-Gates. Aktiver Beta-/Deploymentweg noch nicht bestätigt: Vercel-Datei vorhanden, EAS-Profile vorhanden, kein nachgewiesener automatischer nativer Rollout. Gesamtbranch wegen Geräte-/Security-Gates weiterhin nicht pauschal mergefähig. Testschritte: BETA_REGRESSION_MATRIX.md.
+
+S4-Fortsetzung nach 51561d0: lokale Outbox-Änderungen (Enqueue, ACK, Retry, Clear) benutzen vorhandene SQLite-Transaktion mit Memory-Rollback. SQLite-Fehler beim ACK dürfen nicht durch spätere Statuswrites die zuvor nur im Speicher entfernte Operation endgültig löschen. Drei Regressionen gegen bisherigen Code rot; vier echte SQLite-Fault-Szenarien mit Restart/Retry-Prüfung ergänzt. Kein SQL-Serververtrag aktiviert; nächste Arbeit bleibt serverseitige Atomizität/Idempotenz/Konflikte. Messungen/Abschluss: EXECUTION_STATUS.md.
+
 ## Checkpoint 20.09.2026 — S4 Fehlergrenzen
 
 S3 ist als **8b0a6e1** gepusht. Der folgende S4-Teilblock behandelt ignorierte Cloud-Fehler, unvollständige Pull-Antworten und lokale Teilübernahmen: vollständige Validierung vor Anwendung, Pending-Outbox-Guards, native SQLite-Transaktion mit Memory-Rollback. 18 neue Regressionen einschließlich echter SQLite-Fehlerinjektion; aktuelle Gesamtmessung in EXECUTION_STATUS.md. Keine persistente Formatmigration, keine Remote-Aktivierung. Risiko CRITICAL, S4 bleibt PARTIAL: serverseitige atomare Aggregate, Idempotenz, Revisionen/Konflikte/Tombstones fehlen weiterhin. Nächster sinnvoller Block ist dieser serverseitige Sync-Vertrag, danach Account-Deletion. Kein Main-Merge oder Beta-Rollout beauftragt.

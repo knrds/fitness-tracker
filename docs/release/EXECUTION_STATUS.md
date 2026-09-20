@@ -2,6 +2,22 @@
 
 Stand: 2026-09-20. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
+## Checkpoint 20.09.2026 — kostenloser iPhone-Testpfad
+
+**P01/P09/S8/S11, PARTIAL, Risiko MEDIUM.** Bestehende Expo-Web-App wiederverwendet; SDK 54, native Bundle-IDs und Datenformate unverändert. Vom Nutzer angelegte EAS-Verknüpfung übernommen. Statischer WLAN-Server liefert ausschließlich den Export, bindet gezielt eine private Schnittstelle, sperrt API, Schreibmethoden, Secrets/Maps und Pfadausbruch. Exportierte pnpm-Schriften benötigen die eng begrenzte Ausnahme `assets/__node_modules/.pnpm`; mit HTTP-Regression geprüft. Safe-Area-Viewport, Manifest, Home-Screen-Metadaten und vorhandenes Icon ergänzt, ohne Service Worker oder Offline-Versprechen.
+
+WLAN-Startfehler nachvollzogen: Expo-Web-UUID benötigt `crypto.randomUUID`, das auf HTTP-LAN fehlt. Gemeinsamer UUID-Einstieg belässt Native bei Expo und nutzt im Web alternativ CSPRNG `getRandomValues` mit UUID-v4-Bits. Keine schwache Zufallsquelle, kein Datenreset und keine ID-/Schemamigration. Fünf Regressionen prüfen Entropie, Format und Fail-closed. Die nach EAS/Expo-Generierung sichtbaren DOM/RN-Typkonflikte bei zwei Timern und AbortSignal minimal korrigiert.
+
+**Vertrauensgrenzen/Privacy:** HTTP-WLAN nur synthetische Gastdaten im privaten Netz, kein Login/Provider. HTTPS-Preview ist keine Freigabe für reale Gesundheitsdaten. Keine neue Dependency, keine Telemetrie und keine Providerkosten. Keine Lizenzfreigabe für bestehende Assets behauptet. Code-Rollback braucht keine Datenkonvertierung, würde den LAN-Startfehler wieder öffnen.
+
+**Browserbeleg:** bestehendes Vercel-Projekt `fitness-tracker`, Deployment `96e4joyXE1p2bwHnznaBdiYR2GyH`, Ready / Preview / `3bd4713`. Dashboard und Pläne laden. Lokaler neuer Export bei 390 × 844: Dashboard, Workout/Übung, Testsatz 20 kg × 8, Reload erhält Wert und Abschluss; Fonts/Icons nach Serverkorrektur sichtbar. Das ist Chromium am PC, keine Safari-/Geräteabnahme. Bestehender englischer Wiederaufnahme-Dialog in DE als P1 offen.
+
+**Deployment-Gate:** Vercel-Git war bereits aktiv und wartete nicht nachweislich auf GitHub-Security-Gates. Neuer Review-Build `pnpm build:preview` verlangt Verify → Audit (high) → Web-Build. Offene hohe Befunde blockieren das Update; die alte HTTPS-Preview bleibt ausdrücklich ein älterer Teststand. SAST/Lizenz/SBOM, vollständige CI-Abhängigkeit und Remote-Konfiguration noch offen. Kein Main-Merge, Production-Deploy, Remote-SQL, Billing oder Store-Upload. Vercel-Connector 403 für den Dashboard-Scope, Browserzugang funktioniert.
+
+Schritt-für-Schritt-Befehle, konkrete URLs, Env-Matrix, Staging-Voraussetzungen und Soll-Ergebnisse: [IPHONE_FREE_TEST_GUIDE.md](IPHONE_FREE_TEST_GUIDE.md). Prüfprotokolle: `output/iphone-checkpoint-verify.log`, `iphone-checkpoint-final-build.log`, `iphone-checkpoint-bundle-secrets.log`. Nächster Architekturblock bleibt S4 serverseitige Atomizität/Idempotenz/Konflikte; S5 folgt danach. Hohe Supply-Chain-Befunde blockieren inzwischen auch neue HTTPS-Previews und müssen separat kompatibel behoben werden.
+
+Abschlussmessung: **pnpm verify PASS, 640 Tests = 77 Domain + 511 Mobile (78 Suites) + 38 API + 14 Security**; Typecheck/Lint PASS. Web-Build und Export-Metadatenprüfung PASS, Expo public/introspect beide Exit 0, Bundle-Gitleaks keine Treffer. Erneuter Online-Audit nach initialem Netzwerkfehler: **57 Befunde = 43 high + 14 moderate**, Exit 1, keine Ausnahme. Lokaler PostgreSQL-Harness zuvor in dieser Session erneut 304 + 304 Assertions und Bestands-Preflight PASS; SQL seither unverändert. Native und Remote-Supabase-Gates bleiben offen. Kein vollständiger SAST-/Lizenznachweis.
+
 ## Fortsetzung 20.09.2026 — dauerhafte lokale Outbox und Beta-Abnahme
 
 Nutzer hat geeignete Main-Integrationen jetzt autorisiert, mit Testanleitung pro abgeschlossenem Block; AGENTS.md/ROADMAP.md entsprechend aktualisiert. Das frühere pauschale Main-Verbot gilt nicht mehr. Der aktive Beta-/Hostingkanal ist noch unbestätigt (Vercel-Konfiguration und EAS-Profile sind nur vorbereitete Repository-Konfiguration). Kein Main-Push/Deployment in diesem Block: Gesamtbranch enthält offene native Migrationsgates und die bekannten Security-Gates. Konkrete Nutzer-Testschritte mit Soll-Ergebnissen jetzt in BETA_REGRESSION_MATRIX.md.

@@ -24,7 +24,7 @@ export function AppearanceSettings() {
   const [battlePassVisible, setBattlePassVisible] = useState(false);
   const [previewEffect, setPreviewEffect] = useState<CelebrationEffect | null>(null);
   const [sliderWidth, setSliderWidth] = useState(300);
-  const previewTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentRank = getRankForLevel(level);
 

@@ -1,5 +1,7 @@
 # Bekannte Probleme und Freigabegrenzen
 
+20.09.2026 — iPhone-Web-Preview: englischer „Unfinished Workout / Resume Workout“-Dialog bei deutscher UI im Browser reproduziert (P1/i18n). Safari/Home-Screen/VoiceOver auf echtem iPhone noch nicht abgenommen; kein Service Worker, daher keine Offline-Kaltstartgarantie. Vorhandene HTTPS-Astra-Preview zeigt `3bd4713`; neue Preview-Builds müssen wegen hoher Dependency-Befunde blockieren. Anleitung und genaue Teststände: `docs/release/IPHONE_FREE_TEST_GUIDE.md`.
+
 20.09.2026 — S4-Teilfix: zuvor ignorierte Child-Read/Delete-/Pull-Fehler werden jetzt behandelt, offene Outbox-Operationen erhalten und vollständige Pulls vor Anwendung validiert. Native lokale SQLite-Übernahme mit Memory-Rollback getestet. Historischer Befund unten insoweit überholt. Cloud-Aggregate bleiben mehrstufig und nicht atomar; Mehrgeräte-Konflikte/Tombstones/Revisionen und echte Cloud-/Geräteabnahme weiterhin offen. Keine Releasefreigabe.
 
 S3-Update: Der ursprünglich fehlerhafte RLS-Harness ist ersetzt, 304 Assertions laufen gegen echtes PostgreSQL 17.11. Cross-Account-FK-Lücke reproduziert und durch additive restrictive Migration geschlossen; Bestandsdaten-/Rollback-Gates getestet. Remote-Supabase/Auth/PostgREST, tatsächliche Grants/Policies und Deployment weiterhin offen. Frühere Aussagen zum fehlenden lokalen RLS-Nachweis unten sind überholt.

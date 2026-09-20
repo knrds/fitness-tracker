@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "pnpm --filter @fitness-tracker/mobile build",
+  "buildCommand": "pnpm build:preview",
   "outputDirectory": "apps/mobile/dist",
   "framework": null,
   "rewrites": [

@@ -10,7 +10,7 @@ import {
   EXERCISES,
   TemplateExercise,
 } from '@fitness-tracker/domain';
-import * as Crypto from 'expo-crypto';
+import * as Crypto from '../utils/uuid';
 import { z } from 'zod';
 
 import { getCurrentUserId, LOCAL_USER_ID } from './local-user';

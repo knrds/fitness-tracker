@@ -1,5 +1,7 @@
 # Roadmap
 
+20.09.2026 — Kostenloser iPhone-Testpfad ergänzt: bestehende HTTPS-Astra-Preview nachgewiesen; neuer statischer WLAN-Export, Home-Screen-Metadaten und sicherer Web-UUID-Fix lokal geprüft. EAS-Verknüpfung vorhanden, signierter iPhone-Build weiterhin offen. Anleitung: `docs/release/IPHONE_FREE_TEST_GUIDE.md`. Vercel-Build auf Verify/Audit vor Export umgestellt; bekannte hohe Findings blockieren neue HTTPS-Updates. Kein Main-/Production-Rollout. S4 serverseitige Atomizität/Idempotenz/Konflikte bleibt nächste Datenpriorität, danach S5. S1-Abhilfe für Preview-Freigabe nötig. Browser-Smoke ersetzt keine Safari-/Native-Abnahme.
+
 ## Fortsetzung 20.09.2026 — sichere inkrementelle Beta
 
 Abgeschlossene, separat geprüfte Blöcke dürfen nach aktuellem Nutzerauftrag nach main integriert werden. Zu jedem Block gehören konkrete Schritte und Soll-Ergebnisse in docs/release/BETA_REGRESSION_MATRIX.md. Vor Main-Push tatsächlichen automatischen/manuellen Auslieferungsweg und Release-Gates prüfen. Aktuelle Gesamtbranch bleibt wegen offener nativer Session-Abnahme und Security-Gates nicht pauschal freigegeben.

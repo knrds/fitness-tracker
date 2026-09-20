@@ -1,4 +1,21 @@
 # EVARO – Beta Regression Suite & Quality Assurance Matrix
+## Kostenloser iPhone-Testpfad — 20.09.2026
+
+Ausführung und Environment-Matrix: [IPHONE_FREE_TEST_GUIDE](IPHONE_FREE_TEST_GUIDE.md). Lokaler WLAN-Server ist statisch und providerfrei; nur erfundene Gastdaten über HTTP. HTTPS-/Auth-/Cloud-Abnahme erst mit separatem Staging und erfüllten Gates. SDK 54 bleibt bestehen. Manifest/Home-Screen-Metadaten sind keine Offline-/Native-Garantie.
+
+| Bereich | Test Surface | Status / Erwartung |
+|---|---|---|
+| Onboarding, Navigation, Profile, History, Programs/Templates, Measurements, Settings, DE/EN | WEB_IPHONE, AUTOMATED | WEB_TESTABLE; manuelle Schritte A–D im Guide, echter Safari-Durchgang noch offen |
+| Keyboard, Safe Areas, Modals, Scrolling, Orientation, Accessibility | WEB_IPHONE | PHYSICAL_DEVICE_REQUIRED für Aussage zum echten iPhone |
+| Browser-Offline/Reload/Origin-Wechsel | WEB_IPHONE, AUTOMATED | PARTIALLY_WEB_TESTABLE; kein Service Worker/garantierter Offline-Kaltstart |
+| Auth, Logout, Accountwechsel, Sessionablauf | WEB_IPHONE, SUPABASE, AUTOMATED | PARTIALLY_WEB_TESTABLE nach HTTPS-Staging-Provisioning |
+| Sync/Retry/Ownership | SUPABASE, BACKEND, AUTOMATED, WEB_IPHONE | PARTIAL; lokale SQLite-Faults geprüft, Cloud-Konflikte offen |
+| RLS und Migrations-Preflight | BACKEND, SUPABASE | Lokaler PostgreSQL-Harness VERIFIED; Supabase JWT/PostgREST offen |
+| Coach-UI, Fehlerzustände | WEB_IPHONE, AUTOMATED, BACKEND | UI ohne Providerkosten testbar; kein Fake-Providererfolg |
+| SecureStore/Keychain, native SQLite, OS-Backup/Kill/Haptik/Permissions | IOS_NATIVE, ANDROID_NATIVE | NATIVE_REQUIRED + PHYSICAL_DEVICE_REQUIRED |
+| StoreKit, RevenueCat, Push, native OTA/Deep Links | IOS_NATIVE, ANDROID_NATIVE, BACKEND | PREPARED/offene Native-Gates; nicht durch Safari abgenommen |
+| Signierter iPhone-Build/TestFlight im EAS-Workflow | IOS_NATIVE | APPLE_DEVELOPER_REQUIRED |
+
 ## Aktuelle Abnahme pro freizugebendem Block — 20.09.2026
 
 Die historischen Vollständigkeitsbehauptungen unten ersetzen keine aktuelle Geräte-/Cloud-Abnahme. Pro Block Testbuild/Commit, Gerät/OS, Testkonto, Ergebnis und beobachtete Abweichung festhalten. Keine echten Gesundheitsdaten für Fehlerprovokation verwenden. Gleiche App-Identität beim Upgrade erhalten; vor Migration lokalen Export sichern (kein vollständiges Cloud-Backup).

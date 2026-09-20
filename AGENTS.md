@@ -12,7 +12,7 @@ Vor Commit: relevante Regressionen, Typecheck/Lint und Secret-Precheck. Vor PR/M
 
 Keine Produktionsfreigabe bei unbewerteten kritischen/hohen Befunden. Risikoakzeptanz erfordert explizite Nutzerentscheidung mit Befund, Auswirkung, Ausnutzbarkeit, Mitigation, Owner und Ablaufdatum. Rechtstexte, Preise, Bundle-ID, Finanzverträge, Credential-Verantwortung und irreversible Produktionsmigrationen nicht selbst entscheiden. Blockierte Aufgaben halten unabhängige sichere Arbeit nicht auf.
 
-Vor Arbeit: ARCHITECTURE.md, DECISIONS.md, KNOWN_ISSUES.md, ROADMAP.md und git status lesen. iOS zuerst, Android vollständig, Windows als Entwicklungsrechner. Keine PWA als Ersatz. Keine destruktiven Datei-/Git-Operationen; fremde Arbeit erhalten.
+Vor Arbeit: ARCHITECTURE.md, DECISIONS.md, KNOWN_ISSUES.md, ROADMAP.md und git status lesen. iOS zuerst, Android vollständig, Windows als Entwicklungsrechner. Neue Nutzerpriorität vom 20.09.2026: kostenloser iPhone-Safari-/Home-Screen-Testpfad als Ergänzung ist ausdrücklich erlaubt, ohne SDK-Upgrade nur für Expo Go. Er ersetzt keine native Abnahme. Keine Production-Veröffentlichung, Store-Einreichung, Billing-Aktivierung oder Production-Supabase-Migration ohne erneute ausdrückliche Freigabe. Keine destruktiven Datei-/Git-Operationen; fremde Arbeit erhalten.
 
 Datenintegrität vor Features. Keine Session wegen Alter löschen, keine Queue-Operation still verwerfen. Alle externen Eingaben validieren. Domain bleibt React-frei; kg/cm kanonisch. Keine Secrets, keine blanket any/ts-ignore/lint-disable. Dependencies nur mit dokumentiertem Nutzen. Keine ungefragten Subagents; unabhängig voneinander mögliche Commands dürfen parallel laufen.
 

@@ -1,5 +1,11 @@
 # ASTRA START HERE — aktueller Handoff 2026-09-19
 
+## Aktueller Einstieg 20.09.2026 — iPhone Preview
+
+Neuer Auftrag: kostenlose Safari-/Home-Screen-Testbarkeit als Ergänzung, SDK 54 beibehalten. Production/Store/Billing/Production-SQL bleiben bis erneuter ausdrücklicher Freigabe gesperrt. EAS-Projekt vom Nutzer verknüpft. Bestehende HTTPS-Astra-Preview `3bd4713` im Dashboard und Browser bestätigt; neuer lokaler Export mit Home-Screen-Metadaten, statischem WLAN-Server und sicherer Web-UUID-Alternative getestet. Native UUID-/Datenverträge unverändert. Anleitung und URLs: [IPHONE_FREE_TEST_GUIDE.md](IPHONE_FREE_TEST_GUIDE.md); genaue Evidenz/Gates: EXECUTION_STATUS.md.
+
+Vercel-Git veröffentlicht bereits unabhängig von GitHub-Prüfungen. Deshalb neuer Branch-Build `build:preview` mit Verify/Audit vor Export; keine hohen Befunde für ein grünes Preview ignorieren. Vollständige SAST-/Lizenz-/Secret-/Backend-Verkettung bleibt offen. Alte HTTPS-URL und neuer lokaler Stand nicht gleichsetzen. Keine echte iPhone-/Supabase-Abnahme behaupten. S4-Serververtrag bleibt nächste Datenarbeit, danach S5; neue Preview-Freigabe benötigt zudem S1-Abhilfe. Historische Statusaussagen unten zum unbestätigten Hosting sind überholt.
+
 ## Neuester Auftrag 20.09.2026 — inkrementelle Main-Freigabe
 
 Nutzer erlaubt jetzt Main-Integration abgeschlossener geeigneter Blöcke, mit konkreten Testanleitungen. Das hebt das frühere pauschale Main-Verbot auf, nicht die Release-Gates. Aktiver Beta-/Deploymentweg noch nicht bestätigt: Vercel-Datei vorhanden, EAS-Profile vorhanden, kein nachgewiesener automatischer nativer Rollout. Gesamtbranch wegen Geräte-/Security-Gates weiterhin nicht pauschal mergefähig. Testschritte: BETA_REGRESSION_MATRIX.md.

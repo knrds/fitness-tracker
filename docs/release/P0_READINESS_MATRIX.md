@@ -1,5 +1,7 @@
 # EVARO Current State Matrix — Astra 2026-09-19
 
+Aktualisierung 20.09.2026: kostenlose Safari-Testinfrastruktur PARTIAL; vorhandene HTTPS-Preview `3bd4713` bestätigt, neuer WLAN-Export mit Home-Screen-Metadaten und Web-UUID-Fix lokal geprüft. Kein nativer Nachweis. Neue Vercel-Builds prüfen Verify/Audit; hohe Befunde blockieren Updates. Vollständige Anleitung: IPHONE_FREE_TEST_GUIDE.md. Keine Production-/Main-Integration, Remote-Migration oder Billing-Aktivierung.
+
 ## Security Roadmap S0–S12 — maßgeblicher Ausführungspfad
 
 Basis: Code-Audit und Checkpoint `6c01522`, Guardrails und zehnseitige Security-Roadmap im Release-Pack. Owner bedeutet technische Zuständigkeit, keine bereits erteilte Produktionsfreigabe. Kein Bereich ist allein aufgrund vorhandener Dokumente DONE. Feature Expansion bleibt eingefroren.
@@ -54,8 +56,8 @@ Auditbasis: `6471138`, frisch gefetchtes `origin/main`; Branch `astra/p0-release
 |---|---|---|
 | P00 Baseline / Freeze | PARTIAL | Frische Gates dokumentieren; Feature Freeze gilt |
 | P01 Native Foundation | PARTIAL | Signierte Builds und Geräteabnahme |
-| P02 Security / Data Integrity | ASTRA_REQUIRED | SecureStore, reale RLS, Cloud-Konflikte/Atomizität, Account-Löschung |
-| P03 AI Backend | ASTRA_REQUIRED | HTTPS/Auth/Pro, verteilte Quoten/Budget, DE/EN Safety |
+| P02 Security / Data Integrity | PARTIAL | Native SecureStore-Abnahme, Supabase-RLS, Cloud-Konflikte/Atomizität, Account-Löschung |
+| P03 AI Backend | PARTIAL | HTTPS-Preview vorhanden; reale Auth/Pro, verteilte Quoten/Budget, DE/EN Safety offen |
 | P04 Privacy / Legal / Licensing | USER_ACTION_REQUIRED | Rechtstexte/Kontakte, Foto-Rechte; Consent/Export technisch offen |
 | P05 Subscriptions | PREPARED | SDKs/Serverentitlements, Produkte/Verträge |
 | P06 Onboarding / Paywall | PARTIAL | Onboarding vorhanden, reale Paywall fehlt |

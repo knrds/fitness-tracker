@@ -114,7 +114,8 @@ export async function* streamCoachResponse(
     const response = await fetch(endpoint, {
       method: 'POST',
       headers,
-      signal: controller.signal,
+      // Expo web adds DOM globals alongside RN's fetch declarations; both accept this same runtime signal.
+      signal: controller.signal as NonNullable<RequestInit['signal']>,
       body: JSON.stringify({
         messages: messages.slice(-10).map(({ role, content, plan, savedTemplateIds }) => ({
           role,

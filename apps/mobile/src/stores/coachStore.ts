@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import * as Crypto from 'expo-crypto';
+import * as Crypto from '../utils/uuid';
 import { ChatMessage, ChatMessageSchema, summarizeSessionExercise, calculateAge } from '@fitness-tracker/domain';
 import { z } from 'zod';
 

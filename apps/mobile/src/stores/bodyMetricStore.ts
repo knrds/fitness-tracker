@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { BodyMetric, UUID, BodyMetricSchema } from '@fitness-tracker/domain';
-import * as Crypto from 'expo-crypto';
+import * as Crypto from '../utils/uuid';
 import { z } from 'zod';
 
 import { getCurrentUserId } from './local-user';

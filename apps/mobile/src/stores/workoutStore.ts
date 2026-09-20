@@ -12,7 +12,7 @@ import {
   repeatSessionExercises,
   startTemplateExercises,
 } from '@fitness-tracker/domain';
-import * as Crypto from 'expo-crypto';
+import * as Crypto from '../utils/uuid';
 import { workoutPersistedSchema } from '../data/persistedContracts';
 import { useHistoryStore } from './historyStore';
 import { useAchievementStore } from './achievementStore';

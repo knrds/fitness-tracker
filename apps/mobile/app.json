@@ -33,7 +33,13 @@
       "expo-router",
       "expo-font",
       "expo-sqlite",
-      ["expo-secure-store", { "configureAndroidBackup": true, "faceIDPermission": false }],
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true,
+          "faceIDPermission": false
+        }
+      ],
       [
         "expo-av",
         {
@@ -49,6 +55,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ddb36b12-30d0-4422-9e17-85ab8919f656"
+      }
+    },
+    "owner": "knrd.s"
   }
 }

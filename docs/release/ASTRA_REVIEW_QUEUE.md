@@ -1,5 +1,9 @@
 # EVARO – Astra Review Queue
 
+## Aktueller Checkpoint 20.09.2026 — S4 PARTIAL
+
+Cloud-Child-Read/Delete- und Pull-Fehler werden weitergegeben; die fehlgeschlagene Outbox-Operation bleibt erhalten. Pull übernimmt erst vollständig validierte eigene Daten, überspringt offene lokale Änderungen und verwendet native SQLite-Atomizität plus Memory-Rollback. 18 Regressionen, darunter echter SQLite-Schreibfehler nach Profil-/History-Änderung. Review: keine serverseitige Transaktion, kein konsistenter DB-Snapshot über sechs Requests, keine gelösten Mehrgeräte-/Uhrenkonflikte. Web-Preview hat keine gleichwertige dauerhafte Rollback-Garantie. Frühere Befunde zu ignorierten Fehlern unten sind durch diesen Teilblock überholt; übrige S4-Gates bleiben CRITICAL.
+
 Aktuellster S3-Block: lokale PostgreSQL-17.11-RLS-Abnahme mit 304 Assertions und adversarial Policy-/Preflight-/Rollback-Szenarien; restrictive Migration vorbereitet. Ursprungslücke real reproduziert. Review: Remote-Policy-/Grant-/Dateninventar, Sperrzeitfenster/Backup und Supabase-HTTP-Abnahme erforderlich; keine Produktion migriert. S4 kann auf dem lokal geprüften Ownership-Vertrag weiterarbeiten.
 
 Aktuellster S6-Fix: öffentlicher Prototype-Auth-Bypass entfernt, lokale interne Identität in Production/VERCEL gesperrt. Drei zuvor rote Auth-Negativszenarien grün; 38 API-/Safety-Tests. S6 PARTIAL bis Serverentitlement, verteilte Quoten/Budget/Kill-Switch, DE/EN und reale Abnahme. Kein Remote-Rollout. Vorheriger S1-Patch `26e29d1` gepusht.

@@ -1,5 +1,9 @@
 # ASTRA START HERE — aktueller Handoff 2026-09-19
 
+## Checkpoint 20.09.2026 — S4 Fehlergrenzen
+
+S3 ist als **8b0a6e1** gepusht. Der folgende S4-Teilblock behandelt ignorierte Cloud-Fehler, unvollständige Pull-Antworten und lokale Teilübernahmen: vollständige Validierung vor Anwendung, Pending-Outbox-Guards, native SQLite-Transaktion mit Memory-Rollback. 18 neue Regressionen einschließlich echter SQLite-Fehlerinjektion; aktuelle Gesamtmessung in EXECUTION_STATUS.md. Keine persistente Formatmigration, keine Remote-Aktivierung. Risiko CRITICAL, S4 bleibt PARTIAL: serverseitige atomare Aggregate, Idempotenz, Revisionen/Konflikte/Tombstones fehlen weiterhin. Nächster sinnvoller Block ist dieser serverseitige Sync-Vertrag, danach Account-Deletion. Kein Main-Merge oder Beta-Rollout beauftragt.
+
 Basis `origin/main`: `6471138`. Review-Branch: `astra/p0-release-core`. Neuester vorhandener Beta-Tag: `v0.1.0-beta.6`. Kein Main-Merge, keine Produktionsmigration, kein EAS-/OTA-Rollout. Konkrete Gates und Session-Ergebnis: [EXECUTION_STATUS](EXECUTION_STATUS.md). Vollständige Ist-/Roadmap-Matrix: [P0_READINESS_MATRIX](P0_READINESS_MATRIX.md).
 
 ## Erledigter lokaler Engineering-Block

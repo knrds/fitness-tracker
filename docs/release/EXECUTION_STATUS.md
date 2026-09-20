@@ -1,6 +1,41 @@
 # EVARO Astra Takeover — Execution Status
 
-Stand: 2026-09-19. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
+Stand: 2026-09-20. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
+
+## Sicherer Engineering-Checkpoint — S4 Sync-Fehlergrenzen, 20.09.2026
+
+Fortsetzung nach **8b0a6e1**. Risiko **CRITICAL**, S4 **PARTIAL**. Schutzbedarf: Profil, Workout-History, Programme/Templates, eigene Übungen und Körpermesswerte. Cloud-Antworten sind untrusted; Ownership und vollständige Beziehungen werden vor jeder lokalen Anwendung validiert. Clientprüfung ersetzt keine serverseitige Autorisierung.
+
+Implementiert: bislang ignorierte Child-Read/Delete- und Pull-Fehler propagieren; fehlgeschlagene Outbox-Operation bleibt erhalten. Pull bei ausstehenden lokalen Änderungen auslassen; während Requests neu entstandene Queue verhindert Anwendung des Snapshots. Alle sechs Antworten erst validieren, dann lokale Stores gemeinsam mit vorhandener SQLite-Transaktion anwenden. Bei Schreibfehler alle Memory-Projektionen zurückrollen; lastSyncedAt nur bei erfolgreicher Übernahme. Keine Cloud-Rohdaten in Pull-Fehlerlogs.
+
+**18 neue Regressionen PASS**, inklusive echter SQLite-Triggerfehlerinjektion nach Profil-/Verlaufsänderung und Kontrolle wiederhergestellter persistierter Daten. Gesamtlauf **pnpm verify PASS: 621 Tests = 77 Domain + 502 Mobile (77 Suites) + 38 API + 4 Dependency-Security**; Typecheck/Lint PASS. Logs: output/sync-checkpoint-verify.log und sync-checkpoint-targeted.log. Vorheriger S3-Nachweis bleibt 304 PostgreSQL-Assertions, keine neue SQL-Migration im S4-Block.
+
+Aktueller Registry-Audit am 20.09. nach Wiederholung mit Netzwerkzugriff: **57 Befunde = 43 high + 14 moderate, 0 critical** (unverändert). Audit bleibt FAIL/Release-Gate; ursprünglicher Abruf scheiterte mit fetch failed. Staged-Secret-Precheck ohne Treffer. Coach-Providercheck weiterhin mangels Providerkonfiguration blockiert; Expo public/introspect aus vorigem unverändertem Native-Konfigurationsstand PASS.
+
+Abschluss: Web-Build PASS (4.74 MB), erneuter Bundle-Secret-Scan ohne Treffer; abschließender Typecheck und Lint der geänderten Dateien PASS. Der eigene PostgreSQL-Testserver läuft beim Checkpoint nicht mehr (pg_ctl status und kein Listener auf 55432 bestätigt); Daten/Logs bleiben erhalten.
+
+Keine Datenformatänderung oder neue Dependency. Revert braucht keine lokale Konvertierung, würde jedoch behobene Fehler wieder einführen. Web-Preview besitzt keine gleichwertige dauerhafte SQLite-Atomizität. **Nicht gelöst:** mehrstufige Cloud-Aggregate können teilweise geschrieben werden, sechs Requests sind kein konsistenter DB-Snapshot, Zeitstempel-Merge ist keine revisionsbasierte Konfliktlösung; serverseitige Idempotenz, Tombstones und Multi-Device bleiben offen. Nächster Block: atomarer serverseitiger Sync-Vertrag mit realen Backendtests, danach Account-Lifecycle.
+
+### Folgen einer späteren Main-Übernahme für Betatester
+
+Ein Git-Merge ist noch kein geprüfter nativer Rollout. Automatische externe Deploymentverknüpfungen sind nicht verifiziert; Build/OTA-/Backend-Auslieferung bewusst kontrollieren. Es wurde hier weder main geändert noch eine Produktionsmigration oder Veröffentlichung ausgeführt.
+
+- SecureStore schützt Sessions nativ und migriert erst nach verifiziertem Write; große Sessionwerte/OS-Fehler können Login oder Migration blockieren. Geräte-/Upgrade-/Backup-/Rollback-Abnahme fehlt, Zero-Logout ist nicht garantiert. Native Build-Kompatibilität vor OTA prüfen; alte MMKV-only-Version ist kein sicherer Zero-Logout-Rollback.
+- Sync verweigert jetzt fehlerhafte/unvollständige Cloud-Antworten, statt Teilzustände als Erfolg anzunehmen. Betatester können dadurch häufiger ehrliche Sync-Fehler/offene Queue sehen; lokal vorhandene Daten werden in den getesteten Fehlerfällen erhalten. Bestehende Cloud-Konfliktrisiken sind noch nicht vollständig behoben.
+- Öffentlicher Coach benötigt gültige Anmeldung; bisherige anonyme Prototypnutzung endet. Reale Provider-/Auth-/Hosting-Abnahme bleibt offen.
+- RLS-Migration ist vorbereitet und lokal getestet, nicht remote angewendet. Bei inkonsistenten vorhandenen Referenzen verweigert sie die Migration; keine automatische Löschung/Reparatur.
+- Keine neuen Features, Preise, Bundle-ID oder Billing-Aktivierung. CI stoppt bei verbleibenden hohen Dependency-Befunden; grüne Funktionstests sind keine Releasefreigabe.
+
+### Gesicherte Blöcke seit Takeover
+
+1. 6c01522 — native Session-Migration, Supabase-/Auth-Integration und Roadmap-Audit.
+2. 27fccac — dauerhafte Security-Governance, Secret-Scans, gehärtete CI.
+3. 26e29d1 — gezielte nanoid/undici/tar-Patches mit Angriffsregressionen.
+4. 3585062 — öffentlicher Coach-Auth-Bypass geschlossen.
+5. 8b0a6e1 — restrictive RLS-/Referenzmigration und echter PostgreSQL-Harness.
+6. Folgender Commit — S4 Sync-Fehlergrenzen und dieser Checkpoint; genaue ID aus Git, um Selbstreferenz zu vermeiden.
+
+Remote-Abgleich am 20.09.: origin/main unverändert **64711388daf754453afb79928b2679a44c028fde**. Review-Branch bleibt astra/p0-release-core; kein Rebase/Reset/Clean/Force-Push. Ignorierte Toolcaches/Testlogs bleiben als reproduzierbare lokale Nachweise erhalten. SAST/SBOM/Lizenz-Gesamtabnahme, Remote-Schutz, physische Geräte und verbleibende P0-Gates sind weiterhin offen; keine Risikoakzeptanz vorgenommen.
 
 ## Neuester Daten-Security-Block — S3 RLS lokal verifiziert
 

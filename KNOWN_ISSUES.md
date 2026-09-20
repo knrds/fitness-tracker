@@ -1,5 +1,7 @@
 # Bekannte Probleme und Freigabegrenzen
 
+20.09.2026 — S4-Teilfix: zuvor ignorierte Child-Read/Delete-/Pull-Fehler werden jetzt behandelt, offene Outbox-Operationen erhalten und vollständige Pulls vor Anwendung validiert. Native lokale SQLite-Übernahme mit Memory-Rollback getestet. Historischer Befund unten insoweit überholt. Cloud-Aggregate bleiben mehrstufig und nicht atomar; Mehrgeräte-Konflikte/Tombstones/Revisionen und echte Cloud-/Geräteabnahme weiterhin offen. Keine Releasefreigabe.
+
 S3-Update: Der ursprünglich fehlerhafte RLS-Harness ist ersetzt, 304 Assertions laufen gegen echtes PostgreSQL 17.11. Cross-Account-FK-Lücke reproduziert und durch additive restrictive Migration geschlossen; Bestandsdaten-/Rollback-Gates getestet. Remote-Supabase/Auth/PostgREST, tatsächliche Grants/Policies und Deployment weiterhin offen. Frühere Aussagen zum fehlenden lokalen RLS-Nachweis unten sind überholt.
 
 Security-Fortschritt 19.09.2026: Der unten im Eingangsaudit genannte öffentliche ALLOW_PROTOTYPE_COACH-Auth-Bypass ist inzwischen geschlossen. S6 bleibt offen für Server-Pro, verteilte Budgets/Limits, DE/EN Safety und Live-Abnahme. Nach drei S1-Paketfixes bleiben 57 Audit-Befunde (43 high/14 moderate).

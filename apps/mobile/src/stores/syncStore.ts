@@ -30,6 +30,7 @@ import type {
 import { createHydratedStorage } from './storage';
 import { useAuthStore } from './authStore';
 import { getStorageScope, isScopeCurrent } from '../data/storageScope';
+import { runStorageTransaction } from '../data/storageTransaction';
 import { isSupabaseConfigured, supabase } from '../utils/supabase';
 import { logger } from '../utils/logger';
 
@@ -316,9 +317,9 @@ function asDbRecordFromDomain(value: unknown, columns: string[]): DbRecord {
   return pickDbColumns(asDbRecord(value), columns);
 }
 
-function readRelationArray(record: DbRecord, key: string): unknown[] {
+function readRelationArray(record: DbRecord, key: string): unknown[] | null {
   const value = record[key];
-  return Array.isArray(value) ? value : [];
+  return Array.isArray(value) ? value : null;
 }
 
 function stripUndefinedProperties(value: unknown): unknown {
@@ -341,20 +342,19 @@ function stripUndefinedProperties(value: unknown): unknown {
 function parseRemoteRecord<T>(schema: z.ZodType<unknown>, raw: unknown, label: string): T | null {
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
-    logger.warn(`[Sync Store] Ignoring invalid ${label} row`, parsed.error.flatten());
+    logger.warn(`[Sync Store] Invalid ${label} row`);
     return null;
   }
   return stripUndefinedProperties(parsed.data) as T;
 }
 
 function parseRemoteRows<T>(rows: unknown, normalize: (row: unknown) => T | null): T[] {
-  if (!Array.isArray(rows)) return [];
+  if (!Array.isArray(rows)) throw new Error('Invalid cloud collection');
 
   return rows.reduce<T[]>((result, row) => {
     const parsed = normalize(row);
-    if (parsed) {
-      result.push(parsed);
-    }
+    if (!parsed) throw new Error('Invalid cloud row');
+    result.push(parsed);
     return result;
   }, []);
 }
@@ -493,6 +493,7 @@ export function normalizeRemoteWorkoutTemplate(raw: unknown): WorkoutTemplate | 
   if (!isRecord(record)) return null;
 
   const templateExercises = readRelationArray(record, 'templateExercises');
+  if (!templateExercises) return null;
   const candidate: DbRecord = {
     ...record,
     exercises: templateExercises,
@@ -507,6 +508,7 @@ export function normalizeRemoteProgram(raw: unknown): Program | null {
   if (!isRecord(record)) return null;
 
   const programWorkouts = readRelationArray(record, 'programWorkouts');
+  if (!programWorkouts) return null;
   const candidate: DbRecord = {
     ...record,
     workouts: programWorkouts,
@@ -520,7 +522,9 @@ export function normalizeRemoteWorkoutSession(raw: unknown): WorkoutSession | nu
   const record = keysToCamel(raw);
   if (!isRecord(record)) return null;
 
-  const sessionExercises = readRelationArray(record, 'sessionExercises').map((exercise) => {
+  const rawExercises = readRelationArray(record, 'sessionExercises');
+  if (!rawExercises) return null;
+  const sessionExercises = rawExercises.map((exercise) => {
     if (!isRecord(exercise)) {
       return {
         sets: [],
@@ -528,6 +532,7 @@ export function normalizeRemoteWorkoutSession(raw: unknown): WorkoutSession | nu
     }
 
     const exerciseSets = readRelationArray(exercise, 'exerciseSets');
+    if (!exerciseSets) return null;
     const candidate: DbRecord = {
       ...exercise,
       sets: exerciseSets,
@@ -578,10 +583,12 @@ async function deleteSessionChildren(sessionId: unknown, assertCurrent: () => vo
 
   assertCurrent();
 
-  const { data: oldExercises } = await supabase
+  const { data: oldExercises, error: readError } = await supabase
     .from('session_exercises')
     .select('id')
     .eq('session_id', sessionId);
+  if (readError) throw readError;
+  if (!Array.isArray(oldExercises)) throw new Error('Invalid cloud child collection');
 
   const oldExerciseIds = Array.isArray(oldExercises)
     ? oldExercises
@@ -593,12 +600,17 @@ async function deleteSessionChildren(sessionId: unknown, assertCurrent: () => vo
 
   if (oldExerciseIds.length > 0) {
     assertCurrent();
-    await supabase.from('exercise_sets').delete().in('session_exercise_id', oldExerciseIds);
+    const { error } = await supabase
+      .from('exercise_sets')
+      .delete()
+      .in('session_exercise_id', oldExerciseIds);
+    if (error) throw error;
   }
 
   assertCurrent();
 
-  await supabase.from('session_exercises').delete().eq('session_id', sessionId);
+  const { error } = await supabase.from('session_exercises').delete().eq('session_id', sessionId);
+  if (error) throw error;
 }
 
 async function upsertPreparedPayload(
@@ -641,10 +653,11 @@ async function upsertPreparedPayload(
 
     assertCurrent();
 
-    await supabase
+    const { error: deleteError } = await supabase
       .from('template_exercises')
       .delete()
       .eq('template_id', prepared.templateRow.id as string);
+    if (deleteError) throw deleteError;
 
     if (prepared.templateExerciseRows.length > 0) {
       assertCurrent();
@@ -663,10 +676,11 @@ async function upsertPreparedPayload(
 
     assertCurrent();
 
-    await supabase
+    const { error: deleteError } = await supabase
       .from('program_workouts')
       .delete()
       .eq('program_id', prepared.programRow.id as string);
+    if (deleteError) throw deleteError;
 
     if (prepared.programWorkoutRows.length > 0) {
       assertCurrent();
@@ -787,7 +801,7 @@ export const useSyncStore = create<SyncState>()(
       },
 
       pullFromCloud: async () => {
-        if (!isSupabaseConfigured || get().isSyncing) return;
+        if (!isSupabaseConfigured || get().isSyncing || get().queue.length > 0) return;
         const user = useAuthStore.getState().user;
         if (!user) return;
         const scope = getStorageScope();
@@ -808,205 +822,257 @@ export const useSyncStore = create<SyncState>()(
           const profileStore = (await import('./profileStore')).useProfileStore;
           if (!current()) return;
 
-          const { data: userProfile } = await supabase
+          const { data: userProfile, error: profileError } = await supabase
             .from('users')
             .select('*')
             .eq('id', user.id)
             .single();
           if (!current()) return;
-          const remoteProfile = normalizeRemoteUser(userProfile);
-          if (remoteProfile && remoteProfile.id === user.id) {
-            profileStore.setState({
-              profile: {
-                ...profileStore.getState().profile,
-                displayName: remoteProfile.displayName,
-                preferredUnits: remoteProfile.preferredUnits,
-                ...(remoteProfile.biologicalSex !== undefined
-                  ? { biologicalSex: remoteProfile.biologicalSex }
-                  : {}),
-                ...(remoteProfile.heightCm !== undefined
-                  ? { heightCm: remoteProfile.heightCm }
-                  : {}),
-                ...(remoteProfile.fitnessGoal !== undefined
-                  ? { fitnessGoal: remoteProfile.fitnessGoal }
-                  : {}),
-                ...(remoteProfile.experienceLevel !== undefined
-                  ? { experienceLevel: remoteProfile.experienceLevel }
-                  : {}),
-              },
-            });
-          }
+          if (profileError) throw profileError;
 
-          const { data: remoteExercises } = await supabase
+          const { data: remoteExercises, error: exercisesError } = await supabase
             .from('exercises')
             .select('*')
             .eq('is_custom', true)
             .eq('owner_id', user.id);
 
           if (!current()) return;
-          const parsedExercises = parseRemoteRows(remoteExercises, normalizeRemoteExercise).filter(
-            (row) => row.ownerId === user.id,
-          );
-          if (parsedExercises.length > 0) {
-            const localStore = exerciseStore.getState();
-            const mergedCustom = [...localStore.customExercises];
+          if (exercisesError) throw exercisesError;
 
-            for (const remoteExercise of parsedExercises) {
-              const localIndex = mergedCustom.findIndex(
-                (exercise) => exercise.id === remoteExercise.id,
-              );
-              if (localIndex === -1) {
-                mergedCustom.push(remoteExercise);
-              } else {
-                const localExercise = mergedCustom[localIndex];
-                if (
-                  localExercise &&
-                  remoteExercise.updatedAt.getTime() > localExercise.updatedAt.getTime()
-                ) {
-                  mergedCustom[localIndex] = remoteExercise;
-                }
-              }
-            }
-            exerciseStore.setState({
-              customExercises: mergedCustom,
-            });
-          }
-
-          const { data: remoteTemplates } = await supabase
+          const { data: remoteTemplates, error: templatesError } = await supabase
             .from('workout_templates')
             .select('*, template_exercises(*)')
             .eq('user_id', user.id);
 
           if (!current()) return;
-          const parsedTemplates = parseRemoteRows(
-            remoteTemplates,
-            normalizeRemoteWorkoutTemplate,
-          ).filter((row) => row.userId === user.id);
-          if (parsedTemplates.length > 0) {
-            const localStore = programStore.getState();
-            const mergedTemplates = [...localStore.templates];
+          if (templatesError) throw templatesError;
 
-            for (const remoteTemplate of parsedTemplates) {
-              const localIndex = mergedTemplates.findIndex(
-                (template) => template.id === remoteTemplate.id,
-              );
-              if (localIndex === -1) {
-                mergedTemplates.push(remoteTemplate);
-              } else {
-                const localTemplate = mergedTemplates[localIndex];
-                if (
-                  localTemplate &&
-                  remoteTemplate.updatedAt.getTime() > localTemplate.updatedAt.getTime()
-                ) {
-                  mergedTemplates[localIndex] = remoteTemplate;
-                }
-              }
-            }
-            programStore.setState({ templates: mergedTemplates });
-          }
-
-          const { data: remotePrograms } = await supabase
+          const { data: remotePrograms, error: programsError } = await supabase
             .from('programs')
             .select('*, program_workouts(*)')
             .eq('user_id', user.id);
 
           if (!current()) return;
-          const parsedPrograms = parseRemoteRows(remotePrograms, normalizeRemoteProgram).filter(
-            (row) => row.userId === user.id,
-          );
-          if (parsedPrograms.length > 0) {
-            const localStore = programStore.getState();
-            const mergedPrograms = [...localStore.programs];
+          if (programsError) throw programsError;
 
-            for (const remoteProgram of parsedPrograms) {
-              const localIndex = mergedPrograms.findIndex(
-                (program) => program.id === remoteProgram.id,
-              );
-              if (localIndex === -1) {
-                mergedPrograms.push(remoteProgram);
-              } else {
-                const localProgram = mergedPrograms[localIndex];
-                if (
-                  localProgram &&
-                  remoteProgram.updatedAt.getTime() > localProgram.updatedAt.getTime()
-                ) {
-                  mergedPrograms[localIndex] = remoteProgram;
-                }
-              }
-            }
-            programStore.setState({ programs: mergedPrograms });
-          }
-
-          const { data: remoteSessions } = await supabase
+          const { data: remoteSessions, error: sessionsError } = await supabase
             .from('workout_sessions')
             .select('*, session_exercises(*, exercise_sets(*))')
             .eq('user_id', user.id);
 
           if (!current()) return;
-          const parsedSessions = parseRemoteRows(
-            remoteSessions,
-            normalizeRemoteWorkoutSession,
-          ).filter((row) => row.userId === user.id);
-          if (parsedSessions.length > 0) {
-            const localStore = historyStore.getState();
-            const mergedSessions = [...localStore.sessions];
+          if (sessionsError) throw sessionsError;
 
-            for (const remoteSession of parsedSessions) {
-              const localIndex = mergedSessions.findIndex(
-                (session) => session.id === remoteSession.id,
-              );
-              if (localIndex === -1) {
-                mergedSessions.push(remoteSession);
-              } else {
-                const localSession = mergedSessions[localIndex];
-                if (
-                  localSession &&
-                  remoteSession.updatedAt.getTime() > localSession.updatedAt.getTime()
-                ) {
-                  mergedSessions[localIndex] = remoteSession;
-                }
-              }
-            }
-            mergedSessions.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
-            historyStore.setState({ sessions: mergedSessions });
-          }
-
-          const { data: remoteMetrics } = await supabase
+          const { data: remoteMetrics, error: metricsError } = await supabase
             .from('body_metrics')
             .select('*')
             .eq('user_id', user.id);
 
           if (!current()) return;
-          const parsedMetrics = parseRemoteRows(remoteMetrics, normalizeRemoteBodyMetric).filter(
-            (row) => row.userId === user.id,
+          if (metricsError) throw metricsError;
+
+          // Never apply a remote snapshot over newly queued local edits.
+          if (get().queue.length > 0) return;
+          const remoteProfile = normalizeRemoteUser(userProfile);
+          if (!remoteProfile || remoteProfile.id !== user.id)
+            throw new Error('Invalid cloud profile');
+
+          const parsedExercises = parseRemoteRows(remoteExercises, normalizeRemoteExercise).map(
+            (row) => {
+              if (row.ownerId !== user.id) throw new Error('Invalid cloud ownership');
+              return row;
+            },
           );
-          if (parsedMetrics.length > 0) {
-            const localStore = bodyMetricStore.getState();
-            const mergedMetrics = [...localStore.metrics];
+          const parsedTemplates = parseRemoteRows(
+            remoteTemplates,
+            normalizeRemoteWorkoutTemplate,
+          ).map((row) => {
+            if (row.userId !== user.id) throw new Error('Invalid cloud ownership');
+            return row;
+          });
+          const parsedPrograms = parseRemoteRows(remotePrograms, normalizeRemoteProgram).map(
+            (row) => {
+              if (row.userId !== user.id) throw new Error('Invalid cloud ownership');
+              return row;
+            },
+          );
+          const parsedSessions = parseRemoteRows(remoteSessions, normalizeRemoteWorkoutSession).map(
+            (row) => {
+              if (row.userId !== user.id) throw new Error('Invalid cloud ownership');
+              return row;
+            },
+          );
+          const parsedMetrics = parseRemoteRows(remoteMetrics, normalizeRemoteBodyMetric).map(
+            (row) => {
+              if (row.userId !== user.id) throw new Error('Invalid cloud ownership');
+              return row;
+            },
+          );
+          const previous = {
+            profile: profileStore.getState(),
+            exercises: exerciseStore.getState(),
+            programs: programStore.getState(),
+            history: historyStore.getState(),
+            metrics: bodyMetricStore.getState(),
+            lastSyncedAt: get().lastSyncedAt,
+          };
+          // Native SQLite commit and memory rollback reuse the existing storage contract.
+          runStorageTransaction(
+            () => {
+              profileStore.setState({
+                profile: {
+                  ...profileStore.getState().profile,
+                  displayName: remoteProfile.displayName,
+                  preferredUnits: remoteProfile.preferredUnits,
+                  ...(remoteProfile.biologicalSex !== undefined
+                    ? { biologicalSex: remoteProfile.biologicalSex }
+                    : {}),
+                  ...(remoteProfile.heightCm !== undefined
+                    ? { heightCm: remoteProfile.heightCm }
+                    : {}),
+                  ...(remoteProfile.fitnessGoal !== undefined
+                    ? { fitnessGoal: remoteProfile.fitnessGoal }
+                    : {}),
+                  ...(remoteProfile.experienceLevel !== undefined
+                    ? { experienceLevel: remoteProfile.experienceLevel }
+                    : {}),
+                },
+              });
 
-            for (const remoteMetric of parsedMetrics) {
-              const localIndex = mergedMetrics.findIndex((metric) => metric.id === remoteMetric.id);
-              if (localIndex === -1) {
-                mergedMetrics.push(remoteMetric);
-              } else {
-                const localMetric = mergedMetrics[localIndex];
-                if (
-                  localMetric &&
-                  remoteMetric.createdAt.getTime() > localMetric.createdAt.getTime()
-                ) {
-                  mergedMetrics[localIndex] = remoteMetric;
+              if (parsedExercises.length > 0) {
+                const localStore = exerciseStore.getState();
+                const mergedCustom = [...localStore.customExercises];
+
+                for (const remoteExercise of parsedExercises) {
+                  const localIndex = mergedCustom.findIndex(
+                    (exercise) => exercise.id === remoteExercise.id,
+                  );
+                  if (localIndex === -1) {
+                    mergedCustom.push(remoteExercise);
+                  } else {
+                    const localExercise = mergedCustom[localIndex];
+                    if (
+                      localExercise &&
+                      remoteExercise.updatedAt.getTime() > localExercise.updatedAt.getTime()
+                    ) {
+                      mergedCustom[localIndex] = remoteExercise;
+                    }
+                  }
                 }
+                exerciseStore.setState({
+                  customExercises: mergedCustom,
+                });
               }
-            }
-            mergedMetrics.sort((a, b) => b.recordedAt.getTime() - a.recordedAt.getTime());
-            bodyMetricStore.setState({ metrics: mergedMetrics });
-          }
 
-          set({ lastSyncedAt: new Date() });
+              if (parsedTemplates.length > 0) {
+                const localStore = programStore.getState();
+                const mergedTemplates = [...localStore.templates];
+
+                for (const remoteTemplate of parsedTemplates) {
+                  const localIndex = mergedTemplates.findIndex(
+                    (template) => template.id === remoteTemplate.id,
+                  );
+                  if (localIndex === -1) {
+                    mergedTemplates.push(remoteTemplate);
+                  } else {
+                    const localTemplate = mergedTemplates[localIndex];
+                    if (
+                      localTemplate &&
+                      remoteTemplate.updatedAt.getTime() > localTemplate.updatedAt.getTime()
+                    ) {
+                      mergedTemplates[localIndex] = remoteTemplate;
+                    }
+                  }
+                }
+                programStore.setState({ templates: mergedTemplates });
+              }
+
+              if (parsedPrograms.length > 0) {
+                const localStore = programStore.getState();
+                const mergedPrograms = [...localStore.programs];
+
+                for (const remoteProgram of parsedPrograms) {
+                  const localIndex = mergedPrograms.findIndex(
+                    (program) => program.id === remoteProgram.id,
+                  );
+                  if (localIndex === -1) {
+                    mergedPrograms.push(remoteProgram);
+                  } else {
+                    const localProgram = mergedPrograms[localIndex];
+                    if (
+                      localProgram &&
+                      remoteProgram.updatedAt.getTime() > localProgram.updatedAt.getTime()
+                    ) {
+                      mergedPrograms[localIndex] = remoteProgram;
+                    }
+                  }
+                }
+                programStore.setState({ programs: mergedPrograms });
+              }
+
+              if (parsedSessions.length > 0) {
+                const localStore = historyStore.getState();
+                const mergedSessions = [...localStore.sessions];
+
+                for (const remoteSession of parsedSessions) {
+                  const localIndex = mergedSessions.findIndex(
+                    (session) => session.id === remoteSession.id,
+                  );
+                  if (localIndex === -1) {
+                    mergedSessions.push(remoteSession);
+                  } else {
+                    const localSession = mergedSessions[localIndex];
+                    if (
+                      localSession &&
+                      remoteSession.updatedAt.getTime() > localSession.updatedAt.getTime()
+                    ) {
+                      mergedSessions[localIndex] = remoteSession;
+                    }
+                  }
+                }
+                mergedSessions.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+                historyStore.setState({ sessions: mergedSessions });
+              }
+
+              if (parsedMetrics.length > 0) {
+                const localStore = bodyMetricStore.getState();
+                const mergedMetrics = [...localStore.metrics];
+
+                for (const remoteMetric of parsedMetrics) {
+                  const localIndex = mergedMetrics.findIndex(
+                    (metric) => metric.id === remoteMetric.id,
+                  );
+                  if (localIndex === -1) {
+                    mergedMetrics.push(remoteMetric);
+                  } else {
+                    const localMetric = mergedMetrics[localIndex];
+                    if (
+                      localMetric &&
+                      remoteMetric.createdAt.getTime() > localMetric.createdAt.getTime()
+                    ) {
+                      mergedMetrics[localIndex] = remoteMetric;
+                    }
+                  }
+                }
+                mergedMetrics.sort((a, b) => b.recordedAt.getTime() - a.recordedAt.getTime());
+                bodyMetricStore.setState({ metrics: mergedMetrics });
+              }
+
+              set({ lastSyncedAt: new Date() });
+            },
+            () => {
+              profileStore.setState(previous.profile);
+              exerciseStore.setState(previous.exercises);
+              programStore.setState(previous.programs);
+              historyStore.setState(previous.history);
+              bodyMetricStore.setState(previous.metrics);
+              set({ lastSyncedAt: previous.lastSyncedAt });
+            },
+          );
         } catch (error: unknown) {
           if (!current()) return;
           const message = getErrorMessage(error);
-          logger.error('[Sync Store] Pull from cloud failed:', error);
+          logger.error('[Sync Store] Pull from cloud failed');
           set({ syncError: message || 'Pull failed' });
         } finally {
           if (current()) set({ isSyncing: false });

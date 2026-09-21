@@ -1,42 +1,72 @@
 # ASTRA START HERE — aktueller Handoff 2026-09-21
 
-## Aktueller Checkpoint — 21.09.2026: Three-Phase Level/XP Progression Rebalance (Kandidat B)
+## Aktueller Checkpoint — 21.09.2026: Roadmap-Blöcke 1–5 (A11y, S4 Fixtures, Supply Chain Triage, S5 Deletion, AI Safety)
 
-Gemini hat die Level-Progression auf eine motivierende Drei-Phasen-Kurve (Kandidat B) kalibriert:
+Gemini hat fünf sichere, reversible Roadmap-Blöcke auf `astra/p0-release-core` implementiert und verifiziert:
 
-1. **Mathematische Formel (Domain Single Source of Truth):**
-   - $XP(L) = 10 \times (L - 1)^3 + 50 \times (L - 1)^2 + 350 \times (L - 1)$ für $L \ge 2$, berechnet in `packages/domain/src/logic/levelProgression.ts`.
-   - **Early Game (Level 1–5):**
-     - Level 2: 410 Total XP (~3 Workouts à 140 XP).
-     - Level 3: 980 Total XP (~7 Workouts kumulativ).
-     - Level 4: 1.770 Total XP (~13 Workouts kumulativ).
-     - Level 5: 2.840 Total XP (~20 Workouts kumulativ).
-   - **Mid Game (Level 6–15):** Deutlich spürbare Progressionsverlangsamung (Level 10: 14.490 XP [~103 Workouts], Level 15: 42.140 XP [~301 Workouts]).
-   - **Late Game (Level 16+):** Glatte Langzeit-Prestige-Kurve (Level 20: 93.290 XP [~666 Workouts], Level 50: 1.313.690 XP).
-   - Session-XP degressiv und gedeckelt auf max 265 XP (typisch ~120–160 XP); kein Level-Skip aus dem Stand. Idempotenz-Schutz via `awardedSessionIds` gesichert.
-2. **iPhone Free QA Guide:**
-   - 13 konkrete Schritte in `docs/release/IPHONE_FREE_TEST_GUIDE.md` Abschnitt 21 für den Nutzer auf iPhone Safari dokumentiert.
-3. **Teststatus:**
-   - **677 Tests PASS** (92 Domain inkl. 5 Workout-Archetyp-Simulationen + 531 Mobile in 80 Suiten + 38 Coach-API + 16 Security-Regressionen).
-   - Typecheck PASS, Lint PASS, Web-Export PASS.
+1. **Profile Cleanup & Accessibility / VoiceOver Audit (Block 1):**
+   - Der überflüssige „Jahre / years“-Schriftzug/Badge über dem Geburtsdatums-Eintrag im Profilmenü (`apps/mobile/app/profile.tsx`) wurde restlos entfernt.
+   - Systematischer A11y-Audit der Kernscreens (`RestTimer.tsx`, `AnatomyFigure.tsx`, `session.tsx`, `BattlePassModal.tsx`): Rollen (`button`), Accessibility-Labels mit Kontext & Werten, `accessibilityState` (`expanded`), Aktionen (`accessibilityActions`) und Einhaltung von Mindest-Touch-Targets ($\ge 44 \times 44$\,pt).
+   - Automatisierte Barrierefreiheits-Tests in `apps/mobile/src/components/__tests__/accessibilityAudit.test.tsx` (6/6 PASS).
+2. **S4 Sync Failure Fixtures (Block 2):**
+   - 17 deterministische Resilienz- und Failure-Szenarien in `apps/mobile/src/stores/__tests__/syncFailureScenarios.test.ts` (17/17 PASS):
+     - Request timeout, Connection loss während Push & Pull
+     - Partielle, fehlerhafte (`malformed`), duplizierte und veraltete (`stale`) Server-Antworten
+     - Fehlende untergeordnete Entitäten (`missing child entity`)
+     - Fehlgeschlagene Remote-Löschung (sicherer Verbleib in Outbox)
+     - Retry nach lokalem ACK-Fehler
+     - Reconnect mit garantierter FIFO Outbox-Reihenfolge
+     - Account-Switch-Isolation mit offenen Operationen (Tenant-Isolation)
+     - Logout-Isolation mit offenen Operationen (Safe Halt ohne unauthentifizierte Writes)
+     - Race-Condition: Antwort trifft nach lokaler Statusänderung ein (Pull Snapshot verworfen)
+     - Duplicate completion (Idempotenz ohne Loop)
+     - Leere Remote-Snapshots (Schutz vor versehentlichem Daten-Wipe ohne Tombstone)
+     - Foreign user_id injection (Cross-Tenant Rejection)
+   - Serverseitige Architektur (Tombstones, Revisionsvektoren, atomare Aggregate) bleibt strikt `ASTRA_REQUIRED`.
+3. **Supply Chain Triage & Safe Minor/Patch Overrides (Block 3):**
+   - Re-Analyse der 43 High Findings: 41 von 43 Findings wurden durch versionskompatible Minor-/Patch-Overrides in `pnpm-workspace.yaml` ohne Major Updates und ohne Expo SDK Upgrade behoben (`@xmldom/xmldom` 0.8.15 / 0.9.12, `brace-expansion` 1.1.21 / 2.1.7 / 5.0.12, `js-yaml` 3.15.2 / 4.3.2, `postcss` 8.5.18, `browserslist` 4.28.9, `form-data` 4.0.6, `vite` 8.0.16, `shell-quote` 1.10.0).
+   - **Verbleibend:** Nur noch **2 High Findings** (beide `image-size` 1.2.1, DoS im ICNS/JXL-Parser). Fix erfordert `image-size >= 2.0.3` (Major-Bump mit Breaking Changes in `@expo/image-utils`). Als `EXPO_SDK_UPGRADE_REQUIRED` isoliert und nicht forciert.
+   - Frozen install (`pnpm install --frozen-lockfile`) verifiziert in 809 ms.
+4. **S5 Account Deletion Test Preparation (Block 4):**
+   - Dedizierte Contract- und Resilienz-Suite in `accountDeletionContract.test.ts` (13/13 PASS):
+     - Authentifizierter Nutzer zwingend erforderlich
+     - Server leitet `auth.uid()` ab; Client übergibt niemals eine `user_id` (Schutz vor IDOR)
+     - Idempotente Aufrufe und Schutz vor parallelen Mehrfach-Aufrufen (`DOUBLE_SUBMIT`)
+     - Remote-Fehler (500, Timeout, Netzwerkabbruch) führt zu Zero Data Loss lokal
+     - Partielle Server-Bereinigung, Auth-Löschungs-Fehler, Storage-Fehler und Provider-Fehler blockieren lokalen Wipe
+     - Lokaler Daten-Wipe erfolgt strikt erst nach bestätigtem Cloud-Erfolg
+     - Session-Revocation (`signOut`) unmittelbar nach Datenbereinigung
+     - Account-Switch-Isolation
+   - Supabase Backend/RPC-Deployment bleibt `ASTRA_REQUIRED`.
+5. **AI Safety DE/EN zweisprachige Notfall- und Sicherheits-Schicht (Block 5):**
+   - Zweisprachige (DE & EN) Notfall- und Guardrail-Logik in `api/coach-safety.cjs` und 49 Tests in `api/coach-safety.test.cjs` (49/49 PASS):
+     - Akute Brustschmerzen, Dyspnoe / Atemnot, Bewusstlosigkeit, schwere Verletzungen
+     - Starvation / Nulldiäten (<500 kcal), Dehydrierung / Trockenfasten, Steroid- / PED-Dosierungen, Diagnose-Anfragen
+     - Prompt Injections, System Prompt Exfiltration, Payload-Grenzen (>50k Zeichen, ungültige Base64-Bilder, ungültige URL-Attachments)
+     - Provider-Fehler 500/502/503 ohne Credential-Leaks
+6. **Testmetriken:**
+   - **721 Tests PASS** (92 Domain + 564 Mobile in 83 Suiten + 49 Coach-API/Safety + 16 Security-Regressionen).
+   - Typecheck PASS, Lint PASS, Web-Export (`pnpm build:preview`) PASS (4.76 MB).
 
 ### Kanonische Security-Roadmap Governance (S0–S12)
 
 | Code | Kanonische Bezeichnung | Status | Begründung / Offene Gates |
 |---|---|---|---|
 | **S0** | **Repository Truth / Threat Model** | `PARTIAL` | Codebezogene Grenzen/Angriffe in SECURITY.md verankert; Team-/Betriebsabnahme und Production-Datenflüsse durch Maintainer zu bestätigen. |
-| **S1** | **Secrets / Supply Chain / CI** | `PARTIAL` | Preview-Gate (Zero Critical, 0 Secrets) aktiv; CI blockiert bei 43 High Build-Tool-Befunden; SAST/SBOM/Branch Protection offen. |
+| **S1** | **Secrets / Supply Chain / CI** | `PARTIAL` | 41 von 43 High Findings via Minor/Patch Overrides behoben (nur 2 verbleiben in `image-size`, bedingt durch Expo SDK 52); Preview-Gate aktiv; SAST/Branch-Protection offen. |
 | **S2** | **Authentication / Secure Session Storage** | `PHYSICAL_DEVICE_REQUIRED` | Native SecureStore-Migration implementiert; physische iOS/Android-Geräteabnahme, Reauth, Refresh und Zero-Logout-Nachweis offen. |
 | **S3** | **Authorization / RLS / Multi-Tenant Isolation** | `PARTIAL` | Echter lokaler PostgreSQL-17.11 Harness (304 Assertions) VERIFIED; Supabase Remote-DDL, PostgREST und Remote-Auth offen (`ASTRA_REQUIRED`). |
-| **S4** | **Sync / Data Integrity** | `PARTIAL` | Lokale SQLite FIFO-Outbox, Rollback und Pull-Validierung VERIFIED; serverseitige atomare Aggregate, Konflikte & Tombstones offen (`ASTRA_REQUIRED`). |
-| **S5** | **Account Lifecycle / Privacy / Health Data** | `ASTRA_REQUIRED` | Parametrisierungsfreier RPC-Löschvertrag (`auth.uid()`) spezifiziert; serverseitige Cascade und Auth-Löschung auf Supabase offen. |
-| **S6** | **AI Coach Security / Safety / Cost Controls** | `PARTIAL` | 19 deterministische Notfall-/Safety-Szenarien VERIFIED; Prototype-Bypass gesperrt; serverseitiges Token-Ledger/Budget und DE/EN-Safety-Schicht in Arbeit. |
+| **S4** | **Sync / Data Integrity** | `PARTIAL` | Lokale SQLite FIFO-Outbox, Rollback und 17 Failure-Fixtures VERIFIED; serverseitige atomare Aggregate, Konflikte & Tombstones offen (`ASTRA_REQUIRED`). |
+| **S5** | **Account Lifecycle / Privacy / Health Data** | `PREPARED` | Parametrisierungsfreier RPC-Löschvertrag (`auth.uid()`) und 13 Client-Contract-Tests VERIFIED; serverseitige Cascade und Auth-Löschung auf Supabase offen (`ASTRA_REQUIRED`). |
+| **S6** | **AI Coach Security / Safety / Cost Controls** | `PARTIAL` | 49 deterministische DE/EN Notfall- und Guardrail-Szenarien VERIFIED; Prototype-Bypass gesperrt; serverseitiges Token-Ledger/Budget offen (`ASTRA_REQUIRED`). |
 | **S7** | **Subscription / Premium Integrity** | `PREPARED` | Client-Entitlement-Abstraktion vorhanden; kein natives StoreKit/RevenueCat aktiv; serverseitige Quittungsvalidierung offen (`ASTRA_REQUIRED`). |
 | **S8** | **Infrastructure / Backup / Monitoring / Incident Response** | `PARTIAL` | Lokale SQLite-Backups und Log-Redaktion VERIFIED; Cloud-Restoreprobe, Hosting-IAM, Alarmierung und Runbooks offen. |
-| **S9** | **AppSec Automation / Security Testing** | `PARTIAL` | 677 Tests, Dependency-Regressionen und Preview Security Gate aktiv; DAST und Deep-Link-Fuzzing offen. |
-| **S10** | **Legal / Store / Accessibility / Release Compliance** | `USER_ACTION_REQUIRED` | UI-i18n Parität fortgeschritten; Medienrechte, finale AGB/Datenschutz-Texte und WCAG 2.1 AA VoiceOver-Audit durch Maintainer/Astra erforderlich. |
+| **S9** | **AppSec Automation / Security Testing** | `PARTIAL` | 721 Tests, Dependency-Regressionen und Preview Security Gate aktiv; DAST und Deep-Link-Fuzzing offen. |
+| **S10** | **Legal / Store / Accessibility / Release Compliance** | `USER_ACTION_REQUIRED` | Accessibility-Audit der Core-Screens & Touch-Targets $\ge 44 \times 44$\,pt abgeschlossen; UI-i18n Parität fortgeschritten; Medienrechte und finale AGB/Datenschutz-Texte durch Maintainer/Astra erforderlich. |
 | **S11** | **Physical Device / Pre-Launch Red Team** | `PHYSICAL_DEVICE_REQUIRED` | Web-Preview und 13-Schritte Safari QA aktiv; reale On-Device-Tests (iOS/Android), Gesten, Haptik, Permissions und Pen-Testing offen. |
 | **S12** | **Post-Launch Security Operations** | `PREPARED` | Eskalationsmatrix in SECURITY.md definiert; Besetzung des Regelbetriebs und Incident Response Übungen vor Launch erforderlich. |
+
+## Vorheriger Checkpoint — 21.09.2026: Three-Phase Level/XP Progression Rebalance (Kandidat B)
 
 ## Vorheriger Checkpoint — 21.09.2026: UI/i18n Cleanup, Level/XP Rebalancing & Age UI
 

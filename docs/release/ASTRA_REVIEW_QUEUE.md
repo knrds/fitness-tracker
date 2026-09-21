@@ -1,5 +1,13 @@
 # EVARO – Astra Review Queue
 
+## Roadmap-Blöcke 1–5 (A11y, S4 Fixtures, Supply Chain, S5 Deletion, AI Safety DE/EN) — 21.09.2026
+
+- **AR-036: Accessibility / VoiceOver Audit & Profile Badge Removal (VERIFIED).** „Jahre / years“-Badge über Geburtsdatum in `profile.tsx` restlos entfernt. Barrierefreiheits-Audit in `RestTimer.tsx`, `AnatomyFigure.tsx`, `session.tsx`, `BattlePassModal.tsx` mit Rollen, Accessibility-Labels, `accessibilityState`, `accessibilityActions` und Touch-Targets $\ge 44 \times 44$\,pt. Automatisierte Tests in `accessibilityAudit.test.tsx` (6/6 PASS).
+- **AR-037: S4 Sync Failure Fixtures — 17 Szenarien (VERIFIED).** Dedizierte Failure- und Resilienz-Suite in `syncFailureScenarios.test.ts` (17/17 PASS) deckt Timeouts, Push/Pull Connection Loss, malformed/partial/stale/duplicate Server Responses, fehlende Children, fehlgeschlagene Remote-Deletes, lokales ACK-Retry, FIFO Reconnect, Account-Switch/Logout-Isolation, Snapshot-Races, Duplicate Completions, leere Snapshots und Cross-Tenant Injection ab. Serverseitige Architektur bleibt `ASTRA_REQUIRED`.
+- **AR-038: Supply Chain Triage & Minor/Patch Overrides (VERIFIED).** 41 von 43 High Findings via versionskompatible Overrides in `pnpm-workspace.yaml` ohne Major Updates und ohne Expo SDK Upgrade behoben. Verbleibend nur noch 2 High Findings in `image-size` 1.2.1 (`EXPO_SDK_UPGRADE_REQUIRED`). Frozen install in 809 ms verifiziert.
+- **AR-039: S5 Account Deletion Contract & Client Guards (PREPARED).** Contract- und Resilienz-Suite in `accountDeletionContract.test.ts` (13/13 PASS) stellt sicher: Server leitet `auth.uid()` ab, kein Client-IDOR, Idempotenz, Zero Data Loss bei Remote-/Teilfehlern, lokaler Wipe strikt erst nach Cloud-Erfolg, Session-Revocation und Account-Switch-Isolation. Supabase-Backend-Deployment bleibt `ASTRA_REQUIRED`.
+- **AR-040: AI Safety DE/EN Bilingual Emergency Suite (VERIFIED).** Vollständige zweisprachige (DE/EN) Absicherung in `api/coach-safety.cjs` und 49 Tests in `api/coach-safety.test.cjs` (49/49 PASS) für Notfälle (Brustschmerz, Atemnot, Bewusstlosigkeit, Verletzung), Starvation, Dehydrierung, PED-Dosierung, Diagnosebypasses, Prompt Injection, System Prompt Leaks und Payload-Limits.
+
 ## Three-Phase Level/XP Progression Rebalance (Kandidat B) — 21.09.2026
 
 - **AR-035: Glatte kubische Drei-Phasen-Progression (VERIFIED).** In `packages/domain/src/logic/levelProgression.ts` wurde die Formel $XP(L) = 10(L-1)^3 + 50(L-1)^2 + 350(L-1)$ implementiert. Early Game motivierend (L2 bei 410 XP, ~2.9 Workouts; L3 bei 980 XP, ~7 Workouts; L5 bei 2.840 XP, ~20 Workouts). Mid Game deutlich anspruchsvoller (L10 bei 14.490 XP, ~103 Workouts; L15 bei 42.140 XP, ~301 Workouts). Late Game prestigeträchtig ohne harte Wand (L20 bei 93.290 XP, ~666 Workouts). Session-XP unverändert degressiv begrenzt (max 265 XP). Idempotenz-Schutz gesichert. 677 Tests PASS.
@@ -81,6 +89,21 @@ Zentrale, kanonisch normalisierte Queue aller von Gemini vorbereiteten, analysie
 | **AR-024** | Exercise Catalog | IMPLEMENTED | MEDIUM | VERIFY | `apps/mobile/src/__tests__/exerciseCatalogCompatibility.test.ts`, `docs/release/EXERCISE_DATA_PROVENANCE.md` |
 | **AR-025** | Legacy & Edge Regression | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/__tests__/legacyUpdateRegression.test.ts`, `apps/mobile/src/__tests__/workoutEdgeCaseRegression.test.ts` |
 | **AR-026** | Store & Device QA Package | IMPLEMENTED | LOW | REVIEW | `docs/release/STORE_METADATA_DRAFT.md`, `docs/release/STORE_SCREENSHOT_PLAN.md`, `docs/release/PHYSICAL_DEVICE_SMOKE_TEST.md` |
+| **AR-027** | Telemetry i18n & Modal | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/components/workout/WorkoutCompleteModal.tsx` |
+| **AR-028** | Dual-Gate Preview | IMPLEMENTED | LOW | VERIFY | `scripts/security/preview-security-gate.cjs` |
+| **AR-029** | Sync Cloud Atomicity | PREPARED | CRITICAL | ASTRA_REQUIRED | `docs/architecture/S4_SYNC_PREPARATION.md` |
+| **AR-030** | Account Deletion Spec | PREPARED | CRITICAL | ASTRA_REQUIRED | `docs/architecture/S5_ACCOUNT_DELETION_SPEC.md` |
+| **AR-031** | AI Safety Preparation | PREPARED | CRITICAL | ASTRA_REQUIRED | `docs/architecture/AI_SECURITY_PREPARATION.md` |
+| **AR-032** | Supply Chain Audit | IMPLEMENTED | LOW | VERIFY | `docs/release/DEPENDENCY_AUDIT_REPORT.md` |
+| **AR-033** | Level & Session XP | IMPLEMENTED | LOW | VERIFY | `packages/domain/src/logic/levelProgression.ts` |
+| **AR-034** | UI/i18n Parity | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/i18n/translations.ts` |
+| **AR-035** | Three-Phase Progression | IMPLEMENTED | LOW | VERIFY | `packages/domain/src/logic/levelProgression.ts` |
+| **AR-036** | Accessibility / VoiceOver Audit | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/components/__tests__/accessibilityAudit.test.tsx` |
+| **AR-037** | S4 Sync Failure Fixtures | IMPLEMENTED | MEDIUM | ASTRA_REQUIRED | `apps/mobile/src/stores/__tests__/syncFailureScenarios.test.ts` |
+| **AR-038** | Dependency Triage & Overrides | IMPLEMENTED | HIGH | VERIFY | `pnpm-workspace.yaml` |
+| **AR-039** | S5 Account Deletion Tests | PREPARED | HIGH | ASTRA_REQUIRED | `apps/mobile/src/services/__tests__/accountDeletionContract.test.ts` |
+| **AR-040** | AI Safety DE/EN Suite | IMPLEMENTED | HIGH | VERIFY | `api/coach-safety.cjs`, `api/coach-safety.test.cjs` |
+
 
 
 ---

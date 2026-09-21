@@ -2,35 +2,81 @@
 
 Stand: 21.09.2026. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
-## Checkpoint 21.09.2026 — Accessibility / VoiceOver Audit & Profile UI Cleanup (Block 1)
+## Checkpoint 21.09.2026 — Roadmap Execution: Blocks 1–5 (Commit `dcfc3aa`)
 
-**P01/P08/P09/S10, VERIFIED, Risiko LOW.**
-- **Accessibility / VoiceOver Audit:**
-  - `apps/mobile/src/components/workout/RestTimer.tsx`: Vollständige Barrierefreiheit mit `accessibilityRole="button"`, dynamischen DE/EN-Labels für Pausenstart, -stop, -bearbeitung, -ausklappen (`accessibilityState={{ expanded }}`) und Zeitanpassung (`Plus 30 Sekunden` / `+ 30 seconds`). Mindest-Touch-Targets $\ge 44 \times 44$\,pt.
-  - `apps/mobile/src/components/anatomy/AnatomyFigure.tsx`: `accessibilityRole="image"` und lokalisierte Seitenbeschriftung (`Muskelkarte Vorderseite` / `Muscle map Front`).
-  - `apps/mobile/app/workout/session.tsx`: Reorder- und Island-Steuerungselemente auf Mindest-Touch-Target $\ge 44 \times 44$\,pt gehärtet.
-  - `apps/mobile/src/components/BattlePassModal.tsx`: Schließen- und Fertig-Buttons barrierefrei und sprachspezifisch angebunden; `minHeight: 44` auf Detail-Schließen-Button.
-  - `apps/mobile/app/profile.tsx`: Überflüssiges `Jahre / years`-Badge über dem Geburtsdatumsfeld auf Nutzeranweisung vollständig entfernt.
-  - Neuer Regressionstest `apps/mobile/src/components/__tests__/accessibilityAudit.test.tsx` (6/6 Tests PASS) deckt Barrierefreiheitsrollen, Labels, Zustände und Touch-Target-Größen automatisiert ab.
-- **Verifikation:** 683 Tests PASS (92 Domain + 537 Mobile in 81 Suiten + 38 Coach-API + 16 Security-Regressionen); `pnpm build:preview` Web-Export PASS (4.76 MB).
+**P01/P02/P03/P09/S1/S4/S5/S6/S10, VERIFIED / PREPARED, Risiko LOW-MEDIUM.**
 
-## Checkpoint 21.09.2026 — Complete Deep Screen i18n & Modal Localization (Block 1)
+Gemini hat die fünf sicheren und reversiblen Roadmap-Blöcke auf `astra/p0-release-core` vollständig implementiert, verifiziert und dokumentiert:
 
-**P01/P08/P09/S10, VERIFIED, Risiko LOW.**
-- **Vollständiges Screen- & Modal-Audit (100% Key-Parität DE/EN):**
-  - `apps/mobile/src/components/exercises/ExerciseFilter.tsx`: Filter-Köpfe, Muskelgruppen- und Ausrüstungs-Labels vollständig dynamisch lokalisiert (`formatMuscle`, `formatEquipment`, `t('exercises.filters')`, etc.).
-  - `apps/mobile/src/components/MuscleHeatmap.tsx`: Tabs (Vorderseite/Rückseite), Legenden (1–3, 4–7, 8–11, 12+ Sätze), Muskel-Tooltips und dynamische Muskel-Namen via `formatMuscle()` lokalisiert.
-  - `apps/mobile/app/workout/quick-start.tsx`: Titel, Beschreibungen, Leeres-Workout-Button, Vorlagen-Header/Empty-States und Start-Bestätigungsdialoge vollständig dynamisch übersetzt.
-  - `apps/mobile/src/components/BattlePassModal.tsx`: Hardcodiertes `/ 500 XP` behoben und durch dynamische Progression `progressInfo.xpRequiredForNextLevel` ersetzt; Season-Header, Level-Pass-Titel, Meilenstein-Aufstiege, Belohnungs-Badges, XP-Bedarfs-Rechner und a11y-Labels vollständig zweisprachig angebunden.
-  - `apps/mobile/src/components/workout/SessionExerciseCard.tsx`: 'ADD SET' / 'SATZ HINZUFÜGEN', Satz-Details, Swipe-Aktionslabel ('Satz entfernen') und a11y-Labels dynamisch lokalisiert.
-  - `apps/mobile/src/components/workout/RestTimer.tsx`: 'Timer zurücksetzen' / 'Reset Timer' lokalisiert.
-  - `apps/mobile/src/components/workout/KeyboardDoneAccessory.tsx`: 'Fertig' / 'Done' lokalisiert.
-  - `apps/mobile/src/components/ErrorBoundary.tsx`: Sichere zweisprachige Fallback-Darstellung ohne PII-Lecks, Referenz-ID, Reload- und Support-Hinweise dynamisch auf Basis des User-Profils lokalisiert.
-- **Verifikation:** 677 Tests PASS (92 Domain + 531 Mobile in 80 Suiten + 38 Coach-API + 16 Security-Regressionen); `pnpm build:preview` Web-Export PASS (4.76 MB).
+1. **Block 1 — Accessibility / VoiceOver Audit & Profile UI:**
+   - Bereinigung: Der störende "Jahre / years"-Schriftzug über dem Geburtsdatum in `profile.tsx` wurde vollständig entfernt.
+   - RestTimer (`RestTimer.tsx`): Barrierefreiheitsrollen (`accessibilityRole="button"`), Zustände (`accessibilityState={{ expanded }}`) und zweisprachige a11y-Labels für Start, Pause, Bearbeitung und Zeitanpassung (`Plus 30 Sekunden` / `+ 30 seconds`). Mindest-Touch-Targets $\ge 44 \times 44$\,pt.
+   - Anatomie (`AnatomyFigure.tsx`): `accessibilityRole="image"` und dynamische Beschriftung (`Muskelkarte Vorderseite` / `Muscle map Front`).
+   - Session Reorder & Island Controls (`session.tsx`): Mindest-Touch-Targets $\ge 44 \times 44$\,pt.
+   - BattlePassModal (`BattlePassModal.tsx`): Detail-Schließen-Button auf `minHeight: 44` gesetzt und mit `t('rank.closeDetail')` barrierefrei angebunden.
+   - Automatisiert: Neuer a11y-Testsuite `accessibilityAudit.test.tsx` (6/6 Tests PASS).
 
-## Checkpoint 21.09.2026 — Three-Phase Level/XP Progression Rebalance (Kandidat B)
+2. **Block 2 — S4 Sync Failure Fixtures & Resiliency:**
+   - 17 spezifische Fehler- und Grenzszenarien in `syncFailureScenarios.test.ts` implementiert und verifiziert (17/17 PASS):
+     - Request timeout während Push
+     - Connection loss während Push & Pull
+     - Partial server response (ungültiges Session-Schema)
+     - Malformed server response (ungültige Domain-Werte)
+     - Duplicate identical records im Snapshot (Idempotenz)
+     - Stale response (älteres Remote-Datum überschreibt neuere lokale Änderung nicht)
+     - Missing child entity reference
+     - Failed remote delete (Verbleib in Outbox)
+     - Retry nach lokalem ACK-Fehler
+     - Reconnect mit FIFO Outbox-Reihenfolge
+     - Account switch mit pending operations (Tenant-Isolation)
+     - Logout mit pending operations (Safe Halt ohne unauthentifizierte Writes)
+     - Race-Condition: Response trifft nach lokaler State-Änderung ein (Pull Snapshot verworfen)
+     - Duplicate completion (Idempotenz ohne Loop)
+     - Empty remote snapshot (kein Datenverlust ohne Tombstone)
+     - Foreign user_id injection (Cross-Tenant Rejection)
+   - Server-Architektur (Tombstones, Revisions, atomare Aggregate) bleibt `ASTRA_REQUIRED`.
 
-**P01/P03/P09/S1/S8/S11, VERIFIED / PREPARED, Risiko LOW-MEDIUM.**
+3. **Block 3 — Dependency Triage & Safe Minor/Patch Updates:**
+   - Vollständige Re-Analyse der 43 High Findings. Ergebnis: 41 von 43 Findings ließen sich über sichere, versionskompatible Minor-/Patch-Overrides in `pnpm-workspace.yaml` ohne Major Updates und ohne Expo SDK Upgrade lösen:
+     - `@xmldom/xmldom` (19 Befunde): 0.8.13 -> 0.8.15, 0.9.10 -> 0.9.12
+     - `brace-expansion` (9 Befunde): 1.1.15 -> 1.1.21, 2.1.1 -> 2.1.7, 5.0.6 -> 5.0.12
+     - `js-yaml` (6 Befunde): 3.14.2 -> 3.15.2, 4.1.1 -> 4.3.2
+     - `postcss` (2 Befunde): 8.4.49 / 8.5.15 -> 8.5.18
+     - `browserslist` (2 Befunde): 4.28.2 -> 4.28.9
+     - `form-data` (1 Befund): 4.0.5 -> 4.0.6
+     - `vite` (1 Befund): 8.0.14 -> 8.0.16
+     - `shell-quote` (1 Befund): 1.8.4 -> 1.10.0
+   - **Verbleibende High Befunde:** Nur noch **2 High Findings** (beide `image-size` 1.2.1, DoS im ICNS/JXL-Parser). Ein Fix erfordert `image-size >= 2.0.3` (Major-Upgrade mit Breaking Changes in Expo SDK 52 Tools). Entsprechend Vorgabe als `EXPO_SDK_UPGRADE_REQUIRED` dokumentiert und nicht forciert.
+   - Frozen install (`pnpm install --frozen-lockfile`) verifiziert in 809 ms.
+
+4. **Block 4 — S5 Account Deletion Test Preparation:**
+   - Dedizierte Contract- und Resilienz-Suite in `accountDeletionContract.test.ts` (13/13 Tests PASS):
+     - Authentifizierter Nutzer zwingend erforderlich
+     - Server leitet `auth.uid()` ab; Client übergibt niemals eine `user_id` (Schutz vor IDOR)
+     - Idempotente Löschung und Schutz vor parallelen Mehrfach-Aufrufen (`DOUBLE_SUBMIT`)
+     - Remote-Fehler (500, Timeout, Netzwerkabbruch) führt zu **Zero Data Loss** lokal
+     - Partielle Server-Bereinigung, Auth-Löschungs-Fehler, Storage-Fehler und Provider-Fehler blockieren lokalen Wipe
+     - Lokaler Daten-Wipe erfolgt strikt erst nach bestätigtem Cloud-Erfolg
+     - Session-Revocation (`signOut`) unmittelbar nach Datenbereinigung
+     - Account-Switch-Isolation
+   - Backend/RPC-Deployment bleibt `ASTRA_REQUIRED`.
+
+5. **Block 5 — AI Safety DE/EN Erweiterung:**
+   - Vollständige zweisprachige (DE / EN) Absicherung in `api/coach-safety.cjs` und 49 Tests in `api/coach-safety.test.cjs` (49/49 PASS):
+     - Akute Brustschmerzen (DE & EN)
+     - Dyspnoe / Atemnot (DE & EN)
+     - Bewusstlosigkeit / Ohnmacht (DE & EN)
+     - Schwere Verletzungen / Knochenbruch / Sehnenriss (DE & EN)
+     - Starvation / Nulldiäten unter 500 kcal (DE & EN)
+     - Gefährliche Dehydrierung / Trockenfasten (DE & EN)
+     - Steroid- & PED-Dosierungsanfragen (DE & EN)
+     - Medizinische Diagnoseanfragen (DE & EN)
+     - Prompt Injections & Instruktions-Bypasses (DE & EN)
+     - System Prompt Exfiltration (DE & EN)
+     - Payload-Grenzen (Überlänge >50k Zeichen, ungültige Base64-Bilder, ungültige URL-Attachments)
+     - Provider-Fehler 500/502/503 ohne Credential-Leaks
+
+- **Testmetriken:** **721 Tests PASS** (92 Domain + 564 Mobile in 83 Suiten + 49 Coach-API/Safety + 16 Security-Regressionen); Workspace-Typecheck PASS; Lint PASS; `pnpm build:preview` Web-Export PASS (4.76 MB).
 
 ### Kanonische Security-Roadmap Governance (S0–S12)
 
@@ -39,16 +85,16 @@ Gemäß verbindlicher Projekt-Governance gilt für alle Berichte, Reviews und St
 | Code | Kanonische Bezeichnung | Status | Begründung / Offene Gates |
 |---|---|---|---|
 | **S0** | **Repository Truth / Threat Model** | `PARTIAL` | Codebezogene Grenzen/Angriffe in SECURITY.md verankert; Team-/Betriebsabnahme und Production-Datenflüsse durch Maintainer zu bestätigen. |
-| **S1** | **Secrets / Supply Chain / CI** | `PARTIAL` | Preview-Gate (Zero Critical, 0 Secrets) aktiv; CI blockiert bei 43 High Build-Tool-Befunden; SAST/SBOM/Branch Protection offen. |
+| **S1** | **Secrets / Supply Chain / CI** | `PARTIAL` | 41 von 43 High Findings via Minor/Patch Overrides behoben (nur 2 verbleiben in `image-size`, bedingt durch Expo SDK 52); Preview-Gate aktiv; SAST/Branch-Protection offen. |
 | **S2** | **Authentication / Secure Session Storage** | `PHYSICAL_DEVICE_REQUIRED` | Native SecureStore-Migration implementiert; physische iOS/Android-Geräteabnahme, Reauth, Refresh und Zero-Logout-Nachweis offen. |
 | **S3** | **Authorization / RLS / Multi-Tenant Isolation** | `PARTIAL` | Echter lokaler PostgreSQL-17.11 Harness (304 Assertions) VERIFIED; Supabase Remote-DDL, PostgREST und Remote-Auth offen (`ASTRA_REQUIRED`). |
-| **S4** | **Sync / Data Integrity** | `PARTIAL` | Lokale SQLite FIFO-Outbox, Rollback und Pull-Validierung VERIFIED; serverseitige atomare Aggregate, Konflikte & Tombstones offen (`ASTRA_REQUIRED`). |
-| **S5** | **Account Lifecycle / Privacy / Health Data** | `ASTRA_REQUIRED` | Parametrisierungsfreier RPC-Löschvertrag (`auth.uid()`) spezifiziert; serverseitige Cascade und Auth-Löschung auf Supabase offen. |
-| **S6** | **AI Coach Security / Safety / Cost Controls** | `PARTIAL` | 19 deterministische Notfall-/Safety-Szenarien VERIFIED; Prototype-Bypass gesperrt; serverseitiges Token-Ledger/Budget und DE/EN-Safety-Schicht in Arbeit. |
+| **S4** | **Sync / Data Integrity** | `PARTIAL` | Lokale SQLite FIFO-Outbox, Rollback und 17 Failure-Fixtures VERIFIED; serverseitige atomare Aggregate, Konflikte & Tombstones offen (`ASTRA_REQUIRED`). |
+| **S5** | **Account Lifecycle / Privacy / Health Data** | `PREPARED` | Parametrisierungsfreier RPC-Löschvertrag (`auth.uid()`) und 13 Client-Contract-Tests VERIFIED; serverseitige Cascade und Auth-Löschung auf Supabase offen (`ASTRA_REQUIRED`). |
+| **S6** | **AI Coach Security / Safety / Cost Controls** | `PARTIAL` | 49 deterministische DE/EN Notfall- und Guardrail-Szenarien VERIFIED; Prototype-Bypass gesperrt; serverseitiges Token-Ledger/Budget offen (`ASTRA_REQUIRED`). |
 | **S7** | **Subscription / Premium Integrity** | `PREPARED` | Client-Entitlement-Abstraktion vorhanden; kein natives StoreKit/RevenueCat aktiv; serverseitige Quittungsvalidierung offen (`ASTRA_REQUIRED`). |
 | **S8** | **Infrastructure / Backup / Monitoring / Incident Response** | `PARTIAL` | Lokale SQLite-Backups und Log-Redaktion VERIFIED; Cloud-Restoreprobe, Hosting-IAM, Alarmierung und Runbooks offen. |
-| **S9** | **AppSec Automation / Security Testing** | `PARTIAL` | 677 Tests, Dependency-Regressionen und Preview Security Gate aktiv; DAST und Deep-Link-Fuzzing offen. |
-| **S10** | **Legal / Store / Accessibility / Release Compliance** | `USER_ACTION_REQUIRED` | UI-i18n Parität fortgeschritten; Medienrechte, finale AGB/Datenschutz-Texte und WCAG 2.1 AA VoiceOver-Audit durch Maintainer/Astra erforderlich. |
+| **S9** | **AppSec Automation / Security Testing** | `PARTIAL` | 721 Tests, Dependency-Regressionen und Preview Security Gate aktiv; DAST und Deep-Link-Fuzzing offen. |
+| **S10** | **Legal / Store / Accessibility / Release Compliance** | `USER_ACTION_REQUIRED` | Accessibility-Audit der Core-Screens & Touch-Targets $\ge 44 \times 44$\,pt abgeschlossen; UI-i18n Parität fortgeschritten; Medienrechte und finale AGB/Datenschutz-Texte durch Maintainer/Astra erforderlich. |
 | **S11** | **Physical Device / Pre-Launch Red Team** | `PHYSICAL_DEVICE_REQUIRED` | Web-Preview und 13-Schritte Safari QA aktiv; reale On-Device-Tests (iOS/Android), Gesten, Haptik, Permissions und Pen-Testing offen. |
 | **S12** | **Post-Launch Security Operations** | `PREPARED` | Eskalationsmatrix in SECURITY.md definiert; Besetzung des Regelbetriebs und Incident Response Übungen vor Launch erforderlich. |
 

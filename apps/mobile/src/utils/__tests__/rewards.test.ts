@@ -94,13 +94,13 @@ describe('rewards utility', () => {
 
   it('calculates XP and missing distance correctly', () => {
     expect(getXpForLevel(1)).toBe(0);
-    expect(getXpForLevel(2)).toBe(500);
-    expect(getXpForLevel(6)).toBe(2500);
-    expect(getXpForLevel(11)).toBe(5000);
+    expect(getXpForLevel(2)).toBe(1000);
+    expect(getXpForLevel(6)).toBe(9000);
+    expect(getXpForLevel(11)).toBe(28000);
 
     // User at 1800 XP
-    expect(getRemainingXpForLevel(5, 1800)).toBe(2000 - 1800); // 200 XP
-    expect(getRemainingXpForLevel(3, 1800)).toBe(0); // already reached
+    expect(getRemainingXpForLevel(5, 1800)).toBe(6400 - 1800); // 4600 XP
+    expect(getRemainingXpForLevel(2, 1800)).toBe(0); // already reached (Level 2 is 1000 XP)
   });
 
   it('retrieves level reward payloads for inspection including mid-level rewards', () => {

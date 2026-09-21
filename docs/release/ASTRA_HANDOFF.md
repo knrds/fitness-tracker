@@ -1,6 +1,29 @@
 # ASTRA START HERE — aktueller Handoff 2026-09-21
 
-## Wiederaufnahme-Checkpoint — 21.09.2026, Gemini Takeover & Preview Recovery
+## Wiederaufnahme-Checkpoint — 21.09.2026: UI/i18n Cleanup, Level/XP Rebalancing & Age UI
+
+Gemini hat den UI/i18n-Bereich, die Level-Progression und das Alters-Badge bereinigt:
+
+1. **Zentrale Level-/XP-Progression (Domain Single Source of Truth):**
+   - Neue Domain-Logik `packages/domain/src/logic/levelProgression.ts` definiert $XP(L) = 200 \times (L - 1)^2 + 800 \times (L - 1)$ mit $L(XP) = \lfloor \sqrt{4 + \frac{XP}{200}} - 1 \rfloor$.
+   - Progression deutlich verlangsamt: Level 1 -> 2 benötigt 1.000 XP (~7 Workouts). Level 10 = 23.400 XP, Level 20 = 87.400 XP, Level 50 = 519.400 XP.
+   - Workout-Session-XP degressiv begrenzt: Base 50 XP, Sätze max 30 XP, Volumen max 110 XP, PRs max 75 XP (absolutes Cap pro Workout: 265 XP; typisch ~120-160 XP).
+   - Kein Multi-Level-Sprung aus einem einzelnen normalen Workout mehr möglich.
+   - Idempotenz-Schutz in `achievementStore.ts` via `awardedSessionIds`.
+2. **Plans Create Modal (i18n):**
+   - Translation Keys (`plans.createChoiceTitle`, `plans.createTemplate`, etc.) vollständig in `translations.ts` (DE/EN) hinterlegt. Keine raw Keys mehr sichtbar.
+3. **Celebrations / Workout-Feier-Effekte (i18n):**
+   - Titel, Untertitel, Effektnamen (Klassisch/Classic, Inferno, Neon-Pulse/Neon Pulse, Goldregen/Golden Rain, Matrix-Code/Matrix Code, Kosmisch/Cosmic) und Aktions-Alerts vollständig lokalisiert.
+4. **LevelProgress & BattlePassModal (i18n):**
+   - "bis Level..." / "to Level...", "Nächster Rank bei Level..." / "Next rank at Level..." und "Max Rank erreicht" / "Max Rank reached" dynamisch locale-aware angebunden.
+5. **Age / Geburtstag UI Cleanup:**
+   - Unnötiges Glitzer-Icon (`sparkles-outline`) aus dem Alters-Badge in `apps/mobile/app/profile.tsx` entfernt. Saubere Textdarstellung `{computedAge} {t('settings.yearsOld')}`, Accessibility-Label intakt.
+6. **Teststatus:**
+   - **673 Tests PASS** (88 Domain + 531 Mobile in 80 Suiten + 38 Coach-API/Safety + 16 Security-Regressionen).
+   - Typecheck PASS, Lint PASS, Web Export (`pnpm build:preview`) PASS.
+   - Keine Datenmigrationen, keine DB-Änderungen. Bestehende Gesamt-XP der Nutzer bleiben unverändert erhalten; das Level wird deterministisch aus der neuen Kurve abgeleitet.
+
+## Früherer Checkpoint — 21.09.2026, Gemini Takeover & Preview Recovery
 
 Gemini hat den von Astra unterbrochenen Block übernommen, stabilisiert und getestet:
 

@@ -8,6 +8,9 @@ import {
   MovementPattern,
   calculateVolume,
   detectPRs,
+  calculateSessionXp,
+  calculateLevelFromXp,
+  getXpRequiredForLevel,
 } from '@fitness-tracker/domain';
 import { z } from 'zod';
 import { useHistoryStore } from './historyStore';
@@ -19,6 +22,7 @@ export interface AchievementState {
   level: number;
   unlockedAchievements: Record<string, string | Date>; // one-time achievementId -> unlock date
   repeatCounts: Record<string, number>; // repeatable achievementId -> times earned
+  awardedSessionIds: string[]; // prevents duplicate XP awards
   newlyUnlocked: string[]; // one-time achievementIds unlocked in the last finishWorkout
   levelUpTo: number | null; // level reached if leveled up in the last finishWorkout
   awardXpAndCheckAchievements: (session: WorkoutSession) => void;
@@ -32,6 +36,7 @@ const achievementPersistedSchema = z.object({
   level: z.number().int().positive(),
   unlockedAchievements: z.record(z.union([z.string(), z.instanceof(Date)])),
   repeatCounts: z.record(z.number().int().nonnegative()).default({}),
+  awardedSessionIds: z.array(z.string()).default([]),
   newlyUnlocked: z.array(z.string()),
   levelUpTo: z.number().int().positive().nullable(),
 });
@@ -43,6 +48,7 @@ const defaultPersistedState: AchievementPersistedState = {
   level: 1,
   unlockedAchievements: {},
   repeatCounts: {},
+  awardedSessionIds: [],
   newlyUnlocked: [],
   levelUpTo: null,
 };
@@ -54,10 +60,16 @@ export const useAchievementStore = create<AchievementState>()(
       level: 1,
       unlockedAchievements: {},
       repeatCounts: {},
+      awardedSessionIds: [],
       newlyUnlocked: [],
       levelUpTo: null,
 
       awardXpAndCheckAchievements: (session) => {
+        // Prevent duplicate XP awards for the same session ID
+        if (session.id && get().awardedSessionIds?.includes(session.id)) {
+          return;
+        }
+
         const historyStore = useHistoryStore.getState();
         const exerciseStore = useExerciseStore.getState();
 
@@ -73,16 +85,22 @@ export const useAchievementStore = create<AchievementState>()(
           0,
         );
 
-        // --- Base session XP ---
-        const volumeXpBonus = Math.floor(sessionVolume / 100);
-        const prXpBonus = sessionPrCount * 100;
-        const baseSessionXp = 50;
-        const totalSessionXp = baseSessionXp + volumeXpBonus + prXpBonus;
+        // Guard against sessions without completed non-warmup sets
+        if (sessionSetCount === 0) {
+          return;
+        }
+
+        // --- Domain session XP with diminishing returns and safety bounds ---
+        const sessionXp = calculateSessionXp(session, sessionPrCount);
+        const totalSessionXp = sessionXp.totalSessionXp;
 
         const currentXp = get().xp;
         const currentLevel = get().level;
         const unlocked = { ...get().unlockedAchievements };
         const repeatCounts = { ...get().repeatCounts };
+        const awardedSessionIds = session.id
+          ? [...(get().awardedSessionIds || []), session.id]
+          : get().awardedSessionIds || [];
         const newlyUnlocked: string[] = [];
 
         let tempXp = currentXp + totalSessionXp;
@@ -421,7 +439,7 @@ export const useAchievementStore = create<AchievementState>()(
           }
         });
 
-        const newLevel = Math.floor(tempXp / 500) + 1;
+        const newLevel = calculateLevelFromXp(tempXp);
         const levelUpTo = newLevel > currentLevel ? newLevel : null;
 
         set({
@@ -429,6 +447,7 @@ export const useAchievementStore = create<AchievementState>()(
           level: newLevel,
           unlockedAchievements: unlocked,
           repeatCounts,
+          awardedSessionIds,
           newlyUnlocked,
           levelUpTo,
         });
@@ -442,6 +461,7 @@ export const useAchievementStore = create<AchievementState>()(
           level: 1,
           unlockedAchievements: {},
           repeatCounts: {},
+          awardedSessionIds: [],
           newlyUnlocked: [],
           levelUpTo: null,
         }),
@@ -450,7 +470,7 @@ export const useAchievementStore = create<AchievementState>()(
         const targetLevel = Math.max(1, Math.min(50, Math.floor(level || 1)));
         set({
           level: targetLevel,
-          xp: (targetLevel - 1) * 500,
+          xp: getXpRequiredForLevel(targetLevel),
         });
       },
     }),

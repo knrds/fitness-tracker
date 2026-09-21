@@ -607,8 +607,7 @@ export default function ProfileScreen() {
                 {t('settings.dateOfBirth')} / {t('settings.birthYear')}
               </Text>
               {computedAge !== null && (
-                <View style={styles.ageBadge}>
-                  <Ionicons name="sparkles-outline" size={12} color={theme.colors.primary} />
+                <View style={styles.ageBadge} accessibilityLabel={`${computedAge} ${t('settings.yearsOld')}`}>
                   <Text style={styles.ageBadgeText}>
                     {computedAge} {t('settings.yearsOld')}
                   </Text>

@@ -1,6 +1,6 @@
 # EVARO Current State Matrix — Astra / Gemini 2026-09-21
 
-Aktualisierung 21.09.2026 (Gemini Takeover & Preview Recovery): Dual-Gate Architektur für Vercel Preview etabliert; Zero-Critical-Garantie, Auschluss von Production-Secrets und transparente Protokollierung aller 43 High / 14 Moderate Build-Tool-Befunde. i18n Workout-Abschluss / Session-Telemetry vollständig DE/EN mit barrierefreien Rollen und Edge-Case-Tests. 654 Tests grün (Typecheck/Lint/Build PASS). S4, S5 und AI-Security-Architektur für Astra vorbereitet (`ASTRA_REQUIRED`). Keine Production-/Main-Integration, Remote-Migration oder Billing-Aktivierung.
+Aktualisierung 21.09.2026 (UI/i18n Cleanup, Level/XP Rebalancing & Age UI): Zentrale mathematische Domain-Progression ($XP(L) = 200(L-1)^2 + 800(L-1)$, Level 2 = 1.000 XP, max 265 XP/Session mit Diminishing Returns, Idempotenz-Schutz). Plans Create Modal i18n repariert (keine raw Keys mehr), Celebrations-Bereich vollständig DE/EN lokalisiert, LevelProgress/BattlePassModal dynamische Strings locale-aware, Alters-Badge Glitzer-Icon entfernt. 673 Tests grün (Typecheck/Lint/Build PASS). S4, S5 und AI-Security-Architektur für Astra vorbereitet (`ASTRA_REQUIRED`). Keine Production-/Main-Integration, Remote-Migration oder Billing-Aktivierung.
 
 ## Security Roadmap S0–S12 — maßgeblicher Ausführungspfad
 

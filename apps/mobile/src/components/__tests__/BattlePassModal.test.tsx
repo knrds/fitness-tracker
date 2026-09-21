@@ -81,8 +81,8 @@ describe('BattlePassModal', () => {
 
     // Inspection shows milestone progress and missing XP
     expect(getByText('Meilenstein-Aufstieg')).toBeTruthy();
-    // Total XP for L4 is 1500, user has 600 -> 900 XP missing
-    expect(getByText('Noch 900 XP benötigt')).toBeTruthy();
+    // Total XP for L4 is 4200, user has 600 -> 3600 XP missing (formatted as 3.600 in DE locale)
+    expect(getByText('Noch 3.600 XP benötigt')).toBeTruthy();
 
     // Close inspection modal
     const doneBtn = getByLabelText('Detailansicht schließen');

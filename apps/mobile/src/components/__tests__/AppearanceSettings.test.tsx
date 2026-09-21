@@ -131,4 +131,40 @@ describe('AppearanceSettings', () => {
     expect(getByText('LEVEL 13')).toBeTruthy();
     expect(getByText('Rang 3: Consistent Lifter')).toBeTruthy();
   });
+
+  it('renders English headings, celebration effects, and descriptions when language is EN', () => {
+    useProfileStore.setState({
+      profile: {
+        displayName: 'Athlete',
+        language: 'en',
+        preferredUnits: 'imperial',
+        colorway: 'glacier',
+        celebrationEffect: 'classic',
+      },
+    });
+
+    const { getByText } = render(
+      <ThemeProvider>
+        <AppearanceSettings />
+      </ThemeProvider>,
+    );
+
+    // English Section Headers
+    expect(getByText('THEMES & COLORWAYS')).toBeTruthy();
+    expect(getByText('LIGHT MODES')).toBeTruthy();
+    expect(getByText('DARK MODES')).toBeTruthy();
+    expect(getByText('WORKOUT CELEBRATION EFFECTS')).toBeTruthy();
+    expect(
+      getByText(
+        'Choose the animation effect shown after completed workouts. Tap one to preview it.',
+      ),
+    ).toBeTruthy();
+
+    // English celebration name
+    expect(getByText('Classic Confetti')).toBeTruthy();
+    expect(
+      getByText('Colorful dynamic particles after every completed workout.'),
+    ).toBeTruthy();
+  });
 });
+

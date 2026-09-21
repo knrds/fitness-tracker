@@ -18,7 +18,9 @@ import {
   getLevelRewards,
   getRemainingXpForLevel,
   getXpForLevel,
+  getLevelProgress,
 } from '../utils/rewards';
+import { useI18n } from '../i18n';
 
 export interface BattlePassModalProps {
   visible: boolean;
@@ -95,15 +97,17 @@ const RANK_REWARDS: Record<
 
 export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModalProps) {
   const theme = useTheme();
+  const { t, language } = useI18n();
   const insets = useSafeAreaInsets();
   const c = theme.colors;
   const currentRankInfo = getRankForLevel(level);
   const scrollRef = useRef<ScrollView>(null);
   const [inspectedLevel, setInspectedLevel] = useState<number | null>(null);
 
-  const xpInCurrentLevel = xp % 500;
-  const xpNeededForNextLevel = 500 - xpInCurrentLevel;
-  const progressPercent = Math.min(100, Math.max(0, (xpInCurrentLevel / 500) * 100));
+  const progressInfo = getLevelProgress(xp);
+  const xpInCurrentLevel = progressInfo.xpInCurrentLevel;
+  const xpNeededForNextLevel = progressInfo.remainingXp;
+  const progressPercent = progressInfo.progressPercent;
 
   // Auto-scroll to active rank when opened
   useEffect(() => {
@@ -189,7 +193,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                   </Text>
                   <View style={[styles.currentRankPill, { backgroundColor: c.primary + '20' }]}>
                     <Text style={[styles.currentRankPillText, { color: c.primary }]}>
-                      RANG {currentRankInfo.rank}
+                      {t('rank.rank').toUpperCase()} {currentRankInfo.rank}
                     </Text>
                   </View>
                 </View>
@@ -199,7 +203,9 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                 </Text>
 
                 <Text style={[styles.currentRankSubtitle, { color: c.muted }]}>
-                  Noch {xpNeededForNextLevel} XP bis Level {level + 1}
+                  {t('rank.stillXpToLevel')
+                    .replace('{xp}', String(xpNeededForNextLevel))
+                    .replace('{level}', String(level + 1))}
                 </Text>
               </View>
             </View>
@@ -543,7 +549,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                   <Pressable
                     style={styles.detailBackdrop}
                     accessibilityRole="button"
-                    accessibilityLabel="Hintergrund schließen"
+                    accessibilityLabel={t('rank.closeBackdrop')}
                     onPress={() => setInspectedLevel(null)}
                   />
                   <View
@@ -945,7 +951,9 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                           <Text
                             style={[styles.noRewardStatusLabel, { color: c.muted }]}
                           >
-                            {isUnlocked ? 'Levelstatus' : 'Bis Level ' + inspectedLevel}
+                            {isUnlocked
+                              ? t('rank.levelStatus')
+                              : t('rank.upToLevel').replace('{level}', String(inspectedLevel))}
                           </Text>
                           <Text
                             style={[
@@ -954,8 +962,12 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                             ]}
                           >
                             {isUnlocked
-                              ? 'Bereits gemeistert ✓'
-                              : `Noch ${missingXp.toLocaleString('de-DE')} XP`}
+                              ? language === 'de'
+                                ? 'Bereits gemeistert ✓'
+                                : 'Already mastered ✓'
+                              : language === 'de'
+                              ? `Noch ${missingXp.toLocaleString('de-DE')} XP`
+                              : `${missingXp.toLocaleString('en-US')} XP remaining`}
                           </Text>
                         </View>
                       </View>

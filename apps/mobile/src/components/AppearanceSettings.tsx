@@ -13,12 +13,16 @@ import {
   isCelebrationUnlocked,
   RewardColorwayConfig,
   RewardCelebrationConfig,
+  getLocalizedCelebrationConfig,
+  getXpForLevel,
 } from '../utils/rewards';
+import { useI18n } from '../i18n';
 import { BattlePassModal } from './BattlePassModal';
 import { WorkoutCelebrationOverlay } from './workout/WorkoutCelebrationOverlay';
 
 export function AppearanceSettings() {
   const theme = useTheme();
+  const { t, language } = useI18n();
   const { profile, updateProfile } = useProfileStore();
   const { level, xp, setTestLevel } = useAchievementStore();
   const [battlePassVisible, setBattlePassVisible] = useState(false);
@@ -56,12 +60,15 @@ export function AppearanceSettings() {
     if (!unlocked) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       Alert.alert(
-        'Design gesperrt',
-        `Das Theme "${item.name}" wird ab Level ${item.requiredLevel} (Rang ${item.requiredRank}) freigeschaltet.\n\nMöchtest du dir den Level-Pass ansehen?`,
+        t('settings.themeLockedTitle'),
+        t('settings.themeLockedDesc')
+          .replace('{name}', item.name)
+          .replace('{level}', String(item.requiredLevel))
+          .replace('{rank}', String(item.requiredRank)),
         [
-          { text: 'Abbrechen', style: 'cancel' },
+          { text: t('settings.cancel'), style: 'cancel' },
           {
-            text: 'Level-Pass öffnen',
+            text: t('settings.openLevelPass'),
             onPress: () => setBattlePassVisible(true),
           },
         ],
@@ -75,15 +82,19 @@ export function AppearanceSettings() {
 
   const handleSelectCelebration = (item: RewardCelebrationConfig) => {
     const unlocked = isCelebrationUnlocked(item.id, level);
+    const locItem = getLocalizedCelebrationConfig(item, language);
     if (!unlocked) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       Alert.alert(
-        'Effekt gesperrt',
-        `Der Feier-Effekt "${item.name}" wird ab Level ${item.requiredLevel} (Rang ${item.requiredRank}) freigeschaltet.\n\nMöchtest du dir den Level-Pass ansehen?`,
+        t('settings.effectLockedTitle'),
+        t('settings.effectLockedDesc')
+          .replace('{name}', locItem.name)
+          .replace('{level}', String(item.requiredLevel))
+          .replace('{rank}', String(item.requiredRank)),
         [
-          { text: 'Abbrechen', style: 'cancel' },
+          { text: t('settings.cancel'), style: 'cancel' },
           {
-            text: 'Level-Pass öffnen',
+            text: t('settings.openLevelPass'),
             onPress: () => setBattlePassVisible(true),
           },
         ],
@@ -306,12 +317,12 @@ export function AppearanceSettings() {
           <View style={styles.headerLeft}>
             <Ionicons name="color-palette-outline" size={16} color={theme.colors.primary} />
             <Text style={[theme.typography.label, { color: theme.colors.primary }]}>
-              THEMES & FARBWELTEN
+              {language === 'de' ? 'THEMES & FARBWELTEN' : 'THEMES & COLORWAYS'}
             </Text>
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Level Pass öffnen"
+            accessibilityLabel={t('settings.openLevelPassButton')}
             onPress={() => setBattlePassVisible(true)}
             style={[
               styles.battlePassBtn,
@@ -320,12 +331,12 @@ export function AppearanceSettings() {
           >
             <Ionicons name="flash" size={12} color={theme.colors.primary} />
             <Text style={[styles.battlePassBtnText, { color: theme.colors.primary }]}>
-              LEVEL-PASS (LVL {level}) ↗
+              {t('settings.levelPassButton').replace('{level}', String(level))}
             </Text>
           </Pressable>
         </View>
         <Text style={[styles.subtitle, { color: theme.colors.muted }]}>
-          11 exklusive Farbwelten · Schalte neue Themes & Effekte über deinen Level-Pass frei
+          {t('settings.themesSubtitle')}
         </Text>
       </View>
 
@@ -343,16 +354,16 @@ export function AppearanceSettings() {
           <View style={[styles.betaTag, { backgroundColor: theme.colors.primary + '20' }]}>
             <Ionicons name="flask" size={13} color={theme.colors.primary} />
             <Text style={[styles.betaTagText, { color: theme.colors.primary }]}>
-              BETA-TESTER
+              {t('settings.betaTester')}
             </Text>
           </View>
           <Text style={[styles.betaCardTitle, { color: theme.colors.text }]}>
-            LEVEL & RANG SIMULATOR
+            {t('settings.simulatorTitle')}
           </Text>
         </View>
 
         <Text style={[styles.betaCardDesc, { color: theme.colors.muted }]}>
-          Passe dein Level an, um alle Themes, Effekte und Level-Pass Belohnungen live zu testen.
+          {t('settings.simulatorDesc')}
         </Text>
 
         {/* Current Simulated Status Row */}
@@ -361,10 +372,10 @@ export function AppearanceSettings() {
             LEVEL {level}
           </Text>
           <Text style={[styles.betaRankText, { color: theme.colors.text }]}>
-            Rang {currentRank.rank}: {currentRank.title}
+            {t('rank.rank')} {currentRank.rank}: {currentRank.title}
           </Text>
           <Text style={[styles.betaXpText, { color: theme.colors.muted }]}>
-            ({((level - 1) * 500).toLocaleString('de-DE')} XP)
+            ({getXpForLevel(level).toLocaleString(language === 'de' ? 'de-DE' : 'en-US')} XP)
           </Text>
         </View>
 
@@ -378,7 +389,7 @@ export function AppearanceSettings() {
         >
           <Pressable
             accessibilityRole="adjustable"
-            accessibilityLabel={`Level Slider, aktuell Level ${level}`}
+            accessibilityLabel={t('settings.sliderLabel').replace('{level}', String(level))}
             onPress={(e) => {
               if (sliderWidth > 0) {
                 const ratio = Math.max(0, Math.min(1, e.nativeEvent.locationX / sliderWidth));
@@ -417,7 +428,7 @@ export function AppearanceSettings() {
         <View style={styles.stepperRow}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="5 Level zurück"
+            accessibilityLabel={t('settings.stepLevelBack').replace('{count}', '5')}
             disabled={level <= 1}
             onPress={() => handleStepLevel(-5)}
             style={({ pressed }) => [
@@ -434,7 +445,7 @@ export function AppearanceSettings() {
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="1 Level zurück"
+            accessibilityLabel={t('settings.stepLevelBack').replace('{count}', '1')}
             disabled={level <= 1}
             onPress={() => handleStepLevel(-1)}
             style={({ pressed }) => [
@@ -465,7 +476,7 @@ export function AppearanceSettings() {
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="1 Level vor"
+            accessibilityLabel={t('settings.stepLevelForward').replace('{count}', '1')}
             disabled={level >= 50}
             onPress={() => handleStepLevel(1)}
             style={({ pressed }) => [
@@ -482,7 +493,7 @@ export function AppearanceSettings() {
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="5 Level vor"
+            accessibilityLabel={t('settings.stepLevelForward').replace('{count}', '5')}
             disabled={level >= 50}
             onPress={() => handleStepLevel(5)}
             style={({ pressed }) => [
@@ -523,7 +534,7 @@ export function AppearanceSettings() {
               <Pressable
                 key={m.lvl}
                 accessibilityRole="button"
-                accessibilityLabel={`Springe zu Level ${m.lvl}`}
+                accessibilityLabel={t('settings.jumpToLevel').replace('{level}', String(m.lvl))}
                 onPress={() => handleSetExactLevel(m.lvl)}
                 style={({ pressed }) => [
                   styles.milestonePill,
@@ -560,7 +571,7 @@ export function AppearanceSettings() {
         <View style={styles.subgroupHeader}>
           <Ionicons name="sunny" size={13} color="#0284C7" />
           <Text style={[styles.subgroupTitle, { color: theme.colors.text }]}>
-            LIGHT MODES (HELLE THEMES)
+            {t('settings.lightModesTitle')}
           </Text>
         </View>
         <View style={styles.grid}>{lightThemes.map(renderColorwayCard)}</View>
@@ -571,7 +582,7 @@ export function AppearanceSettings() {
         <View style={styles.subgroupHeader}>
           <Ionicons name="moon" size={13} color={theme.colors.primary} />
           <Text style={[styles.subgroupTitle, { color: theme.colors.text }]}>
-            DARK MODES (DUNKLE THEMES)
+            {t('settings.darkModesTitle')}
           </Text>
         </View>
         <View style={styles.grid}>{darkThemes.map(renderColorwayCard)}</View>
@@ -582,15 +593,16 @@ export function AppearanceSettings() {
         <View style={styles.subgroupHeader}>
           <Ionicons name="sparkles" size={14} color={theme.colors.primary} />
           <Text style={[styles.subgroupTitle, { color: theme.colors.text }]}>
-            WORKOUT-FEIER EFFEKTE (CELEBRATIONS)
+            {t('settings.celebrationsTitle')}
           </Text>
         </View>
         <Text style={[styles.celebrationSubtitle, { color: theme.colors.muted }]}>
-          Wähle deinen Animationseffekt für abgeschlossene Workouts. Tippe zum Testen!
+          {t('settings.celebrationsSubtitle')}
         </Text>
 
         <View style={styles.celebrationList}>
-          {CELEBRATION_REWARDS.map((eff) => {
+          {CELEBRATION_REWARDS.map((rawEff) => {
+            const eff = getLocalizedCelebrationConfig(rawEff, language);
             const isSelected = eff.id === activeCelebration;
             const isUnlocked = isCelebrationUnlocked(eff.id, level);
 

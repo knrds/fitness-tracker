@@ -140,7 +140,7 @@ describe('achievementStore', () => {
     });
     useHistoryStore.setState({ sessions: [current] });
     useAchievementStore.getState().awardXpAndCheckAchievements(current);
-    expect(useAchievementStore.getState().xp).toBe(335);
+    expect(useAchievementStore.getState().xp).toBe(264);
     expect(useAchievementStore.getState().repeatCounts['rep_session_pr']).toBe(1);
   });
 
@@ -166,7 +166,7 @@ describe('achievementStore', () => {
               type: 'working',
               completed: true,
               weight: 100,
-              reps: 10, // 1000 kg volume = 10 XP bonus
+              reps: 10, // 1000 kg volume
             },
           ],
         },
@@ -181,15 +181,16 @@ describe('achievementStore', () => {
 
     const state = useAchievementStore.getState();
 
-    // XP calculation:
+    // Rebalanced XP calculation:
     // - Base: 50 XP
-    // - Volume bonus: 1000 kg / 100 = 10 XP
-    // - PR bonus: ex-bench is a new PR = 100 XP
+    // - Set bonus: 1 set = 2 XP
+    // - Volume bonus: 1000 kg tier 1 = 10 XP
+    // - PR bonus: ex-bench is a new PR = 25 XP
     // One-time achievements: first_workout (50) + first_pr (50) = 100 XP
     // Repeatable achievements earned this session:
     //   - rep_workout_complete (+25), rep_session_pr (+50) = 75 XP
-    // Total XP = 50 + 10 + 100 + 100 + 75 = 335 XP
-    expect(state.xp).toBe(335);
+    // Total XP = 50 + 2 + 10 + 25 + 100 + 75 = 262 XP
+    expect(state.xp).toBe(262);
     expect(state.level).toBe(1);
     expect(state.unlockedAchievements['first_workout']).toBeDefined();
     expect(state.unlockedAchievements['first_pr']).toBeDefined(); // First PR unlocked as well
@@ -202,9 +203,9 @@ describe('achievementStore', () => {
     expect(state.levelUpTo).toBeNull();
   });
 
-  it('should handle level up when XP crosses 500 XP boundary', () => {
-    // Manually set state near level up boundary
-    useAchievementStore.setState({ xp: 450, level: 1 });
+  it('should handle level up when XP crosses 1000 XP boundary (Level 2)', () => {
+    // Manually set state near level up boundary (Level 2 is 1000 XP)
+    useAchievementStore.setState({ xp: 850, level: 1 });
 
     const mockSession: WorkoutSession = {
       id: 'session-2',
@@ -227,7 +228,7 @@ describe('achievementStore', () => {
               type: 'working',
               completed: true,
               weight: 100,
-              reps: 10, // 10 XP volume bonus
+              reps: 10,
             },
           ],
         },
@@ -242,17 +243,32 @@ describe('achievementStore', () => {
 
     const state = useAchievementStore.getState();
 
-    // XP calculation:
-    // - Pre-existing: 450 XP
-    // - Base: 50 XP
-    // - Volume bonus: 10 XP
-    // - PR: 100 XP (ex-bench max weight 100 kg is first PR)
-    // - Achievements first_workout + first_pr = 100 XP reward
-    // - Repeatable: rep_workout_complete (25) + rep_session_pr (50) = 75 XP
-    // Total XP = 450 + 50 + 10 + 100 + 100 + 75 = 785 XP
-    // Level = Math.floor(785 / 500) + 1 = 2
+    // XP crossed 1000 threshold -> Level 2
+    expect(state.xp).toBeGreaterThanOrEqual(1000);
     expect(state.level).toBe(2);
     expect(state.levelUpTo).toBe(2);
+
+    // Duplicate call with the same session does not award duplicate XP
+    const xpAfterFirst = state.xp;
+    useAchievementStore.getState().awardXpAndCheckAchievements(mockSession);
+    expect(useAchievementStore.getState().xp).toBe(xpAfterFirst);
+  });
+
+  it('does not award XP for an empty session with no completed sets', () => {
+    const emptySession: WorkoutSession = {
+      id: 'empty-session-test',
+      userId: 'user-1',
+      name: 'Empty Session',
+      startedAt: new Date(),
+      completedAt: new Date(),
+      durationSeconds: 100,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      exercises: [],
+    };
+    useAchievementStore.getState().awardXpAndCheckAchievements(emptySession);
+    expect(useAchievementStore.getState().xp).toBe(0);
+    expect(useAchievementStore.getState().level).toBe(1);
   });
 
   it('unlocks exercise-specific niche achievements from cumulative history', () => {

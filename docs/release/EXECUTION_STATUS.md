@@ -2,6 +2,21 @@
 
 Stand: 21.09.2026. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
+## Checkpoint 21.09.2026 — UI/i18n Cleanup, Level/XP Rebalancing & Age UI
+
+**P01/P03/P09/S1/S8/S11, VERIFIED / PREPARED, Risiko LOW-MEDIUM.**
+- **Zentrale Domain-Progression (Single Source of Truth):** Neue `packages/domain/src/logic/levelProgression.ts` mit mathematisch kontrollierter Progression:
+  - Formel: $XP(L) = 200 \times (L - 1)^2 + 800 \times (L - 1)$ für $L \ge 2$, mit geschlossener Umkehrfunktion $L(XP) = \lfloor \sqrt{4 + \frac{XP}{200}} - 1 \rfloor$.
+  - Level 1 -> 2 erfordert 1.000 XP (~7 normale Workouts). Level 10 = 23.400 XP, Level 20 = 87.400 XP, Level 50 = 519.400 XP.
+  - Session-XP berechnet mit degressiver Staffelung (Diminishing Returns): Base 50 XP, Sätze max 30 XP (1-10 je 2 XP, 11-20 je 1 XP), Volumen max 110 XP (Tier 1-3 Kurve), PR-Bonus max 75 XP (25 XP/PR bis max 3). Ein einzelnes Workout ist absolut auf maximal 265 XP gedeckelt (typisch ~120-160 XP).
+  - Ein normales Workout kann niemals mehrere frühe Level überspringen.
+  - Idempotenz-Schutz in `achievementStore.ts` gegen doppelte Session-XP-Vergabe via `awardedSessionIds`.
+- **Plans Create Modal (i18n):** Fehlende Übersetzungs-Keys behoben (`createChoiceTitle`, `createTemplate`, `createTemplateDesc`, `createPlan`, `createPlanDesc`). Keine raw Translation Keys mehr sichtbar in DE oder EN. Regressionstest in `plansCreateModal.test.ts`.
+- **Celebrations / Workout-Feier-Effekte (i18n):** Vollständige DE/EN-Lokalisierung für Titel, Untertitel, Effektnamen (Klassisch/Classic, Inferno, Neon-Pulse/Neon Pulse, Goldregen/Golden Rain, Matrix-Code/Matrix Code, Kosmisch/Cosmic) und Aktions-Alerts.
+- **LevelProgress & BattlePassModal (i18n):** Dynamisch zusammengesetzte Strings ("bis Level..." / "to Level...", "Nächster Rank bei Level..." / "Next rank at Level...") vollständig über `useI18n()` und `getLevelProgress(xp)` locale-aware gemacht.
+- **Age / Geburtstag UI Cleanup:** Unnötiges / störendes Glitzer-Icon (`sparkles-outline`) aus dem Alters-Badge in `profile.tsx` entfernt. Saubere Textdarstellung `{Alter} Jahre` / `{Age} years old`, Accessibility-Label intakt, keine Profildaten verändert.
+- **Testmetriken:** **673 Tests PASS** (88 Domain + 531 Mobile in 80 Test-Suites + 38 Coach-API + 16 Security-Regressionen); Workspace-Typecheck PASS; Lint PASS; `pnpm build:preview` Web-Export PASS (4.75 MB).
+
 ## Checkpoint 21.09.2026 — Gemini Takeover, Preview Recovery & i18n Fix
 
 **P03/P09/S1/S8/S11, VERIFIED / PREPARED, Risiko LOW-MEDIUM.**

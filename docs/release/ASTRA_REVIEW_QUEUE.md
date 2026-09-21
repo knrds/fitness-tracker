@@ -1,5 +1,10 @@
 # EVARO – Astra Review Queue
 
+## UI/i18n Cleanup, Level/XP Rebalancing & Age UI — 21.09.2026
+
+- **AR-033: Zentrale Level & Session XP Progression (VERIFIED).** In `packages/domain/src/logic/levelProgression.ts` wurde die zentrale Kurve $XP(L) = 200(L-1)^2 + 800(L-1)$ implementiert. Level 1 -> 2 benötigt 1.000 XP (~7 Workouts). Session-XP wird mit Diminishing Returns berechnet (Base 50, Sätze max 30, Volumen max 110, PR max 75; absolutes Cap 265 XP). Idempotenz-Schutz in `achievementStore.ts` via `awardedSessionIds`.
+- **AR-034: UI/i18n Parity: Plans Modal, Celebrations & Age Badge (VERIFIED).** Plans-Create-Modal zeigt keine Translation Keys mehr; Celebrations-Bereich in AppearanceSettings ist 100 % lokalisiert (DE/EN); dynamische Strings in LevelProgress & BattlePassModal sind locale-aware; Glitzer-Icon am Alters-Badge in Profile wurde entfernt, Barrierefreiheit und Profildaten intakt.
+
 ## Gemini Takeover & Preview Recovery — 21.09.2026
 
 - **AR-027: i18n Workout-Abschluss & Session-Telemetry (VERIFIED).** In `WorkoutCompleteModal.tsx` und `WorkoutCompleteModal.test.tsx` wurden alle Telemetrie-Texte, Einheiten (kg/lbs), Labels und Barrierefreiheits-Rollen vollständig DE/EN implementiert. TS-Fehler (`displayName`) behoben. 100 % Session-Unveränderlichkeit verifiziert.

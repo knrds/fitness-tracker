@@ -414,14 +414,115 @@ Kein SDK-Upgrade nur für Expo Go. Später Apple-Mitgliedschaft → EAS-Credenti
 
 Für Feedback: Commit, URL ohne Tokens, Gerät/iOS, Konto nur A/B, Schritte, Erwartung, tatsächliches Ergebnis. Screenshots vorher von personenbezogenen Daten bereinigen. Keine `.env`-, Session-, Auth- oder Coach-Rohdaten hochladen.
 
-## Quellen und aktueller Reviewpunkt
+## 21. Konkrete Testanleitung: UI/i18n Cleanup, Level/XP Rebalancing & Age UI
 
-- [Vercel Git-/Preview-Verhalten](https://vercel.com/docs/git)
-- [Vercel Hobby-Nutzungsgrenzen](https://vercel.com/docs/plans/hobby)
-- [Vercel Build-Konfiguration](https://vercel.com/docs/builds/configure-a-build)
-- [Vercel Deployment Checks](https://vercel.com/docs/deployment-checks)
-- [Supabase Free-Projekte](https://supabase.com/docs/guides/platform/billing-faq)
-- [Supabase Umgebungen](https://supabase.com/docs/guides/deployment/managing-environments)
-- [Expo interne Builds](https://docs.expo.dev/build/internal-distribution/)
+Stand: 21.09.2026 (Gemini UI/i18n Cleanup & Level Progression). Branch: `astra/p0-release-core`.
 
-Aktuelle Messwerte/Commits und nicht erreichte Gates stehen in EXECUTION_STATUS.md und P0_READINESS_MATRIX.md. Diese Anleitung ist keine Production- oder vollständige Native-Freigabe. Der erste sichere kostenlose Schritt ist der lokale Gast-/UI-Test; eine echte HTTPS-Preview folgt erst mit Projektzugang und erfüllten Security-Gates.
+### Level 1–20 Progression Snapshot
+
+Formel: $XP(L) = 200 \times (L - 1)^2 + 800 \times (L - 1)$ für $L \ge 2$, mit geschlossener Umkehrfunktion $L(XP) = \lfloor \sqrt{4 + \frac{XP}{200}} - 1 \rfloor$.
+
+| Level | Total XP required | Delta to previous level | Typische Workouts bis Stufe (bei ~140 XP/Workout) |
+|---|---|---|---|
+| **Level 1** | 0 XP | 0 XP | Start |
+| **Level 2** | 1.000 XP | +1.000 XP | ~7 Workouts |
+| **Level 3** | 2.400 XP | +1.400 XP | ~17 Workouts |
+| **Level 4** | 4.200 XP | +1.800 XP | ~30 Workouts |
+| **Level 5** | 6.400 XP | +2.200 XP | ~46 Workouts |
+| **Level 6** | 9.000 XP | +2.600 XP | ~64 Workouts |
+| **Level 7** | 12.000 XP | +3.000 XP | ~86 Workouts |
+| **Level 8** | 15.400 XP | +3.400 XP | ~110 Workouts |
+| **Level 9** | 19.200 XP | +3.800 XP | ~137 Workouts |
+| **Level 10** | 23.400 XP | +4.200 XP | ~167 Workouts |
+| **Level 11** | 28.000 XP | +4.600 XP | ~200 Workouts |
+| **Level 12** | 33.000 XP | +5.000 XP | ~236 Workouts |
+| **Level 13** | 38.400 XP | +5.400 XP | ~274 Workouts |
+| **Level 14** | 44.200 XP | +5.800 XP | ~316 Workouts |
+| **Level 15** | 50.400 XP | +6.200 XP | ~360 Workouts |
+| **Level 16** | 57.000 XP | +6.600 XP | ~407 Workouts |
+| **Level 17** | 64.000 XP | +7.000 XP | ~457 Workouts |
+| **Level 18** | 71.400 XP | +7.400 XP | ~510 Workouts |
+| **Level 19** | 79.200 XP | +7.800 XP | ~566 Workouts |
+| **Level 20** | 87.400 XP | +8.200 XP | ~624 Workouts |
+
+---
+
+### Test A – Plans Create Modal (i18n)
+
+1. Tab **Pläne (Plans)** öffnen.
+2. Den `+` (Create) Button antippen.
+3. Das Auswahl-Modal öffnet sich.
+4. **Erwartung DE:**
+   - Titel: *Was möchtest du erstellen?*
+   - Option 1: *Template erstellen* – *Erstelle eine wiederverwendbare Trainingsvorlage.*
+   - Option 2: *Trainingsplan erstellen* – *Erstelle einen Trainingsplan für deine Woche.*
+   - Keine raw Translation Keys (`plans.createChoiceTitle`, etc.) sichtbar.
+5. Sprache in den Einstellungen auf **English** umschalten und wiederholen:
+   - **Erwartung EN:**
+   - Titel: *What would you like to create?*
+   - Option 1: *Create Template* – *Create a reusable workout template.*
+   - Option 2: *Create Training Plan* – *Create a weekly training plan.*
+   - Keine raw Translation Keys sichtbar.
+
+---
+
+### Test B – Celebrations / Workout-Feier-Effekte (i18n)
+
+1. Tab **Profil / Einstellungen (Settings)** öffnen -> **Erscheinungsbild (Appearance)** öffnen.
+2. Den Bereich **Celebrations** ansehen.
+3. **Erwartung DE:**
+   - Überschrift: *WORKOUT-FEIER EFFEKTE (CELEBRATIONS)*
+   - Untertitel: *Wähle deinen Animationseffekt für abgeschlossene Workouts. Tippe zum Testen!*
+   - Effektnamen: *Klassisch, Inferno, Neon-Pulse, Goldregen, Matrix-Code, Kosmisch*
+4. Sprache auf **English** umschalten:
+   - **Erwartung EN:**
+   - Überschrift: *WORKOUT CELEBRATION EFFECTS*
+   - Untertitel: *Choose the animation effect shown after completed workouts. Tap to preview!*
+   - Effektnamen: *Classic, Inferno, Neon Pulse, Golden Rain, Matrix Code, Cosmic*
+   - Keine deutschen Rest-Strings in Titeln, Beschreibungen oder Aktions-Alerts.
+
+---
+
+### Test C – XP Text & Rank Transition Display (i18n)
+
+1. Profil öffnen und den Bereich **Level / Rang / XP** ansehen (oder den BattlePass-Meilenstein-Modal öffnen).
+2. **Erwartung DE:**
+   - XP-Status: z. B. `0 / 1000 XP · 1000 bis Level 2`
+   - Rang-Übersicht: `Rank 1 (Lvl 1–5) · Nächster Rank bei Level 6`
+   - Bei Max-Rank: `Max Rank 10 (EVARO Master) erreicht`
+3. Sprache auf **English** umschalten:
+   - **Erwartung EN:**
+   - XP-Status: z. B. `0 / 1000 XP · 1000 to Level 2`
+   - Rang-Übersicht: `Rank 1 (Lvl 1–5) · Next rank at Level 6`
+   - Bei Max-Rank: `Max Rank 10 (EVARO Master) reached`
+   - Vollständige Konsistenz ohne Mischsprache.
+
+---
+
+### Test D – Age / Geburtstag UI Cleanup
+
+1. Tab **Profil** öffnen.
+2. Die Anzeige des Alters / Geburtsjahres prüfen.
+3. **Erwartung:**
+   - Das unnötige / störende Glitzer-Icon (`sparkles-outline`) ist entfernt.
+   - Der Badge zeigt sauber z. B. `28 Jahre` (DE) bzw. `28 years old` (EN).
+   - Accessibility-Label bleibt intakt (`Alter: 28 Jahre`).
+   - Keine Profil- oder Geburtsjahr-Daten wurden verändert oder gelöscht.
+
+---
+
+### Test E – XP Progression & Multi-Level-Jump-Prävention
+
+1. Vor dem Test aktuellen XP- und Levelstand im Profil notieren (z. B. Start bei 0 XP, Level 1).
+2. Ein gewöhnliches vollständiges Workout durchführen (z. B. 3 Übungen, 9–12 Sätze).
+3. Workout abschließen und Summary ansehen.
+4. Nach Abschluss dokumentieren:
+   - **XP vorher:**
+   - **XP danach:**
+   - **XP erhalten:** (erwartet: ca. 120–160 XP)
+   - **Level vorher:**
+   - **Level danach:**
+5. **Erwartung:**
+   - **Kein Sprung** von Level 1 direkt auf Level 3 oder 4.
+   - Level 2 erfordert 1.000 XP, sodass mehrere konsistente Workouts für Level 2 notwendig sind.
+   - Ein wiederholtes Tippen auf Workout-Abschluss erzeugt keine doppelten Session-XP (Idempotenz-Schutz).

@@ -1,5 +1,9 @@
 # EVARO – Astra Review Queue
 
+## Three-Phase Level/XP Progression Rebalance (Kandidat B) — 21.09.2026
+
+- **AR-035: Glatte kubische Drei-Phasen-Progression (VERIFIED).** In `packages/domain/src/logic/levelProgression.ts` wurde die Formel $XP(L) = 10(L-1)^3 + 50(L-1)^2 + 350(L-1)$ implementiert. Early Game motivierend (L2 bei 410 XP, ~2.9 Workouts; L3 bei 980 XP, ~7 Workouts; L5 bei 2.840 XP, ~20 Workouts). Mid Game deutlich anspruchsvoller (L10 bei 14.490 XP, ~103 Workouts; L15 bei 42.140 XP, ~301 Workouts). Late Game prestigeträchtig ohne harte Wand (L20 bei 93.290 XP, ~666 Workouts). Session-XP unverändert degressiv begrenzt (max 265 XP). Idempotenz-Schutz gesichert. 677 Tests PASS.
+
 ## UI/i18n Cleanup, Level/XP Rebalancing & Age UI — 21.09.2026
 
 - **AR-033: Zentrale Level & Session XP Progression (VERIFIED).** In `packages/domain/src/logic/levelProgression.ts` wurde die zentrale Kurve $XP(L) = 200(L-1)^2 + 800(L-1)$ implementiert. Level 1 -> 2 benötigt 1.000 XP (~7 Workouts). Session-XP wird mit Diminishing Returns berechnet (Base 50, Sätze max 30, Volumen max 110, PR max 75; absolutes Cap 265 XP). Idempotenz-Schutz in `achievementStore.ts` via `awardedSessionIds`.

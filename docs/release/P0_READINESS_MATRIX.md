@@ -1,6 +1,6 @@
 # EVARO Current State Matrix — Astra / Gemini 2026-09-21
 
-Aktualisierung 21.09.2026 (UI/i18n Cleanup, Level/XP Rebalancing & Age UI): Zentrale mathematische Domain-Progression ($XP(L) = 200(L-1)^2 + 800(L-1)$, Level 2 = 1.000 XP, max 265 XP/Session mit Diminishing Returns, Idempotenz-Schutz). Plans Create Modal i18n repariert (keine raw Keys mehr), Celebrations-Bereich vollständig DE/EN lokalisiert, LevelProgress/BattlePassModal dynamische Strings locale-aware, Alters-Badge Glitzer-Icon entfernt. 673 Tests grün (Typecheck/Lint/Build PASS). S4, S5 und AI-Security-Architektur für Astra vorbereitet (`ASTRA_REQUIRED`). Keine Production-/Main-Integration, Remote-Migration oder Billing-Aktivierung.
+Aktualisierung 21.09.2026 (Three-Phase Progression Rebalance — Kandidat B): Zentrale mathematische Domain-Progression ($XP(L) = 10(L-1)^3 + 50(L-1)^2 + 350(L-1)$, Level 2 = 410 XP [~2.9 Workouts], Level 3 = 980 XP [~7 Workouts], Level 5 = 2.840 XP [~20 Workouts], Level 10 = 14.490 XP, Level 20 = 93.290 XP; max 265 XP/Session mit Diminishing Returns, Idempotenz-Schutz). Plans Create Modal i18n repariert, Celebrations-Bereich vollständig DE/EN lokalisiert, LevelProgress/BattlePassModal dynamische Strings locale-aware, Alters-Badge Glitzer-Icon entfernt. 677 Tests grün (Typecheck/Lint/Build PASS). S4, S5 und AI-Security-Architektur für Astra vorbereitet (`ASTRA_REQUIRED`). Keine Production-/Main-Integration, Remote-Migration oder Billing-Aktivierung.
 
 ## Security Roadmap S0–S12 — maßgeblicher Ausführungspfad
 

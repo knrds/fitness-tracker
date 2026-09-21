@@ -1,6 +1,26 @@
 # ASTRA START HERE — aktueller Handoff 2026-09-21
 
-## Wiederaufnahme-Checkpoint — 21.09.2026: UI/i18n Cleanup, Level/XP Rebalancing & Age UI
+## Aktueller Checkpoint — 21.09.2026: Three-Phase Level/XP Progression Rebalance (Kandidat B)
+
+Gemini hat die Level-Progression auf eine motivierende Drei-Phasen-Kurve (Kandidat B) kalibriert:
+
+1. **Mathematische Formel (Domain Single Source of Truth):**
+   - $XP(L) = 10 \times (L - 1)^3 + 50 \times (L - 1)^2 + 350 \times (L - 1)$ für $L \ge 2$, berechnet in `packages/domain/src/logic/levelProgression.ts`.
+   - **Early Game (Level 1–5):**
+     - Level 2: 410 Total XP (~3 Workouts à 140 XP).
+     - Level 3: 980 Total XP (~7 Workouts kumulativ).
+     - Level 4: 1.770 Total XP (~13 Workouts kumulativ).
+     - Level 5: 2.840 Total XP (~20 Workouts kumulativ).
+   - **Mid Game (Level 6–15):** Deutlich spürbare Progressionsverlangsamung (Level 10: 14.490 XP [~103 Workouts], Level 15: 42.140 XP [~301 Workouts]).
+   - **Late Game (Level 16+):** Glatte Langzeit-Prestige-Kurve (Level 20: 93.290 XP [~666 Workouts], Level 50: 1.313.690 XP).
+   - Session-XP degressiv und gedeckelt auf max 265 XP (typisch ~120–160 XP); kein Level-Skip aus dem Stand. Idempotenz-Schutz via `awardedSessionIds` gesichert.
+2. **iPhone Free QA Guide:**
+   - 13 konkrete Schritte in `docs/release/IPHONE_FREE_TEST_GUIDE.md` Abschnitt 21 für den Nutzer auf iPhone Safari dokumentiert.
+3. **Teststatus:**
+   - **677 Tests PASS** (92 Domain inkl. 5 Workout-Archetyp-Simulationen + 531 Mobile in 80 Suiten + 38 Coach-API + 16 Security-Regressionen).
+   - Typecheck PASS, Lint PASS, Web-Export PASS.
+
+## Vorheriger Checkpoint — 21.09.2026: UI/i18n Cleanup, Level/XP Rebalancing & Age UI
 
 Gemini hat den UI/i18n-Bereich, die Level-Progression und das Alters-Badge bereinigt:
 

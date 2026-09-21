@@ -203,9 +203,9 @@ describe('achievementStore', () => {
     expect(state.levelUpTo).toBeNull();
   });
 
-  it('should handle level up when XP crosses 1000 XP boundary (Level 2)', () => {
-    // Manually set state near level up boundary (Level 2 is 1000 XP)
-    useAchievementStore.setState({ xp: 850, level: 1 });
+  it('should handle level up when XP crosses 410 XP boundary (Level 2)', () => {
+    // Manually set state near level up boundary (Level 2 is 410 XP)
+    useAchievementStore.setState({ xp: 350, level: 1 });
 
     const mockSession: WorkoutSession = {
       id: 'session-2',
@@ -243,8 +243,8 @@ describe('achievementStore', () => {
 
     const state = useAchievementStore.getState();
 
-    // XP crossed 1000 threshold -> Level 2
-    expect(state.xp).toBeGreaterThanOrEqual(1000);
+    // XP crossed 410 threshold -> Level 2
+    expect(state.xp).toBeGreaterThanOrEqual(410);
     expect(state.level).toBe(2);
     expect(state.levelUpTo).toBe(2);
 

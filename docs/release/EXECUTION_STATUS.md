@@ -2,6 +2,24 @@
 
 Stand: 21.09.2026. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
+## Checkpoint 21.09.2026 — Three-Phase Level/XP Progression Rebalance (Kandidat B)
+
+**P01/P03/P09/S1/S8/S11, VERIFIED / PREPARED, Risiko LOW-MEDIUM.**
+- **Rebalancing der zentralen Domain-Progression (Kandidat B — Glatte kubische Drei-Phasen-Kurve):**
+  - Vorherige Kurve (`fefed5a`) war mit 1.000 XP für Level 2 (~7 Workouts) zu zäh für den Einstieg.
+  - Gewählte Formel (Kandidat B): $XP(L) = 10 \times (L - 1)^3 + 50 \times (L - 1)^2 + 350 \times (L - 1)$ für $L \ge 2$, mit exakter Lookuptabelle und binärer Suche bis Level 100.
+  - **Early Game (Level 1–5):**
+    - Level 2: 410 Total XP ($\Delta 410$, ~2,9 normale Workouts)
+    - Level 3: 980 Total XP ($\Delta 570$, ~7,0 Workouts kumulativ)
+    - Level 4: 1.770 Total XP ($\Delta 790$, ~12,6 Workouts kumulativ)
+    - Level 5: 2.840 Total XP ($\Delta 1.070$, ~20,3 Workouts kumulativ)
+  - **Mid Game (Level 6–15):** Kontinuierlich steigende Abstände (L6 = 4.250 XP, L10 = 14.490 XP [~103 Workouts], L15 = 42.140 XP [~301 Workouts]).
+  - **Late Game (Level 16+):** Reale Langzeitbindung ohne abrupte Wand (L20 = 93.290 XP [~666 Workouts], L50 = 1.313.690 XP).
+  - **Session-XP & Anti-Exploit-Schutz unverändert:** Diminishing Returns (Base 50, Sätze max 30, Volumen max 110, PR max 75; absolutes Cap 265 XP).
+  - Kein einzelnes Workout kann Level 1 -> 2 überspringen (265 < 410 XP). Idempotenz-Schutz via `awardedSessionIds` intakt.
+- **Aktualisierte Testmetriken:** **677 Tests PASS** (92 Domain [inkl. 5 Workout-Archetyp-Simulationen] + 531 Mobile in 80 Suiten + 38 Coach-API + 16 Security-Regressionen); Workspace-Typecheck PASS; Lint PASS; `pnpm build:preview` Web-Export PASS (4.75 MB).
+- **iPhone QA Guide:** `docs/release/IPHONE_FREE_TEST_GUIDE.md` um Abschnitt 21 (13 konkrete Testschritte zur Progression) erweitert.
+
 ## Checkpoint 21.09.2026 — UI/i18n Cleanup, Level/XP Rebalancing & Age UI
 
 **P01/P03/P09/S1/S8/S11, VERIFIED / PREPARED, Risiko LOW-MEDIUM.**

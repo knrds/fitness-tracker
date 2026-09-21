@@ -19,29 +19,51 @@ export interface SessionXpBreakdown {
   totalSessionXp: number;
 }
 
+const MAX_PRECOMPUTED_LEVEL = 100;
+
+/**
+ * Precomputed XP thresholds for levels 1 to 100.
+ *
+ * Curve formula:
+ * Level 1: 0 XP
+ * Level L (for L >= 2, where n = L - 1):
+ * XP(L) = 10 * n^3 + 50 * n^2 + 350 * n
+ *
+ * Progression phases:
+ * - Early Game (L1–5):
+ *   Level 1: 0 XP
+ *   Level 2: 410 XP (Delta: 410, ~3 normal workouts)
+ *   Level 3: 980 XP (Delta: 570, ~7 cumulative workouts)
+ *   Level 4: 1,770 XP (Delta: 790, ~13 cumulative workouts)
+ *   Level 5: 2,840 XP (Delta: 1,070, ~20 cumulative workouts)
+ * - Mid Game (L6–15):
+ *   Level 6: 4,250 XP (Delta: 1,410)
+ *   Level 10: 14,490 XP (Delta: 3,370, ~103 cumulative workouts)
+ *   Level 15: 42,140 XP (Delta: 7,170, ~301 cumulative workouts)
+ * - Late Game (L16+):
+ *   Level 20: 93,290 XP (Delta: 12,470, ~666 cumulative workouts)
+ *   Level 50: 1,313,690 XP (Delta: 76,490)
+ */
+const LEVEL_XP_THRESHOLDS: number[] = Array.from(
+  { length: MAX_PRECOMPUTED_LEVEL + 1 },
+  (_, level) => {
+    if (level <= 1) return 0;
+    const n = level - 1;
+    return 10 * n * n * n + 50 * n * n + 350 * n;
+  },
+);
+
 /**
  * Returns the cumulative total XP required to reach a specific level.
- *
- * Progression curve (Quadratic):
- * Level 1: 0 XP
- * Level L (for L >= 2): 200 * (L - 1)^2 + 800 * (L - 1)
- *
- * Examples:
- * Level 1: 0 XP
- * Level 2: 1,000 XP (Delta: 1,000)
- * Level 3: 2,400 XP (Delta: 1,400)
- * Level 4: 4,200 XP (Delta: 1,800)
- * Level 5: 6,400 XP (Delta: 2,200)
- * Level 6: 9,000 XP (Delta: 2,600)
- * Level 10: 23,400 XP (Delta: 4,200)
- * Level 20: 87,400 XP (Delta: 8,200)
- * Level 50: 519,400 XP (Delta: 20,200)
  */
 export function getXpRequiredForLevel(level: number): number {
   const normalizedLevel = Math.max(1, Math.floor(level || 1));
   if (normalizedLevel <= 1) return 0;
+  if (normalizedLevel <= MAX_PRECOMPUTED_LEVEL) {
+    return LEVEL_XP_THRESHOLDS[normalizedLevel]!;
+  }
   const n = normalizedLevel - 1;
-  return 200 * n * n + 800 * n;
+  return 10 * n * n * n + 50 * n * n + 350 * n;
 }
 
 /**
@@ -55,16 +77,27 @@ export function getDeltaXpForLevel(level: number): number {
 
 /**
  * Derives the player's level from cumulative total XP.
- * Exact closed-form inverse of the quadratic curve:
- * 200 * (L - 1)^2 + 800 * (L - 1) <= totalXp
- * (L - 1) = floor(sqrt(4 + totalXp / 200) - 2)
- * L = floor(sqrt(4 + totalXp / 200) - 1)
+ * Performs a fast exact binary search over monotonic level thresholds.
  */
 export function calculateLevelFromXp(totalXp: number): number {
   const safeXp = Math.max(0, Math.floor(totalXp || 0));
-  if (safeXp < 1000) return 1;
-  const level = Math.floor(Math.sqrt(4 + safeXp / 200) - 1);
-  return Math.max(1, level);
+  if (safeXp < LEVEL_XP_THRESHOLDS[2]!) return 1;
+
+  let low = 1;
+  let high = MAX_PRECOMPUTED_LEVEL;
+  let result = 1;
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    if (LEVEL_XP_THRESHOLDS[mid]! <= safeXp) {
+      result = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  return Math.max(1, result);
 }
 
 /**

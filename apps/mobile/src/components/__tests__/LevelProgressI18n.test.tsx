@@ -29,7 +29,7 @@ describe('LevelProgress i18n and progression parity', () => {
     );
 
     expect(getByText('Level 1 · Rang 1 (Novice Lifter)')).toBeTruthy();
-    expect(getByText('0 / 1000 XP · 1000 bis Level 2')).toBeTruthy();
+    expect(getByText('0 / 410 XP · 410 bis Level 2')).toBeTruthy();
     expect(
       getByText('Rank 1 (Lvl 1–5) · Nächster Rank bei Level 6'),
     ).toBeTruthy();
@@ -52,7 +52,7 @@ describe('LevelProgress i18n and progression parity', () => {
     );
 
     expect(getByText('Level 1 · Rank 1 (Novice Lifter)')).toBeTruthy();
-    expect(getByText('0 / 1000 XP · 1000 to Level 2')).toBeTruthy();
+    expect(getByText('0 / 410 XP · 410 to Level 2')).toBeTruthy();
     expect(
       getByText('Rank 1 (Lvl 1–5) · Next rank at Level 6'),
     ).toBeTruthy();
@@ -67,7 +67,7 @@ describe('LevelProgress i18n and progression parity', () => {
     });
     const { getByText, rerender } = render(
       <ThemeProvider>
-        <LevelProgress level={50} xp={519400} />
+        <LevelProgress level={50} xp={1313690} />
       </ThemeProvider>,
     );
     expect(getByText('Max Rank 10 (EVARO Master) erreicht')).toBeTruthy();
@@ -80,7 +80,7 @@ describe('LevelProgress i18n and progression parity', () => {
     });
     rerender(
       <ThemeProvider>
-        <LevelProgress level={50} xp={519400} />
+        <LevelProgress level={50} xp={1313690} />
       </ThemeProvider>,
     );
     expect(getByText('Max Rank 10 (EVARO Master) reached')).toBeTruthy();

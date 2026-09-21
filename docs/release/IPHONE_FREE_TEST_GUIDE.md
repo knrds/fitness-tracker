@@ -414,115 +414,57 @@ Kein SDK-Upgrade nur für Expo Go. Später Apple-Mitgliedschaft → EAS-Credenti
 
 Für Feedback: Commit, URL ohne Tokens, Gerät/iOS, Konto nur A/B, Schritte, Erwartung, tatsächliches Ergebnis. Screenshots vorher von personenbezogenen Daten bereinigen. Keine `.env`-, Session-, Auth- oder Coach-Rohdaten hochladen.
 
-## 21. Konkrete Testanleitung: UI/i18n Cleanup, Level/XP Rebalancing & Age UI
+## 21. Konkrete Testanleitung: Drei-Phasen Level/XP Progression & UI QA
 
-Stand: 21.09.2026 (Gemini UI/i18n Cleanup & Level Progression). Branch: `astra/p0-release-core`.
+Stand: 21.09.2026 (Gemini Progression Rebalance, iPhone QA). Branch: `astra/p0-release-core`.
 
-### Level 1–20 Progression Snapshot
+### Drei-Phasen Progression: Level 1–20 Snapshot
 
-Formel: $XP(L) = 200 \times (L - 1)^2 + 800 \times (L - 1)$ für $L \ge 2$, mit geschlossener Umkehrfunktion $L(XP) = \lfloor \sqrt{4 + \frac{XP}{200}} - 1 \rfloor$.
+Formel: $XP(L) = 10 \times (L - 1)^3 + 50 \times (L - 1)^2 + 350 \times (L - 1)$ für $L \ge 2$, mit exakter monotoner Schwellenwert-Suche.
 
-| Level | Total XP required | Delta to previous level | Typische Workouts bis Stufe (bei ~140 XP/Workout) |
-|---|---|---|---|
-| **Level 1** | 0 XP | 0 XP | Start |
-| **Level 2** | 1.000 XP | +1.000 XP | ~7 Workouts |
-| **Level 3** | 2.400 XP | +1.400 XP | ~17 Workouts |
-| **Level 4** | 4.200 XP | +1.800 XP | ~30 Workouts |
-| **Level 5** | 6.400 XP | +2.200 XP | ~46 Workouts |
-| **Level 6** | 9.000 XP | +2.600 XP | ~64 Workouts |
-| **Level 7** | 12.000 XP | +3.000 XP | ~86 Workouts |
-| **Level 8** | 15.400 XP | +3.400 XP | ~110 Workouts |
-| **Level 9** | 19.200 XP | +3.800 XP | ~137 Workouts |
-| **Level 10** | 23.400 XP | +4.200 XP | ~167 Workouts |
-| **Level 11** | 28.000 XP | +4.600 XP | ~200 Workouts |
-| **Level 12** | 33.000 XP | +5.000 XP | ~236 Workouts |
-| **Level 13** | 38.400 XP | +5.400 XP | ~274 Workouts |
-| **Level 14** | 44.200 XP | +5.800 XP | ~316 Workouts |
-| **Level 15** | 50.400 XP | +6.200 XP | ~360 Workouts |
-| **Level 16** | 57.000 XP | +6.600 XP | ~407 Workouts |
-| **Level 17** | 64.000 XP | +7.000 XP | ~457 Workouts |
-| **Level 18** | 71.400 XP | +7.400 XP | ~510 Workouts |
-| **Level 19** | 79.200 XP | +7.800 XP | ~566 Workouts |
-| **Level 20** | 87.400 XP | +8.200 XP | ~624 Workouts |
+- **Early Game (Level 1–5):** Schnelles, belohnendes Feedback in den ersten Wochen (~20 Workouts bis Level 5).
+- **Mid Game (Level 6–15):** Kontinuierlich steigender Trainingsaufwand; Level-Ups müssen verdient werden.
+- **Late Game (Level 16+):** Langfristige Bindung und echtes Prestige für mehrjährige Athleten.
 
----
-
-### Test A – Plans Create Modal (i18n)
-
-1. Tab **Pläne (Plans)** öffnen.
-2. Den `+` (Create) Button antippen.
-3. Das Auswahl-Modal öffnet sich.
-4. **Erwartung DE:**
-   - Titel: *Was möchtest du erstellen?*
-   - Option 1: *Template erstellen* – *Erstelle eine wiederverwendbare Trainingsvorlage.*
-   - Option 2: *Trainingsplan erstellen* – *Erstelle einen Trainingsplan für deine Woche.*
-   - Keine raw Translation Keys (`plans.createChoiceTitle`, etc.) sichtbar.
-5. Sprache in den Einstellungen auf **English** umschalten und wiederholen:
-   - **Erwartung EN:**
-   - Titel: *What would you like to create?*
-   - Option 1: *Create Template* – *Create a reusable workout template.*
-   - Option 2: *Create Training Plan* – *Create a weekly training plan.*
-   - Keine raw Translation Keys sichtbar.
+| Level | Total XP required | Delta to previous level | Typische Workouts bis Stufe (bei ~140 XP/Workout) | Workouts für dieses Level |
+|---|---|---|---|---|
+| **Level 1** | 0 XP | 0 XP | Start | Start |
+| **Level 2** | 410 XP | +410 XP | ~2,9 Workouts | ~3 Workouts |
+| **Level 3** | 980 XP | +570 XP | ~7,0 Workouts | ~4 Workouts |
+| **Level 4** | 1.770 XP | +790 XP | ~12,6 Workouts | ~6 Workouts |
+| **Level 5** | 2.840 XP | +1.070 XP | ~20,3 Workouts | ~8 Workouts |
+| **Level 6** | 4.250 XP | +1.410 XP | ~30,4 Workouts | ~10 Workouts |
+| **Level 7** | 6.060 XP | +1.810 XP | ~43,3 Workouts | ~13 Workouts |
+| **Level 8** | 8.330 XP | +2.270 XP | ~59,5 Workouts | ~16 Workouts |
+| **Level 9** | 11.120 XP | +2.790 XP | ~79,4 Workouts | ~20 Workouts |
+| **Level 10** | 14.490 XP | +3.370 XP | ~103,5 Workouts | ~24 Workouts |
+| **Level 11** | 18.500 XP | +4.010 XP | ~132,1 Workouts | ~29 Workouts |
+| **Level 12** | 23.210 XP | +4.710 XP | ~165,8 Workouts | ~34 Workouts |
+| **Level 13** | 28.680 XP | +5.470 XP | ~204,9 Workouts | ~39 Workouts |
+| **Level 14** | 34.970 XP | +6.290 XP | ~249,8 Workouts | ~45 Workouts |
+| **Level 15** | 42.140 XP | +7.170 XP | ~301,0 Workouts | ~51 Workouts |
+| **Level 16** | 50.250 XP | +8.110 XP | ~358,9 Workouts | ~58 Workouts |
+| **Level 17** | 59.360 XP | +9.110 XP | ~424,0 Workouts | ~65 Workouts |
+| **Level 18** | 69.530 XP | +10.170 XP | ~496,6 Workouts | ~73 Workouts |
+| **Level 19** | 80.820 XP | +11.290 XP | ~577,3 Workouts | ~81 Workouts |
+| **Level 20** | 93.290 XP | +12.470 XP | ~666,4 Workouts | ~89 Workouts |
 
 ---
 
-### Test B – Celebrations / Workout-Feier-Effekte (i18n)
+### 13-Schritte iPhone QA Testanleitung
 
-1. Tab **Profil / Einstellungen (Settings)** öffnen -> **Erscheinungsbild (Appearance)** öffnen.
-2. Den Bereich **Celebrations** ansehen.
-3. **Erwartung DE:**
-   - Überschrift: *WORKOUT-FEIER EFFEKTE (CELEBRATIONS)*
-   - Untertitel: *Wähle deinen Animationseffekt für abgeschlossene Workouts. Tippe zum Testen!*
-   - Effektnamen: *Klassisch, Inferno, Neon-Pulse, Goldregen, Matrix-Code, Kosmisch*
-4. Sprache auf **English** umschalten:
-   - **Erwartung EN:**
-   - Überschrift: *WORKOUT CELEBRATION EFFECTS*
-   - Untertitel: *Choose the animation effect shown after completed workouts. Tap to preview!*
-   - Effektnamen: *Classic, Inferno, Neon Pulse, Golden Rain, Matrix Code, Cosmic*
-   - Keine deutschen Rest-Strings in Titeln, Beschreibungen oder Aktions-Alerts.
+Führe diese Schritte in Safari auf dem iPhone oder in der Web-Preview durch:
 
----
-
-### Test C – XP Text & Rank Transition Display (i18n)
-
-1. Profil öffnen und den Bereich **Level / Rang / XP** ansehen (oder den BattlePass-Meilenstein-Modal öffnen).
-2. **Erwartung DE:**
-   - XP-Status: z. B. `0 / 1000 XP · 1000 bis Level 2`
-   - Rang-Übersicht: `Rank 1 (Lvl 1–5) · Nächster Rank bei Level 6`
-   - Bei Max-Rank: `Max Rank 10 (EVARO Master) erreicht`
-3. Sprache auf **English** umschalten:
-   - **Erwartung EN:**
-   - XP-Status: z. B. `0 / 1000 XP · 1000 to Level 2`
-   - Rang-Übersicht: `Rank 1 (Lvl 1–5) · Next rank at Level 6`
-   - Bei Max-Rank: `Max Rank 10 (EVARO Master) reached`
-   - Vollständige Konsistenz ohne Mischsprache.
-
----
-
-### Test D – Age / Geburtstag UI Cleanup
-
-1. Tab **Profil** öffnen.
-2. Die Anzeige des Alters / Geburtsjahres prüfen.
-3. **Erwartung:**
-   - Das unnötige / störende Glitzer-Icon (`sparkles-outline`) ist entfernt.
-   - Der Badge zeigt sauber z. B. `28 Jahre` (DE) bzw. `28 years old` (EN).
-   - Accessibility-Label bleibt intakt (`Alter: 28 Jahre`).
-   - Keine Profil- oder Geburtsjahr-Daten wurden verändert oder gelöscht.
-
----
-
-### Test E – XP Progression & Multi-Level-Jump-Prävention
-
-1. Vor dem Test aktuellen XP- und Levelstand im Profil notieren (z. B. Start bei 0 XP, Level 1).
-2. Ein gewöhnliches vollständiges Workout durchführen (z. B. 3 Übungen, 9–12 Sätze).
-3. Workout abschließen und Summary ansehen.
-4. Nach Abschluss dokumentieren:
-   - **XP vorher:**
-   - **XP danach:**
-   - **XP erhalten:** (erwartet: ca. 120–160 XP)
-   - **Level vorher:**
-   - **Level danach:**
-5. **Erwartung:**
-   - **Kein Sprung** von Level 1 direkt auf Level 3 oder 4.
-   - Level 2 erfordert 1.000 XP, sodass mehrere konsistente Workouts für Level 2 notwendig sind.
-   - Ein wiederholtes Tippen auf Workout-Abschluss erzeugt keine doppelten Session-XP (Idempotenz-Schutz).
+1. **Preview öffnen:** Öffne die Vercel-Preview-URL (oder den lokalen WLAN-Server unter `http://<IP>:8097`).
+2. **XP/Level vor Workout notieren:** Öffne das Profil und notiere deinen Startwert (z. B. 0 XP, Level 1).
+3. **Normales Workout durchführen:** Starte ein Workout, füge 3 Übungen hinzu und absolviere 9–10 Arbeitssätze (z. B. Bankdrücken, Schulterdrücken, Trizeps).
+4. **Workout abschließen:** Tippe auf „Workout beenden“ und bestätige das Modal.
+5. **Neue XP prüfen:** In der Zusammenfassung und im Profil prüfen: Du hast ca. 120–160 XP erhalten (z. B. ~135 XP).
+6. **Level prüfen:** Du bleibst auf Level 1 (da Level 2 erst ab 410 XP erreicht wird). **Kein unmotivierter Multi-Level-Sprung!**
+7. **Progress Bar prüfen:** Der XP-Balken im Profil / BattlePass zeigt sichtbar Fortschritt (z. B. `135 / 410 XP · 275 bis Level 2` bzw. ~33 %).
+8. **Reload:** Lade die Seite in Safari neu (`Cmd+R` bzw. Pull-to-Refresh).
+9. **Anti-Duplicate-Schutz prüfen:** Prüfe, dass deine Gesamt-XP nach dem Reload exakt gleich bleibt und keine doppelten Session-XP vergeben wurden.
+10. **Sprache DE/EN prüfen:** In Einstellungen $\to$ Sprache auf English stellen. Prüfe Profil, History und Stats auf saubere englische Begriffe (`to Level 2`, `Next rank at Level 6`). Wieder auf Deutsch stellen.
+11. **Plans Modal prüfen:** Öffne den Pläne-Tab und tippe auf `+` (Create). Prüfe: Keine raw Translation Keys (`plans.createChoiceTitle`, etc.), saubere Titel & Beschreibungen in DE und EN.
+12. **Celebrations prüfen:** Einstellungen $\to$ Erscheinungsbild $\to$ Bereich Celebrations. Prüfe Titel, Beschreibungen und Effekt-Vorschauen auf vollständige Lokalisierung (DE/EN).
+13. **Age UI prüfen:** Profil öffnen $\to$ Prüfe das Alters-Badge: Kein störendes Glitzer-Icon mehr, sauber formatiertes Alter (`28 Jahre` / `28 years old`). Accessibility-Label intakt.

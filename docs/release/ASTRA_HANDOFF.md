@@ -20,6 +20,24 @@ Gemini hat die Level-Progression auf eine motivierende Drei-Phasen-Kurve (Kandid
    - **677 Tests PASS** (92 Domain inkl. 5 Workout-Archetyp-Simulationen + 531 Mobile in 80 Suiten + 38 Coach-API + 16 Security-Regressionen).
    - Typecheck PASS, Lint PASS, Web-Export PASS.
 
+### Kanonische Security-Roadmap Governance (S0–S12)
+
+| Code | Kanonische Bezeichnung | Status | Begründung / Offene Gates |
+|---|---|---|---|
+| **S0** | **Repository Truth / Threat Model** | `PARTIAL` | Codebezogene Grenzen/Angriffe in SECURITY.md verankert; Team-/Betriebsabnahme und Production-Datenflüsse durch Maintainer zu bestätigen. |
+| **S1** | **Secrets / Supply Chain / CI** | `PARTIAL` | Preview-Gate (Zero Critical, 0 Secrets) aktiv; CI blockiert bei 43 High Build-Tool-Befunden; SAST/SBOM/Branch Protection offen. |
+| **S2** | **Authentication / Secure Session Storage** | `PHYSICAL_DEVICE_REQUIRED` | Native SecureStore-Migration implementiert; physische iOS/Android-Geräteabnahme, Reauth, Refresh und Zero-Logout-Nachweis offen. |
+| **S3** | **Authorization / RLS / Multi-Tenant Isolation** | `PARTIAL` | Echter lokaler PostgreSQL-17.11 Harness (304 Assertions) VERIFIED; Supabase Remote-DDL, PostgREST und Remote-Auth offen (`ASTRA_REQUIRED`). |
+| **S4** | **Sync / Data Integrity** | `PARTIAL` | Lokale SQLite FIFO-Outbox, Rollback und Pull-Validierung VERIFIED; serverseitige atomare Aggregate, Konflikte & Tombstones offen (`ASTRA_REQUIRED`). |
+| **S5** | **Account Lifecycle / Privacy / Health Data** | `ASTRA_REQUIRED` | Parametrisierungsfreier RPC-Löschvertrag (`auth.uid()`) spezifiziert; serverseitige Cascade und Auth-Löschung auf Supabase offen. |
+| **S6** | **AI Coach Security / Safety / Cost Controls** | `PARTIAL` | 19 deterministische Notfall-/Safety-Szenarien VERIFIED; Prototype-Bypass gesperrt; serverseitiges Token-Ledger/Budget und DE/EN-Safety-Schicht in Arbeit. |
+| **S7** | **Subscription / Premium Integrity** | `PREPARED` | Client-Entitlement-Abstraktion vorhanden; kein natives StoreKit/RevenueCat aktiv; serverseitige Quittungsvalidierung offen (`ASTRA_REQUIRED`). |
+| **S8** | **Infrastructure / Backup / Monitoring / Incident Response** | `PARTIAL` | Lokale SQLite-Backups und Log-Redaktion VERIFIED; Cloud-Restoreprobe, Hosting-IAM, Alarmierung und Runbooks offen. |
+| **S9** | **AppSec Automation / Security Testing** | `PARTIAL` | 677 Tests, Dependency-Regressionen und Preview Security Gate aktiv; DAST und Deep-Link-Fuzzing offen. |
+| **S10** | **Legal / Store / Accessibility / Release Compliance** | `USER_ACTION_REQUIRED` | UI-i18n Parität fortgeschritten; Medienrechte, finale AGB/Datenschutz-Texte und WCAG 2.1 AA VoiceOver-Audit durch Maintainer/Astra erforderlich. |
+| **S11** | **Physical Device / Pre-Launch Red Team** | `PHYSICAL_DEVICE_REQUIRED` | Web-Preview und 13-Schritte Safari QA aktiv; reale On-Device-Tests (iOS/Android), Gesten, Haptik, Permissions und Pen-Testing offen. |
+| **S12** | **Post-Launch Security Operations** | `PREPARED` | Eskalationsmatrix in SECURITY.md definiert; Besetzung des Regelbetriebs und Incident Response Übungen vor Launch erforderlich. |
+
 ## Vorheriger Checkpoint — 21.09.2026: UI/i18n Cleanup, Level/XP Rebalancing & Age UI
 
 Gemini hat den UI/i18n-Bereich, die Level-Progression und das Alters-Badge bereinigt:

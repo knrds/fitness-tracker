@@ -18,11 +18,11 @@
 - **AR-031: AI Safety & Rate Limits (ASTRA_REQUIRED / CRITICAL).** In `docs/architecture/AI_SECURITY_PREPARATION.md` wurden zweisprachige Notfall-Eskalationen und das distributed Quota-Interface vorbereitet.
 - **AR-032: Supply Chain Matrix (VERIFIED).** `docs/release/DEPENDENCY_AUDIT_REPORT.md` kategorisiert alle 43 High / 14 Moderate Befunde mit dem Nachweis von 0 Client-Runtime-Reachability.
 
-## S4 Outbox-Fortsetzung — 20.09.2026
+## S4 Sync / Data Integrity (Outbox-Fortsetzung) — 20.09.2026
 
 HIGH: Zustand im Speicher erst nach erfolgreichem lokalen Queue-Write bestätigen bzw. bei Fehler zurückrollen; betrifft Enqueue/ACK/Retry/Clear. Vier SQLite-Fault-Szenarien ergänzen die Pull-Tests. Kein Exactly-once-Versprechen: bei Cloud-Erfolg und lokalem ACK-Fehler wird dieselbe Operation erneut gesendet; serverseitige idempotente Aggregate bleiben Pflicht. Kein neuer Datenvertrag oder Dependency. Main jetzt für geprüfte geeignete Blöcke autorisiert; Gesamtauslieferung bleibt an Security-/Geräte-/Deployment-Gates gebunden. Tester-Anleitung in BETA_REGRESSION_MATRIX.md.
 
-## Aktueller Checkpoint 20.09.2026 — S4 PARTIAL
+## Aktueller Checkpoint 20.09.2026 — S4 Sync / Data Integrity PARTIAL
 
 Cloud-Child-Read/Delete- und Pull-Fehler werden weitergegeben; die fehlgeschlagene Outbox-Operation bleibt erhalten. Pull übernimmt erst vollständig validierte eigene Daten, überspringt offene lokale Änderungen und verwendet native SQLite-Atomizität plus Memory-Rollback. 18 Regressionen, darunter echter SQLite-Schreibfehler nach Profil-/History-Änderung. Review: keine serverseitige Transaktion, kein konsistenter DB-Snapshot über sechs Requests, keine gelösten Mehrgeräte-/Uhrenkonflikte. Web-Preview hat keine gleichwertige dauerhafte Rollback-Garantie. Frühere Befunde zu ignorierten Fehlern unten sind durch diesen Teilblock überholt; übrige S4-Gates bleiben CRITICAL.
 
@@ -30,7 +30,7 @@ Aktuellster S3-Block: lokale PostgreSQL-17.11-RLS-Abnahme mit 304 Assertions und
 
 Aktuellster S6-Fix: öffentlicher Prototype-Auth-Bypass entfernt, lokale interne Identität in Production/VERCEL gesperrt. Drei zuvor rote Auth-Negativszenarien grün; 38 API-/Safety-Tests. S6 PARTIAL bis Serverentitlement, verteilte Quoten/Budget/Kill-Switch, DE/EN und reale Abnahme. Kein Remote-Rollout. Vorheriger S1-Patch `26e29d1` gepusht.
 
-## Security Governance S0/S1 — 19.09.2026
+## S0 Repository Truth / Threat Model & S1 Secrets / Supply Chain / CI — 19.09.2026
 
 Checkpoint `6c01522` gesichert. Security-Guardrails sind dauerhaft über AGENTS.md verbindlich; S0–S12-Matrix ersetzt den bisherigen Feature-Ausführungspfad. Threat Model/Betriebsrhythmus: SECURITY.md. Secrets/CI-Härtung implementiert, S1 bleibt PARTIAL wegen 67 Dependency-Befunden, fehlender SAST-/Lizenz-/Remote-Abnahme. Exakte historische Fixture-Ausnahmen prüfen; keine generellen Ignore-Regeln. GitHub-Branch-Protection und erforderliche Checks durch Repositoryowner bestätigen. Aktuelle Nachweise in EXECUTION_STATUS.md.
 

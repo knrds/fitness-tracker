@@ -158,7 +158,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       type: 'signup',
       email,
       options: {
-        emailRedirectTo: 'fitness-tracker://',
+        emailRedirectTo: 'evaro://',
       },
     });
     set({ isLoading: false });
@@ -173,7 +173,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
 
     set({ isLoading: true });
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'fitness-tracker://auth/reset-password',
+      redirectTo: 'evaro://auth/reset-password',
     });
     set({ isLoading: false });
 

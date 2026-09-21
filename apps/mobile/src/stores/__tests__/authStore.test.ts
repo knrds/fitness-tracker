@@ -180,7 +180,7 @@ describe('authStore', () => {
       expect(resendMock).toHaveBeenCalledWith({
         type: 'signup',
         email: 'test@example.com',
-        options: { emailRedirectTo: 'fitness-tracker://' },
+        options: { emailRedirectTo: 'evaro://' },
       });
     });
 
@@ -202,7 +202,7 @@ describe('authStore', () => {
       const result = await useAuthStore.getState().sendPasswordResetEmail('test@example.com');
       expect(result.error).toBeUndefined();
       expect(resetMock).toHaveBeenCalledWith('test@example.com', {
-        redirectTo: 'fitness-tracker://auth/reset-password',
+        redirectTo: 'evaro://auth/reset-password',
       });
     });
 

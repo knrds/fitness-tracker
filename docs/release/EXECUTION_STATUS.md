@@ -2,6 +2,19 @@
 
 Stand: 21.09.2026. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
+## Checkpoint 21.09.2026 — Task 01.03: Final App Identity Consolidated
+
+**WP-01 Task 01.03, DONE, Risiko LOW.**
+
+Gemini hat die vom Nutzer verbindlich festgelegte finale App-Identität im gesamten Repository konsolidiert:
+- **Display Name:** `EVARO`
+- **iOS Bundle Identifier:** `studio.skar.evaro`
+- **Android Package:** `studio.skar.evaro`
+- **URL Scheme:** `evaro`
+- **Auth Redirects:** `authStore.ts` und `authStore.test.ts` von `fitness-tracker://` auf `evaro://` und `evaro://auth/reset-password` umgestellt.
+- **EAS Project ID:** `ddb36b12-30d0-4422-9e17-85ab8919f656` unverändert beibehalten.
+- **Validierung:** Expo Config Introspect verifiziert (`android:scheme: 'evaro'`, `app_name: 'EVARO'`, `bundleIdentifier: 'studio.skar.evaro'`). `pnpm verify` (724 Tests PASS), `pnpm build:preview` PASS (4.76 MB).
+
 ## Checkpoint 21.09.2026 — Roadmap Execution: Blocks 1–5 (Commit `dcfc3aa`)
 
 **P01/P02/P03/P09/S1/S4/S5/S6/S10, VERIFIED / PREPARED, Risiko LOW-MEDIUM.**

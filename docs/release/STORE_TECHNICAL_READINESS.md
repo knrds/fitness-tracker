@@ -26,7 +26,7 @@ Im aktuellen Stand (Beta Baseline `v0.1.0-beta.5`) sind die architektonischen un
 | **App-Name** | `app.json` (`expo.name: "EVARO"`) | Konsistenter Markenname | **READY** | Keine weiteren Schritte nötig | Gemini / Astra |
 | **App-Version** | `app.json` (`version: "1.0.0"`) | Semantic Versioning | **READY** | Vor Release mit Marketing abgleichen | Astra |
 | **Build-Metadaten** | `app.json` (`ios.buildNumber`, `android.versionCode`) | Unique Build Numbers für EAS Submit | **PARTIAL** | `buildNumber: "1"`, `versionCode: 1` in `app.json` hinterlegen | Astra |
-| **Bundle ID / Package** | `app.json` (`com.fitnesstracker.app`) | Eindeutige Reverse-Domain | **PARTIAL** | Prüfen, ob `com.evaro.app` im Apple/Google Dev Account registriert ist | **USER_ACTION_REQUIRED** |
+| **Bundle ID / Package** | `app.json` (`studio.skar.evaro`) | Eindeutige Reverse-Domain | **READY** | Finale Identität `studio.skar.evaro` und Scheme `evaro` in `app.json` und `authStore.ts` konsolidiert | Gemini / Astra |
 | **App-Icons** | `assets/icon.png`, `assets/adaptive-icon.png` | 1024x1024 PNG ohne Alpha | **READY** | Lokale Assets vorhanden & im Metro-Build verifiziert | Gemini / Astra |
 | **Splash Screen** | `assets/splash-icon.png`, `#0B0B0F` | Fillscreen Branding | **READY** | Dark Mode Hintergrund `#0B0B0F` konfiguriert | Gemini / Astra |
 | **Microphone Permission** | `app.json` (`expo-av`) | NSMicrophoneUsageDescription mit Zweck | **READY** | DE String: *"Sprachmemo aufnehmen und für den Coach in Text umwandeln."* | Gemini / Astra |

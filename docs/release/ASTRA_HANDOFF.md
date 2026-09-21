@@ -1,5 +1,17 @@
 # ASTRA START HERE — aktueller Handoff 2026-09-19
 
+## Wiederaufnahme-Checkpoint — 21.09.2026, Wochenbudget erschöpft
+
+Nutzer verlangt jetzt Abschluss statt neuer Implementierungen. Review-Commit `61f80cd` ist gepusht; anschließender Testfix isoliert nur NODE_ENV/VERCEL in beiden Coach-Testdateien. Keine Änderung am produktiven Auth-Handler. 38 API-Tests bestehen lokal und mit geerbtem `VERCEL=1 NODE_ENV=production`; vorhandener Test weist weiterhin die Ablehnung lokaler Identitäten auf Production/Vercel nach. Davor Vercel-Fehler lokal reproduziert. Vollsuite vor diesem reinen Testfix: 640 PASS, Typecheck/Lint/Build/Expo PASS. Secrets ohne Treffer. Audit 43 high/14 moderate weiterhin BLOCKED.
+
+**Auslieferung:** bestehende HTTPS-Branch-URL in IPHONE_FREE_TEST_GUIDE.md auf `3bd4713`; neuer Build `53MjbPi1fTzyGjXJSXHchjnD5Qzh` für `61f80cd` scheiterte an geerbter Vercel-Testumgebung. Nach Testfix muss nächster Build noch auf tatsächlichen Audit-Abbruch geprüft werden, nicht als Ready behaupten. Production im Dashboard bestätigt auf `6471138` / main, unverändert. Kein Main-Merge. Git-Push löst Vercel-Preview automatisch aus; Build-Gates nicht umgehen.
+
+**Lokaler Stand:** `pnpm build` und `pnpm preview:iphone`, zuletzt WLAN `192.168.0.158:8097`; IP beim nächsten Start neu lesen. PC-Browser bei 390×844: Start, Übung, Testsatz und Reload/Resume geprüft; Schrift-/Icon-Auslieferung korrigiert. Physisches Safari/Home-Screen noch Nutzeraufgabe. Ausschließlich synthetische Gastdaten auf HTTP. Lokale Testtools/Logs unter ignoriertem `output/` erhalten; kein Cleanup/Reset nötig. EAS-Projektzuordnung des Nutzers erhalten.
+
+**Nächster Einstieg:** git status/fetch, Guardrails und diesen Abschnitt lesen; Vercel-Status des neuesten Commits prüfen. Connector ist installiert, liefert aber für den Dashboard-Scope 403; angemeldeter Browser funktioniert. Keine Tokens kopieren. S1: 57 Audit-Funde einzeln kompatibel triagieren (Schwerpunkte xmldom/brace-expansion/js-yaml), kein SDK-Majorupgrade oder Audit-Ausnahmen. Danach S4 atomare serverseitige Aggregate/Idempotenz/Revisionen/Konflikte/Tombstones; dann S5 Account-Lifecycle. Separates Supabase-Staging samt Profil-Provisioning und Exercise-Seeds fehlt noch als nachgewiesener End-to-End-Test. Native SecureStore/SQLite, Apple-/Android-Geräte, Medienrechte, AI-Pro/Quoten/Budget und Billing bleiben offen.
+
+**Nachweise:** output/iphone-checkpoint-verify.log, iphone-checkpoint-final-build.log, iphone-checkpoint-audit.json, iphone-checkpoint-staged-secrets.log, iphone-checkpoint-bundle-secrets.log, checkpoint-hosted-api-before.log, checkpoint-hosted-api-after.log, checkpoint-local-api-after.log. Vollständige Nutzeranleitung: IPHONE_FREE_TEST_GUIDE.md. Keine Tests/Zahlen aus älteren Abschnitten als frische Abnahme übernehmen.
+
 ## Aktueller Einstieg 20.09.2026 — iPhone Preview
 
 Neuer Auftrag: kostenlose Safari-/Home-Screen-Testbarkeit als Ergänzung, SDK 54 beibehalten. Production/Store/Billing/Production-SQL bleiben bis erneuter ausdrücklicher Freigabe gesperrt. EAS-Projekt vom Nutzer verknüpft. Bestehende HTTPS-Astra-Preview `3bd4713` im Dashboard und Browser bestätigt; neuer lokaler Export mit Home-Screen-Metadaten, statischem WLAN-Server und sicherer Web-UUID-Alternative getestet. Native UUID-/Datenverträge unverändert. Anleitung und URLs: [IPHONE_FREE_TEST_GUIDE.md](IPHONE_FREE_TEST_GUIDE.md); genaue Evidenz/Gates: EXECUTION_STATUS.md.

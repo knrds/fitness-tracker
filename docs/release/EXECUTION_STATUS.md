@@ -2,6 +2,8 @@
 
 Stand: 2026-09-20. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
+21.09.2026 — Abschluss auf Nutzerwunsch wegen Wochenbudget: `61f80cd` gepusht, danach ausschließlich Coach-Testumgebung isoliert (LOW). Tatsächlicher Vercel-Build brach vor Audit wegen geerbtem VERCEL/NODE_ENV ab; reproduziert und Testfixtures korrigiert. 38/38 API-Tests in beiden Umgebungen PASS; produktiver Auth-Handler unverändert, Hosted-Identity-Negativtest bleibt aktiv. Keine erneute Vollsuite für reine Testfixture-Änderung; letzte 640er-Vollsuite/Typecheck/Lint/Build gilt für unveränderten Anwendungscode. Nächster Remote-Build noch zu prüfen; Audit bleibt 43 high/14 moderate. Wiedereinstieg mit konkreten Belegen/Grenzen am Anfang von ASTRA_HANDOFF.md. Production `6471138` im Vercel-Dashboard bestätigt und unverändert.
+
 ## Checkpoint 20.09.2026 — kostenloser iPhone-Testpfad
 
 **P01/P09/S8/S11, PARTIAL, Risiko MEDIUM.** Bestehende Expo-Web-App wiederverwendet; SDK 54, native Bundle-IDs und Datenformate unverändert. Vom Nutzer angelegte EAS-Verknüpfung übernommen. Statischer WLAN-Server liefert ausschließlich den Export, bindet gezielt eine private Schnittstelle, sperrt API, Schreibmethoden, Secrets/Maps und Pfadausbruch. Exportierte pnpm-Schriften benötigen die eng begrenzte Ausnahme `assets/__node_modules/.pnpm`; mit HTTP-Regression geprüft. Safe-Area-Viewport, Manifest, Home-Screen-Metadaten und vorhandenes Icon ergänzt, ohne Service Worker oder Offline-Versprechen.

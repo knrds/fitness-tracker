@@ -5,6 +5,9 @@ const { screenCoachSafety } = require('./coach-safety.cjs');
 
 const originalFetch = global.fetch;
 const originalEnv = { ...process.env };
+// These fixtures exercise local safety; hosted auth rejection is tested separately.
+process.env.NODE_ENV = 'test';
+delete process.env.VERCEL;
 
 process.env.OPENROUTER_API_KEY = 'test-safety-key';
 process.env.OPENROUTER_MODEL = 'test-safety-model';

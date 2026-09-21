@@ -3,6 +3,10 @@ const assert = require('node:assert/strict');
 const handler = require('./coach-chat');
 const originalFetch = global.fetch;
 const originalEnv = { ...process.env };
+// Loopback fixtures must not inherit the build host's deployment identity.
+// Dedicated tests below explicitly restore production/VERCEL to test rejection.
+process.env.NODE_ENV = 'test';
+delete process.env.VERCEL;
 after(() => {
   global.fetch = originalFetch;
   process.env = originalEnv;

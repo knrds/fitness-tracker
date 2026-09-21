@@ -89,7 +89,32 @@ Gemini hat die fünf sicheren und reversiblen Roadmap-Blöcke auf `astra/p0-rele
      - Payload-Grenzen (Überlänge >50k Zeichen, ungültige Base64-Bilder, ungültige URL-Attachments)
      - Provider-Fehler 500/502/503 ohne Credential-Leaks
 
-- **Testmetriken:** **721 Tests PASS** (92 Domain + 564 Mobile in 83 Suiten + 49 Coach-API/Safety + 16 Security-Regressionen); Workspace-Typecheck PASS; Lint PASS; `pnpm build:preview` Web-Export PASS (4.76 MB).
+6. **Task 02.06 — Guest / Installation ID Migration (WP-02 / S4/S5):**
+   - Implementierung eines sicheren, transaktionalen und idempotenten Migrationspfades von Guest (`legacy` Partition / `LOCAL_USER_ID`) zu Account (`account:<uuid>`) in `authMigration.ts` und `applyAccountSession` (`authStore.ts`).
+   - Automatische Erkennung vorhandener Gast-Daten (`captureGuestSnapshot` / `hasGuestData`).
+   - Sicheres Zusammenführen in die Ziel-Partition:
+     - Workouts: Ownership-Umschreibung auf `newUserId`, ID-Kollisionsauflösung via Crypto UUID, FIFO-Sync-Queue-Enqueueing.
+     - Eigene Übungen: Mapping bestehender/identischer Namen, Neuzuweisung von kollidierenden IDs.
+     - Templates & Programme: Remapping aller Übungs-IDs, Übernahme ohne Duplizierung von Standard-Plänen.
+     - Körpermaße: Deduplizierung identischer Zeitstempel.
+     - Gamification / Achievements: Max-Verknüpfung von XP und Level, Vereinigung von freigeschalteten Achievements und Zählern.
+     - Profile: Übernahme von konfigurierten Gast-Attributen ohne Überschreiben bestehender Account-Werte.
+   - Idempotenz: Wiederholte Migration erzeugt keine Duplikate.
+   - Rollback / Zero Data Loss: Fehler während der Partition-Hydration oder der Migration brechen vor dem Legacy-Purge ab; Legacy-Daten bleiben unverändert erhalten.
+   - Tenant-Isolation & Cross-Account-Schutz: Direkter Account-Wechsel A -> B migriert niemals Daten; Logout setzt auf sauberen Gast-Zustand zurück.
+   - Bereinigung: `purgeLegacyPartition` löscht ungescopte Gast-Daten nach erfolgreichem Account-Schreibvorgang aus MMKV und AsyncStorage.
+   - 9 Regressionsszenarien in `guestMigration.test.ts` (9/9 PASS):
+     1. Empty guest
+     2. Guest with workouts
+     3. Existing account data
+     4. Guest + existing account collision
+     5. Interrupted migration
+     6. Repeated migration
+     7. Logout/login isolation
+     8. Account switch A -> B
+     9. Rollback on persistence failure
+
+- **Testmetriken:** **733 Tests PASS** (92 Domain + 576 Mobile in 84 Suiten + 49 Coach-API/Safety + 16 Security-Regressionen); Workspace-Typecheck PASS; Lint PASS; `pnpm build:preview` Web-Export PASS (4.76 MB).
 
 ### Kanonische Security-Roadmap Governance (S0–S12)
 

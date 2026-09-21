@@ -209,15 +209,32 @@ export function applyAccountSession(session: Session | null): Promise<void> {
     useAuthStore.setState({ session, user: session?.user ?? null, isLoading: false });
     return Promise.resolve();
   }
+  const previousPartition = getStorageScope().partition;
   const generation = beginScopeChange();
   useAuthStore.setState({ isSwitchingAccount: true, sessionError: null });
   accountChange = accountChange.then(async () => {
     if (generation !== getStorageScope().generation) return;
     try {
+      const isGuestToAccount = previousPartition === 'legacy' && session !== null;
+      let guestSnapshot: import('./authMigration').GuestSnapshot | null = null;
+      if (isGuestToAccount) {
+        const { captureGuestSnapshot, hasGuestData } = await import('./authMigration');
+        const snapshot = captureGuestSnapshot();
+        if (hasGuestData(snapshot)) {
+          guestSnapshot = snapshot;
+        }
+      }
+
       const partition = session ? `account:${UUIDSchema.parse(session.user.id)}` : 'legacy';
       const { switchPersistencePartition } = await import('./persistenceLifecycle');
       await switchPersistencePartition(partition, generation);
       if (!completeScopeChange(generation)) return;
+
+      if (guestSnapshot && session) {
+        const { migrateGuestSnapshotToAccount } = await import('./authMigration');
+        await migrateGuestSnapshotToAccount(guestSnapshot, session.user.id);
+      }
+
       useAuthStore.setState({
         session,
         user: session?.user ?? null,

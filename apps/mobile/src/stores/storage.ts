@@ -22,6 +22,50 @@ export async function clearStorageBackups() {
   if (!isSameScope(scope)) throw new Error('Account changed during local reset');
 }
 
+export const LEGACY_STORAGE_IDS = [
+  'history-storage',
+  'exercise-storage',
+  'workout-storage',
+  'program-storage',
+  'profile-storage',
+  'body-metric-storage',
+  'achievement-storage',
+  'hydration-storage',
+  'caffeine-storage',
+  'volt-coach-store',
+  'volt-sync-store',
+] as const;
+
+export async function purgeLegacyPartition(): Promise<void> {
+  const host = globalThis as typeof globalThis & { window?: { localStorage?: Storage } };
+  for (const id of LEGACY_STORAGE_IDS) {
+    if (!isExpoGo) {
+      try {
+        const mmkv = new MMKV({ id });
+        mmkv.delete(id);
+        mmkv.delete(id + '.pre-rebuild-backup');
+      } catch {
+        // ignore if mmkv not initialized or not supported
+      }
+    }
+    if (host.window?.localStorage) {
+      try {
+        host.window.localStorage.removeItem(id);
+        host.window.localStorage.removeItem(id + '.pre-rebuild-backup');
+      } catch {
+        // ignore
+      }
+    }
+  }
+  try {
+    const keysToRemove = LEGACY_STORAGE_IDS.flatMap((id) => [id, id + '.pre-rebuild-backup']);
+    await AsyncStorage.multiRemove(keysToRemove);
+  } catch {
+    // ignore
+  }
+}
+
+
 const envelopeSchema = z.object({
   state: z.unknown(),
   version: z.number().int().nonnegative().optional(),

@@ -2,6 +2,18 @@
 
 Stand: 21.09.2026. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
+## Checkpoint 21.09.2026 — Accessibility / VoiceOver Audit & Profile UI Cleanup (Block 1)
+
+**P01/P08/P09/S10, VERIFIED, Risiko LOW.**
+- **Accessibility / VoiceOver Audit:**
+  - `apps/mobile/src/components/workout/RestTimer.tsx`: Vollständige Barrierefreiheit mit `accessibilityRole="button"`, dynamischen DE/EN-Labels für Pausenstart, -stop, -bearbeitung, -ausklappen (`accessibilityState={{ expanded }}`) und Zeitanpassung (`Plus 30 Sekunden` / `+ 30 seconds`). Mindest-Touch-Targets $\ge 44 \times 44$\,pt.
+  - `apps/mobile/src/components/anatomy/AnatomyFigure.tsx`: `accessibilityRole="image"` und lokalisierte Seitenbeschriftung (`Muskelkarte Vorderseite` / `Muscle map Front`).
+  - `apps/mobile/app/workout/session.tsx`: Reorder- und Island-Steuerungselemente auf Mindest-Touch-Target $\ge 44 \times 44$\,pt gehärtet.
+  - `apps/mobile/src/components/BattlePassModal.tsx`: Schließen- und Fertig-Buttons barrierefrei und sprachspezifisch angebunden; `minHeight: 44` auf Detail-Schließen-Button.
+  - `apps/mobile/app/profile.tsx`: Überflüssiges `Jahre / years`-Badge über dem Geburtsdatumsfeld auf Nutzeranweisung vollständig entfernt.
+  - Neuer Regressionstest `apps/mobile/src/components/__tests__/accessibilityAudit.test.tsx` (6/6 Tests PASS) deckt Barrierefreiheitsrollen, Labels, Zustände und Touch-Target-Größen automatisiert ab.
+- **Verifikation:** 683 Tests PASS (92 Domain + 537 Mobile in 81 Suiten + 38 Coach-API + 16 Security-Regressionen); `pnpm build:preview` Web-Export PASS (4.76 MB).
+
 ## Checkpoint 21.09.2026 — Complete Deep Screen i18n & Modal Localization (Block 1)
 
 **P01/P08/P09/S10, VERIFIED, Risiko LOW.**

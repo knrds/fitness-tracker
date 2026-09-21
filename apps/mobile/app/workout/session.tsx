@@ -892,6 +892,8 @@ const createStyles = (theme: Theme) =>
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 99,
+      minHeight: 44,
+      justifyContent: 'center',
     },
     islandBtnText: {
       color: theme.colors.primary,
@@ -917,6 +919,9 @@ const createStyles = (theme: Theme) =>
       gap: 6,
       paddingHorizontal: 12,
       paddingVertical: 6,
+      minHeight: 44,
+      minWidth: 44,
+      justifyContent: 'center',
       borderRadius: 8,
       borderWidth: 1,
     },

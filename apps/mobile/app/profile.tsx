@@ -42,7 +42,6 @@ import {
   ExperienceLevel,
   UnitSystem,
   BiologicalSex,
-  calculateAge,
   parseBirthDateInput,
 } from '@fitness-tracker/domain';
 import { hapticFeedback } from '../src/utils/haptics';
@@ -81,10 +80,6 @@ export default function ProfileScreen() {
     if (profile.birthYear) return String(profile.birthYear);
     return '';
   });
-
-  const computedAge = React.useMemo(() => {
-    return calculateAge(birthDateInput);
-  }, [birthDateInput]);
 
   const [height, setHeight] = useState(() => {
     if (profile.heightCm === undefined) return '';
@@ -602,18 +597,9 @@ export default function ProfileScreen() {
           </View>
 
           <View style={{ marginBottom: 14 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <Text style={[styles.inputLabel, { marginTop: 12, marginBottom: 0 }]}>
-                {t('settings.dateOfBirth')} / {t('settings.birthYear')}
-              </Text>
-              {computedAge !== null && (
-                <View style={styles.ageBadge} accessibilityLabel={`${computedAge} ${t('settings.yearsOld')}`}>
-                  <Text style={styles.ageBadgeText}>
-                    {computedAge} {t('settings.yearsOld')}
-                  </Text>
-                </View>
-              )}
-            </View>
+            <Text style={[styles.inputLabel, { marginTop: 12, marginBottom: 6 }]}>
+              {t('settings.dateOfBirth')} / {t('settings.birthYear')}
+            </Text>
             <TextInput
               style={styles.input}
               value={birthDateInput}

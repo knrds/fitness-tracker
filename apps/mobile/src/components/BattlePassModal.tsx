@@ -986,7 +986,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                     {/* Dismiss Button */}
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel="Detailansicht schließen"
+                      accessibilityLabel={t('rank.closeDetail')}
                       onPress={() => setInspectedLevel(null)}
                       style={[
                         styles.detailCloseButton,
@@ -999,7 +999,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                           { color: c.background },
                         ]}
                       >
-                        Fertig
+                        {t('common.done')}
                       </Text>
                     </Pressable>
                   </View>
@@ -1510,6 +1510,7 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceGrotesk_700Bold',
   },
   detailCloseButton: {
+    minHeight: 44,
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',

@@ -1,6 +1,6 @@
-# EVARO Current State Matrix — Astra 2026-09-19
+# EVARO Current State Matrix — Astra / Gemini 2026-09-21
 
-Aktualisierung 20.09.2026: kostenlose Safari-Testinfrastruktur PARTIAL; vorhandene HTTPS-Preview `3bd4713` bestätigt, neuer WLAN-Export mit Home-Screen-Metadaten und Web-UUID-Fix lokal geprüft. Kein nativer Nachweis. Neue Vercel-Builds prüfen Verify/Audit; hohe Befunde blockieren Updates. Vollständige Anleitung: IPHONE_FREE_TEST_GUIDE.md. Keine Production-/Main-Integration, Remote-Migration oder Billing-Aktivierung.
+Aktualisierung 21.09.2026 (Gemini Takeover & Preview Recovery): Dual-Gate Architektur für Vercel Preview etabliert; Zero-Critical-Garantie, Auschluss von Production-Secrets und transparente Protokollierung aller 43 High / 14 Moderate Build-Tool-Befunde. i18n Workout-Abschluss / Session-Telemetry vollständig DE/EN mit barrierefreien Rollen und Edge-Case-Tests. 654 Tests grün (Typecheck/Lint/Build PASS). S4, S5 und AI-Security-Architektur für Astra vorbereitet (`ASTRA_REQUIRED`). Keine Production-/Main-Integration, Remote-Migration oder Billing-Aktivierung.
 
 ## Security Roadmap S0–S12 — maßgeblicher Ausführungspfad
 

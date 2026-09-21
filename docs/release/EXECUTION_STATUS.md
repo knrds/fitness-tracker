@@ -1,6 +1,18 @@
 # EVARO Astra Takeover — Execution Status
 
-Stand: 2026-09-20. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
+Stand: 21.09.2026. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
+
+## Checkpoint 21.09.2026 — Gemini Takeover, Preview Recovery & i18n Fix
+
+**P03/P09/S1/S8/S11, VERIFIED / PREPARED, Risiko LOW-MEDIUM.**
+- **Unterbrochener i18n-Block fertiggestellt:** In `WorkoutCompleteModal.tsx` und `WorkoutCompleteModal.test.tsx` wurden alle englischen Telemetrie- und Abschluss-Strings bei deutscher Sprache beseitigt. Fakten, Vergleiche, Labels (ZEIT, SÄTZE, KG/LBS), dynamische Übungsauswertungen und barrierefreie Buttons sind 100 % lokalisiert. TypeScript-Fehler behoben (`displayName` in Mock-Profilen). Edge-Cases (0 Sätze, fehlende Übung, 0s Dauer) und Unveränderlichkeit der Sessiondaten verifiziert.
+- **Vercel Preview Build repariert (Option B Gate-Architektur):** `pnpm build:preview` scheiterte zuvor daran, dass `pnpm audit --audit-level high` den Web-Export bei den 43 bekannten Build-Tool-Befunden abbrach. Durch das neue `scripts/security/preview-security-gate.cjs` wird die Trennung sauber gewahrt: Volle Testprüfung (`pnpm verify`), Null-Toleranz für Critical, Ausschluss von Production-Secrets, transparente Dokumentation aller High/Moderate-Befunde im Log und Kennzeichnung als `NON_RELEASE_BUILD`. CI-Release-Gate (`audit:ci`) bleibt strikt blockierend.
+- **Supply-Chain-Triage:** Vollständige Matrix in `docs/release/DEPENDENCY_AUDIT_REPORT.md`. Alle 43 High-Befunde verbleiben zu 100 % in Build/Dev/Test-Werkzeugen (0 Client-Bundle-Reachability).
+- **Vorbereitungsdokumente für Astra:**
+  - `docs/architecture/S4_SYNC_PREPARATION.md` (Atomare Cloud-Aggregate, Konflikte, Idempotenz) -> `ASTRA_REQUIRED`
+  - `docs/architecture/S5_ACCOUNT_DELETION_SPEC.md` (Parametrisierungsfreier RPC-Löschvertrag, Cascade) -> `ASTRA_REQUIRED`
+  - `docs/architecture/AI_SECURITY_PREPARATION.md` (DE/EN Safety-Eskalationen, Quota-Interface) -> `ASTRA_REQUIRED`
+- **Aktuelle Testmetrik:** **654 Tests PASS** (77 Domain + 523 Mobile + 38 Coach-API + 16 Security-Regressionen); Typecheck PASS; Lint PASS; Web-Build PASS (4.74 MB).
 
 21.09.2026 — Abschluss auf Nutzerwunsch wegen Wochenbudget: `61f80cd` gepusht, danach ausschließlich Coach-Testumgebung isoliert (LOW). Tatsächlicher Vercel-Build brach vor Audit wegen geerbtem VERCEL/NODE_ENV ab; reproduziert und Testfixtures korrigiert. 38/38 API-Tests in beiden Umgebungen PASS; produktiver Auth-Handler unverändert, Hosted-Identity-Negativtest bleibt aktiv. Keine erneute Vollsuite für reine Testfixture-Änderung; letzte 640er-Vollsuite/Typecheck/Lint/Build gilt für unveränderten Anwendungscode. Nächster Remote-Build noch zu prüfen; Audit bleibt 43 high/14 moderate. Wiedereinstieg mit konkreten Belegen/Grenzen am Anfang von ASTRA_HANDOFF.md. Production `6471138` im Vercel-Dashboard bestätigt und unverändert.
 

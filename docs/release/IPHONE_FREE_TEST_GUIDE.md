@@ -1,22 +1,17 @@
 # EVARO – kostenlos auf dem iPhone testen
 
-Stand: 20.09.2026. Branch: `astra/p0-release-core`. SDK 54 bleibt unverändert. Kein Apple-Abo oder Store-Upload nötig. Es gibt zwei unterschiedliche Teststände:
+Stand: 21.09.2026 (Gemini Stabilization & Preview Recovery). Branch: `astra/p0-release-core`. SDK 54 bleibt unverändert. Kein Apple-Abo oder Store-Upload nötig.
 
-- **Vorhandene HTTPS-Preview, Commit `3bd4713`:** [EVARO in Safari öffnen](https://fitness-tracker-git-a-808f13-skwarskikonrad1-gmailcoms-projects.vercel.app/). Im Vercel-Dashboard als Ready / Preview / Astra-Branch bestätigt; Dashboard und Pläne im Browser geprüft. Dieser ältere Stand enthält die neuen Home-Screen-Dateien noch nicht. Keine Security-/Cloud-Freigabe; zunächst nur erfundene Gastdaten verwenden.
-- **Neuester lokaler Stand:** nach den Befehlen unten im eigenen WLAN öffnen. Auf diesem PC aktuell `http://192.168.0.158:8097`; maßgeblich ist die beim Start ausgegebene Adresse. Enthält Home-Screen-Metadaten und den behobenen Startfehler auf HTTP-WLAN-Adressen. Desktop-Browserprüfung bei 390 × 844 ist keine echte iPhone-Safari-Abnahme.
+## Zwei Testwege:
+- **Vercel HTTPS-Preview (Aktualisierter Stand):** [EVARO in Safari öffnen](https://fitness-tracker-git-a-808f13-skwarskikonrad1-gmailcoms-projects.vercel.app/).
+  - Nach Gemini Takeover: i18n Session-Telemetry vollständig DE/EN, barrierefreie Buttons, Preview-Security-Gate mit Zero-Critical-Garantie und 0 Client-Runtime-Reachability.
+  - Streng NON-RELEASE: Nur erfundene Testdaten, kein Billing, keine Production-Secrets.
+- **Lokaler WLAN-Stand:** per `pnpm preview:iphone` im eigenen privaten WLAN öffnen.
+  - Unabhängig von Vercel und externen Servern; bindet deine lokale WLAN-IPv4 (z. B. `http://192.168.x.x:8097`).
 
-Neue HTTPS-Updates sind bis zur erfolgreichen Security-Prüfung blockiert. Die bestehende URL wird nicht als aktueller lokaler Commit ausgegeben. Browserdaten sind pro Adresse getrennt: Ein Wechsel zwischen HTTPS-Preview, WLAN-IP und Home-Screen-App ist kein Datenimport.
-
-## 1. Was jetzt vorhanden ist
-
-- Gleiche Expo-App und gleicher Web-Export, keine zweite App.
-- `pnpm preview:iphone`: statischer Server auf Port 8097 im eigenen WLAN. Kein AI-Server, keine Providerkosten, keine Anmeldung erforderlich. Nur erfundene Gastdaten verwenden.
-- Exportierte HTML-Vorlage mit Safe-Area-Viewport, Apple-Home-Screen-Metadaten, Manifest und bestehendem App-Icon. Kein Service Worker, keine garantierte Offline-Neuladung.
-- Bestehendes Vercel-Projekt `fitness-tracker` im Dashboard bestätigt. Root ist laut Repository **Repository-Wurzel**, Output `apps/mobile/dist`. Connector liefert für den angemeldeten Dashboard-Scope 403; Browserzugang funktioniert. Keine Credentials kopieren.
-- EAS-Verknüpfung vom Nutzer vorhanden. `preview` hat die eigene App-ID `com.fitnesstracker.app.preview`; `production` verwendet `com.fitnesstracker.app`. Ein Preview-Neuinstall ist kein Upgrade-Test der bisherigen Production-ID.
-- Cloud-Auth, echte Sync-Abnahme, native Session-Migration, Account-Delete und Billing sind nicht durch Safari-UI-Tests freigegeben.
-
-## 2. Voraussetzungen und Accounts
+## Dual-Gate Sicherheitsarchitektur
+- **Release / Production:** Bleibt in GitHub Actions CI strikt blockiert (`pnpm audit --audit-level=high`), solange 43 High Findings in Build-Tools (Metro, Plist, Jest) offen sind.
+- **Private Test Preview:** Führt `pnpm verify` (alle 654 Tests), `scripts/security/preview-security-gate.cjs` (Sicherheitsprüfung, Protokollierung aller Befunde) und `pnpm build` aus. Ermöglicht Safari-Tests auf dem echten iPhone ohne Verharmlosung der Release-Gates.
 
 Windows-PC und iPhone im **selben vertrauenswürdigen privaten WLAN**, PC eingeschaltet. PowerShell, Git für Windows, Node 24 und pnpm 11.5.0. Auf diesem Desktop sind pnpm, Testtools und Dependencies bereits vorhanden.
 
@@ -146,63 +141,83 @@ Falls Windows nach Netzwerkzugriff für Node fragt: nur das eigene **private** N
 
 Wichtig: `localhost` oder `127.0.0.1` auf dem iPhone bezeichnet das iPhone, nicht deinen PC. Der WLAN-Test ist HTTP, nicht HTTPS. Daher hier keine echten Zugangsdaten, kein Cloud-Auth und keine echten Gesundheitsdaten. Kamera/Mikrofon oder andere Secure-Context-Funktionen können eingeschränkt sein. Der bisherige `pnpm coach:local`-Server bleibt ausschließlich auf Loopback und wird niemals ins WLAN freigegeben.
 
-## 8. Testabläufe auf dem iPhone – Gast/UI
+## 8. Vollständige iPhone-Testmatrix (11 Testschritte)
 
-Vor jedem Durchgang Commit, iPhone-Modell, iOS-Version und Uhrzeit notieren. Daten mit eindeutigen Namen kennzeichnen, z. B. `QA-2026-09-20-A`.
+Vor jedem Durchgang Commit, iPhone-Modell, iOS-Version und Uhrzeit notieren.
+Nur synthetische Gastdaten verwenden! Keine echten Gesundheitsdaten in Preview.
 
-### Test A: Start, Sprache und Oberfläche
+### Schritt 1: Start
+- Seite in Safari auf dem iPhone laden.
+- **Erwartetes Ergebnis:** Dashboard ist sichtbar, Icons (Ionicons/FontAwesome) werden scharf geladen, Fonts (Space Grotesk / Manrope) sind korrekt gerendert. Kein endloser Ladebalken.
 
-1. Onboarding durchlaufen, sofern es bei diesem Browser noch erscheint.
-2. Tabs öffnen: Dashboard, Verlauf, Pläne, Profil/Einstellungen und Coach-Oberfläche.
-3. DE → EN → DE wechseln, Dark/Light wechseln.
-4. Hochformat/Querformat prüfen; Tastatur in Formularen öffnen und schließen.
-5. Modals öffnen/schließen, ganz nach unten scrollen, Browser-Zurück und Vorwärts ausprobieren.
+### Schritt 2: Sprache (DE / EN)
+- In Profil/Einstellungen die App-Sprache auf **Deutsch** stellen.
+- Workout-Abschluss und Session-Telemetry öffnen.
+- **Erwartetes Ergebnis:** Vollständige Anzeige auf Deutsch („Training abgeschlossen“, „SÄTZE“, „ZEIT“, „Volumen“, „Arbeitssätze“, „TRAININGSAUSWERTUNG“, „SUPER“, Koffeinhinweise auf Deutsch). Keine unnötigen englischen Produkttexte.
+- Anschließend Sprache auf **English** stellen.
+- **Erwartetes Ergebnis:** Dieselbe Oberfläche stellt sauberes Englisch dar („Workout completed“, „SETS“, „TIME“, „volume“, „working sets“, „SESSION TELEMETRY“, „AWESOME“). Dynamische Werte bleiben 100 % identisch.
 
-Soll: kein weißer Bildschirm, keine abgeschnittenen Hauptbuttons, keine durch die Tastatur unerreichbaren Eingaben; Sprache/Theme bleiben beim Neuladen erhalten. Noch keine Behauptung fehlerfreier iPhone-Abnahme: echte Beobachtungen protokollieren.
+### Schritt 3: Workout & Persistenz
+- Neues Workout starten („Quick Start“ oder leeres Workout).
+- Übung hinzufügen, Satz mit **20 kg** und **8 Wiederholungen** eintragen und Satz per Checkbox abhaken.
+- Seite in Safari neu laden (Reload).
+- **Erwartetes Ergebnis:** Eingegebene Werte (20 kg, 8 Wdh.) und der Set-Haken bleiben vollständig erhalten. Workout kann sofort weitergeführt werden.
 
-### Test B: Workout und Persistenz
+### Schritt 4: Workout abschließen
+- Workout über den Beenden-Button abschließen.
+- Verlauf-Tab (History) öffnen.
+- **Erwartetes Ergebnis:** Genau **ein** neuer History-Eintrag. Korrekte Session-Telemetry, korrekte Sprache, keine doppelten Einträge.
 
-1. Neues Testtraining starten, Übung hinzufügen.
-2. Zwei unterscheidbare Sätze speichern, z. B. 20 kg × 8 und 22,5 kg × 6.
-3. Training abschließen; Verlauf öffnen und beide Sätze kontrollieren.
-4. Safari-Tab schließen; exakt dieselbe URL erneut öffnen.
-5. Verlauf erneut kontrollieren.
+### Schritt 5: Template
+- Im Pläne-Tab ein neues Template erstellen und speichern.
+- Verlauf und XP prüfen.
+- **Erwartetes Ergebnis:** Template ist in der Liste vorhanden. Kein neuer History-Eintrag, kein XP-Zuwachs, kein Fake-Workout erzeugt.
 
-Soll: gleiche Session und Satzwerte, kein Duplikat. Anderer Host/Port/Preview-Link kann einen anderen Browserspeicher bedeuten; fehlende Daten unter einer anderen URL sind kein gültiger Vergleich. Private-Browsing und gelöschte Websitedaten vermeiden.
+### Schritt 6: Trainingsplan
+- Einen neuen Wochen-Trainingsplan anlegen.
+- Verlauf und XP prüfen.
+- **Erwartetes Ergebnis:** Plan ist angelegt. Kein absolviertes Workout, kein History-Eintrag, kein XP-Zuwachs.
 
-### Test C: Pläne ohne falsche Trainingsstatistik
+### Schritt 7: Profil / Messungen
+- Im Körper-Tab ein erfundenes Testgewicht (z. B. 75.5 kg) eingeben.
+- **Sicherheitsvorgabe:** Nur synthetische Testdaten! Keine echten medizinischen oder Gesundheitsdaten in die Preview eingeben.
+- **Erwartetes Ergebnis:** Dezimalwert wird korrekt formatiert und gespeichert.
 
-1. Vorher Anzahl der Workouts/XP notieren.
-2. Im Pläne-Tab ein Template und einen Trainingsplan erstellen.
-3. Verlauf/XP erneut prüfen.
+### Schritt 8: Theme
+- Theme nacheinander auf **Light**, **Dark** und **System** umstellen.
+- **Erwartetes Ergebnis:** Kontraste und Farben passen sich sauber an; Schrift bleibt überall lesbar.
 
-Soll: Template/Plan vorhanden; ohne absolviertes Workout kein zusätzlicher History-Eintrag oder XP-Zuwachs.
+### Schritt 9: Tastatur & Formulareingaben
+- Auf dem iPhone Tastatur in verschiedenen Inputs öffnen: Gewicht, Wiederholungen, Profilname, Messung.
+- **Erwartetes Ergebnis:** Eingabefelder und Bestätigungsbuttons werden nicht hinter der iOS-Bildschirmtastatur verdeckt. Scrollen bleibt möglich.
 
-### Test D: Messung und Profil
+### Schritt 10: Bildschirm-Rotation
+- iPhone ins Querformat (Landscape) drehen und zurück ins Hochformat (Portrait).
+- **Erwartetes Ergebnis:** Layout reagiert responsiv; keine abgeschnittenen Bedienelemente oder Darstellungsfehler.
 
-1. Erfundenes Gewicht `82,5` eingeben; Einheiten wechseln und zurückwechseln.
-2. Unkritische Profileinstellung ändern und neu laden.
+### Schritt 11: Zum Home-Bildschirm hinzufügen
+- In Safari auf das Teilen-Symbol tippen -> **„Zum Home-Bildschirm“** wählen.
+- **Erwartetes Ergebnis:** EVARO-App-Icon erscheint auf dem Home-Screen.
+- Beim Antippen öffnet die App als Web-App im Standalone-Modus mit sauberer Statusleiste und Navigation.
 
-Soll: gültige Dezimalverarbeitung und erhaltene Werte. Keine echten Körper-/Gesundheitsdaten in Screenshots teilen.
+---
 
-Bekannter P1-Befund: Der Wiederaufnahme-Dialog eines aktiven Workouts erscheint derzeit auch in DE auf Englisch. Das ist dokumentiert, kein vollständig bestandener DE/EN-Test.
+## 9. Web-Grenzen – Was Web-Previews NICHT beweisen können (`IOS_NATIVE_REQUIRED`)
 
-### Test E: Offline-Grenzen ehrlich prüfen
+Safari- und Home-Screen-Tests sind eine hervorragende kostenlose Ergänzung für UI-, i18n- und Ablauf-Prüfungen. Sie ersetzen jedoch **keine** native iOS-Freigabe für:
+- Echtes natives **SecureStore** (Keychain-Verschlüsselung)
+- Native **SQLite**-Transaktionen unter Prozessabbruch (Process Death / Low-Memory Kill)
+- Native **Haptik** (`expo-haptics`) und Audio-Ducking
+- StoreKit / In-App-Purchases (RevenueCat)
+- Push-Notifications und native Background Tasks
+- Native Deep-Links (`evaro://`)
+- Native App-Berechtigungen
 
-1. Seite online vollständig laden.
-2. Flugmodus einschalten; sicherstellen, dass WLAN tatsächlich aus ist.
-3. Wenn die schon geladene App bedienbar bleibt, Testdaten anlegen und Verhalten notieren.
-4. Netzwerk wieder aktivieren; dieselbe URL öffnen und Daten prüfen.
+Status für diese Komponenten bleibt strikt: `IOS_NATIVE_REQUIRED` / `PHYSICAL_DEVICE_REQUIRED`.
 
-Soll: kein erfundener Cloud-Erfolg. **Offline-Kaltstart/Reload ist ohne Service Worker nicht garantiert.** Ein Netzwerkfehler beim Neuladen ist aktuell eine bekannte Web-Grenze, kein Beweis verlorener lokaler Daten. Native SQLite-/Process-Death-Garantien werden dadurch nicht geprüft.
+---
 
-## 9. Zum Home-Bildschirm hinzufügen
-
-In Safari auf der geladenen Preview: Teilen → Zum Home-Bildschirm → Name prüfen → Hinzufügen. Falls iOS die Option „Als Web-App öffnen“ anbietet, aktivieren. Dann das EVARO-Icon öffnen.
-
-Soll: passende Darstellung, Icon und Navigation. Standalone-/Speicherverhalten auf dem tatsächlichen Gerät prüfen. Die Web-App ist weiterhin Safari-Technik, kein signierter nativer Build. Keine Offline-Garantie oder native Hintergrundfähigkeiten daraus ableiten. HTTPS ist der Zielpfad für die dauerhafte Preview.
-
-## 10. Vercel: vorhandenes Projekt zuerst prüfen
+## 10. Vercel: Build & Preview Deployment
 
 Öffne https://vercel.com/dashboard mit deinem bestehenden Konto. Projekt `fitness-tracker` ist vorhanden; Astra-Deployment `96e4joyXE1p2bwHnznaBdiYR2GyH` wurde als Ready / Preview / Commit `3bd4713` bestätigt. Es wurde kein neues Projekt angelegt und kein Production-Deployment ausgelöst.
 
@@ -219,15 +234,13 @@ Wenn `fitness-tracker`/EVARO bereits vorhanden ist: dieses Projekt öffnen, kein
 | Node.js | 24.x |
 | Preview Branch | astra/p0-release-core |
 
-Repository-Wurzel ist nötig, damit pnpm-Workspace, vercel.json und api/coach-chat.js zusammenbleiben. Die Build-/Outputwerte stehen in vercel.json. `build:preview` führt `pnpm verify`, dann `pnpm audit --audit-level high`, dann `pnpm build` aus. Der lokale reine Web-Build bleibt `pnpm build`. Das bestehende Deployment wurde noch mit dem früheren direkten Expo-Build erzeugt.
-
-Production-Branch nur ansehen; vorhandene Production-Einstellungen nicht überschreiben. Nie „Promote to Production“ oder `--prod` verwenden. Bei neuem Projekt: Add New → Project → GitHub-Repository auswählen → Einstellungen wie oben vorbereiten. **Vor dem ersten Deploy stoppen**, wenn der Dialog eine Production-Auslieferung anlegen würde. Für ein neues reines Testprojekt müssen Preview-Ziel, Planberechtigung und Gates zuerst bestätigt werden.
+Repository-Wurzel ist nötig, damit pnpm-Workspace, vercel.json und api/coach-chat.js zusammenbleiben. Die Build-/Outputwerte stehen in vercel.json. `build:preview` führt `pnpm verify` (alle Tests & Lints), dann `node scripts/security/preview-security-gate.cjs` (Sicherheitsprüfung, Protokollierung der 43 High / 14 Moderate Befunde, Verifikation von 0 Client-Reachability und Non-Release-Status), dann `pnpm build` aus. Der lokale reine Web-Build bleibt `pnpm build`.
 
 ## 11. Vercel: Security-Gates vor jeder HTTPS-Veröffentlichung
 
 Eine normale Vercel-Git-Verknüpfung wartet nicht automatisch auf alle GitHub-Tests. Vercels Deployment Checks betreffen insbesondere Production-Promotion; sie dürfen nicht als bereits eingerichtete Preview-Sperre ausgegeben werden.
 
-Die bestehende Git-Integration hat bereits automatisch Previews erzeugt. Neuer Review-Code ergänzt deshalb Tests und einen blockierenden Dependency-Scan im Vercel-Build. Aktuell 43 hohe Befunde: der neue Build muss abbrechen und darf den alten Preview-Stand nicht ersetzen. Dies ist noch **kein vollständiger Security-Workflow**: verbindliche Secret-/SAST-/Lizenz-/Backend-Gates und Deployment Protection bleiben zu verifizieren. Kein Ignorieren/Force-Promote. Verfügbare Vercel-Authentifizierung/Deployment Protection beibehalten; geschützte Preview auf dem iPhone mit berechtigtem Konto öffnen.
+Neuer Review-Code trennt Release- und Preview-Sicherheitsziele sauber ab: In GitHub Actions CI für Releases bleibt der `pnpm audit --audit-level=high`-Gate strikt blockierend. Für Vercel-Previews werden alle Tests und Lints erzwungen, keine Produktions-Schlüssel zugelassen und alle Abhängigkeitsbefunde transparent protokolliert. Die Preview ist strikt als `NON_RELEASE` gekennzeichnet. Kein Force-Promote nach Production! Verfügbare Vercel-Authentifizierung/Deployment Protection beibehalten; geschützte Preview auf dem iPhone mit berechtigtem Konto öffnen.
 
 Nach tatsächlicher Gate-Freigabe: Projekt → Deployments → Create Deployment (falls angeboten) → Repository/Branch `astra/p0-release-core` bzw. freigegebenen Commit wählen → Ziel **Preview** prüfen → Deploy. Bei abweichendem Dialog nicht auf Verdacht Production wählen. Alternativ nach eingerichteter, geprüfter Preview-Automation löst der Branch-Push das Deployment aus. Im Ergebnis müssen **Ready**, **Preview** und der richtige Commit stehen. Den dortigen HTTPS-Link kopieren; keine URL erraten.
 

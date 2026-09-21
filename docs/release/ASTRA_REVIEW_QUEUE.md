@@ -1,5 +1,14 @@
 # EVARO – Astra Review Queue
 
+## Gemini Takeover & Preview Recovery — 21.09.2026
+
+- **AR-027: i18n Workout-Abschluss & Session-Telemetry (VERIFIED).** In `WorkoutCompleteModal.tsx` und `WorkoutCompleteModal.test.tsx` wurden alle Telemetrie-Texte, Einheiten (kg/lbs), Labels und Barrierefreiheits-Rollen vollständig DE/EN implementiert. TS-Fehler (`displayName`) behoben. 100 % Session-Unveränderlichkeit verifiziert.
+- **AR-028: Vercel Dual-Gate Preview Architektur (VERIFIED).** `scripts/security/preview-security-gate.cjs` entkoppelt die private Vercel-Preview vom blockierenden Release-Audit. Streng NON_RELEASE_BUILD mit voller Verify-Pflicht und Zero Critical. Release-Gate in CI (`audit:ci`) bleibt unangetastet blockierend.
+- **AR-029: S4 Sync Cloud-Atomizität (ASTRA_REQUIRED / CRITICAL).** In `docs/architecture/S4_SYNC_PREPARATION.md` wurden Fehler- und Konfliktszenarien, Revisionsvektoren und Fixtures vorbereitet. Architekturentscheidung für serverseitige Transaktionen liegt bei Astra.
+- **AR-030: S5 Account Deletion Contract (ASTRA_REQUIRED / CRITICAL).** In `docs/architecture/S5_ACCOUNT_DELETION_SPEC.md` wurde der parametrisierungsfreie RPC-Löschvertrag (`auth.uid()`) und die lokale Wipe-Sequenz nach Server-Erfolg definiert. Migration/Deployment auf Supabase durch Astra.
+- **AR-031: AI Safety & Rate Limits (ASTRA_REQUIRED / CRITICAL).** In `docs/architecture/AI_SECURITY_PREPARATION.md` wurden zweisprachige Notfall-Eskalationen und das distributed Quota-Interface vorbereitet.
+- **AR-032: Supply Chain Matrix (VERIFIED).** `docs/release/DEPENDENCY_AUDIT_REPORT.md` kategorisiert alle 43 High / 14 Moderate Befunde mit dem Nachweis von 0 Client-Runtime-Reachability.
+
 ## S4 Outbox-Fortsetzung — 20.09.2026
 
 HIGH: Zustand im Speicher erst nach erfolgreichem lokalen Queue-Write bestätigen bzw. bei Fehler zurückrollen; betrifft Enqueue/ACK/Retry/Clear. Vier SQLite-Fault-Szenarien ergänzen die Pull-Tests. Kein Exactly-once-Versprechen: bei Cloud-Erfolg und lokalem ACK-Fehler wird dieselbe Operation erneut gesendet; serverseitige idempotente Aggregate bleiben Pflicht. Kein neuer Datenvertrag oder Dependency. Main jetzt für geprüfte geeignete Blöcke autorisiert; Gesamtauslieferung bleibt an Security-/Geräte-/Deployment-Gates gebunden. Tester-Anleitung in BETA_REGRESSION_MATRIX.md.

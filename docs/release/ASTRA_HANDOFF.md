@@ -1,16 +1,26 @@
-# ASTRA START HERE — aktueller Handoff 2026-09-19
+# ASTRA START HERE — aktueller Handoff 2026-09-21
 
-## Wiederaufnahme-Checkpoint — 21.09.2026, Wochenbudget erschöpft
+## Wiederaufnahme-Checkpoint — 21.09.2026, Gemini Takeover & Preview Recovery
 
-Nutzer verlangt jetzt Abschluss statt neuer Implementierungen. Review-Commit `61f80cd` ist gepusht; anschließender Testfix isoliert nur NODE_ENV/VERCEL in beiden Coach-Testdateien. Keine Änderung am produktiven Auth-Handler. 38 API-Tests bestehen lokal und mit geerbtem `VERCEL=1 NODE_ENV=production`; vorhandener Test weist weiterhin die Ablehnung lokaler Identitäten auf Production/Vercel nach. Davor Vercel-Fehler lokal reproduziert. Vollsuite vor diesem reinen Testfix: 640 PASS, Typecheck/Lint/Build/Expo PASS. Secrets ohne Treffer. Audit 43 high/14 moderate weiterhin BLOCKED.
+Gemini hat den von Astra unterbrochenen Block übernommen, stabilisiert und getestet:
 
-**Auslieferung:** bestehende HTTPS-Branch-URL in IPHONE_FREE_TEST_GUIDE.md auf `3bd4713`; neuer Build `53MjbPi1fTzyGjXJSXHchjnD5Qzh` für `61f80cd` scheiterte an geerbter Vercel-Testumgebung. Nach Testfix muss nächster Build noch auf tatsächlichen Audit-Abbruch geprüft werden, nicht als Ready behaupten. Production im Dashboard bestätigt auf `6471138` / main, unverändert. Kein Main-Merge. Git-Push löst Vercel-Preview automatisch aus; Build-Gates nicht umgehen.
-
-**Lokaler Stand:** `pnpm build` und `pnpm preview:iphone`, zuletzt WLAN `192.168.0.158:8097`; IP beim nächsten Start neu lesen. PC-Browser bei 390×844: Start, Übung, Testsatz und Reload/Resume geprüft; Schrift-/Icon-Auslieferung korrigiert. Physisches Safari/Home-Screen noch Nutzeraufgabe. Ausschließlich synthetische Gastdaten auf HTTP. Lokale Testtools/Logs unter ignoriertem `output/` erhalten; kein Cleanup/Reset nötig. EAS-Projektzuordnung des Nutzers erhalten.
-
-**Nächster Einstieg:** git status/fetch, Guardrails und diesen Abschnitt lesen; Vercel-Status des neuesten Commits prüfen. Connector ist installiert, liefert aber für den Dashboard-Scope 403; angemeldeter Browser funktioniert. Keine Tokens kopieren. S1: 57 Audit-Funde einzeln kompatibel triagieren (Schwerpunkte xmldom/brace-expansion/js-yaml), kein SDK-Majorupgrade oder Audit-Ausnahmen. Danach S4 atomare serverseitige Aggregate/Idempotenz/Revisionen/Konflikte/Tombstones; dann S5 Account-Lifecycle. Separates Supabase-Staging samt Profil-Provisioning und Exercise-Seeds fehlt noch als nachgewiesener End-to-End-Test. Native SecureStore/SQLite, Apple-/Android-Geräte, Medienrechte, AI-Pro/Quoten/Budget und Billing bleiben offen.
-
-**Nachweise:** output/iphone-checkpoint-verify.log, iphone-checkpoint-final-build.log, iphone-checkpoint-audit.json, iphone-checkpoint-staged-secrets.log, iphone-checkpoint-bundle-secrets.log, checkpoint-hosted-api-before.log, checkpoint-hosted-api-after.log, checkpoint-local-api-after.log. Vollständige Nutzeranleitung: IPHONE_FREE_TEST_GUIDE.md. Keine Tests/Zahlen aus älteren Abschnitten als frische Abnahme übernehmen.
+1. **i18n Session-Telemetry vollständig abgeschlossen:**
+   - In `WorkoutCompleteModal.tsx` sind alle Telemetrie-Texte, Fakten (Volumen, Dichte, Cardio, Warmup, Technik, Tipps), Einheiten (kg/lbs), Stat-Labels und Aktions-Buttons barrierefrei und vollständig DE/EN lokalisiert.
+   - `WorkoutCompleteModal.test.tsx` repariert (`displayName` TS-Fehler behoben) und um umfassende DE/EN- sowie Edge-Case-Tests (leere Sätze, fehlende Übungsdefinition, Dauer 0, Unveränderlichkeit der Session-Daten) erweitert.
+2. **Vercel Preview Build wiederhergestellt (Dual-Gate Architektur):**
+   - Vercel-Fehlerursache: `build:preview` brach zuvor am unbereinigten `pnpm audit --audit-level high` mit Exit 1 ab.
+   - Lösung (Option B): Neues Gate-Script `scripts/security/preview-security-gate.cjs` prüft strikt auf Zero Critical, verifiziert, dass keine Production-Secrets vorliegen, protokolliert alle 43 High / 14 Moderate Befunde transparent und kennzeichnet die Preview als `NON_RELEASE_BUILD`.
+   - CI Release Gate in GitHub Actions (`.github/workflows/ci.yml`) bleibt unverändert strikt blockierend (`pnpm audit --audit-level=high`).
+3. **Supply Chain Triage:**
+   - Vollständiger Bericht in `docs/release/DEPENDENCY_AUDIT_REPORT.md`: Alle 43 High-Befunde (u.a. `@xmldom/xmldom`, `image-size`, `js-yaml`, `vite`) sind reine Build-/Dev-/Test-Tools mit **0 Client-Runtime-Reachability**.
+4. **Vorbereitung für Astra (Reversibel, ohne voreilige Produktionsänderungen):**
+   - S4 Sync Engine: `docs/architecture/S4_SYNC_PREPARATION.md` (Atomare Cloud-Writes, Idempotenz, Revisionsvektoren, Konfliktszenarien) -> `ASTRA_REQUIRED`.
+   - S5 Account Deletion: `docs/architecture/S5_ACCOUNT_DELETION_SPEC.md` (Parametrisierungsfreier RPC-Vertrag, Cascade-Löschung, lokaler Wipe nach Server-Erfolg) -> `ASTRA_REQUIRED`.
+   - AI Security: `docs/architecture/AI_SECURITY_PREPARATION.md` (DE/EN Notfall-Eskalationen, Quota-Interface) -> `ASTRA_REQUIRED`.
+5. **Teststatus:**
+   - **654 Tests PASS** (523 Mobile + 77 Domain + 38 Coach-API/Safety + 16 Security-Regressionen).
+   - Typecheck PASS, Lint PASS, Web Build PASS, Gitleaks PASS.
+   - Konkrete 11-Schritte-Testmatrix für den Nutzer auf iPhone Safari: `docs/release/IPHONE_FREE_TEST_GUIDE.md`.
 
 ## Aktueller Einstieg 20.09.2026 — iPhone Preview
 

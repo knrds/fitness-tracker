@@ -9,11 +9,13 @@ import { useProgramStore } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { WorkoutTemplate } from '@fitness-tracker/domain';
+import { useI18n } from '../../src/i18n';
 
 export default function QuickStartScreen() {
   const router = useRouter();
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
+  const { t } = useI18n();
   const { showConfirm } = useDialog();
   const { templates, deleteTemplate } = useProgramStore();
   const { exercises: allExercises } = useExerciseStore();
@@ -21,16 +23,16 @@ export default function QuickStartScreen() {
 
   const handleStartEmptyWorkout = async () => {
     const start = () => {
-      startWorkout('Empty Workout');
+      startWorkout(t('workout.emptyWorkout'));
       router.navigate('/workout/session');
     };
 
     if (activeWorkoutStatus === 'active' || activeWorkoutStatus === 'paused') {
       const shouldDiscard = await showConfirm({
-        title: 'Laufendes Training',
-        message: 'Ein Training ist bereits aktiv. Möchtest du es verwerfen und ein neues leeres Training starten?',
-        confirmLabel: 'Verwerfen & Starten',
-        cancelLabel: 'Abbrechen',
+        title: t('workout.runningWorkoutTitle'),
+        message: t('workout.runningWorkoutMessageEmpty'),
+        confirmLabel: t('workout.discardAndStart'),
+        cancelLabel: t('common.cancel'),
         destructive: true,
       });
       if (shouldDiscard) {
@@ -49,10 +51,10 @@ export default function QuickStartScreen() {
 
     if (activeWorkoutStatus === 'active' || activeWorkoutStatus === 'paused') {
       const shouldDiscard = await showConfirm({
-        title: 'Laufendes Training',
-        message: 'Ein Training ist bereits aktiv. Möchtest du es verwerfen und stattdessen diese Vorlage starten?',
-        confirmLabel: 'Verwerfen & Starten',
-        cancelLabel: 'Abbrechen',
+        title: t('workout.runningWorkoutTitle'),
+        message: t('workout.runningWorkoutMessageTemplate'),
+        confirmLabel: t('workout.discardAndStart'),
+        cancelLabel: t('common.cancel'),
         destructive: true,
       });
       if (shouldDiscard) {
@@ -65,10 +67,10 @@ export default function QuickStartScreen() {
 
   const handleDeleteTemplate = async (templateId: string) => {
     const shouldDelete = await showConfirm({
-      title: 'Vorlage löschen',
-      message: 'Möchtest du diese Trainingsvorlage wirklich löschen?',
-      confirmLabel: 'Löschen',
-      cancelLabel: 'Abbrechen',
+      title: t('workout.deleteTemplateConfirmTitle'),
+      message: t('workout.deleteTemplateConfirmMessage'),
+      confirmLabel: t('common.delete'),
+      cancelLabel: t('common.cancel'),
       destructive: true,
     });
     if (shouldDelete) {
@@ -83,12 +85,16 @@ export default function QuickStartScreen() {
           <Text style={styles.cardTitle}>{item.name}</Text>
           <View style={styles.templateActions}>
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${t('common.start')} ${item.name}`}
               style={[styles.actionBtn, styles.startBtn]}
               onPress={() => handleStartTemplate(item)}
             >
-              <Text style={styles.startBtnText}>Start</Text>
+              <Text style={styles.startBtnText}>{t('common.start')}</Text>
             </Pressable>
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${t('common.edit')} ${item.name}`}
               style={styles.actionBtn}
               onPress={() =>
                 router.push(
@@ -98,10 +104,15 @@ export default function QuickStartScreen() {
                 )
               }
             >
-              <Text style={styles.editBtnText}>Edit</Text>
+              <Text style={styles.editBtnText}>{t('common.edit')}</Text>
             </Pressable>
-            <Pressable style={styles.actionBtn} onPress={() => handleDeleteTemplate(item.id)}>
-              <Text style={styles.deleteBtnText}>Delete</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${t('common.delete')} ${item.name}`}
+              style={styles.actionBtn}
+              onPress={() => handleDeleteTemplate(item.id)}
+            >
+              <Text style={styles.deleteBtnText}>{t('common.delete')}</Text>
             </Pressable>
           </View>
         </View>
@@ -113,7 +124,7 @@ export default function QuickStartScreen() {
             const exerciseDetail = allExercises.find((e) => e.id === ex.exerciseId);
             return (
               <Text key={ex.id || idx} style={styles.exerciseText}>
-                • {ex.targetSets}x {exerciseDetail?.name || 'Unknown Exercise'}
+                • {ex.targetSets}x {exerciseDetail?.name || t('common.unknown')}
               </Text>
             );
           })}
@@ -125,7 +136,13 @@ export default function QuickStartScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
-        <Pressable onPress={() => router.back()} hitSlop={15} style={styles.backBtn}>
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={15}
+          style={styles.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
+        >
           <Ionicons
             name="arrow-back"
             size={24}
@@ -134,18 +151,23 @@ export default function QuickStartScreen() {
           />
         </Pressable>
         <View style={styles.headerTextContainer}>
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Quick Start</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('workout.quickStart')}</Text>
           <Text style={[styles.headerSub, { color: theme.colors.muted }]}>
-            Start an empty workout or choose a template below.
+            {t('workout.quickStartSub')}
           </Text>
         </View>
       </View>
 
-      <Pressable style={styles.emptyWorkoutBtn} onPress={handleStartEmptyWorkout}>
-        <Text style={styles.emptyWorkoutBtnText}>+ Start Empty Workout</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('workout.startEmptyWorkout')}
+        style={styles.emptyWorkoutBtn}
+        onPress={handleStartEmptyWorkout}
+      >
+        <Text style={styles.emptyWorkoutBtnText}>+ {t('workout.startEmptyWorkout')}</Text>
       </Pressable>
 
-      <Text style={styles.sectionTitle}>Templates</Text>
+      <Text style={styles.sectionTitle}>{t('nav.plans')}</Text>
 
       <FlatList
         data={templates}
@@ -154,9 +176,9 @@ export default function QuickStartScreen() {
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No templates saved yet.</Text>
+            <Text style={styles.emptyText}>{t('workout.noTemplates')}</Text>
             <Text style={styles.emptySubtext}>
-              Save templates at the end of workouts, or add them via Programs.
+              {t('workout.noTemplatesSub')}
             </Text>
           </View>
         }

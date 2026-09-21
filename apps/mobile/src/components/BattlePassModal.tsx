@@ -157,15 +157,15 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
               <View style={styles.passHeaderTag}>
                 <Ionicons name="flash" size={13} color={c.primary} />
                 <Text style={[styles.passHeaderTagText, { color: c.primary }]}>
-                  EVARO SEASON 1: ASCEND
+                  {t('rank.seasonTitle')}
                 </Text>
               </View>
-              <Text style={[styles.modalTitle, { color: c.text }]}>LEVEL-PASS</Text>
+              <Text style={[styles.modalTitle, { color: c.text }]}>{t('rank.levelPass')}</Text>
             </View>
 
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Schließen"
+              accessibilityLabel={t('common.close')}
               onPress={onClose}
               hitSlop={12}
               style={[styles.closeBtn, { backgroundColor: c.surface, borderColor: c.border }]}
@@ -226,7 +226,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                 />
               </View>
               <Text style={[styles.progressBarLabel, { color: c.muted }]}>
-                {xpInCurrentLevel} / 500 XP
+                {xpInCurrentLevel} / {progressInfo.xpRequiredForNextLevel} XP
               </Text>
             </View>
           </View>
@@ -234,9 +234,9 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
           {/* Roadmap Track Title & Hint */}
           <View style={styles.trackSectionHeader}>
             <View>
-              <Text style={[styles.trackSectionTitle, { color: c.text }]}>RÄNGE & BELOHNUNGEN</Text>
+              <Text style={[styles.trackSectionTitle, { color: c.text }]}>{t('rank.ranksAndRewards')}</Text>
               <Text style={[styles.trackSectionSubtitle, { color: c.muted }]}>
-                Tippe auf ein Level, um Belohnungen & XP-Bedarf einzusehen
+                {t('rank.tapLevelHint')}
               </Text>
             </View>
           </View>
@@ -333,7 +333,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                               { color: isCurrentRank ? c.primary : c.muted },
                             ]}
                           >
-                            RANG {tier.rank} · LEVEL {tier.minLevel}–{tier.maxLevel}
+                            {t('rank.rank').toUpperCase()} {tier.rank} · LEVEL {tier.minLevel}–{tier.maxLevel}
                           </Text>
 
                           {/* Status Pill */}
@@ -346,7 +346,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                             >
                               <Ionicons name="checkmark-circle" size={12} color={c.primary} />
                               <Text style={[styles.statusPillText, { color: c.primary }]}>
-                                ERREICHT
+                                {t('rank.achieved')}
                               </Text>
                             </View>
                           )}
@@ -359,7 +359,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                             >
                               <Ionicons name="star" size={12} color={c.background} />
                               <Text style={[styles.statusPillText, { color: c.background }]}>
-                                AKTUELL
+                                {t('rank.current')}
                               </Text>
                             </View>
                           )}
@@ -372,7 +372,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                             >
                               <Ionicons name="lock-closed" size={11} color={c.muted} />
                               <Text style={[styles.statusPillText, { color: c.muted }]}>
-                                AB LVL {tier.minLevel}
+                                {t('rank.fromLvl').replace('{level}', String(tier.minLevel))}
                               </Text>
                             </View>
                           )}
@@ -471,7 +471,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                           <Pressable
                             key={lvl}
                             accessibilityRole="button"
-                            accessibilityLabel={`Level ${lvl} Details anzeigen`}
+                            accessibilityLabel={t('rank.showLevelDetails').replace('{level}', String(lvl))}
                             onPress={() => handleSelectLevel(lvl)}
                             style={({ pressed }) => [
                               styles.levelStepPill,
@@ -596,19 +596,19 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                                   { color: isUnlocked ? '#57DFAB' : c.muted },
                                 ]}
                               >
-                                {isUnlocked ? 'FREIGESCHALTET' : 'NOCH GESPERRT'}
+                                {isUnlocked ? t('rank.unlocked') : t('rank.locked')}
                               </Text>
                             </View>
                           </View>
                           <Text style={[styles.detailRankSubtitle, { color: c.muted }]}>
-                            Rang {targetRank.rank}: {targetRank.title}
+                            {t('rank.rank')} {targetRank.rank}: {targetRank.title}
                           </Text>
                         </View>
                       </View>
 
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel="Schließen"
+                        accessibilityLabel={t('common.close')}
                         onPress={() => setInspectedLevel(null)}
                         style={[
                           styles.closeBtn,
@@ -636,7 +636,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                     >
                       <View style={styles.detailXpHeader}>
                         <Text style={[styles.detailXpLabel, { color: c.muted }]}>
-                          ERFAHRUNGS-STATUS
+                          {t('rank.experienceStatus')}
                         </Text>
                         <Text
                           style={[
@@ -644,7 +644,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                             { color: isUnlocked ? '#57DFAB' : c.primary },
                           ]}
                         >
-                          {targetXp.toLocaleString('de-DE')} Gesamt-XP
+                          {targetXp.toLocaleString(language === 'de' ? 'de-DE' : 'en-US')} {t('rank.totalXp')}
                         </Text>
                       </View>
 
@@ -652,9 +652,9 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                         <View style={styles.detailXpCompletedRow}>
                           <Ionicons name="checkmark-circle" size={16} color="#57DFAB" />
                           <Text style={[styles.detailXpCompletedText, { color: c.text }]}>
-                            Bereits erreicht! Dein Fortschritt:{' '}
+                            {t('rank.alreadyReachedProgress')}{' '}
                             <Text style={{ color: c.primary, fontWeight: '700' }}>
-                              {xp.toLocaleString('de-DE')} XP
+                              {xp.toLocaleString(language === 'de' ? 'de-DE' : 'en-US')} XP
                             </Text>
                           </Text>
                         </View>
@@ -662,10 +662,16 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                         <View>
                           <View style={styles.detailMissingXpRow}>
                             <Text style={[styles.detailMissingXpNum, { color: c.primary }]}>
-                              Noch {missingXp.toLocaleString('de-DE')} XP benötigt
+                              {t('rank.xpNeeded').replace(
+                                '{xp}',
+                                missingXp.toLocaleString(language === 'de' ? 'de-DE' : 'en-US'),
+                              )}
                             </Text>
                             <Text style={[styles.detailMissingWorkouts, { color: c.muted }]}>
-                              ≈ {Math.ceil(missingXp / 150)} Workouts
+                              {t('rank.approxWorkouts').replace(
+                                '{count}',
+                                String(Math.ceil(missingXp / 150)),
+                              )}
                             </Text>
                           </View>
                           <View
@@ -698,7 +704,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                     {lvlRewards.hasRewards || isRankStart ? (
                       <View style={styles.detailRewardsSection}>
                         <Text style={[styles.detailSectionTitle, { color: c.text }]}>
-                          BELOHNUNGEN AUF LEVEL {inspectedLevel}
+                          {t('rank.rewardsAtLevel').replace('{level}', String(inspectedLevel))}
                         </Text>
 
                         {/* Colorway Rewards (Miniature View) */}
@@ -767,7 +773,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                                         { color: preview.colors.primary },
                                       ]}
                                     >
-                                      {cw.isLight ? 'LIGHT THEME' : 'DARK THEME'}
+                                      {cw.isLight ? t('rank.lightTheme') : t('rank.darkTheme')}
                                     </Text>
                                   </View>
                                 </View>
@@ -826,7 +832,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                                       { color: eff.previewColors[0] },
                                     ]}
                                   >
-                                    WORKOUT-EFFEKT
+                                    {t('rank.workoutEffect')}
                                   </Text>
                                 </View>
                               </View>
@@ -886,14 +892,14 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                                       { color: c.primary },
                                     ]}
                                   >
-                                    RANG-MEDAILLON
+                                    {t('rank.rankMedallion')}
                                   </Text>
                                 </View>
                               </View>
                               <Text
                                 style={[styles.miniItemSubtitle, { color: c.muted }]}
                               >
-                                Neuer Rang: {targetRank.title}
+                                {t('rank.newRank').replace('{title}', targetRank.title)}
                               </Text>
                             </View>
                           </View>
@@ -925,16 +931,20 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                           </View>
                           <View style={{ flex: 1, marginLeft: 12 }}>
                             <Text style={[styles.noRewardTitle, { color: c.text }]}>
-                              Meilenstein-Aufstieg
+                              {t('rank.milestoneAscent')}
                             </Text>
                             <Text
                               style={[styles.noRewardDesc, { color: c.muted }]}
                             >
-                              Auf Level {inspectedLevel} gibt es kein neues exklusives
-                              Design-Item. Jeder Levelaufstieg bringt dich näher an Rang{' '}
-                              {targetRank.rank +
-                                (inspectedLevel === targetRank.maxLevel ? 1 : 0)}{' '}
-                              und die nächsten großen Belohnungen!
+                              {t('rank.milestoneDesc')
+                                .replace('{level}', String(inspectedLevel))
+                                .replace(
+                                  '{nextRank}',
+                                  String(
+                                    targetRank.rank +
+                                      (inspectedLevel === targetRank.maxLevel ? 1 : 0),
+                                  ),
+                                )}
                             </Text>
                           </View>
                         </View>

@@ -76,7 +76,7 @@ describe('SessionExerciseCard - Collapsed State & Reorder', () => {
 
     expect(getByText('Barbell Bench Press')).toBeTruthy();
     expect(getByTestId('exercise-options-btn')).toBeTruthy();
-    expect(getByText('ADD SET')).toBeTruthy();
+    expect(getByText(/ADD SET|SATZ HINZUFÜGEN/i)).toBeTruthy();
   });
 
   it('renders compact collapsed view with set summary badge and without set table', () => {
@@ -86,7 +86,7 @@ describe('SessionExerciseCard - Collapsed State & Reorder', () => {
 
     expect(getByText('Barbell Bench Press')).toBeTruthy();
     expect(getByText('3 Sätze')).toBeTruthy();
-    expect(queryByText('+ ADD SET')).toBeNull();
+    expect(queryByText(/ADD SET|SATZ HINZUFÜGEN/i)).toBeNull();
     expect(queryByTestId('exercise-options-btn')).toBeNull();
   });
 

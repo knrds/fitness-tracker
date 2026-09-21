@@ -2,6 +2,8 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { logger } from '../utils/logger';
+import { translations } from '../i18n';
+import { useProfileStore } from '../stores/profileStore';
 
 interface Props {
   children: ReactNode;
@@ -62,6 +64,9 @@ export class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
+      const lang = useProfileStore.getState().profile.language || 'de';
+      const strings = translations[lang]?.common || translations.de.common;
+
       return (
         <View style={styles.container} testID="error-boundary-fallback">
           <View style={styles.card}>
@@ -69,14 +74,12 @@ export class ErrorBoundary extends Component<Props, State> {
               <Ionicons name="warning-outline" size={36} color="#FF5252" />
             </View>
 
-            <Text style={styles.title}>Etwas ist unerwartet schiefgelaufen</Text>
-            <Text style={styles.subtitle}>
-              Ein unerwarteter Fehler ist aufgetreten. Deine Trainingsdaten auf diesem Gerät sind sicher.
-            </Text>
+            <Text style={styles.title}>{strings.errorUnexpected}</Text>
+            <Text style={styles.subtitle}>{strings.errorSubtitle}</Text>
 
             {this.state.errorId ? (
               <View style={styles.codeContainer}>
-                <Text style={styles.codeLabel}>Referenz-ID:</Text>
+                <Text style={styles.codeLabel}>{strings.referenceId}</Text>
                 <Text style={styles.codeValue}>{this.state.errorId}</Text>
               </View>
             ) : null}
@@ -86,17 +89,15 @@ export class ErrorBoundary extends Component<Props, State> {
                 style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
                 onPress={this.handleRetry}
                 accessibilityRole="button"
-                accessibilityLabel="App neu laden"
+                accessibilityLabel={strings.reloadApp}
                 testID="error-boundary-retry-button"
               >
                 <Ionicons name="refresh" size={18} color="#0D0F12" style={styles.buttonIcon} />
-                <Text style={styles.primaryButtonText}>Erneut versuchen</Text>
+                <Text style={styles.primaryButtonText}>{strings.retry}</Text>
               </Pressable>
             </View>
 
-            <Text style={styles.supportNote}>
-              Besteht das Problem weiterhin? Kontaktiere bitte den EVARO-Support unter Angabe der Referenz-ID.
-            </Text>
+            <Text style={styles.supportNote}>{strings.supportNote}</Text>
           </View>
         </View>
       );

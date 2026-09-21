@@ -14,10 +14,12 @@ import { useWorkoutStore } from '../../stores/workoutStore';
 import Svg, { Circle } from 'react-native-svg';
 import { triggerRestTimerAlarm } from '../../utils/timerAudio';
 import { shouldCaptureTimerSwipe, shouldTriggerTimerAction } from '../../utils/timerSwipe';
+import { useI18n } from '../../i18n';
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export const RestTimer = () => {
   const theme = useTheme();
+  const { t } = useI18n();
   const { restTimer, startRestTimer, stopRestTimer, tickRestTimer, resetRestTimer } =
     useWorkoutStore();
   const [remaining, setRemaining] = useState(restTimer.durationSeconds);
@@ -260,7 +262,7 @@ export const RestTimer = () => {
           onPress={resetRestTimer}
           style={styles.reset}
         >
-          <Text style={{ color: theme.colors.muted }}>Timer zurücksetzen</Text>
+          <Text style={{ color: theme.colors.muted }}>{t('workout.resetTimer')}</Text>
         </Pressable>
       </Animated.View>
     </Animated.View>

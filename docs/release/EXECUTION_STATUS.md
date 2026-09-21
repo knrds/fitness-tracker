@@ -2,6 +2,20 @@
 
 Stand: 21.09.2026. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
+## Checkpoint 21.09.2026 — Complete Deep Screen i18n & Modal Localization (Block 1)
+
+**P01/P08/P09/S10, VERIFIED, Risiko LOW.**
+- **Vollständiges Screen- & Modal-Audit (100% Key-Parität DE/EN):**
+  - `apps/mobile/src/components/exercises/ExerciseFilter.tsx`: Filter-Köpfe, Muskelgruppen- und Ausrüstungs-Labels vollständig dynamisch lokalisiert (`formatMuscle`, `formatEquipment`, `t('exercises.filters')`, etc.).
+  - `apps/mobile/src/components/MuscleHeatmap.tsx`: Tabs (Vorderseite/Rückseite), Legenden (1–3, 4–7, 8–11, 12+ Sätze), Muskel-Tooltips und dynamische Muskel-Namen via `formatMuscle()` lokalisiert.
+  - `apps/mobile/app/workout/quick-start.tsx`: Titel, Beschreibungen, Leeres-Workout-Button, Vorlagen-Header/Empty-States und Start-Bestätigungsdialoge vollständig dynamisch übersetzt.
+  - `apps/mobile/src/components/BattlePassModal.tsx`: Hardcodiertes `/ 500 XP` behoben und durch dynamische Progression `progressInfo.xpRequiredForNextLevel` ersetzt; Season-Header, Level-Pass-Titel, Meilenstein-Aufstiege, Belohnungs-Badges, XP-Bedarfs-Rechner und a11y-Labels vollständig zweisprachig angebunden.
+  - `apps/mobile/src/components/workout/SessionExerciseCard.tsx`: 'ADD SET' / 'SATZ HINZUFÜGEN', Satz-Details, Swipe-Aktionslabel ('Satz entfernen') und a11y-Labels dynamisch lokalisiert.
+  - `apps/mobile/src/components/workout/RestTimer.tsx`: 'Timer zurücksetzen' / 'Reset Timer' lokalisiert.
+  - `apps/mobile/src/components/workout/KeyboardDoneAccessory.tsx`: 'Fertig' / 'Done' lokalisiert.
+  - `apps/mobile/src/components/ErrorBoundary.tsx`: Sichere zweisprachige Fallback-Darstellung ohne PII-Lecks, Referenz-ID, Reload- und Support-Hinweise dynamisch auf Basis des User-Profils lokalisiert.
+- **Verifikation:** 677 Tests PASS (92 Domain + 531 Mobile in 80 Suiten + 38 Coach-API + 16 Security-Regressionen); `pnpm build:preview` Web-Export PASS (4.76 MB).
+
 ## Checkpoint 21.09.2026 — Three-Phase Level/XP Progression Rebalance (Kandidat B)
 
 **P01/P03/P09/S1/S8/S11, VERIFIED / PREPARED, Risiko LOW-MEDIUM.**

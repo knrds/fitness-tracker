@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { logger } from '../utils/logger';
 import { translations } from '../i18n';
 import { useProfileStore } from '../stores/profileStore';
+import { observabilityService } from '../services/observabilityService';
 
 interface Props {
   children: ReactNode;
@@ -44,6 +45,12 @@ export class ErrorBoundary extends Component<Props, State> {
     logger.error(`[ErrorBoundary] Caught unexpected UI error (${this.state.errorId}):`, {
       name: error.name,
       message: error.message,
+      componentStack: errorInfo.componentStack?.slice(0, 500),
+    });
+
+    // Forward through sanitized observability crash monitoring
+    observabilityService.captureException(error, {
+      errorId: this.state.errorId,
       componentStack: errorInfo.componentStack?.slice(0, 500),
     });
 

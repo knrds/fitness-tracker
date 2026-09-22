@@ -2,6 +2,45 @@
 
 Stand: 22.09.2026. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
+## Checkpoint 22.09.2026 — Batch 1: Compliance, Operations & Monitoring (P0)
+
+**WP-04 / WP-05 / WP-08 / WP-10 / WP-11, VERIFIED & PREPARED, Risiko LOW-MEDIUM.**
+
+Gemini hat den ersten Block der ausführbaren P0-Roadmap-Aufgaben vollständig implementiert, typgeprüft und automatisiert abgesichert:
+
+1. **Task 04.05 — Asset License BOM (`THIRD_PARTY_NOTICES.md`, VERIFIED):**
+   - Vollständige Software & Asset Bill of Materials in `THIRD_PARTY_NOTICES.md` konsolidiert.
+   - Strikte Einhaltung: Keine unbewiesenen Annahmen („UNKNOWN bleibt UNKNOWN“).
+   - Ausweisung von: `free-exercise-db` (Datensatz Public Domain/Unlicense VERIFIED; upstream Bild-Provenienz UNVERIFIED), `react-native-body-highlighter` (MIT VERIFIED), Space Grotesk / Manrope (OFL 1.1 VERIFIED), `@expo/vector-icons` (MIT/Apache/OFL VERIFIED), Level Badges / Rank Icons (UNKNOWN Commercial Terms), NPM Dependencies (MIT/Apache-2.0/BSD).
+2. **Task 05.07 — Paywall Technical Compliance (VERIFIED / LEGAL_REVIEW_REQUIRED):**
+   - StoreKit- & Google-Play-Billing-konforme Paywall-Präsentation in `PaywallModal.tsx` und `paywallStore.ts`.
+   - Transparenter, tatsächlich belasteter Gesamtpreis als primärer Hauptpreis (z. B. 49,99 €/Jahr bzw. 9,99 €/Monat). Kein irreführender Monatsäquivalentpreis als alleiniger oder Hauptpreis (nur als transparente Vergleichszeile: `Entspricht ca. 4,16 € / Monat`).
+   - Pflichtangaben: 7 Tage kostenlose Testphase, Kündigungsfrist (mind. 24 Std. vor Ablauf), automatische Verlängerung, Restore-Purchases-Button, Verlinkung von Nutzungsbedingungen (AGB) und Datenschutzerklärung.
+   - Fail-closed ohne Store-Credentials; steckbare Provider-Abstraktion für RevenueCat / StoreKit.
+   - Zweisprachige DE/EN Übersetzungen in `translations.ts` (`[LEGAL_REVIEW_REQUIRED]`).
+   - 8 Tests in `apps/mobile/src/components/paywall/__tests__/paywallCompliance.test.ts` (8/8 PASS).
+3. **Task 08.01 — Crash Monitoring Preparation & PII Sanitization (PREPARED):**
+   - Abstraktion in `observabilityService.ts` mit steckbarem `ObservabilityAdapter` (keine ungeprüften SDK-Dependencies vor Account-Erstellung).
+   - Strikte clientseitige Datenfilterung: Tilgung sämtlicher Fitness-/Gesundheitsdaten (Gewichte, Sätze, Wiederholungen, Workouts, Körpermaße, Taillenumfang) und Coach-Inhalte (Prompts, Antworten, Audio, Fotos) via `[REDACTED_SENSITIVE_KEY]`.
+   - Automatisches Redigieren von E-Mail-Adressen (`[REDACTED_EMAIL]`) und JWT-/Bearer-Tokens (`[REDACTED_TOKEN]`).
+   - Direkte Anbindung an `ErrorBoundary.tsx` für automatische Erfassung unbehandelter UI-Crashes.
+   - 9 Tests in `apps/mobile/src/services/__tests__/observabilitySanitization.test.ts` (9/9 PASS).
+4. **Task 10.02 — Apple Privacy Manifest Preparation (PREPARED):**
+   - Vollständiges `PrivacyInfo.xcprivacy` und native Expo-Konfiguration in `app.json` (`ios.privacyManifests`).
+   - Deklaration aller 4 Required Reason API Kategorien mit offiziellen Apple-Reason-Codes: `NSPrivacyAccessedAPITypeUserDefaults` (`CA92.1`), `NSPrivacyAccessedAPITypeFileTimestamp` (`C617.1`), `NSPrivacyAccessedAPITypeSystemBootTime` (`35F9.1`), `NSPrivacyAccessedAPITypeDiskSpace` (`E174.1`).
+   - Deklaration von `NSPrivacyTracking: false` und Datentypen `Fitness` sowie `CrashData` (beide nicht mit Nutzeridentität verknüpft, kein Tracking).
+   - 3 Tests in `apps/mobile/src/__tests__/privacyManifest.test.ts` (3/3 PASS).
+5. **Task 11.03 — Production Incident Runbooks (PREPARED):**
+   - 6 technische Notfall-Leitfäden in `docs/operations/INCIDENT_RUNBOOKS.md` mit Severity-Matrix (SEV-1 bis SEV-4) und Sofortmaßnahmen:
+     1. AI Safety & Provider Incident (Kill Switch `COACH_SERVICE_ENABLED=false`, Spending-Limit, Rule Patch).
+     2. Database & Sync Incident (Sync-Pause, Rollback, PITR).
+     3. Leaked Secret Incident (Sofortiger Key-Widerruf, Rotation, Git-Filter).
+     4. Subscription & Entitlement Incident (Grace Period, Webhook-Replay, Restore-Anleitung).
+     5. Bad Release / Staged Rollout Halt (Phased Release Stop in App Store Connect / Play Console, OTA Rollback).
+     6. Privacy & Data Breach Incident (72-Stunden-DSGVO-Meldekette gem. Art. 33).
+   - Reale Personennamen und Kontakte als `USER_ACTION_REQUIRED` markiert.
+- **Gesamtmetriken:** **759 Tests PASS** (92 Domain + 602 Mobile in 88 Suiten + 49 Coach-API/Safety + 16 Security-Regressionen); Workspace-Typecheck PASS; Lint PASS; `pnpm build:preview` Web-Export PASS (4.77 MB).
+
 ## Checkpoint 22.09.2026 — Recovery & Task 04.03: Versioned AI Consent (WP-04 / S6 / S10)
 
 **WP-04 Task 04.03, DONE / VERIFIED, Risiko LOW (Legal Copy: LEGAL_REVIEW_REQUIRED).**

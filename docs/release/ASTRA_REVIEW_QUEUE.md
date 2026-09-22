@@ -1,5 +1,13 @@
 # EVARO – Astra Review Queue
 
+## Batch 1: Compliance, Operations & Monitoring (P0) — 22.09.2026
+
+- **AR-043: Asset License BOM & THIRD_PARTY_NOTICES (VERIFIED).** Vollständige Erfassung in `THIRD_PARTY_NOTICES.md` unter dem Grundsatz „UNKNOWN bleibt UNKNOWN“. Unlicense für `free-exercise-db`-Datenbankstruktur; Upstream-Bildurheberkette als UNVERIFIED ausgewiesen; Anatomie (MIT); Fonts (OFL 1.1); Icons (MIT/Apache); Badges/Rank Icons (UNKNOWN Commercial Terms); Node Packages (MIT/Apache-2.0/BSD).
+- **AR-044: Paywall Technical Compliance — WP-05 Task 05.07 (VERIFIED / LEGAL_REVIEW_REQUIRED).** StoreKit-/Play-Billing-konforme Paywall in `PaywallModal.tsx` und `paywallStore.ts`. Tatsächlich belasteter Gesamtpreis als primärer Hauptpreis; Monatsäquivalent ausschließlich als transparente Vergleichszeile; 7 Tage Testphase; Kündigungs- & Verlängerungsklauseln; Restore-Purchases-Button; AGB- und Datenschutz-Links. Fail-closed ohne Store-Credentials. 8 Tests in `paywallCompliance.test.ts` (8/8 PASS).
+- **AR-045: Observability & PII Sanitization — WP-08 Task 08.01 (PREPARED).** Datensparsame Crash-Monitoring-Abstraktion in `observabilityService.ts`. Striktes Scrubbing aller Fitness-, Workout-, Taillen-, Gewichts- und Coach-Rohdaten (`[REDACTED_SENSITIVE_KEY]`); Redigieren von E-Mails und Tokens. Integration in `ErrorBoundary.tsx`. 9 Tests in `observabilitySanitization.test.ts` (9/9 PASS).
+- **AR-046: Apple Privacy Manifest & Required Reason APIs — WP-10 Task 10.02 (PREPARED).** `PrivacyInfo.xcprivacy` und `app.json` `ios.privacyManifests` deklarieren UserDefaults (`CA92.1`), FileTimestamp (`C617.1`), SystemBootTime (`35F9.1`), DiskSpace (`E174.1`), `NSPrivacyTracking: false` und Datentypen Fitness/CrashData (kein Tracking, nicht verknüpft). 3 Tests in `privacyManifest.test.ts` (3/3 PASS).
+- **AR-047: Production Incident Runbooks — WP-11 Task 11.03 (PREPARED).** 6 technische Notfall-Leitfäden in `docs/operations/INCIDENT_RUNBOOKS.md` für AI Incident (Kill Switch), DB/Sync Incident (Rollback/PITR), Leaked Secret (Key Revocation), Subscription (Grace Period), Bad Release (Rollout Halt) und Privacy Breach (72h DSGVO Art. 33). Personenkontakte als `USER_ACTION_REQUIRED` ausgewiesen.
+
 ## Recovery & Roadmap-Fortsetzung (AI Consent & Guest Migration) — 22.09.2026
 
 - **AR-041: Versioned AI Consent — WP-04 Task 04.03 / S6 / S10 (VERIFIED / LEGAL_REVIEW_REQUIRED).**

@@ -1,6 +1,27 @@
 # ASTRA START HERE — aktueller Handoff 2026-09-22
 
-## Aktueller Checkpoint — 22.09.2026: Recovery, Task 04.03 (AI Consent) & Task 02.06 (Guest Migration)
+## Aktueller Checkpoint — 22.09.2026: Batch 1 (Compliance, Operations & Monitoring)
+
+Gemini hat den ersten Block der ausführbaren P0-Roadmap-Aufgaben vollständig implementiert und verifiziert:
+
+- **WP-04 Task 04.05 — Asset License BOM (VERIFIED):**
+  - Vollständige Software & Asset Bill of Materials in `THIRD_PARTY_NOTICES.md` konsolidiert.
+  - Strikter Grundsatz: „UNKNOWN bleibt UNKNOWN“.
+- **WP-05 Task 05.07 — Paywall Technical Compliance (VERIFIED / LEGAL_REVIEW_REQUIRED):**
+  - StoreKit-/Play-Billing-konformes `PaywallModal.tsx` & `paywallStore.ts`.
+  - Tatsächlich belasteter Gesamtpreis als primärer Preis; Monatsäquivalent ausschließlich als sekundäre Vergleichszeile; 7 Tage Testphase; Kündigungs-/Verlängerungsklauseln; Restore Purchases; AGB/Privacy-Links.
+  - 8 Tests in `paywallCompliance.test.ts` (8/8 PASS).
+- **WP-08 Task 08.01 — Observability & PII Sanitization (PREPARED):**
+  - Datensparsamer `observabilityService.ts` mit automatischem Redigieren aller Fitness-, Workout-, Taillen-, Gewichts- und Coach-Rohdaten (`[REDACTED_SENSITIVE_KEY]`) sowie E-Mails/Tokens. Anbindung an `ErrorBoundary.tsx`.
+  - 9 Tests in `observabilitySanitization.test.ts` (9/9 PASS).
+- **WP-10 Task 10.02 — Apple Privacy Manifest & Required Reason APIs (PREPARED):**
+  - `PrivacyInfo.xcprivacy` und Expo `app.json` mit allen 4 Required Reason API Kategorien (`UserDefaults`, `FileTimestamp`, `SystemBootTime`, `DiskSpace`) und Datentypen `Fitness`/`CrashData` (kein Tracking, nicht verknüpft).
+  - 3 Tests in `privacyManifest.test.ts` (3/3 PASS).
+- **WP-11 Task 11.03 — Production Incident Runbooks (PREPARED):**
+  - 6 technische Notfall-Leitfäden in `docs/operations/INCIDENT_RUNBOOKS.md` für AI, DB/Sync, Secrets, Subscriptions, Bad Release und Privacy Breaches.
+- **Gesamtmetriken:** **759 Tests PASS** (92 Domain + 602 Mobile in 88 Suiten + 49 Coach-API/Safety + 16 Security-Regressionen). `pnpm verify` PASS, `pnpm build:preview` Web-Export PASS (4.77 MB).
+
+## Vorheriger Checkpoint — 22.09.2026: Recovery, Task 04.03 (AI Consent) & Task 02.06 (Guest Migration)
 
 Gemini hat nach der Laptop-Abschaltung den Arbeitsstand vollständig rekonstruiert, verifiziert und erweitert:
 

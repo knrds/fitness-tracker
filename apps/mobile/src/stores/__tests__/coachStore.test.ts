@@ -1,4 +1,5 @@
 import { useCoachStore } from '../coachStore';
+import { useProfileStore } from '../profileStore';
 
 jest.mock('expo-crypto', () => {
   let sequence = 0;
@@ -17,6 +18,7 @@ jest.mock('../../utils/coachApi', () => ({
 describe('coachStore', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useProfileStore.getState().setAiConsent();
     useCoachStore.setState({
       messages: [],
       isSending: false,

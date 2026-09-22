@@ -43,6 +43,7 @@ import {
   UnitSystem,
   BiologicalSex,
   parseBirthDateInput,
+  hasValidAiConsent,
 } from '@fitness-tracker/domain';
 import { hapticFeedback } from '../src/utils/haptics';
 import { useExerciseStore } from '../src/stores/exerciseStore';
@@ -65,7 +66,15 @@ export default function ProfileScreen() {
   const router = useRouter();
   const achievement = useAchievementStore();
   const insets = useSafeAreaInsets();
-  const { profile, updateProfile, getStatistics, clearAllData, exportData } = useProfileStore();
+  const {
+    profile,
+    updateProfile,
+    getStatistics,
+    clearAllData,
+    exportData,
+    setAiConsent,
+    revokeAiConsent,
+  } = useProfileStore();
   const { isConfigured: isAuthConfigured, signOut } = useAuthStore();
   const { isEnabled: caffeineEnabled, setEnabled: setCaffeineEnabled } = useCaffeineStore();
   const { t, language, formatGoal, formatLevel, formatSex } = useI18n();
@@ -1203,6 +1212,117 @@ export default function ProfileScreen() {
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
           </Pressable>
+
+          {/* AI Coach Privacy & Consent [LEGAL_REVIEW_REQUIRED] */}
+          <View style={[styles.settingsRowVertical, { marginBottom: 16 }]}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <View style={styles.settingsRowLeft}>
+                <Ionicons name="sparkles-outline" size={20} color={theme.colors.primary} />
+                <Text style={styles.settingsLabel}>{t('coach.consent.title')}</Text>
+              </View>
+              <View
+                style={{
+                  backgroundColor: hasValidAiConsent(profile.aiConsent)
+                    ? withAlpha(theme.colors.success, 0.15)
+                    : withAlpha(theme.colors.accent, 0.15),
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 6,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontFamily: 'SpaceGrotesk_700Bold',
+                    color: hasValidAiConsent(profile.aiConsent)
+                      ? theme.colors.success
+                      : theme.colors.accent,
+                  }}
+                >
+                  {hasValidAiConsent(profile.aiConsent)
+                    ? t('coach.consent.statusActive').replace(
+                        '{version}',
+                        String(profile.aiConsent?.version ?? 1),
+                      )
+                    : profile.aiConsent?.revokedAt
+                      ? t('coach.consent.statusRevoked')
+                      : t('coach.consent.statusNone')}
+                </Text>
+              </View>
+            </View>
+            <Text style={{ fontSize: 12, color: theme.colors.muted, lineHeight: 18 }}>
+              {t('coach.consent.description')}
+            </Text>
+            {hasValidAiConsent(profile.aiConsent) ? (
+              <Pressable
+                style={{
+                  alignSelf: 'flex-start',
+                  paddingVertical: 6,
+                  paddingHorizontal: 12,
+                  borderRadius: 6,
+                  backgroundColor: withAlpha(theme.colors.error, 0.12),
+                  marginTop: 4,
+                }}
+                onPress={() => {
+                  Alert.alert(
+                    t('coach.consent.revoke'),
+                    t('coach.consent.revokedNotice'),
+                    [
+                      { text: t('common.cancel'), style: 'cancel' },
+                      {
+                        text: t('coach.consent.revoke'),
+                        style: 'destructive',
+                        onPress: () => revokeAiConsent(),
+                      },
+                    ],
+                  );
+                }}
+                accessibilityRole="button"
+                testID="revoke-ai-consent-btn"
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontFamily: 'SpaceGrotesk_600SemiBold',
+                    color: theme.colors.error,
+                  }}
+                >
+                  {t('coach.consent.revoke')}
+                </Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                style={{
+                  alignSelf: 'flex-start',
+                  paddingVertical: 6,
+                  paddingHorizontal: 12,
+                  borderRadius: 6,
+                  backgroundColor: theme.colors.primary,
+                  marginTop: 4,
+                }}
+                onPress={() => setAiConsent()}
+                accessibilityRole="button"
+                testID="profile-accept-ai-consent-btn"
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontFamily: 'SpaceGrotesk_600SemiBold',
+                    color: theme.colors.background,
+                  }}
+                >
+                  {t('coach.consent.accept')}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+
           <View style={{ gap: 10 }}>
             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
               <Ionicons

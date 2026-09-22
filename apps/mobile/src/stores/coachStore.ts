@@ -1,7 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import * as Crypto from '../utils/uuid';
-import { ChatMessage, ChatMessageSchema, summarizeSessionExercise, calculateAge } from '@fitness-tracker/domain';
+import {
+  ChatMessage,
+  ChatMessageSchema,
+  summarizeSessionExercise,
+  calculateAge,
+  hasValidAiConsent,
+  CURRENT_AI_CONSENT_VERSION,
+} from '@fitness-tracker/domain';
 import { z } from 'zod';
 
 import { createHydratedStorage } from './storage';
@@ -65,6 +72,17 @@ export const useCoachStore = create<CoachState>()(
       sendMessage: async (content: string, retryId?: string, options: CoachOptions = {}) => {
         const scope = getStorageScope();
         if (!content.trim() || get().isSending || !isScopeCurrent(scope)) return;
+
+        const aiConsent = useProfileStore.getState().profile.aiConsent;
+        if (!hasValidAiConsent(aiConsent, CURRENT_AI_CONSENT_VERSION)) {
+          set({
+            error:
+              'AI_CONSENT_REQUIRED: Für die Nutzung des KI-Coaches ist deine vorherige Zustimmung erforderlich. [LEGAL_REVIEW_REQUIRED]',
+            isSending: false,
+          });
+          return;
+        }
+
         const lastMessage = get().messages.at(-1);
         const retryMessage =
           retryId && lastMessage?.id === retryId && lastMessage.role === 'user'

@@ -14,6 +14,9 @@ import {
   calculateVolume,
   calculateLongestStreak,
   formatDateLocal,
+  AiConsent,
+  AiConsentSchema,
+  CURRENT_AI_CONSENT_VERSION,
 } from '@fitness-tracker/domain';
 import { z } from 'zod';
 import { useHistoryStore } from './historyStore';
@@ -75,11 +78,14 @@ export interface Profile {
   showExerciseDeleteConfirmation?: boolean;
   hapticsEnabled?: boolean;
   soundEnabled?: boolean;
+  aiConsent?: AiConsent | undefined;
 }
 
 export interface ProfileState {
   profile: Profile;
   updateProfile: (updates: Partial<Profile>) => void;
+  setAiConsent: (version?: number) => void;
+  revokeAiConsent: () => void;
   getStatistics: () => {
     totalWorkouts: number;
     totalVolume: number; // expressed in preferred units
@@ -153,6 +159,7 @@ const profileStateSchema = z.object({
   showExerciseDeleteConfirmation: z.boolean().optional(),
   hapticsEnabled: z.boolean().optional(),
   soundEnabled: z.boolean().optional(),
+  aiConsent: AiConsentSchema.optional(),
 });
 
 const profilePersistedSchema = z.object({
@@ -173,6 +180,30 @@ export const useProfileStore = create<ProfileState>()(
       updateProfile: (updates) =>
         set((state) => ({
           profile: { ...state.profile, ...updates },
+        })),
+
+      setAiConsent: (version = CURRENT_AI_CONSENT_VERSION) =>
+        set((state) => ({
+          profile: {
+            ...state.profile,
+            aiConsent: {
+              version,
+              consentedAt: new Date().toISOString(),
+            },
+          },
+        })),
+
+      revokeAiConsent: () =>
+        set((state) => ({
+          profile: {
+            ...state.profile,
+            aiConsent: state.profile.aiConsent
+              ? {
+                  ...state.profile.aiConsent,
+                  revokedAt: new Date().toISOString(),
+                }
+              : undefined,
+          },
         })),
 
       getStatistics: () => {

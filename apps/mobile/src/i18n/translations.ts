@@ -406,6 +406,20 @@ export const translations = {
       imageTooLarge: 'Bitte ein kleineres Bild auswählen (max. 4 MB).',
       unsupportedImageFormat: 'Bitte ein JPEG-, PNG- oder WebP-Bild auswählen.',
       imageOpenFailed: 'Bild konnte nicht geöffnet werden.',
+      consent: {
+        title: 'KI-Coach Zustimmung [LEGAL_REVIEW_REQUIRED]',
+        description:
+          'Um den KI-Coach zu nutzen, werden deine eingegebenen Trainingsfragen und optional Trainingskontexte zur Verarbeitung an Drittanbieter-KI-Dienste weitergeleitet. Es werden keine unverschlüsselten Passwörter oder Zahlungsdaten übermittelt. [LEGAL_REVIEW_REQUIRED]',
+        accept: 'Zustimmen & Fortfahren [LEGAL_REVIEW_REQUIRED]',
+        revoke: 'KI-Zustimmung widerrufen [LEGAL_REVIEW_REQUIRED]',
+        revokedNotice:
+          'Die Zustimmung wurde widerrufen. Es werden keine Anfragen an KI-Dienste gesendet. [LEGAL_REVIEW_REQUIRED]',
+        statusActive: 'Aktiv (Version {version})',
+        statusRevoked: 'Widerrufen',
+        statusNone: 'Nicht erteilt',
+        requiredError:
+          'Für die Nutzung des KI-Coaches ist deine vorherige Zustimmung erforderlich. [LEGAL_REVIEW_REQUIRED]',
+      },
     },
     legal: {
       title: 'RECHTLICHES & DATENSCHUTZ',
@@ -934,6 +948,20 @@ export const translations = {
       imageTooLarge: 'Please select a smaller image (max 4 MB).',
       unsupportedImageFormat: 'Please select a JPEG, PNG, or WebP image.',
       imageOpenFailed: 'Failed to open image.',
+      consent: {
+        title: 'AI Coach Consent [LEGAL_REVIEW_REQUIRED]',
+        description:
+          'To use the AI Coach, your training queries and optional workout contexts are forwarded to third-party AI services for processing. No unencrypted passwords or payment credentials are sent. [LEGAL_REVIEW_REQUIRED]',
+        accept: 'Accept & Continue [LEGAL_REVIEW_REQUIRED]',
+        revoke: 'Revoke AI Consent [LEGAL_REVIEW_REQUIRED]',
+        revokedNotice:
+          'Consent has been revoked. No requests will be sent to AI services. [LEGAL_REVIEW_REQUIRED]',
+        statusActive: 'Active (Version {version})',
+        statusRevoked: 'Revoked',
+        statusNone: 'Not granted',
+        requiredError:
+          'Prior consent is required to use the AI Coach. [LEGAL_REVIEW_REQUIRED]',
+      },
     },
     legal: {
       title: 'LEGAL & PRIVACY',

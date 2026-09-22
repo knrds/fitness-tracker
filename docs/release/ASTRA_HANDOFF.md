@@ -1,6 +1,26 @@
-# ASTRA START HERE — aktueller Handoff 2026-09-21
+# ASTRA START HERE — aktueller Handoff 2026-09-22
 
-## Aktueller Checkpoint — 21.09.2026: Roadmap-Blöcke 1–5 (A11y, S4 Fixtures, Supply Chain Triage, S5 Deletion, AI Safety)
+## Aktueller Checkpoint — 22.09.2026: Recovery, Task 04.03 (AI Consent) & Task 02.06 (Guest Migration)
+
+Gemini hat nach der Laptop-Abschaltung den Arbeitsstand vollständig rekonstruiert, verifiziert und erweitert:
+
+- **WP-04 Task 04.03 — Versioned AI Consent (VERIFIED / LEGAL_REVIEW_REQUIRED):**
+  - Technischer Mechanismus: `AiConsentSchema`, `CURRENT_AI_CONSENT_VERSION = 1`, `hasValidAiConsent` in Domain.
+  - Fail-Closed-Guards: `coachStore.sendMessage` und `useCoachRecorder` verweigern jeden Request ohne gültigen Consent mit `AI_CONSENT_REQUIRED`.
+  - UI-Integration: `coach.tsx` Consent-Card; `profile.tsx` Datenschutz-Sektion mit Version/Status, Akzeptieren und Widerrufen (inkl. nativer Bestätigung).
+  - Zweisprachige Strings (DE/EN) in `translations.ts` mit striktem Tag `[LEGAL_REVIEW_REQUIRED]`.
+  - 6 Tests in `apps/mobile/src/stores/__tests__/coachConsent.test.ts` (6/6 PASS).
+- **WP-02 Task 02.06 — Safe Idempotent Guest Migration (VERIFIED):**
+  - Transaktionale, idempotente Migration von Gast-Daten in Ziel-Account-Partition (`account:<uuid>`).
+  - Workouts, eigene Übungen, Templates, Pläne, Körpermaße, Gamification/Level-XP und Profile.
+  - Zero Data Loss & Rollback bei Fehlern; strikte Tenant-Isolation.
+  - 9 Regressionsszenarien in `apps/mobile/src/stores/__tests__/guestMigration.test.ts` (9/9 PASS).
+- **WP-01 Task 01.03 — Provisorische Identity (PARTIAL / PROVISIONAL):**
+  - Display Name `EVARO`, iOS/Android Package `studio.skar.evaro`, Scheme `evaro`.
+  - Bleibt `PARTIAL`, bis der finale Produktname durch den Nutzer ausdrücklich bestätigt wird.
+- **Gesamtmetriken:** **739 Tests PASS** (92 Domain + 582 Mobile in 85 Suiten + 49 Coach-API/Safety + 16 Security-Regressionen). `pnpm verify` PASS, `pnpm build:preview` Web-Export PASS (4.76 MB).
+
+## Vorheriger Checkpoint — 21.09.2026: Roadmap-Blöcke 1–5 (A11y, S4 Fixtures, Supply Chain Triage, S5 Deletion, AI Safety)
 
 Gemini hat fünf sichere, reversible Roadmap-Blöcke auf `astra/p0-release-core` implementiert und verifiziert:
 

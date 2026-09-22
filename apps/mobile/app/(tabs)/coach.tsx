@@ -12,7 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@fitness-tracker/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChatMessage } from '@fitness-tracker/domain';
+import { ChatMessage, hasValidAiConsent, CURRENT_AI_CONSENT_VERSION } from '@fitness-tracker/domain';
 
 import { HorizontalFadeScroll } from '../../src/components/HorizontalFadeScroll';
 import { useCoachStore } from '../../src/stores/coachStore';
@@ -48,7 +48,8 @@ export default function CoachScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { language, t } = useI18n();
-  const { profile } = useProfileStore();
+  const { profile, setAiConsent } = useProfileStore();
+  const isConsentValid = hasValidAiConsent(profile.aiConsent, CURRENT_AI_CONSENT_VERSION);
 
   const suggestions = React.useMemo(() => {
     const list: string[] = [];
@@ -334,52 +335,99 @@ export default function CoachScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         >
-          {messages.length === 0 && (
-            <View style={styles.suggestionsContainer}>
-              <HorizontalFadeScroll contentContainerStyle={styles.suggestionsList}>
-                {suggestions.map((suggestion) => (
-                  <Pressable
-                    key={suggestion}
-                    style={[
-                      styles.suggestionPill,
-                      {
-                        backgroundColor: theme.colors.surface,
-                        borderColor: theme.colors.border,
-                      },
-                    ]}
-                    onPress={() => handleSuggestionPress(suggestion)}
-                  >
-                    <Text
-                      style={[
-                        styles.suggestionText,
-                        {
-                          color: theme.colors.primary,
-                          ...theme.typography.caption,
-                        },
-                      ]}
-                    >
-                      {suggestion}
-                    </Text>
-                  </Pressable>
-                ))}
-              </HorizontalFadeScroll>
+          {!isConsentValid ? (
+            <View
+              style={[
+                styles.consentCard,
+                { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+              ]}
+            >
+              <View style={styles.consentHeader}>
+                <Ionicons name="shield-checkmark-outline" size={20} color={theme.colors.primary} />
+                <Text
+                  style={[
+                    styles.consentTitle,
+                    { color: theme.colors.text, ...theme.typography.subheading },
+                  ]}
+                >
+                  {t('coach.consent.title')}
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.consentDescription,
+                  { color: theme.colors.muted, ...theme.typography.bodySmall },
+                ]}
+              >
+                {t('coach.consent.description')}
+              </Text>
+              <Pressable
+                style={[styles.consentButton, { backgroundColor: theme.colors.primary }]}
+                onPress={() => setAiConsent()}
+                accessibilityRole="button"
+                accessibilityLabel={t('coach.consent.accept')}
+                testID="accept-ai-consent-btn"
+              >
+                <Text
+                  style={[
+                    styles.consentButtonText,
+                    { color: theme.colors.background, ...theme.typography.button },
+                  ]}
+                >
+                  {t('coach.consent.accept')}
+                </Text>
+              </Pressable>
             </View>
-          )}
+          ) : (
+            <>
+              {messages.length === 0 && (
+                <View style={styles.suggestionsContainer}>
+                  <HorizontalFadeScroll contentContainerStyle={styles.suggestionsList}>
+                    {suggestions.map((suggestion) => (
+                      <Pressable
+                        key={suggestion}
+                        style={[
+                          styles.suggestionPill,
+                          {
+                            backgroundColor: theme.colors.surface,
+                            borderColor: theme.colors.border,
+                          },
+                        ]}
+                        onPress={() => handleSuggestionPress(suggestion)}
+                      >
+                        <Text
+                          style={[
+                            styles.suggestionText,
+                            {
+                              color: theme.colors.primary,
+                              ...theme.typography.caption,
+                            },
+                          ]}
+                        >
+                          {suggestion}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </HorizontalFadeScroll>
+                </View>
+              )}
 
-          <CoachComposer
-            value={inputText}
-            onChangeText={setInputText}
-            image={image}
-            onRemoveImage={() => setImage(undefined)}
-            onPickImage={() => void pickImage()}
-            onSend={(text, mode) => void handleSend(text, mode)}
-            sending={isSending}
-            recording={recorder.recording}
-            transcribing={recorder.busy}
-            onToggleRecording={recorder.toggle}
-            onCancelRecording={recorder.cancel}
-            error={recorder.error || attachmentError}
-          />
+              <CoachComposer
+                value={inputText}
+                onChangeText={setInputText}
+                image={image}
+                onRemoveImage={() => setImage(undefined)}
+                onPickImage={() => void pickImage()}
+                onSend={(text, mode) => void handleSend(text, mode)}
+                sending={isSending}
+                recording={recorder.recording}
+                transcribing={recorder.busy}
+                onToggleRecording={recorder.toggle}
+                onCancelRecording={recorder.cancel}
+                error={recorder.error || attachmentError}
+              />
+            </>
+          )}
         </KeyboardAvoidingView>
       </View>
     </View>
@@ -505,5 +553,39 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontFamily: 'Manrope_600SemiBold',
+  },
+  consentCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 10,
+  },
+  consentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  consentTitle: {
+    fontSize: 15,
+    fontFamily: 'SpaceGrotesk_700Bold',
+  },
+  consentDescription: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: 'Manrope_500Medium',
+  },
+  consentButton: {
+    minHeight: 44,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
+    paddingHorizontal: 16,
+  },
+  consentButtonText: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 14,
   },
 });

@@ -1,5 +1,20 @@
 # EVARO – Astra Review Queue
 
+## Recovery & Roadmap-Fortsetzung (AI Consent & Guest Migration) — 22.09.2026
+
+- **AR-041: Versioned AI Consent — WP-04 Task 04.03 / S6 / S10 (VERIFIED / LEGAL_REVIEW_REQUIRED).**
+  - Technischer Mechanismus in Domain (`AiConsentSchema`, `CURRENT_AI_CONSENT_VERSION = 1`, `hasValidAiConsent`) und Store (`profileStore.setAiConsent`, `revokeAiConsent`).
+  - Fail-Closed-Guards vor KI-Aufrufen: `coachStore.sendMessage` und `useCoachRecorder` verweigern jeden Request ohne gültigen Consent mit `AI_CONSENT_REQUIRED`.
+  - UI-Integration: `coach.tsx` Consent-Card vor Chat-Freischaltung; `profile.tsx` Datenschutz-Sektion mit Version/Status, Akzeptieren und Widerrufen (inkl. Alert-Bestätigung).
+  - Zweisprachige Strings (DE/EN) in `translations.ts` mit striktem Tag `[LEGAL_REVIEW_REQUIRED]`.
+  - 6 dedizierte Tests in `apps/mobile/src/stores/__tests__/coachConsent.test.ts` (6/6 PASS).
+- **AR-042: Safe Idempotent Guest-to-Account Migration — WP-02 Task 02.06 / S4 / S5 (VERIFIED).**
+  - Transaktionale, idempotente Migration von Legacy/Gast-Daten (`LOCAL_USER_ID`) in Ziel-Account-Partition (`account:<uuid>`) in `authMigration.ts` und `applyAccountSession`.
+  - Workouts (Ownership-Remapping, UUID-Kollisionsvermeidung, Sync-Enqueue), eigene Übungen, Templates, Pläne, Körpermaße, Gamification/Level-XP und Profile.
+  - Zero Data Loss: Fehler vor Legacy-Purge brechen transaktional ab; Legacy-Daten bleiben intakt.
+  - Tenant-Isolation: Direkter Account-Wechsel A -> B migriert keine Daten; Logout isoliert.
+  - 9 Regressionsszenarien in `apps/mobile/src/stores/__tests__/guestMigration.test.ts` (9/9 PASS).
+
 ## Roadmap-Blöcke 1–5 (A11y, S4 Fixtures, Supply Chain, S5 Deletion, AI Safety DE/EN) — 21.09.2026
 
 - **AR-036: Accessibility / VoiceOver Audit & Profile Badge Removal (VERIFIED).** „Jahre / years“-Badge über Geburtsdatum in `profile.tsx` restlos entfernt. Barrierefreiheits-Audit in `RestTimer.tsx`, `AnatomyFigure.tsx`, `session.tsx`, `BattlePassModal.tsx` mit Rollen, Accessibility-Labels, `accessibilityState`, `accessibilityActions` und Touch-Targets $\ge 44 \times 44$\,pt. Automatisierte Tests in `accessibilityAudit.test.tsx` (6/6 PASS).

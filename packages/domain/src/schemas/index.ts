@@ -416,3 +416,25 @@ export const ChatMessageSchema = z.object({
 });
 
 export type ChatMessageInput = z.input<typeof ChatMessageSchema>;
+
+export const CURRENT_AI_CONSENT_VERSION = 1;
+
+export const AiConsentSchema = z.object({
+  version: z.number().int().positive(),
+  consentedAt: z.string().min(1),
+  revokedAt: z.string().min(1).optional(),
+});
+
+export type AiConsent = z.infer<typeof AiConsentSchema>;
+
+export function hasValidAiConsent(
+  consent: unknown,
+  requiredVersion = CURRENT_AI_CONSENT_VERSION,
+): boolean {
+  if (!consent || typeof consent !== 'object') return false;
+  const parsed = AiConsentSchema.safeParse(consent);
+  if (!parsed.success) return false;
+  if (parsed.data.revokedAt) return false;
+  return parsed.data.version === requiredVersion;
+}
+

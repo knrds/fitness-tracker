@@ -328,6 +328,7 @@ describe('Targeted UI/UX Enhancements Regression Suite', () => {
         experienceLevel: 'advanced',
         fitnessGoal: 'gain_strength',
       });
+      useProfileStore.getState().setAiConsent();
 
       mockStreamCoachResponse.mockImplementation(async function* () {
         yield 'Hello!';

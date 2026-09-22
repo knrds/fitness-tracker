@@ -1,19 +1,45 @@
 # EVARO Astra Takeover — Execution Status
 
-Stand: 21.09.2026. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
+Stand: 22.09.2026. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
-## Checkpoint 21.09.2026 — Task 01.03: Final App Identity Consolidated
+## Checkpoint 22.09.2026 — Recovery & Task 04.03: Versioned AI Consent (WP-04 / S6 / S10)
 
-**WP-01 Task 01.03, DONE, Risiko LOW.**
+**WP-04 Task 04.03, DONE / VERIFIED, Risiko LOW (Legal Copy: LEGAL_REVIEW_REQUIRED).**
 
-Gemini hat die vom Nutzer verbindlich festgelegte finale App-Identität im gesamten Repository konsolidiert:
+Nach Unterbrechung durch Laptop-Abschaltung vollständig rekonstruiert, abgeschlossen und verifiziert:
+- **Technischer Mechanismus:**
+  - `CURRENT_AI_CONSENT_VERSION = 1` und `AiConsentSchema` (`version`, `consentedAt`, `revokedAt`) im Domain-Paket.
+  - Fail-Closed-Validierungsfunktion `hasValidAiConsent(consent, requiredVersion)`.
+  - Persistente Speicherung im `profileStore` (user-scoped / partitioniert je Storage-Scope).
+  - Deterministischer Consent-Guard vor `coachStore.sendMessage`: Sendung wird blockiert und Fehler `AI_CONSENT_REQUIRED` gesetzt, wenn kein gültiger Consent für die aktuelle Version vorliegt.
+  - Consent-Guard vor Audio-Transkription / Stream in `useCoachRecorder`: bricht sofort fail-closed ab.
+- **Benutzeroberfläche & Widerruf:**
+  - `coach.tsx`: Blendet bei fehlendem oder veraltetem Consent den Chat-Composer und Vorschläge aus und zeigt stattdessen eine dedizierte Zustimmungs-Karte (`consentCard`) mit Zweckbeschreibung und Aktionsbutton („Zustimmen & Fortfahren“).
+  - `profile.tsx`: Eigene Sektion für KI-Datenschutz mit Statusanzeige (`Aktiv (Version 1)`, `Widerrufen`, `Nicht erteilt`), Zweckbeschreibung und interaktivem Button für Zustimmung bzw. Widerruf mit nativer Sicherheitsabfrage (`Alert.alert`).
+  - Zweisprachige Lokalisierung (DE/EN) in `translations.ts` mit strikter Ausweisung `[LEGAL_REVIEW_REQUIRED]`.
+- **Automatisierte Testverifikation:**
+  - Dedizierte Testsuite `apps/mobile/src/stores/__tests__/coachConsent.test.ts` (6/6 Tests PASS):
+    1. Kein Consent -> kein Provider-Request, Fail-Closed mit Fehlermeldung.
+    2. Consent erteilt -> Request an Coach-Proxy erfolgreich möglich.
+    3. Consent widerrufen -> zukünftige Anfragen deterministisch blockiert.
+    4. Veraltete Version -> Re-Consent zwingend erforderlich vor nächstem Request.
+    5. Account-Wechsel A -> B -> strikte Partitions-Isolation (keine Vererbung des Consents).
+    6. Malformed/Invalide Daten -> Fail-Closed.
+- **Gesamtmetriken:** **739 Tests PASS** (92 Domain + 582 Mobile in 85 Suiten + 49 Coach-API/Safety + 16 Security-Regressionen); Workspace-Typecheck PASS; Lint PASS; `pnpm build:preview` Web-Export PASS (4.76 MB).
+
+## Checkpoint 21.09.2026 — Task 01.03: App Identity (Provisional Candidate)
+
+**WP-01 Task 01.03, PARTIAL (PROVISIONAL), Risiko LOW.**
+
+Provisorische Identity-Konfiguration gemäß Nutzerrichtlinie:
+- **Status:** `PARTIAL` (EVARO ist Arbeitsname; endgültiger Produktname noch nicht 100 % entschieden).
 - **Display Name:** `EVARO`
-- **iOS Bundle Identifier:** `studio.skar.evaro`
-- **Android Package:** `studio.skar.evaro`
-- **URL Scheme:** `evaro`
-- **Auth Redirects:** `authStore.ts` und `authStore.test.ts` von `fitness-tracker://` auf `evaro://` und `evaro://auth/reset-password` umgestellt.
+- **Candidate iOS Bundle Identifier:** `studio.skar.evaro`
+- **Candidate Android Package:** `studio.skar.evaro`
+- **Candidate URL Scheme:** `evaro`
+- **Auth Redirects:** `authStore.ts` und `authStore.test.ts` vorbereitet auf `evaro://` und `evaro://auth/reset-password`.
 - **EAS Project ID:** `ddb36b12-30d0-4422-9e17-85ab8919f656` unverändert beibehalten.
-- **Validierung:** Expo Config Introspect verifiziert (`android:scheme: 'evaro'`, `app_name: 'EVARO'`, `bundleIdentifier: 'studio.skar.evaro'`). `pnpm verify` (724 Tests PASS), `pnpm build:preview` PASS (4.76 MB).
+- **Regel:** Keine irreversible Store-Identity oder unnötige Bundle-ID-Migration erzwingen, bis Nutzer den finalen Markennamen bestätigt.
 
 ## Checkpoint 21.09.2026 — Roadmap Execution: Blocks 1–5 (Commit `dcfc3aa`)
 

@@ -27,38 +27,39 @@ export async function checkConnectivity(): Promise<boolean> {
 }
 
 export interface CoachContext {
-  exerciseCatalog?: Array<{ id: string; name: string }>;
+  exerciseCatalog?: Array<{ id: string; name: string }> | undefined;
   profile: {
     displayName: string;
-    experienceLevel?: ExperienceLevel;
+    experienceLevel?: ExperienceLevel | undefined;
     preferredUnits: UnitSystem;
-    fitnessGoal?: FitnessGoal;
-    biologicalSex?: BiologicalSex;
-    heightCm?: number;
-    weightKg?: number;
-    benchPressMaxKg?: number;
-    squatMaxKg?: number;
-    deadliftMaxKg?: number;
+    fitnessGoal?: FitnessGoal | undefined;
+    biologicalSex?: BiologicalSex | undefined;
+    heightCm?: number | undefined;
+    weightKg?: number | undefined;
+    benchPressMaxKg?: number | undefined;
+    squatMaxKg?: number | undefined;
+    deadliftMaxKg?: number | undefined;
     age?: number | undefined;
-    language?: 'de' | 'en';
+    language?: 'de' | 'en' | undefined;
   };
-  stats: {
+  stats?: {
     totalWorkouts: number;
     currentStreak: number;
-    latestWeight?: number;
-  };
+    latestWeight?: number | undefined;
+  } | undefined;
   recentWorkouts?: Array<{
     name: string;
     startedAt: string;
-    durationMinutes?: number;
-    totalVolume?: number;
+    durationMinutes?: number | undefined;
+    totalVolume?: number | undefined;
     exercises: Array<{
       name: string;
       workingSets: number;
-      volume?: number;
-      topSet?: string;
+      volume?: number | undefined;
+      topSet?: string | undefined;
     }>;
-  }>;
+  }> | undefined;
+  [key: string]: unknown;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

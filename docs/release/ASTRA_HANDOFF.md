@@ -1,6 +1,32 @@
 # ASTRA START HERE — aktueller Handoff 2026-09-22
 
-## Aktueller Checkpoint — 22.09.2026: Batch 4 (Local Foundations, Preferences, Resilience & Taxonomy Wiring)
+## Aktueller Checkpoint — 22.09.2026: Zusatzblock (Coach App-weites Wissen, Program DnD Parity & Home Program Preview)
+
+Gemini hat die drei konkreten Produktanforderungen des Zusatzblocks ohne Einführung neuer Domänen vollständig und sicher implementiert, typgeprüft und automatisiert abgesichert:
+
+- **WP-03 / S6 Task — Coach App-weites Wissen & Central Context Layer (VERIFIED):**
+  - Zentraler Lese- und Kontext-Builder in `coachContextBuilder.ts` mit 15 strukturierten Methoden: Profil (`getUserTrainingProfile`), Templates (`getTemplatesSummary`, `getTemplateById`), Programme (`getProgramsSummary`, `getProgramById`, `getActiveProgram`, `getNextProgramWorkout`), Historie (`getWorkoutHistorySummary`, `getRecentExerciseHistory`), Performance & PRs (`getExercisePerformance`, `getRelevantPRs`), Körpermetriken (`getRelevantMetrics`), Trainingsstatus (`getCurrentTrainingState`), Ressourcen-Index (`buildResourceIndex`) und selektive Abfrage (`buildContextForQuery`).
+  - Strikte Tier-Gatings: FREE wirft `COACH_LOCKED`; PRO erhält reduzierten Preview-Kontext; COACH erhält vollen, selektiven Kontext.
+  - Selektive Keyword-Extraktion für Übungen (max. 5), Templates (max. 3), Programme/Pläne, PRs und Metriken.
+  - Datenschutz & Integrität: Notizen auf 120 Zeichen gekürzt, strikte Obergrenzen, null PII, Passwörter, E-Mails oder Auth-Tokens im Kontext.
+  - Anbindung in `coachStore.ts` als alleinige strukturierte Kontextquelle.
+  - 27 Tests in `coachContextBuilder.test.ts` (27/27 PASS).
+- **WP-09 Task — Program Editor Drag & Drop Parity (VERIFIED):**
+  - Vollständige visuelle und interaktive DnD-Parität in `programs/builder.tsx` mit Template-/Folder-Reorder.
+  - Drag-Handle mit aktivem Card-Elevation (25), zIndex (10000) und sanfter Skalierung (`1.03` unter Beachtung von `useReducedMotion`).
+  - Day-Hover-Erkennung mit visualisiertem Drop-Target-Badge („Hier ablegen“ / „Drop here“) und Border-Hervorhebung.
+  - Mathematisch abgesicherte Reorder-Geometrie (`programReorderGeometry.ts` / `reorderProgramWorkout`): saubere Neu-Indizierung von `.order`, Erhaltung nicht betroffener Wochen/Tage, Schutz vor Duplikaten oder Datenverlust.
+  - Haptisches Feedback (`hapticFeedback.notification('success')`) beim erfolgreichen Ablegen.
+  - 11 Tests in `programReorder.test.ts` (11/11 PASS).
+- **Core Tracker UX — Home – Today's Program Workout Preview (VERIFIED):**
+  - Pure Domain-Planungslogik in `programSchedule.ts` (`getProgramScheduleStatus`): ermittelt aktuelle Programmwoche, heutiges Workout, Rest Days, abgeschlossene Workouts und das nächste anstehende Workout.
+  - Kein blindes Sofort-Starten mehr: Widget-Tap auf dem Home-Screen (`(tabs)/index.tsx`) öffnet das modulare, wiederverwendbare `WorkoutPreviewModal` mit Übungsliste, Sätzen, Wiederholungen, Ziel-RPE/RIR und Notizen.
+  - Wiederverwendung des Modals auch in `(tabs)/workouts.tsx`. Barrierefreie Touch-Targets ($\ge 44 \times 44$\,pt).
+  - 10 Vitest-Tests in `programSchedule.test.ts` (10/10 PASS).
+  - 4 Jest-Tests in `WorkoutPreviewModal.test.tsx` (4/4 PASS).
+- **Gesamtmetriken:** **898 Tests PASS** (128 Domain Vitest in 15 Suiten + 705 Mobile Jest in 103 Suiten + 49 Coach-API/Safety Node Tests + 16 Security-Regressionen). `pnpm verify` PASS, `pnpm build:preview` Web-Export PASS (4.84 MB).
+
+## Vorheriger Checkpoint — 22.09.2026: Batch 4 (Local Foundations, Preferences, Resilience & Taxonomy Wiring)
 
 Gemini hat die kanonisch nächsten lokal ausführbaren P1-Aufgaben und Roadmap-Korrekturen implementiert und verifiziert:
 

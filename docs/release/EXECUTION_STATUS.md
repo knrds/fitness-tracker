@@ -2,6 +2,36 @@
 
 Stand: 22.09.2026. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
+## Checkpoint 22.09.2026 — Zusatzblock: Coach App-weites Wissen, Program Drag & Drop Parity & Home Program Preview (WP-03, WP-09, S6, Core Tracker UX)
+
+**WP-03 / WP-09 / S6 / Core Tracker UX, VERIFIED & PREPARED, Risiko LOW-MEDIUM.**
+
+Gemini hat die drei konkreten Produktanforderungen des Zusatzblocks ohne Einführung neuer Domänen vollständig und sicher implementiert, typgeprüft und automatisiert abgesichert:
+
+1. **Coach App-weites Wissen & Central Context Layer (`coachContextBuilder.ts`, `coachStore.ts`, VERIFIED):**
+   - Zentraler Lese- und Kontext-Builder mit 15 strukturierten Methoden: Profil (`getUserTrainingProfile`), Templates (`getTemplatesSummary`, `getTemplateById`), Programme (`getProgramsSummary`, `getProgramById`, `getActiveProgram`, `getNextProgramWorkout`), Historie (`getWorkoutHistorySummary`, `getRecentExerciseHistory`), Performance & PRs (`getExercisePerformance`, `getRelevantPRs`), Körpermetriken (`getRelevantMetrics`), Trainingsstatus (`getCurrentTrainingState`), Ressourcen-Index (`buildResourceIndex`) und selektive Abfrage (`buildContextForQuery`).
+   - Strikte Tier-Gatings: FREE wirft `COACH_LOCKED`; PRO erhält reduzierten Preview-Kontext; COACH erhält vollen, selektiven Kontext.
+   - Selektive Keyword-Extraktion für Übungen (max. 5), Templates (max. 3), Programme/Pläne, PRs und Metriken.
+   - Datenschutz & Integrität: Notizen auf 120 Zeichen gekürzt, strikte Obergrenzen, null PII, Passwörter, E-Mails oder Auth-Tokens im Kontext.
+   - 27 Tests in `apps/mobile/src/services/__tests__/coachContextBuilder.test.ts` (27/27 PASS).
+
+2. **Program Editor Drag & Drop Parity (`builder.tsx`, `programReorderGeometry.ts`, VERIFIED):**
+   - Vollständige visuelle und interaktive DnD-Parität mit Template-/Folder-Reorder.
+   - Drag-Handle mit aktivem Card-Elevation (25), zIndex (10000) und sanfter Skalierung (`1.03` unter Beachtung von `useReducedMotion`).
+   - Day-Hover-Erkennung mit visualisiertem Drop-Target-Badge („Hier ablegen“ / „Drop here“) und Border-Hervorhebung.
+   - Mathematisch abgesicherte Reorder-Geometrie (`reorderProgramWorkout`): saubere Neu-Indizierung von `.order`, Erhaltung nicht betroffener Wochen/Tage, Schutz vor Duplikaten oder Datenverlust.
+   - Haptisches Feedback (`hapticFeedback.notification('success')`) beim erfolgreichen Ablegen.
+   - 11 Tests in `apps/mobile/src/utils/__tests__/programReorder.test.ts` (11/11 PASS).
+
+3. **Home – Today's Program Workout Preview (`programSchedule.ts`, `WorkoutPreviewModal.tsx`, `index.tsx`, `workouts.tsx`, VERIFIED):**
+   - Pure Domain-Planungslogik in `getProgramScheduleStatus()`: ermittelt aktuelle Programmwoche, heutiges Workout, Rest Days, abgeschlossene Workouts und das nächste anstehende Workout.
+   - Kein blindes Sofort-Starten mehr: Widget-Tap auf dem Home-Screen öffnet das modulare, wiederverwendbare `WorkoutPreviewModal` mit Übungsliste, Sätzen, Wiederholungen, Ziel-RPE/RIR und Notizen.
+   - Wiederverwendung des Modals auch in `workouts.tsx`. Barrierefreie Touch-Targets ($\ge 44 \times 44$\,pt).
+   - 10 Vitest-Tests in `packages/domain/src/__tests__/programSchedule.test.ts` (10/10 PASS).
+   - 4 Jest-Tests in `apps/mobile/src/components/workout/__tests__/WorkoutPreviewModal.test.tsx` (4/4 PASS).
+
+- **Gesamtmetriken:** **898 Tests PASS** (128 Domain Vitest in 15 Suiten + 705 Mobile Jest in 103 Suiten + 49 Coach-API/Safety Node Tests + 16 Security-Regressionen); Workspace-Typecheck PASS (0 Fehler); Lint PASS (0 Fehler); `pnpm build:preview` Web-Export PASS (4.84 MB); Preview Security Gate PASS.
+
 ## Checkpoint 22.09.2026 — Batch 4: Local Foundations, Preferences, Resilience & Taxonomy Wiring (WP-03, WP-06, WP-07, WP-08, WP-09)
 
 **WP-03 / WP-06 / WP-07 / WP-08 / WP-09, VERIFIED & PREPARED, Risiko LOW-MEDIUM.**

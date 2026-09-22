@@ -2,6 +2,9 @@ import { Theme, useThemeStyles, useTheme, withAlpha, useDialog } from '@fitness-
 import { KeyboardDoneAccessory } from '../../src/components/workout/KeyboardDoneAccessory';
 import { templateExercisesFromSession } from '@fitness-tracker/domain';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
+import { useReducedMotion } from 'react-native-reanimated';
+import { hapticFeedback } from '../../src/utils/haptics';
+import { reorderProgramWorkout } from '../../src/utils/programReorderGeometry';
 import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
 import React, { useState, useEffect } from 'react';
 import {
@@ -71,16 +74,33 @@ export default function ProgramBuilderScreen() {
   const [modalMode, setModalMode] = useState<'options' | 'templates' | null>(null);
   const [pickerTab, setPickerTab] = useState<'templates' | 'history'>('templates');
   const [rescheduleWorkout, setRescheduleWorkout] = useState<ProgramWorkout | null>(null);
+  const [hoveredDay, setHoveredDay] = useState<number | null>(null);
+  const reducedMotion = useReducedMotion();
 
   const dayLayouts = React.useRef<Record<number, { y: number; height: number }>>({});
   const rowLayouts = React.useRef<Record<string, { y: number; height: number }>>({});
+
   const sorter = useMeasuredReorder(
     (activeProgram?.workouts ?? [])
       .filter((w) => w.week === selectedWeek)
       .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.order - b.order),
     () => {},
     {
+      onHoverY: (dropY) => {
+        const days = Object.entries(dayLayouts.current);
+        const target =
+          days.find(([, layout]) => dropY >= layout.y && dropY <= layout.y + layout.height) ??
+          days.sort(
+            ([, a], [, b]) =>
+              Math.abs(dropY - a.y - a.height / 2) - Math.abs(dropY - b.y - b.height / 2),
+          )[0];
+        if (target) {
+          const targetDay = Number(target[0]);
+          setHoveredDay((prev) => (prev !== targetDay ? targetDay : prev));
+        }
+      },
       onDrop: (workout, dropY) => {
+        setHoveredDay(null);
         if (!activeProgram) return;
         const days = Object.entries(dayLayouts.current);
         const target =
@@ -99,29 +119,30 @@ export default function ProgramBuilderScreen() {
           const layout = sorter.itemLayouts.current[w.id];
           return layout && dropY > layout.y + layout.height / 2;
         }).length;
-        destination.splice(insertIndex, 0, { ...workout, dayOfWeek: targetDay });
-        const source = other
-          .filter(
-            (w) =>
-              w.week === selectedWeek &&
-              w.dayOfWeek === workout.dayOfWeek &&
-              w.dayOfWeek !== targetDay,
-          )
-          .sort((a, b) => a.order - b.order);
-        handleChange({
-          workouts: [
-            ...other.filter(
-              (w) =>
-                w.week !== selectedWeek ||
-                (w.dayOfWeek !== targetDay && w.dayOfWeek !== workout.dayOfWeek),
-            ),
-            ...source.map((w, order) => ({ ...w, order })),
-            ...destination.map((w, order) => ({ ...w, order })),
-          ],
+
+        const updatedWorkouts = reorderProgramWorkout({
+          workouts: activeProgram.workouts,
+          workoutId: workout.id,
+          targetWeek: selectedWeek,
+          targetDay,
+          targetIndex: insertIndex,
         });
+
+        if (localProgram) {
+          setLocalProgram({ ...localProgram, workouts: updatedWorkouts });
+        } else if (program) {
+          setLocalProgram({ ...program, workouts: updatedWorkouts });
+        }
+        void hapticFeedback.notification('success');
       },
     },
   );
+
+  useEffect(() => {
+    if (!sorter.activeDragId && hoveredDay !== null) {
+      setHoveredDay(null);
+    }
+  }, [sorter.activeDragId, hoveredDay]);
 
   const mapToTemplateExercises = (exercises: SessionExercise[]): TemplateExercise[] =>
     templateExercisesFromSession(exercises, Crypto.randomUUID);
@@ -679,6 +700,7 @@ export default function ProgramBuilderScreen() {
             ? activeProgram.workouts.find((w: ProgramWorkout) => w.id === sorter.activeDragId)
             : null;
           const isDraggingDay = draggingWorkout?.dayOfWeek === day;
+          const isHoveredDay = sorter.activeDragId !== null && hoveredDay === day;
           return (
             <View
               key={day}
@@ -686,6 +708,7 @@ export default function ProgramBuilderScreen() {
                 styles.dayContainer,
                 { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
                 isDraggingDay && { zIndex: 9999, elevation: 10 },
+                isHoveredDay && styles.dayContainerHovered,
               ]}
               onLayout={(e) => {
                 if (!sorter.activeDragId) {
@@ -700,7 +723,17 @@ export default function ProgramBuilderScreen() {
               }}
             >
               <View style={styles.dayHeaderRow}>
-                <Text style={styles.dayName}>{getDayName(day)}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={styles.dayName}>{getDayName(day)}</Text>
+                  {isHoveredDay && (
+                    <View style={styles.dropTargetBadge}>
+                      <Ionicons name="arrow-down-circle" size={13} color={theme.colors.primary} />
+                      <Text style={styles.dropTargetBadgeText}>
+                        {language === 'de' ? 'Hier ablegen' : 'Drop here'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
                 <View
                   style={[
                     styles.dayStatusBadge,
@@ -732,6 +765,7 @@ export default function ProgramBuilderScreen() {
               {dayWorkouts.map((w: ProgramWorkout) => {
                 const template = templates.find((t) => t.id === w.templateId);
                 const exerciseCount = template?.exercises.length ?? 0;
+                const isCardDragging = sorter.activeDragId === w.id;
 
                 return (
                   <Animated.View
@@ -752,6 +786,13 @@ export default function ProgramBuilderScreen() {
                         borderColor: theme.colors.border,
                       },
                       sorter.getRowStyle(w.id),
+                      isCardDragging && styles.cardActiveDrag,
+                      isCardDragging && !reducedMotion && {
+                        transform: [
+                          ...sorter.getRowStyle(w.id).transform,
+                          { scale: 1.03 },
+                        ],
+                      },
                     ]}
                   >
                     <View style={styles.workoutTopRow}>
@@ -1288,6 +1329,37 @@ const createStyles = (theme: Theme) =>
       borderWidth: 0,
       borderColor: theme.colors.border,
       overflow: 'visible',
+    },
+    dayContainerHovered: {
+      borderColor: theme.colors.primary,
+      borderWidth: 2,
+      backgroundColor: withAlpha(theme.colors.primary, 0.08),
+    },
+    dropTargetBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+      backgroundColor: withAlpha(theme.colors.primary, 0.18),
+      borderWidth: 1,
+      borderColor: theme.colors.primary,
+    },
+    dropTargetBadgeText: {
+      fontSize: 11,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      color: theme.colors.primary,
+    },
+    cardActiveDrag: {
+      borderColor: theme.colors.primary,
+      borderWidth: 1.5,
+      zIndex: 10000,
+      elevation: 25,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.35,
+      shadowRadius: 10,
     },
     dayHeaderRow: {
       flexDirection: 'row',

@@ -4,8 +4,6 @@ import * as Crypto from '../utils/uuid';
 import {
   ChatMessage,
   ChatMessageSchema,
-  summarizeSessionExercise,
-  calculateAge,
   hasValidAiConsent,
   CURRENT_AI_CONSENT_VERSION,
 } from '@fitness-tracker/domain';
@@ -13,12 +11,7 @@ import { z } from 'zod';
 
 import { createHydratedStorage } from './storage';
 import { useProfileStore } from './profileStore';
-import { useBodyMetricStore } from './bodyMetricStore';
-import { useExerciseStore } from './exerciseStore';
-import { useHistoryStore } from './historyStore';
-import { useAchievementStore } from './achievementStore';
-import { useProgramStore } from './programStore';
-import { ACHIEVEMENTS } from '@fitness-tracker/domain';
+import { coachContextBuilder } from '../services/coachContextBuilder';
 import { streamCoachResponse, checkConnectivity, CoachOptions } from '../utils/coachApi';
 import { getStorageScope, isScopeCurrent } from '../data/storageScope';
 import { entitlementService } from '../services/entitlementService';
@@ -49,19 +42,7 @@ const defaultPersistedState: CoachPersistState = {
   messages: [],
 };
 
-const formatTopSet = (weight?: number, reps?: number, rir?: number, rpe?: number) => {
-  if (!weight && !reps) return undefined;
 
-  const load = weight ? `${Number(weight.toFixed(1))} kg` : 'bodyweight';
-  const repText = reps ? ` x ${reps}` : '';
-  const effortText =
-    rir !== undefined
-      ? ` @ ${rir} RIR`
-      : rpe !== undefined
-        ? ` @ RPE ${Number(rpe.toFixed(1))}`
-        : '';
-  return `${load}${repText}${effortText}`;
-};
 
 export const useCoachStore = create<CoachState>()(
   persist(
@@ -152,123 +133,8 @@ export const useCoachStore = create<CoachState>()(
         }));
 
         try {
-          // 3. Assemble context from other stores
-          const profileState = useProfileStore.getState();
-          const profile = profileState.profile;
-          const stats = profileState.getStatistics();
-          const latestWeight = useBodyMetricStore.getState().getLatestMetric()?.weightKg;
-          const exercisesById = new Map(
-            useExerciseStore.getState().exercises.map((exercise) => [exercise.id, exercise.name]),
-          );
-          const recentWorkouts = useHistoryStore
-            .getState()
-            .getSessionsByDateDesc()
-            .slice(0, 5)
-            .map((session) => {
-              const exerciseSummaries = session.exercises.slice(0, 8).map((sessionExercise) => {
-                const summary = summarizeSessionExercise(sessionExercise);
-                const workingSets = sessionExercise.sets.filter(
-                  (set) => set.completed && set.type !== 'warmup',
-                );
-                const topSet = workingSets
-                  .filter((set) => set.weight || set.reps)
-                  .sort((a, b) => (b.weight || 0) * (b.reps || 1) - (a.weight || 0) * (a.reps || 1))
-                  .at(0);
-                const topSetText = topSet
-                  ? formatTopSet(topSet.weight, topSet.reps, topSet.rir, topSet.rpe)
-                  : undefined;
-
-                return {
-                  name: exercisesById.get(sessionExercise.exerciseId) || 'Unknown exercise',
-                  workingSets: workingSets.length,
-                  volume: Math.round(summary.totalVolume),
-                  ...(topSetText ? { topSet: topSetText } : {}),
-                };
-              });
-
-              return {
-                name: session.name,
-                startedAt: session.startedAt.toISOString(),
-                ...(session.durationSeconds !== undefined
-                  ? { durationMinutes: Math.round(session.durationSeconds / 60) }
-                  : {}),
-                totalVolume: exerciseSummaries.reduce(
-                  (sum, exercise) => sum + (exercise.volume || 0),
-                  0,
-                ),
-                exercises: exerciseSummaries,
-              };
-            });
-
-          const achievementState = useAchievementStore.getState();
-          const unlockedIds = new Set(Object.keys(achievementState.unlockedAchievements));
-          const unlockedAchievements = ACHIEVEMENTS.filter((a) => unlockedIds.has(a.id)).map(
-            (a) => a.name,
-          );
-          const nextTargets = ACHIEVEMENTS.filter((a) => !unlockedIds.has(a.id))
-            .slice(0, 8)
-            .map((a) => `${a.name}: ${a.description}`);
-          const activeProgram = useProgramStore.getState().programs.find((p) => p.isActive);
-          const personalRecords = useHistoryStore.getState().getPRs();
-          const topPRs = Object.entries(personalRecords)
-            .slice(0, 8)
-            .map(([exerciseId, bestWeightKg]) => ({
-              exercise: exercisesById.get(exerciseId) || 'Exercise',
-              bestWeightKg,
-            }));
-
-          const computedAge = calculateAge(profile.dateOfBirth || profile.birthYear);
-
-          const context = {
-            exerciseCatalog: useExerciseStore
-              .getState()
-              .exercises.map(({ id, name }) => ({ id, name })),
-            profile: {
-              displayName: profile.displayName || 'Athlete',
-              preferredUnits: profile.preferredUnits,
-              ...(computedAge !== null ? { age: computedAge } : {}),
-              ...(profile.experienceLevel !== undefined
-                ? { experienceLevel: profile.experienceLevel }
-                : {}),
-              ...(profile.fitnessGoal !== undefined ? { fitnessGoal: profile.fitnessGoal } : {}),
-              ...(profile.biologicalSex !== undefined
-                ? { biologicalSex: profile.biologicalSex }
-                : {}),
-              ...(profile.heightCm !== undefined ? { heightCm: profile.heightCm } : {}),
-              ...(profile.weightKg !== undefined ? { weightKg: profile.weightKg } : {}),
-              ...(profile.benchPressMaxKg !== undefined
-                ? { benchPressMaxKg: profile.benchPressMaxKg }
-                : {}),
-              ...(profile.squatMaxKg !== undefined ? { squatMaxKg: profile.squatMaxKg } : {}),
-              ...(profile.deadliftMaxKg !== undefined
-                ? { deadliftMaxKg: profile.deadliftMaxKg }
-                : {}),
-              ...(profile.language !== undefined ? { language: profile.language } : {}),
-            },
-            stats: {
-              totalWorkouts: stats.totalWorkouts || 0,
-              currentStreak: stats.currentStreak || 0,
-              ...(latestWeight !== undefined ? { latestWeight } : {}),
-            },
-            achievements: {
-              level: achievementState.level,
-              xp: achievementState.xp,
-              unlockedCount: unlockedAchievements.length,
-              unlocked: unlockedAchievements,
-              nextTargets,
-            },
-            ...(activeProgram
-              ? {
-                  activeProgram: {
-                    name: activeProgram.name,
-                    durationWeeks: activeProgram.durationWeeks,
-                    scheduledWorkouts: activeProgram.workouts.length,
-                  },
-                }
-              : {}),
-            ...(topPRs.length > 0 ? { personalRecords: topPRs } : {}),
-            recentWorkouts,
-          };
+          // 3. Assemble structured context via CoachContextBuilder
+          const context = coachContextBuilder.buildContextForQuery(content, options);
 
           // 4. Stream response
           // slice(0, -1) to send message history excluding the placeholder we just added

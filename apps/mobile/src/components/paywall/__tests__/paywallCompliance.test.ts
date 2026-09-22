@@ -1,14 +1,19 @@
 import {
   usePaywallStore,
+  PRO_PAYWALL_PACKAGES,
   DEFAULT_PAYWALL_PACKAGES,
   PaywallPackage,
 } from '../../../stores/paywallStore';
+import { monetizationAnalytics } from '../../../services/monetizationAnalytics';
 
-describe('Paywall Technical Compliance (WP-05 Task 05.07)', () => {
+describe('Paywall Technical Compliance & Multi-Context (WP-05 Tasks 05.07, WP-06)', () => {
   beforeEach(() => {
+    monetizationAnalytics.clear();
     usePaywallStore.setState({
+      context: 'pro',
+      source: null,
       selectedPackage: 'annual',
-      packages: DEFAULT_PAYWALL_PACKAGES,
+      packages: PRO_PAYWALL_PACKAGES,
       isPurchasing: false,
       isRestoring: false,
       error: null,
@@ -17,29 +22,47 @@ describe('Paywall Technical Compliance (WP-05 Task 05.07)', () => {
     });
   });
 
-  it('1. Actual billed price is primary; monthly equivalent is never the sole or primary price', () => {
+  it('1. Pro Paywall: Actual billed price is primary; monthly equivalent is secondary comparison', () => {
     const { packages } = usePaywallStore.getState();
 
     // Annual package
     const annual = packages.annual;
-    expect(annual.priceString).toBe('49,99 € / Jahr');
-    expect(annual.rawPrice).toBe(49.99);
+    expect(annual.priceString).toBe('29,99 € / Jahr');
+    expect(annual.rawPrice).toBe(29.99);
     expect(annual.billingPeriod).toBe('year');
-    // Monthly equivalent must only be secondary comparison
-    expect(annual.monthlyEquivalentString).toContain('ca. 4,16 € / Monat');
+    expect(annual.monthlyEquivalentString).toContain('ca. 2,50 € / Monat');
     expect(annual.priceString).not.toEqual(annual.monthlyEquivalentString);
 
     // Monthly package
     const monthly = packages.monthly;
-    expect(monthly.priceString).toBe('9,99 € / Monat');
-    expect(monthly.rawPrice).toBe(9.99);
+    expect(monthly.priceString).toBe('4,99 € / Monat');
+    expect(monthly.rawPrice).toBe(4.99);
     expect(monthly.billingPeriod).toBe('month');
   });
 
-  it('2. Trial period duration is explicitly defined on trial-eligible package', () => {
-    const { packages } = usePaywallStore.getState();
-    expect(packages.annual.trialDays).toBe(7);
-    expect(packages.monthly.trialDays).toBe(0);
+  it('2. Coach Paywall: Context switch updates pricing to 69,99 € / 11,99 € with 14-day annual trial', () => {
+    usePaywallStore.getState().setContext('coach', 'coach_plan');
+    const state = usePaywallStore.getState();
+
+    expect(state.context).toBe('coach');
+    expect(state.source).toBe('coach_plan');
+
+    // Annual package
+    const annual = state.packages.annual;
+    expect(annual.priceString).toBe('69,99 € / Jahr');
+    expect(annual.rawPrice).toBe(69.99);
+    expect(annual.trialDays).toBe(14); // 14-day trial on Coach Annual
+    expect(annual.monthlyEquivalentString).toContain('ca. 5,83 € / Monat');
+
+    // Monthly package
+    const monthly = state.packages.monthly;
+    expect(monthly.priceString).toBe('11,99 € / Monat');
+    expect(monthly.rawPrice).toBe(11.99);
+    expect(monthly.trialDays).toBe(0);
+
+    // Analytics event recorded
+    const events = monetizationAnalytics.getRecordedEvents();
+    expect(events.some((e) => e.event === 'coach_paywall_viewed')).toBe(true);
   });
 
   it('3. Package selection toggles active tier cleanly and clears prior errors', () => {
@@ -59,6 +82,9 @@ describe('Paywall Technical Compliance (WP-05 Task 05.07)', () => {
     expect(result).toBe(false);
     expect(usePaywallStore.getState().purchaseSuccess).toBe(false);
     expect(usePaywallStore.getState().error).toContain('STORE_INTEGRATION_PENDING');
+
+    const events = monetizationAnalytics.getRecordedEvents();
+    expect(events.some((e) => e.event === 'subscription_failed')).toBe(true);
   });
 
   it('5. Pluggable native provider adapter executes purchase cleanly when provided', async () => {
@@ -66,9 +92,12 @@ describe('Paywall Technical Compliance (WP-05 Task 05.07)', () => {
 
     const result = await usePaywallStore.getState().purchaseSelected(mockPurchaseFn);
     expect(result).toBe(true);
-    expect(mockPurchaseFn).toHaveBeenCalledWith(DEFAULT_PAYWALL_PACKAGES.annual);
+    expect(mockPurchaseFn).toHaveBeenCalledWith(PRO_PAYWALL_PACKAGES.annual);
     expect(usePaywallStore.getState().purchaseSuccess).toBe(true);
     expect(usePaywallStore.getState().error).toBeNull();
+
+    const events = monetizationAnalytics.getRecordedEvents();
+    expect(events.some((e) => e.event === 'subscription_started')).toBe(true);
   });
 
   it('6. Restore purchases fail-closed informatively without active provider', async () => {

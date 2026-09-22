@@ -229,3 +229,28 @@ Verified: `pnpm verify` mit 598 Tests (77 Domain, 484 Mobile, 37 API); Typecheck
 History-Tagesauswahl, direkte Plans-Erstellung und optionale Profildaten sind in `6471138` vorhanden. Free-DB-JSON entspricht exakt dem Beta-5-Blob; vorhandene Kompatibilitäts-/SQLite-/Scope-/UI-/Diagnostics-/API-Tests weiterverwenden. Vollständige i18n-/Screenreader-/Geräteabnahme bleibt offen. Feature Expansion bleibt eingefroren.
 
 Alte Gemini-Berichte dokumentieren frühere Absichten und Testläufe; sie überschreiben diesen Handoff nicht. Keine Subagents ohne ausdrücklichen Auftrag. Ein sauberer P0-Block pro Commit, Review-Branch pushen, nicht automatisch nach main integrieren.
+
+---
+
+## Monetization Foundation Handoff — WP-05 / S7 (22.09.2026)
+
+### 1. Reconstructed & Verified State
+- **Branch:** `astra/p0-release-core`
+- **Recovery Checkpoint:** Commit `97a14f2` (WP-06 Onboarding State Machine & Value Reveal, 14 tests PASS).
+- **Monetization Foundation:** FREE / PRO / COACH Tier Hierarchy (`COACH` > `PRO` > `FREE`).
+- **Total Repo Tests:** 798 PASS (114 Domain vitest, 619 Mobile jest, 49 API test runner, 16 Security scripts).
+- **Web Export & Preview:** PASS (4.78 MB, safe-area viewport, Home Screen metadata, icon verified).
+
+### 2. Architecture Implemented
+1. **Tier Hierarchy & Capability Layer:** `packages/domain/src/schemas/entitlements.ts` defines `tier` (`free`, `pro`, `coach`) and `Capabilities` registry with 11 granular methods (`canCreateTemplate()`, `canUseRPE()`, `canUseCoachPlan()`, etc.). UI queries Capability Layer, never scattering ad-hoc `if (isPro)`.
+2. **Launch Pricing Defaults:** `packages/domain/src/schemas/monetizationConfig.ts` documents launch baseline (Pro: 4.99 €/mo, 29.99 €/yr; Coach: 11.99 €/mo, 69.99 €/yr with 14-day trial). Explicitly decoupled: runtime uses localized store prices as authoritative source of truth.
+3. **Dual-Context Paywall & Locked Feature Explanation:** `apps/mobile/src/stores/paywallStore.ts` and `apps/mobile/src/components/paywall/LockedFeatureModal.tsx` support contextual triggers (`pro` vs `coach`) and non-aggressive locked feature values reveal.
+4. **Structured AI Action Drafts & Human Confirmation:** `packages/domain/src/schemas/aiActionDrafts.ts` defines strict schemas (`ProgramDraft`, `WorkoutTemplateDraft`, `Diff`). `canUseAIWrite()` is strictly `confirmation_required`—AI cannot mutate user data directly.
+5. **Zero-Data-Loss Downgrade:** Templates beyond the free limit (2) and programs remain safely persisted as read-only on downgrade.
+6. **Privacy-Preserving Telemetry:** `apps/mobile/src/services/monetizationAnalytics.ts` tracks 22 lifecycle events with zero leakage of prompts, workouts, or health metrics.
+
+### 3. Open Gates for Astra (ASTRA_REQUIRED)
+- Echte Store-In-App-Purchases via RevenueCat SDK (`react-native-purchases`).
+- Webhook Ingestion & Supabase Migration (`public.subscriptions` & `public.users.tier`).
+- Distributed / Serverseitiges AI Usage Ledger in `api/coach-chat.js`.
+- Native iOS / Android In-App Purchase Sandbox Verification.

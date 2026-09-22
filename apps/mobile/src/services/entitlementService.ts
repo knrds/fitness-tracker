@@ -1,8 +1,15 @@
+import {
+  SubscriptionTier,
+  Capabilities,
+  DEFAULT_FREE_TEMPLATE_LIMIT,
+  DEFAULT_PRO_FAST_WEEKLY_QUOTA,
+} from '@fitness-tracker/domain';
 import { logger } from '../utils/logger';
 
 export type EntitlementStatus =
   | 'free'
   | 'pro_active'
+  | 'coach_active'
   | 'trial'
   | 'expired'
   | 'offline_cached'
@@ -11,7 +18,9 @@ export type EntitlementStatus =
 
 export interface EntitlementState {
   status: EntitlementStatus;
+  tier: SubscriptionTier;
   isPro: boolean;
+  isCoach: boolean;
   activeEntitlements: string[];
   expirationDate: string | null;
   isInGracePeriod: boolean;
@@ -34,6 +43,7 @@ export interface EntitlementProvider {
 }
 
 export const EVARO_PRO_ENTITLEMENT_ID = 'evaro_pro';
+export const EVARO_COACH_ENTITLEMENT_ID = 'evaro_coach';
 
 /**
  * BETA MODE SWITCH:
@@ -66,8 +76,12 @@ export class EntitlementService {
 
     this.currentState = {
       status: this.betaBypass ? 'pro_active' : 'free',
+      tier: this.betaBypass ? 'coach' : 'free',
       isPro: this.betaBypass,
-      activeEntitlements: this.betaBypass ? [EVARO_PRO_ENTITLEMENT_ID] : [],
+      isCoach: this.betaBypass,
+      activeEntitlements: this.betaBypass
+        ? [EVARO_PRO_ENTITLEMENT_ID, EVARO_COACH_ENTITLEMENT_ID]
+        : [],
       expirationDate: null,
       isInGracePeriod: false,
       isInTrial: false,
@@ -86,14 +100,26 @@ export class EntitlementService {
       this.currentState = {
         ...this.currentState,
         status: 'pro_active',
+        tier: 'coach',
         isPro: true,
-        activeEntitlements: Array.from(new Set([...this.currentState.activeEntitlements, EVARO_PRO_ENTITLEMENT_ID])),
+        isCoach: true,
+        activeEntitlements: Array.from(
+          new Set([
+            ...this.currentState.activeEntitlements,
+            EVARO_PRO_ENTITLEMENT_ID,
+            EVARO_COACH_ENTITLEMENT_ID,
+          ]),
+        ),
       };
     }
   }
 
   getEntitlementState(): EntitlementState {
     return { ...this.currentState };
+  }
+
+  getTier(): SubscriptionTier {
+    return this.currentState.tier;
   }
 
   /**
@@ -107,6 +133,62 @@ export class EntitlementService {
     return this.currentState.activeEntitlements.includes(entitlementId);
   }
 
+  // Capability queries
+  canCreateTemplate(currentCount = 0, limit = DEFAULT_FREE_TEMPLATE_LIMIT): boolean {
+    if (this.betaBypass) return true;
+    return Capabilities.canCreateTemplate(this.currentState.tier, currentCount, limit);
+  }
+
+  canEditTemplate(templateIndex: number, limit = DEFAULT_FREE_TEMPLATE_LIMIT): boolean {
+    if (this.betaBypass) return true;
+    return Capabilities.canEditTemplate(this.currentState.tier, templateIndex, limit);
+  }
+
+  canCreateProgram(): boolean {
+    if (this.betaBypass) return true;
+    return Capabilities.canCreateProgram(this.currentState.tier);
+  }
+
+  canUseRPE(): boolean {
+    if (this.betaBypass) return true;
+    return Capabilities.canUseRPE(this.currentState.tier);
+  }
+
+  canUseRIR(): boolean {
+    if (this.betaBypass) return true;
+    return Capabilities.canUseRIR(this.currentState.tier);
+  }
+
+  canUseAdvancedMetrics(): boolean {
+    if (this.betaBypass) return true;
+    return Capabilities.canUseAdvancedMetrics(this.currentState.tier);
+  }
+
+  canUseAdvancedAnalytics(): boolean {
+    if (this.betaBypass) return true;
+    return Capabilities.canUseAdvancedAnalytics(this.currentState.tier);
+  }
+
+  canUsePremiumAppearance(): boolean {
+    if (this.betaBypass) return true;
+    return Capabilities.canUsePremiumAppearance(this.currentState.tier);
+  }
+
+  canUseCoachFast(weeklyUsed = 0, quota = DEFAULT_PRO_FAST_WEEKLY_QUOTA): boolean {
+    if (this.betaBypass) return true;
+    return Capabilities.canUseCoachFast(this.currentState.tier, weeklyUsed, quota);
+  }
+
+  canUseCoachPlan(): boolean {
+    if (this.betaBypass) return true;
+    return Capabilities.canUseCoachPlan(this.currentState.tier);
+  }
+
+  canUseAIWrite(hasConfirmation = false): boolean {
+    if (this.betaBypass) return true;
+    return Capabilities.canUseAIWrite(this.currentState.tier, hasConfirmation);
+  }
+
   /**
    * Refreshes entitlements from the provider or cached state.
    */
@@ -114,8 +196,10 @@ export class EntitlementService {
     if (this.betaBypass) {
       this.currentState = {
         status: 'pro_active',
+        tier: 'coach',
         isPro: true,
-        activeEntitlements: [EVARO_PRO_ENTITLEMENT_ID],
+        isCoach: true,
+        activeEntitlements: [EVARO_PRO_ENTITLEMENT_ID, EVARO_COACH_ENTITLEMENT_ID],
         expirationDate: null,
         isInGracePeriod: false,
         isInTrial: false,
@@ -129,7 +213,9 @@ export class EntitlementService {
       // No provider configured and not in beta bypass -> unknown / free
       this.currentState = {
         status: 'unknown',
+        tier: 'free',
         isPro: false,
+        isCoach: false,
         activeEntitlements: [],
         expirationDate: null,
         isInGracePeriod: false,
@@ -142,22 +228,24 @@ export class EntitlementService {
 
     try {
       const data = await this.provider.fetchCustomerEntitlements(userId);
-      const isPro = data.activeEntitlements.includes(EVARO_PRO_ENTITLEMENT_ID);
+      const isCoach = data.activeEntitlements.includes(EVARO_COACH_ENTITLEMENT_ID);
+      const isPro = isCoach || data.activeEntitlements.includes(EVARO_PRO_ENTITLEMENT_ID);
+      const tier: SubscriptionTier = isCoach ? 'coach' : isPro ? 'pro' : 'free';
 
       let status: EntitlementStatus = 'free';
-      if (isPro) {
-        if (data.isInTrial) {
-          status = 'trial';
-        } else {
-          status = 'pro_active';
-        }
+      if (isCoach) {
+        status = data.isInTrial ? 'trial' : 'coach_active';
+      } else if (isPro) {
+        status = data.isInTrial ? 'trial' : 'pro_active';
       } else if (data.expirationDate && new Date(data.expirationDate).getTime() < Date.now()) {
         status = 'expired';
       }
 
       this.currentState = {
         status,
+        tier,
         isPro,
+        isCoach,
         activeEntitlements: data.activeEntitlements,
         expirationDate: data.expirationDate,
         isInGracePeriod: data.isInGracePeriod,
@@ -193,7 +281,9 @@ export class EntitlementService {
       // No cache available
       this.currentState = {
         status: 'unknown',
+        tier: 'free',
         isPro: false,
+        isCoach: false,
         activeEntitlements: [],
         expirationDate: null,
         isInGracePeriod: false,
@@ -217,12 +307,16 @@ export class EntitlementService {
     }
 
     const res = await this.provider.restoreCustomerPurchases();
-    const isPro = res.activeEntitlements.includes(EVARO_PRO_ENTITLEMENT_ID);
+    const isCoach = res.activeEntitlements.includes(EVARO_COACH_ENTITLEMENT_ID);
+    const isPro = isCoach || res.activeEntitlements.includes(EVARO_PRO_ENTITLEMENT_ID);
+    const tier: SubscriptionTier = isCoach ? 'coach' : isPro ? 'pro' : 'free';
 
     this.currentState = {
       ...this.currentState,
-      status: isPro ? 'pro_active' : 'free',
+      status: isCoach ? 'coach_active' : isPro ? 'pro_active' : 'free',
+      tier,
       isPro,
+      isCoach,
       activeEntitlements: res.activeEntitlements,
       expirationDate: res.expirationDate,
       lastVerifiedAt: new Date().toISOString(),
@@ -237,8 +331,12 @@ export class EntitlementService {
   async switchAccount(newUserId: string | null): Promise<void> {
     this.currentState = {
       status: this.betaBypass ? 'pro_active' : 'free',
+      tier: this.betaBypass ? 'coach' : 'free',
       isPro: this.betaBypass,
-      activeEntitlements: this.betaBypass ? [EVARO_PRO_ENTITLEMENT_ID] : [],
+      isCoach: this.betaBypass,
+      activeEntitlements: this.betaBypass
+        ? [EVARO_PRO_ENTITLEMENT_ID, EVARO_COACH_ENTITLEMENT_ID]
+        : [],
       expirationDate: null,
       isInGracePeriod: false,
       isInTrial: false,

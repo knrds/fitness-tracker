@@ -17,45 +17,49 @@ Im aktuellen Repository-Bestand:
 
 ---
 
-## 2. Candidate EVARO Pro Features
+## 2. 3-Tier Monetization Architecture (FREE / PRO / COACH)
 
-Für das kommerzielle Geschäftsmodell von EVARO (Freemium mit EVARO Pro) bieten sich folgende Kernfunktionen zur Differenzierung an:
+EVARO strukturiert alle Features in genau 3 Tiers (`COACH` > `PRO` > `FREE`):
 
 ### Core / Free Tier (Muss frei und offline nutzbar bleiben)
-- **Unbegrenztes Workout-Tracking:** Aktive Workouts starten, Sätze/Reps/Gewichte loggen, Übungen austauschen.
-- **Lokale Historie & Statistiken:** Bisherige Trainingseinheiten einsehen, PR-Berechnungen (1RM, e1RM).
-- **Lokale Übungsbibliothek & Anatomie-Heatmap:** Übungen filtern, Ausführungshinweise, Muskelgruppen-Visualisierung.
-- **Lokaler Datenexport:** Vollständiger JSON-Export (DSGVO Art. 20 konform, niemals hinter Paywall).
-- **Grundlegende Standard-Templates:** 1–3 gespeicherte Vorlagen.
+- **Unbegrenztes Workout-Tracking:** Echte Workouts starten, Sätze/Reps/Gewichte loggen, Übungen austauschen. Kein Workout-Zähler.
+- **Lokale Historie & Basic PRs:** Lokale Trainingshistorie, Basic PRs, Basic Progression.
+- **Starter Templates:** Feste Starter-Splits (Push/Pull/Legs etc.) mit anpassbaren Gewichten/Reps, aber fixierter Übungsstruktur.
+- **Eigene Templates:** Maximal 2 eigene Templates. Versuch von Template #3 triggert PRO Paywall.
+- **Downgrade-Garantie:** Alle Templates bleiben gespeichert; 2 bleiben editierbar, Rest wird read-only.
+- **DSGVO Datenexport:** Vollständiger JSON-Export, niemals hinter Paywall.
 
-### EVARO Pro Tier (Kandidaten für Paywall & serverseitiges Gate)
-1. **AI Coach (Multi-Modal & Voice):**
-   - Sprach-Interaktion via Whisper-Transkription.
-   - Bild-Analyse von Haltung/Form via Vision-Modelle.
-   - Automatische Generierung und Anpassung kompletter mehrwöchiger Trainingspläne (`Plan Mode`).
-   - Deep Research & Hypertrophie-Literatur-Snapshots.
-2. **Cloud-Synchronisation & Multi-Device Backup:**
-   - Nahtloser Sync über Supabase Postgres / RLS über mehrere Endgeräte hinweg.
-3. **Erweiterte Analytics & Volumen-Telemetrie:**
-   - Langzeit-Trendanalysen, Erholungs-Monitoring, detaillierte Tonnage- und Belastungsverläufe.
-4. **Unbegrenzte Templates & Ordner-Struktur:**
-   - Unlimitierte Vorlagen und personalisierte Split-Ordner.
-5. **Exklusive UI-Themes & Gamification:**
-   - Spezielle Farbwelten (z. B. Royal Titanium, limitierte Rank-Medaillons).
+### PRO Tier (Launch Defaults: 4,99 €/Monat, 29,99 €/Jahr)
+- **Unbegrenzte Templates & Full Editing:** Volles Anlegen und strukturelles Editieren beliebig vieler Templates.
+- **Program-System:** Mehrwöchige Programme, Trainingsblöcke, Periodisierung.
+- **RPE & RIR:** Vollständige Eingabe und Auswertung im Workout-Logger.
+- **Advanced Metrics:** Umfangreiche Körpermaße (Taille, Brust, Arme, KFA etc.) und Verlaufscharts.
+- **Advanced Analytics:** Muskelgruppen-Heatmaps, langfristige Volumenentwicklung und Progression.
+- **Premium Themes & Rewards:** Zusätzliche visuelle Stile und Themes.
+- **Coach Fast Preview:** 5 Fast Requests / Woche (remote konfigurierbar, AI_READ=limited, AI_WRITE=false).
+
+### COACH Tier (Launch Defaults: 11,99 €/Monat, 69,99 €/Jahr mit 14 Tagen Trial)
+- **Erbt alle PRO Capabilities.**
+- **Fast Mode + Plan Mode:** Volle Trainingsplanung, Deloads, Periodisierungsanpassungen (300 Credits / Monat; Fast=1, Plan=5).
+- **Strukturierte AI Aktionen:** Generierung von `ProgramDraft` / `WorkoutTemplateDraft`.
+- **Menschliche Bestätigung Pflicht:** `AI_WRITE` erfordert zwingend User Confirmation im Preview/Diff-Modal vor Persistierung.
+- **Coach-exclusive Prestige Cosmetics:** Exklusive Rank-Embleme und UI-Elemente.
 
 ---
 
-## 3. Screens Requiring Entitlement Awareness
+## 3. Screens & Capabilities Mapping
 
-| Screen / Feature | Datei | Aktuell geschützt? | Serverseitiger Check erforderlich? | UI-Reaktion bei Free-User |
+| Screen / Feature | Datei / Hook | Tier Gate | Capability Check | UI-Reaktion bei gesperrtem Zugriff |
 |---|---|---|---|---|
-| **Coach Chat / Composer** | `apps/mobile/app/(tabs)/coach.tsx`, `src/components/CoachComposer.tsx` | Nein (Offen für alle Auth-User) | **JA (Zwingend P0)** | Paywall-Modal nach X Free-Nachrichten oder Sperre mit Teaser |
-| **Coach Voice Recording** | `src/hooks/useCoachRecorder.ts` | Nein | **JA** | Sperre des Mikrofon-Buttons mit "Pro Feature"-Badge |
-| **Backend AI Endpoint** | `api/coach-chat.js` | Nein (Nur Auth-Check) | **JA (Zwingend P0)** | HTTP 403 `ENTITLEMENT_REQUIRED` |
-| **Plan Mode Generation** | `api/coach-chat.js:99` | Nein | **JA** | HTTP 403 `ENTITLEMENT_REQUIRED` |
-| **Cloud Sync Worker** | `src/stores/syncWorker.ts`, `src/stores/syncStore.ts` | Nein | Empfohlen (P1) | Lokaler Modus bleibt aktiv; Cloud-Sync erfordert Pro |
-| **Template Erstellung (> Limit)** | `app/programs/template-builder.tsx` | Nein (Unbegrenzt) | Nein (Client-Gate ausreichend) | Paywall beim Speichern ab Template 4 |
-| **Settings: Abo verwalten** | `app/profile.tsx` | Nein (Placeholder) | Nein (StoreKit/Google Play URL) | Öffnet Store-Aboverwaltung oder In-App Paywall |
+| **Template Erstellung (#3+)** | `app/programs/template-builder.tsx` | PRO | `canCreateTemplate()` | PRO Paywall Modal (`source: 'template_limit'`) |
+| **Programm-Erstellung** | `app/programs/index.tsx` | PRO | `canCreateProgram()` | Locked Feature Modal / PRO Paywall (`source: 'program'`) |
+| **RPE / RIR Eingabe** | `SetRow.tsx`, `ExerciseCard.tsx` | PRO | `canUseRPE()`, `canUseRIR()` | Locked Feature Explanation (`source: 'rpe'/'rir'`) |
+| **Advanced Body Metrics** | `app/profile/measurements.tsx` | PRO | `canUseAdvancedMetrics()` | PRO Paywall (`source: 'metric'`) |
+| **Advanced Analytics** | `app/analytics/index.tsx` | PRO | `canUseAdvancedAnalytics()` | PRO Paywall (`source: 'analytics'`) |
+| **Premium Appearance** | `app/settings/appearance.tsx` | PRO / COACH | `canUsePremiumAppearance()` | Locked Feature Modal (`source: 'appearance'`) |
+| **Coach Fast Mode** | `src/components/CoachComposer.tsx` | PRO (Preview) / COACH | `canUseCoachFast()` | Coach Paywall wenn Quota aufgebraucht (`source: 'coach_preview_limit'`) |
+| **Coach Plan Mode** | `apps/mobile/app/(tabs)/coach.tsx` | COACH | `canUseCoachPlan()` | COACH Paywall Modal (`source: 'coach_plan'`) |
+| **Backend AI Endpoint** | `api/coach-chat.js` | Server-Gate | Token + Quota Check | HTTP 403 `ENTITLEMENT_REQUIRED` |
 
 ---
 

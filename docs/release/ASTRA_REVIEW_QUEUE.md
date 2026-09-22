@@ -1,5 +1,21 @@
 # EVARO – Astra Review Queue
 
+## Batch 2: Onboarding State Machine & 3-Tier Monetization Foundation — 22.09.2026
+
+- **AR-048: Onboarding State Machine & Value Reveal Recommendation — WP-06 Tasks 06.01–06.03 (VERIFIED).**
+  - Resiliente 7-Stufen State Machine (`experience`, `primaryGoals`, `trainingFrequency`, `equipment`, `splitPreference`, `physicalProfile`, `valueReveal`) in `onboardingStore.ts` und `onboardingLogic.ts`.
+  - Schema-Versionierung (`ONBOARDING_SCHEMA_VERSION = 1`) mit robuster Migration / Sanierung ungültiger Stände.
+  - Deterministischer Split-Empfehlungs-Scoring-Algorithmus basierend auf Zielen und Frequenz.
+  - 14 automatisierte Tests in `onboardingLogic.test.ts` und `onboardingStore.test.ts` (14/14 PASS).
+- **AR-049: 3-Tier Commercial Monetization Foundation & Capability Layer — WP-05 / S7 (PREPARED & VERIFIED).**
+  - Strikte 3-Stufen-Hierarchie `COACH` > `PRO` > `FREE` mit zentraler Capability Registry (`packages/domain/src/schemas/entitlements.ts`) und 11 deterministischen Methoden (`canCreateTemplate()`, `canUseRPE()`, `canUseCoachPlan()`, etc.).
+  - Offizielle Launch Pricing Defaults (Pro: 4,99 € / 29,99 €; Coach: 11,99 € / 69,99 € mit 14 Tagen Trial) entkoppelt von autoritativer Store-Wahrheit in `packages/domain/src/schemas/monetizationConfig.ts`.
+  - Dual-Context-Paywall (`pro` vs `coach`) mit Source-Tracking und nicht-aggressivem `LockedFeatureModal.tsx` zur Werterklärung gesperrter Features.
+  - Strukturierte AI Drafts (`ProgramDraft`, `WorkoutTemplateDraft`, `Diff`) und striktes `confirmation_required` für `AI_WRITE`.
+  - Zero-Data-Loss Downgrade: Überschüssige Templates und Programme bleiben vollständig erhalten und read-only.
+  - Datenschutzkonforme Monetarisierungs-Telemetrie mit 22 Events und striktem Filter gegen Workout-/Gesundheits-/Prompt-Leaks (`apps/mobile/src/services/monetizationAnalytics.ts`).
+  - 43 automatisierte Tests (Domain Schemas, Entitlement Service, Paywall Compliance, Analytics, Locked Feature Modal; alle PASS).
+
 ## Batch 1: Compliance, Operations & Monitoring (P0) — 22.09.2026
 
 - **AR-043: Asset License BOM & THIRD_PARTY_NOTICES (VERIFIED).** Vollständige Erfassung in `THIRD_PARTY_NOTICES.md` unter dem Grundsatz „UNKNOWN bleibt UNKNOWN“. Unlicense für `free-exercise-db`-Datenbankstruktur; Upstream-Bildurheberkette als UNVERIFIED ausgewiesen; Anatomie (MIT); Fonts (OFL 1.1); Icons (MIT/Apache); Badges/Rank Icons (UNKNOWN Commercial Terms); Node Packages (MIT/Apache-2.0/BSD).

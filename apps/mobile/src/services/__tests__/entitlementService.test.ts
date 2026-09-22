@@ -179,4 +179,79 @@ describe('Entitlement Service Provider Abstraction & Beta Fallback', () => {
     // State remains safe
     expect(service.getEntitlementState().isPro).toBe(false);
   });
+
+  test('Test 12: Coach tier user has coach status, tier=coach, and inherits all Pro rights', async () => {
+    const service = new EntitlementService({ betaBypass: false, provider: mockProvider });
+    mockProvider.fetchCustomerEntitlements.mockResolvedValueOnce({
+      activeEntitlements: ['evaro_coach'],
+      expirationDate: new Date(Date.now() + 30 * 86400000).toISOString(),
+      isInTrial: false,
+      isInGracePeriod: false,
+    });
+
+    const state = await service.refreshEntitlements('user-coach');
+    expect(state.status).toBe('coach_active');
+    expect(state.tier).toBe('coach');
+    expect(state.isCoach).toBe(true);
+    expect(state.isPro).toBe(true); // Inherited
+    expect(service.canCreateProgram()).toBe(true);
+    expect(service.canUseCoachFast()).toBe(true);
+    expect(service.canUseCoachPlan()).toBe(true);
+  });
+
+  test('Test 13: Capability queries respect Free limits (template limit = 2, no programs, no RIR)', async () => {
+    const service = new EntitlementService({ betaBypass: false, provider: mockProvider });
+    mockProvider.fetchCustomerEntitlements.mockResolvedValueOnce({
+      activeEntitlements: [],
+      expirationDate: null,
+      isInTrial: false,
+      isInGracePeriod: false,
+    });
+    await service.refreshEntitlements('user-free-caps');
+
+    expect(service.getTier()).toBe('free');
+    expect(service.canCreateTemplate(0)).toBe(true);
+    expect(service.canCreateTemplate(1)).toBe(true);
+    expect(service.canCreateTemplate(2)).toBe(false); // Template 3 triggers paywall
+    expect(service.canEditTemplate(0)).toBe(true);
+    expect(service.canEditTemplate(1)).toBe(true);
+    expect(service.canEditTemplate(2)).toBe(false); // Locked read-only on downgrade
+    expect(service.canCreateProgram()).toBe(false);
+    expect(service.canUseRPE()).toBe(false);
+    expect(service.canUseRIR()).toBe(false);
+    expect(service.canUseAdvancedMetrics()).toBe(false);
+    expect(service.canUseAdvancedAnalytics()).toBe(false);
+    expect(service.canUsePremiumAppearance()).toBe(false);
+    expect(service.canUseCoachFast(0)).toBe(false);
+    expect(service.canUseCoachPlan()).toBe(false);
+  });
+
+  test('Test 14: AI Write Safety: canUseAIWrite is strictly false without explicit user confirmation', async () => {
+    const service = new EntitlementService({ betaBypass: false, provider: mockProvider });
+    mockProvider.fetchCustomerEntitlements.mockResolvedValueOnce({
+      activeEntitlements: ['evaro_coach'],
+      expirationDate: new Date(Date.now() + 30 * 86400000).toISOString(),
+      isInTrial: false,
+      isInGracePeriod: false,
+    });
+    await service.refreshEntitlements('user-coach-safety');
+
+    expect(service.canUseAIWrite(false)).toBe(false);
+    expect(service.canUseAIWrite(true)).toBe(true);
+  });
+
+  test('Test 15: Restore restores Coach entitlement properly', async () => {
+    const service = new EntitlementService({ betaBypass: false, provider: mockProvider });
+    mockProvider.restoreCustomerPurchases.mockResolvedValueOnce({
+      activeEntitlements: ['evaro_coach'],
+      expirationDate: new Date(Date.now() + 365 * 86400000).toISOString(),
+    });
+
+    const state = await service.restorePurchases();
+    expect(state.status).toBe('coach_active');
+    expect(state.tier).toBe('coach');
+    expect(state.isCoach).toBe(true);
+    expect(state.isPro).toBe(true);
+  });
 });
+

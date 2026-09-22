@@ -34,6 +34,7 @@ export function PaywallModal({
   const { t } = useI18n();
 
   const {
+    context,
     selectedPackage,
     packages,
     isPurchasing,
@@ -80,12 +81,21 @@ export function PaywallModal({
     );
   };
 
-  const benefits = [
-    { icon: 'barbell-outline', text: t('paywall.benefitPlans') },
-    { icon: 'sparkles-outline', text: t('paywall.benefitCoach') },
-    { icon: 'trending-up-outline', text: t('paywall.benefitAnalytics') },
-    { icon: 'cloud-done-outline', text: t('paywall.benefitSync') },
-  ];
+  const isCoachContext = context === 'coach';
+
+  const benefits = isCoachContext
+    ? [
+        { icon: 'sparkles-outline', text: 'Persönlicher AI Trainingscoach (Fast & Plan Mode)' },
+        { icon: 'calendar-outline', text: 'Individuelle Trainingspläne & Periodisierung' },
+        { icon: 'trending-up-outline', text: 'Echtzeit-Trainingsanalyse & Progression' },
+        { icon: 'shield-checkmark-outline', text: 'Alle EVARO Pro-Funktionen uneingeschränkt enthalten' },
+      ]
+    : [
+        { icon: 'barbell-outline', text: t('paywall.benefitPlans') },
+        { icon: 'sparkles-outline', text: t('paywall.benefitCoach') },
+        { icon: 'trending-up-outline', text: t('paywall.benefitAnalytics') },
+        { icon: 'cloud-done-outline', text: t('paywall.benefitSync') },
+      ];
 
   return (
     <Modal
@@ -101,7 +111,9 @@ export function PaywallModal({
           <View style={{ width: 44 }} />
           <View style={styles.badgePill}>
             <Ionicons name="sparkles" size={14} color={theme.colors.accent} />
-            <Text style={[styles.badgeText, { color: theme.colors.accent }]}>EVARO PRO</Text>
+            <Text style={[styles.badgeText, { color: theme.colors.accent }]}>
+              {isCoachContext ? 'EVARO COACH' : 'EVARO PRO'}
+            </Text>
           </View>
           {allowDismiss ? (
             <Pressable
@@ -136,7 +148,7 @@ export function PaywallModal({
                 { color: theme.colors.text, ...theme.typography.heading },
               ]}
             >
-              {t('paywall.title')}
+              {isCoachContext ? 'EVARO Coach' : t('paywall.title')}
             </Text>
             <Text
               style={[
@@ -144,7 +156,9 @@ export function PaywallModal({
                 { color: theme.colors.muted, ...theme.typography.body },
               ]}
             >
-              {t('paywall.subtitle')}
+              {isCoachContext
+                ? 'Training, das sich an dich anpasst. Inklusive aller Pro-Features.'
+                : t('paywall.subtitle')}
             </Text>
           </View>
 

@@ -509,3 +509,39 @@ Status **PARTIAL**, Risiko **HIGH**. Nutzer-Guardrails, Prompt und zehnseitige R
 | tar / shell-quote / form-data / uuid | 4 | Expo CLI, RN DevTools, jsdom, xcode; früherer tar-Patch beseitigt nicht alle aktuellen Advisories |
 
 Keine ungetesteten Massenupdates oder stillen Lockfileänderungen. Offene S1-Gates: kompatible Fixes/Reachability, SAST, Lizenz-/SBOM-Nachweis, Branch Protection/required checks, Signing-/EAS-/Hosting-IAM. Projektowner muss Remote-Kontrollen bestätigen. Native/Cloud-/RLS- und Legal-Gates unverändert.
+
+---
+
+## Recovery & Onboarding State Machine — WP-06 (Tasks 06.01–06.03) — 22.09.2026
+
+Status: **COMPLETE & VERIFIED**. Commit `97a14f2` auf `origin/astra/p0-release-core` gepusht.
+- **Laptop-Abbruch-Wiederherstellung:** Arbeitsstand analysiert, Syntax/Typ-Inkonsistenzen in `onboardingLogic.test.ts` (`general_health` Typo) und `onboardingStore.ts` (Storage-Signatur) behoben.
+- **Implementiert:**
+  - Resiliente 7-Schritte-State-Machine (`experience`, `primaryGoals`, `trainingFrequency`, `equipment`, `splitPreference`, `physicalProfile`, `valueReveal`).
+  - Schema Versionierung (`ONBOARDING_SCHEMA_VERSION = 1`) mit robuster Migration / Sanierung ungültiger Stände.
+  - Value Reveal & deterministischer Split-Scoring-Algorithmus (14/14 Tests PASS).
+  - Web Preview Build (4.77 MB) und CI Verification PASS (774 Tests).
+
+---
+
+## 3-Tier Commercial Monetization Foundation — WP-05 / S7 — 22.09.2026
+
+Status: **PREPARED & VERIFIED**. Risiko: **MEDIUM**.
+- **Architektur:** 3-Stufen-Hierarchie `COACH` > `PRO` > `FREE`. COACH erbt alle PRO-Rechte, PRO erbt alle FREE-Rechte.
+- **Domain Foundation (`packages/domain`):**
+  - Schemas für `Tier` (`free`, `pro`, `coach`), `Capabilities` Registry mit 11 deterministischen Methoden (`canCreateTemplate()`, `canUseRPE()`, `canUseCoachPlan()`, etc.).
+  - Remote Config Schema mit Validierung (`RemoteSubscriptionConfig`, Defaults: Free Templates = 2, Pro Fast Requests = 5/Woche, Coach Credits = 300/Monat, Quota-Warnschwellen 80% / 95%).
+  - Strukturierte AI Drafts (`ProgramDraft`, `WorkoutTemplateDraft`, `ExerciseDraft`, `SetSchemeDraft`, `RepRange`, `AiActionDiff`).
+  - AI Safety: `canUseAIWrite()` erfordert zwingend menschliche Bestätigung (`confirmation_required`) via Preview/Diff vor Persistierung.
+  - 14 Domain-Tests PASS (`packages/domain/src/__tests__/entitlements.test.ts`).
+- **Client Entitlement & Paywall Layer (`apps/mobile`):**
+  - `entitlementService.ts`: 3-Tier-Unterstützung (`tier`, `isCoach`, `isPro`, `EVARO_COACH_ENTITLEMENT_ID`), Capability-Query-Methoden (15/15 Tests PASS).
+  - `monetizationAnalytics.ts`: 22 datenschutzkonforme Events (Paywalls, Subscriptions, AI Usage), strikte Payload-Sanitisierung: keine Prompts, Antworten, Gewichte, Reps oder Körperdaten in Telemetrie (3/3 Tests PASS).
+  - `paywallStore.ts`: Dual-Context-Paywall (`pro` vs `coach`), Source-Tracking, offizielle Launch-Pricing-Defaults (`PRO_PAYWALL_PACKAGES`: 29,99 € / 4,99 €; `COACH_PAYWALL_PACKAGES`: 69,99 € / 11,99 € mit 14-Tage-Trial).
+  - `LockedFeatureModal.tsx`: Nicht-aggressive Erklärung gesperrter Funktionen mit Option zum Pro-Ansehen oder "Nicht jetzt" (3/3 Tests PASS).
+  - `paywallCompliance.test.ts`: 8/8 Tests PASS.
+- **Gesamtergebnis:** 798 Tests PASS, Build Preview (4.78 MB) PASS, Security Gate PASS.
+- **Verbleibende externe Gates (ASTRA_REQUIRED):**
+  - Native StoreKit 2 / Google Play Billing SDK Setup (`react-native-purchases`).
+  - Echte App Store Connect / Google Play Console In-App-Abonnement-IDs & Pricing Source of Truth.
+  - Serverseitiges Usage-Ledger für Quota-Reservierung / Verbuchung (`api/coach-chat.js`).

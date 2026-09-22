@@ -29,6 +29,8 @@ import { Program, WorkoutTemplate } from '@fitness-tracker/domain';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useI18n } from '../../src/i18n';
+import { entitlementService } from '../../src/services/entitlementService';
+import { usePaywallStore } from '../../src/stores/paywallStore';
 
 export default function ProgramListScreen() {
   const router = useRouter();
@@ -58,6 +60,12 @@ export default function ProgramListScreen() {
   };
 
   const handleCreateProgram = () => {
+    if (!entitlementService.canCreateProgram()) {
+      setCreateModalVisible(false);
+      usePaywallStore.getState().openPaywall('pro', 'program');
+      return;
+    }
+
     if (!name.trim()) {
       const msg =
         language === 'de'
@@ -363,7 +371,13 @@ export default function ProgramListScreen() {
         <Button
           title={language === 'de' ? 'Programm erstellen' : 'Create program'}
           variant="secondary"
-          onPress={() => setCreateModalVisible(true)}
+          onPress={() => {
+            if (!entitlementService.canCreateProgram()) {
+              usePaywallStore.getState().openPaywall('pro', 'program');
+              return;
+            }
+            setCreateModalVisible(true);
+          }}
           style={{ marginBottom: 16 }}
         />
         {renderHeader()}

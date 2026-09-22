@@ -6,14 +6,15 @@ Dieses Dokument dient als architektonische und funktionale Bestandsaufnahme für
 
 ## 1. Existing Premium-Related Code
 
-Im aktuellen Repository-Bestand:
-- **Keine native In-App-Purchase-Bibliothek:** Weder `react-native-purchases` (RevenueCat) noch `expo-in-app-purchases` sind installiert.
-- **Kein Client-Entitlement-State:** Zustand-Stores enthalten aktuell kein Flag wie `isPremium` oder `hasProEntitlement`.
+Im aktuellen Repository-Bestand (Stand 22.09.2026):
+- **Keine native In-App-Purchase-Bibliothek:** Weder `react-native-purchases` (RevenueCat) noch `expo-in-app-purchases` sind installiert (bleibt `ASTRA_REQUIRED`).
+- **Client-Entitlement-State & Capability Layer (VERIFIED):** `entitlementService.ts` und Domain `Capabilities` (`FREE`, `PRO`, `COACH`) vollständig implementiert, Zustand-Stores (`programStore`, `workoutStore`, `bodyMetricStore`, `coachStore`, `profileStore`, `paywallStore`) mit fail-closed Action Guards und Downgrade-Preservation verdrahtet.
+- **Aktive Screens verdrahtet (VERIFIED):** Template Builder, Programs, Workout Session, History, Body Metrics, Coach Chat und Appearance Settings triggern deterministisch entsprechende Paywalls (`pro` vs `coach`).
 - **Backend-Schutz (`api/coach-chat.js`):**
-  - Prüft aktuell ausschließlich, ob ein gültiger Supabase-Auth-Token vorliegt (`/auth/v1/user`).
+  - Prüft aktuell, ob ein gültiger Supabase-Auth-Token vorliegt (`/auth/v1/user`).
   - Rate-Limiting: 10 Anfragen/Minute für eingeloggte Nutzer; 6 Anfragen/Tag für Prototyp-Nutzer (`prototype-`).
-  - **Kritische Lücke:** Jeder neu registrierte Nutzer kann unbegrenzt teure LLM- und Whisper-Modelle (OpenRouter) anfragen. Es existiert keine serverseitige Abonnement-Prüfung.
-- **Settings-Platzhalter:** Unter `profile.tsx` wurde im Profilmenü der neutrale Menüeintrag "Abonnement verwalten" vorbereitet (`ASTRA_REVIEW_REQUIRED`).
+  - **Offenes Gate:** Serverseitiges Usage- & Quota-Ledger für Token-/Credit-Verbuchung bleibt `ASTRA_REQUIRED`.
+- **Settings-Platzhalter:** Unter `profile.tsx` wurde im Profilmenü der Menüeintrag "Abonnement verwalten" vorbereitet (`ASTRA_REVIEW_REQUIRED`).
 
 ---
 

@@ -19,6 +19,9 @@ import {
 import { useI18n } from '../i18n';
 import { BattlePassModal } from './BattlePassModal';
 import { WorkoutCelebrationOverlay } from './workout/WorkoutCelebrationOverlay';
+import { entitlementService } from '../services/entitlementService';
+import { usePaywallStore } from '../stores/paywallStore';
+import { monetizationAnalytics } from '../services/monetizationAnalytics';
 
 export function AppearanceSettings() {
   const theme = useTheme();
@@ -56,6 +59,30 @@ export function AppearanceSettings() {
   const darkThemes = COLORWAY_REWARDS.filter((c) => !c.isLight);
 
   const handleSelectColorway = (item: RewardColorwayConfig) => {
+    const tier = entitlementService.getTier();
+    const isFreeColorway = item.id === 'glacier' || item.id === 'arctic';
+    const isCoachColorway = item.id === 'titanium';
+
+    if (isCoachColorway && tier !== 'coach') {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      monetizationAnalytics.track('locked_feature_clicked', {
+        tier,
+        feature_source: 'appearance',
+      });
+      usePaywallStore.getState().openPaywall('coach', 'appearance');
+      return;
+    }
+
+    if (!isFreeColorway && !entitlementService.canUsePremiumAppearance()) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      monetizationAnalytics.track('locked_feature_clicked', {
+        tier,
+        feature_source: 'appearance',
+      });
+      usePaywallStore.getState().openPaywall('pro', 'appearance');
+      return;
+    }
+
     const unlocked = isColorwayUnlocked(item.id, level);
     if (!unlocked) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);

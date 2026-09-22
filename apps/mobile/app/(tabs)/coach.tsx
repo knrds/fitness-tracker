@@ -27,6 +27,8 @@ import { getStorageScope, isScopeCurrent } from '../../src/data/storageScope';
 import { useFocusEffect } from 'expo-router';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { useI18n } from '../../src/i18n';
+import { entitlementService } from '../../src/services/entitlementService';
+import { usePaywallStore } from '../../src/stores/paywallStore';
 
 const SUGGESTIONS_EN = [
   'Review recent progress',
@@ -141,6 +143,17 @@ export default function CoachScreen() {
 
   const handleSend = async (text: string, mode: 'fast' | 'plan' = 'plan') => {
     if (isSending || recorder.busy || recorder.recording || (!text.trim() && !image)) return;
+
+    if (mode === 'plan' && !entitlementService.canUseCoachPlan()) {
+      usePaywallStore.getState().openPaywall('coach', 'coach_plan');
+      return;
+    }
+
+    if (!entitlementService.canUseCoachFast()) {
+      usePaywallStore.getState().openPaywall('coach', 'coach_preview_limit');
+      return;
+    }
+
     setInputText('');
     const attachment = image;
     setImage(undefined);

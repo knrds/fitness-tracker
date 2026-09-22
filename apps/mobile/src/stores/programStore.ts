@@ -16,8 +16,10 @@ import { z } from 'zod';
 import { getCurrentUserId, LOCAL_USER_ID } from './local-user';
 import { createHydratedStorage } from './storage';
 import { useSyncStore } from './syncStore';
+import { entitlementService } from '../services/entitlementService';
+import { monetizationAnalytics } from '../services/monetizationAnalytics';
 
-const DEFAULT_TEMPLATE_IDS = {
+export const DEFAULT_TEMPLATE_IDS = {
   gk: '10000000-0000-4000-8000-000000000001',
   ok: '10000000-0000-4000-8000-000000000002',
   uk: '10000000-0000-4000-8000-000000000003',
@@ -31,13 +33,56 @@ const DEFAULT_TEMPLATE_IDS = {
   arnold_l: '10000000-0000-4000-8000-000000000011',
 } as const;
 
-const DEFAULT_PROGRAM_IDS = {
+export const DEFAULT_PROGRAM_IDS = {
   gk: '20000000-0000-4000-8000-000000000001',
   ppl: '20000000-0000-4000-8000-000000000002',
   okuk: '20000000-0000-4000-8000-000000000003',
   sl: '20000000-0000-4000-8000-000000000004',
   arnold: '20000000-0000-4000-8000-000000000005',
 } as const;
+
+export function isDefaultTemplateId(id: string): boolean {
+  return (
+    id.startsWith('10000000-0000-4000-8000-') ||
+    Object.values(DEFAULT_TEMPLATE_IDS).includes(id as (typeof DEFAULT_TEMPLATE_IDS)[keyof typeof DEFAULT_TEMPLATE_IDS])
+  );
+}
+
+export function isDefaultProgramId(id: string): boolean {
+  return (
+    id.startsWith('20000000-0000-4000-8000-') ||
+    Object.values(DEFAULT_PROGRAM_IDS).includes(id as (typeof DEFAULT_PROGRAM_IDS)[keyof typeof DEFAULT_PROGRAM_IDS])
+  );
+}
+
+/**
+ * Returns whether a template can be structurally modified.
+ * - PRO/COACH: All templates editable.
+ * - FREE: Default templates have fixed structure; among custom templates, only the first 2 (sorted by createdAt) are editable.
+ */
+export function isTemplateEditable(templateId: string, templates: WorkoutTemplate[]): boolean {
+  if (isDefaultTemplateId(templateId)) {
+    return false;
+  }
+  if (entitlementService.getEntitlementState().isPro) {
+    return true;
+  }
+  const customTemplates = templates
+    .filter((t) => !isDefaultTemplateId(t.id))
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  const index = customTemplates.findIndex((t) => t.id === templateId);
+  return index >= 0 && index < 2;
+}
+
+/**
+ * Returns whether a program can be modified/created.
+ * - PRO/COACH: Full edit access.
+ * - FREE: Read-only on downgrade; no new creation or structural editing.
+ */
+export function isProgramEditable(): boolean {
+  return entitlementService.canCreateProgram();
+}
 
 function makeDefaultProgramWorkoutId(family: number, week: number, day: number, order = 0): string {
   const suffix = `${family}${String(week).padStart(2, '0')}${String(day).padStart(2, '0')}${String(order).padStart(7, '0')}`;
@@ -508,13 +553,20 @@ const defaultPersistedState: ProgramPersistedState = {
 
 export const useProgramStore = create<ProgramState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       programs: [],
       templates: [],
       customFolders: [],
 
-      createProgram: (programPartial) =>
-        set((state) => {
+      createProgram: (programPartial) => {
+        if (!entitlementService.canCreateProgram()) {
+          monetizationAnalytics.track('program_feature_clicked', {
+            tier: entitlementService.getTier(),
+            feature_source: 'create_program',
+          });
+          throw new Error('PROGRAM_FEATURE_LOCKED: Program creation requires EVARO Pro or Coach subscription.');
+        }
+        return set((state) => {
           const now = new Date();
           const newProgram = {
             ...programPartial,
@@ -529,10 +581,14 @@ export const useProgramStore = create<ProgramState>()(
           } as Program;
           useSyncStore.getState().addToQueue('programs', 'INSERT', newProgram);
           return { programs: [newProgram, ...state.programs] };
-        }),
+        });
+      },
 
-      updateProgram: (id, updates) =>
-        set((state) => {
+      updateProgram: (id, updates) => {
+        if (!isProgramEditable()) {
+          throw new Error('PROGRAM_FEATURE_LOCKED: Editing programs requires EVARO Pro or Coach subscription.');
+        }
+        return set((state) => {
           const updatedPrograms = state.programs.map((p) => {
             if (p.id === id) {
               const updated = { ...p, ...updates, updatedAt: new Date() };
@@ -542,7 +598,8 @@ export const useProgramStore = create<ProgramState>()(
             return p;
           });
           return { programs: updatedPrograms };
-        }),
+        });
+      },
 
       deleteProgram: (id) =>
         set((state) => {
@@ -580,11 +637,20 @@ export const useProgramStore = create<ProgramState>()(
           programs,
         }),
 
-      createTemplate: (templatePartial) =>
-        set((state) => {
+      createTemplate: (templatePartial) => {
+        const state = get();
+        const customTemplates = state.templates.filter((t) => !isDefaultTemplateId(t.id));
+        if (!entitlementService.canCreateTemplate(customTemplates.length)) {
+          monetizationAnalytics.track('template_limit_reached', {
+            tier: entitlementService.getTier(),
+            paywall_source: 'template_limit',
+          });
+          throw new Error('TEMPLATE_LIMIT_REACHED: Free tier is limited to 2 custom templates.');
+        }
+        return set((currentState) => {
           const now = new Date();
           const folder = templatePartial.folder?.trim() || undefined;
-          let folders = state.customFolders || [];
+          let folders = currentState.customFolders || [];
           let canonicalFolder: string | undefined = undefined;
           if (folder) {
             const match = folders.find((f) => f.trim().toLowerCase() === folder.toLowerCase());
@@ -607,12 +673,17 @@ export const useProgramStore = create<ProgramState>()(
             updatedAt: now,
           } as WorkoutTemplate;
           useSyncStore.getState().addToQueue('workout_templates', 'INSERT', newTemplate);
-          return { customFolders: folders, templates: [newTemplate, ...state.templates] };
-        }),
+          return { customFolders: folders, templates: [newTemplate, ...currentState.templates] };
+        });
+      },
 
-      updateTemplate: (id, updates) =>
-        set((state) => {
-          const updatedTemplates = state.templates.map((t) => {
+      updateTemplate: (id, updates) => {
+        const state = get();
+        if (!isTemplateEditable(id, state.templates)) {
+          throw new Error('TEMPLATE_LOCKED: This template is locked in Free mode. Upgrade to Pro to edit.');
+        }
+        return set((currentState) => {
+          const updatedTemplates = currentState.templates.map((t) => {
             if (t.id === id) {
               const updated = { ...t, ...updates, updatedAt: new Date() };
               useSyncStore.getState().addToQueue('workout_templates', 'INSERT', updated);
@@ -621,7 +692,8 @@ export const useProgramStore = create<ProgramState>()(
             return t;
           });
           return { templates: updatedTemplates };
-        }),
+        });
+      },
 
       deleteTemplate: (id) =>
         set((state) => {

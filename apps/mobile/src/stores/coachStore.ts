@@ -21,6 +21,8 @@ import { useProgramStore } from './programStore';
 import { ACHIEVEMENTS } from '@fitness-tracker/domain';
 import { streamCoachResponse, checkConnectivity, CoachOptions } from '../utils/coachApi';
 import { getStorageScope, isScopeCurrent } from '../data/storageScope';
+import { entitlementService } from '../services/entitlementService';
+import { monetizationAnalytics } from '../services/monetizationAnalytics';
 
 // ---------------------------------------------------------------------------
 // Persisted Coach State Schema
@@ -40,6 +42,7 @@ interface CoachState extends CoachPersistState {
   retryLastMessage: () => Promise<void>;
   clearChatHistory: () => void;
   updateOnlineStatus: () => Promise<void>;
+  applyGeneratedPlan: (messageId: string) => Promise<boolean>;
 }
 
 const defaultPersistedState: CoachPersistState = {
@@ -82,6 +85,36 @@ export const useCoachStore = create<CoachState>()(
           });
           return;
         }
+
+        if (options.mode === 'plan' && !entitlementService.canUseCoachPlan()) {
+          monetizationAnalytics.track('locked_feature_clicked', {
+            tier: entitlementService.getTier(),
+            feature_source: 'coach_plan',
+          });
+          set({
+            error:
+              'COACH_PLAN_LOCKED: Plan Mode ist exklusiv für EVARO Coach Abonnenten verfügbar.',
+            isSending: false,
+          });
+          return;
+        }
+
+        if (!entitlementService.canUseCoachFast()) {
+          monetizationAnalytics.track('ai_limit_reached', {
+            tier: entitlementService.getTier(),
+            paywall_source: 'coach_preview_limit',
+          });
+          set({
+            error:
+              'COACH_PREVIEW_LIMIT_REACHED: Dein Kontingent für Coach-Anfragen ist aufgebraucht.',
+            isSending: false,
+          });
+          return;
+        }
+
+        monetizationAnalytics.track(options.mode === 'plan' ? 'ai_plan_requested' : 'ai_fast_requested', {
+          tier: entitlementService.getTier(),
+        });
 
         const lastMessage = get().messages.at(-1);
         const retryMessage =
@@ -295,6 +328,20 @@ export const useCoachStore = create<CoachState>()(
         const scope = getStorageScope();
         const online = await checkConnectivity();
         if (isScopeCurrent(scope)) set({ isOnline: online });
+      },
+
+      applyGeneratedPlan: async (messageId: string) => {
+        const msg = get().messages.find((m) => m.id === messageId);
+        if (!msg || !msg.plan) return false;
+
+        // Structured action confirmation check (Section 28)
+        if (!entitlementService.canUseAIWrite(true)) {
+          throw new Error('AI_WRITE_NOT_AUTHORIZED: Persisting AI plans requires Coach subscription and user confirmation.');
+        }
+
+        const { saveCoachPlan } = await import('../utils/saveCoachPlan');
+        saveCoachPlan(messageId);
+        return true;
       },
     }),
     {

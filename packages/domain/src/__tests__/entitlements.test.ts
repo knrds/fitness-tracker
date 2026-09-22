@@ -161,10 +161,27 @@ describe('EVARO Tier Hierarchy & Capability Contracts (WP-05 / S7)', () => {
       expect(DEFAULT_MONETIZATION_CONFIG.template_limit_free).toBe(DEFAULT_FREE_TEMPLATE_LIMIT);
       expect(DEFAULT_MONETIZATION_CONFIG.pro_fast_requests_per_week).toBe(DEFAULT_PRO_FAST_WEEKLY_QUOTA);
       expect(DEFAULT_MONETIZATION_CONFIG.coach_monthly_credits).toBe(DEFAULT_COACH_MONTHLY_CREDITS);
+      expect(DEFAULT_MONETIZATION_CONFIG.fast_request_cost).toBe(1);
+      expect(DEFAULT_MONETIZATION_CONFIG.plan_request_cost).toBe(5);
+      expect(DEFAULT_MONETIZATION_CONFIG.quota_warning_threshold_1).toBe(0.8);
+      expect(DEFAULT_MONETIZATION_CONFIG.quota_warning_threshold_2).toBe(0.95);
+      expect(DEFAULT_MONETIZATION_CONFIG.coach_annual_trial_days).toBe(14);
 
-      // Safe fallback on garbage data
+      // Missing / null / undefined payload
+      expect(parseRemoteMonetizationConfig(null)).toEqual(DEFAULT_MONETIZATION_CONFIG);
+      expect(parseRemoteMonetizationConfig(undefined)).toEqual(DEFAULT_MONETIZATION_CONFIG);
+
+      // Malformed / garbage data
       const safe = parseRemoteMonetizationConfig({ template_limit_free: 'invalid' });
       expect(safe.template_limit_free).toBe(2);
+
+      // Negative values
+      const negativeLimit = parseRemoteMonetizationConfig({ template_limit_free: -5 });
+      expect(negativeLimit.template_limit_free).toBe(2);
+
+      // Absurd values (e.g. threshold > 1.0 or < 0.5)
+      const absurdThreshold = parseRemoteMonetizationConfig({ quota_warning_threshold_1: 1.5 });
+      expect(absurdThreshold.quota_warning_threshold_1).toBe(0.8);
 
       // Valid remote override
       const custom = parseRemoteMonetizationConfig({

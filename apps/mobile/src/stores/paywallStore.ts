@@ -13,6 +13,7 @@ export type PaywallSource =
   | 'analytics'
   | 'appearance'
   | 'coach_plan'
+  | 'coach_write'
   | 'coach_preview_limit'
   | 'onboarding'
   | 'general';
@@ -42,6 +43,7 @@ export interface PaywallState {
   restoreSuccess: boolean;
 
   setContext: (context: PaywallContext, source?: PaywallSource) => void;
+  openPaywall: (context: PaywallContext, source?: PaywallSource) => void;
   selectPackage: (type: PackageType) => void;
   setPackages: (packages: Partial<Record<PackageType, PaywallPackage>>) => void;
   purchaseSelected: (providerPurchaseFn?: (pkg: PaywallPackage) => Promise<boolean>) => Promise<boolean>;
@@ -133,6 +135,8 @@ export const usePaywallStore = create<PaywallState>()((set, get) => ({
       trial: context === 'coach',
     });
   },
+
+  openPaywall: (context, source) => get().setContext(context, source),
 
   selectPackage: (type: PackageType) => set({ selectedPackage: type, error: null }),
 

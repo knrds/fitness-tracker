@@ -2,6 +2,42 @@
 
 Stand: 22.09.2026. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
+## Checkpoint 22.09.2026 — Batch 3: Real Product Flow Monetization Integration & Bypass Protection (WP-05 / S7)
+
+**WP-05 / S7 Monetization Capability Integration, VERIFIED & PREPARED, Risiko MEDIUM.**
+
+Gemini hat die bestehende 3-Tier-Entitlement-Architektur (FREE / PRO / COACH) vollständig und fail-closed in den realen Produkt-Screens, Stores und Action Handlern verdrahtet, direkte Store-Bypasses ausgeschlossen und strikte Downgrade-Datenintegrität gesichert:
+
+1. **Free Template Limit (Max 2 eigene Templates, VERIFIED):**
+   - Einstiegspunkte verdrahtet: `template-builder.tsx`, `workouts.tsx` (Create Button, Kebab "Bearbeiten", Options Modal 1 & 2, History-to-Program), `programs/builder.tsx` (History Session), `session.tsx` (Save Template), `history/[id].tsx` (Save as Template).
+   - Store-Action Guard in `programStore.ts`: `createTemplate` wirft fail-closed `TEMPLATE_LIMIT_REACHED` wenn `!canCreateTemplate()`. `updateTemplate` wirft `TEMPLATE_LOCKED` wenn `!isTemplateEditable(id)`.
+   - Deterministisches Downgrade: Die 2 ältesten Custom Templates (`createdAt ASC`) bleiben voll editierbar; Templates #3+ sowie Starter-Templates bleiben lesbar/startbar, aber `isTemplateEditable === false`. Re-Upgrade schaltet sofort alle Templates wieder frei. Zero Deletion.
+2. **Program Gating (VERIFIED):**
+   - Einstiegspunkte verdrahtet: `(tabs)/programs.tsx` (Create Program, "+"), `programs/builder.tsx` (Save Handler).
+   - Store-Action Guard in `programStore.ts`: `createProgram` und `updateProgram` werfen fail-closed `PROGRAM_FEATURE_LOCKED` wenn unberechtigt.
+   - Downgrade: Alle Programme bleiben gespeichert, einsehbar und ausführbar; strukturelles Editieren gesperrt.
+3. **RPE / RIR Gating (VERIFIED):**
+   - UI Guard in `SessionExerciseCard.tsx`: Input-Handler öffnen Pro-Paywall (`source: 'rpe' | 'rir'`).
+   - Store-Action Guard in `workoutStore.ts`: `updateSet` säubert `rpe` und `rir` auf Free-Tier fail-closed (`undefined`) und trackt das Event.
+   - Historische RPE/RIR-Werte bestehender Workouts bleiben unverändert erhalten und lesbar.
+4. **Metrics Gating (VERIFIED):**
+   - UI Guard in `(tabs)/body.tsx`: Speichern von Premium-Metriken (KFA, Umfänge) triggert Pro-Paywall (`source: 'metric'`).
+   - Store-Action Guard in `bodyMetricStore.ts`: `addMetric` säubert `bodyFatPercentage` und `measurements` fail-closed. Wenn ausschließlich Premium-Metriken übergeben werden (kein Gewicht), wirft der Store `PREMIUM_METRIC_LOCKED`.
+   - Historische Messungen bleiben vollständig gespeichert und einsehbar.
+5. **Advanced Analytics Gating (VERIFIED):**
+   - UI Guard in `(tabs)/history.tsx`: Basis-Historie, PRs und Volumen frei; e1RM-Progressionscharts zeigen Schloss-Icon und öffnen Pro-Paywall (`source: 'analytics'`).
+6. **Appearance Gating (VERIFIED):**
+   - Farbschemata in `AppearanceSettings.tsx`: `glacier` & `arctic` = Free, Premium-Farbschemata = Pro, `titanium` = Coach exclusive. Tap auf gesperrte Stile öffnet entsprechende Paywall (`source: 'appearance'`).
+   - Store-Action Guard in `profileStore.ts`: `setColorway` wirft `COLORWAY_LOCKED`. Bei Downgrade-Event (`entitlementService.onTierChange`) speichert `syncAppearanceForTier` das aktive Farbschema in `savedPremiumColorway` und wechselt sicher auf Free (`glacier`). Re-Upgrade stellt die Premium-Auswahl automatisch wieder her.
+7. **Coach Access & AI Write Safety (PREPARED & VERIFIED):**
+   - Free Tier: Coach-Versand gesperrt (`coach_preview_limit`).
+   - Pro Tier: Preview bis 5 Fast Requests/Woche; Plan-Modus gesperrt (`coach_plan` -> Coach Paywall).
+   - AI Write Confirmation Guard: `saveCoachPlan` in `saveCoachPlan.ts` verlangt zwingend Coach Tier und explizite Bestätigung (`canUseAIWrite(true)`); unberechtigte Aufrufe werfen `AI_WRITE_NOT_AUTHORIZED`.
+   - Server Quota Ledger: Bleibt `ASTRA_REQUIRED` vor echtem Provider-Einsatz.
+8. **Automatisierte Regressionssuite (12 dedizierte Tests, VERIFIED):**
+   - `apps/mobile/src/stores/__tests__/monetizationGating.test.ts` (12/12 Tests PASS) prüft alle Action Handlers, Direct Bypasses und Downgrade Preservation Szenarien.
+- **Gesamtmetriken:** **810 Tests PASS** (114 Domain in 13 Suiten + 631 Mobile in 92 Suiten + 49 Coach-API/Safety + 16 Security-Regressionen); Workspace-Typecheck PASS; Lint PASS; `pnpm build:preview` Web-Export PASS (4.8 MB); Preview Security Gate PASS.
+
 ## Checkpoint 22.09.2026 — Batch 2: Resilient Onboarding State Machine & Value Reveal (WP-06 Tasks 06.01–06.03)
 
 **WP-06 Tasks 06.01, 06.02, 06.03, VERIFIED & PREPARED, Risiko LOW.**

@@ -27,6 +27,8 @@ import {
 import { getCurrentUserId } from './local-user';
 import { createHydratedStorage } from './storage';
 import { useSyncStore } from './syncStore';
+import { entitlementService } from '../services/entitlementService';
+import { monetizationAnalytics } from '../services/monetizationAnalytics';
 import {
   isStorageTransactionActive,
   runStorageTransaction,
@@ -397,9 +399,25 @@ export const useWorkoutStore = create<WorkoutStore>()(
 
         updateSet: (sessionExerciseId, setId, updates) =>
           set((state) => {
+            const sanitizedUpdates = { ...updates };
+            if (sanitizedUpdates.rpe !== undefined && !entitlementService.canUseRPE()) {
+              delete sanitizedUpdates.rpe;
+              monetizationAnalytics.track('locked_feature_clicked', {
+                tier: entitlementService.getTier(),
+                feature_source: 'rpe',
+              });
+            }
+            if (sanitizedUpdates.rir !== undefined && !entitlementService.canUseRIR()) {
+              delete sanitizedUpdates.rir;
+              monetizationAnalytics.track('locked_feature_clicked', {
+                tier: entitlementService.getTier(),
+                feature_source: 'rir',
+              });
+            }
+
             const exercises = state.exercises.map((ex) => {
               if (ex.id !== sessionExerciseId) return ex;
-              const sets = ex.sets.map((s) => (s.id === setId ? { ...s, ...updates } : s));
+              const sets = ex.sets.map((s) => (s.id === setId ? { ...s, ...sanitizedUpdates } : s));
               return { ...ex, sets };
             });
             return { exercises, lastUpdatedAt: new Date() };

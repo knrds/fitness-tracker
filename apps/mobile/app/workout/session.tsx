@@ -30,6 +30,7 @@ import { RestTimer } from '../../src/components/workout/RestTimer';
 import { ExercisePickerModal } from '../../src/components/workout/ExercisePickerModal';
 import { SaveTemplateModal } from '../../src/components/workout/SaveTemplateModal';
 import { useProgramStore } from '../../src/stores/programStore';
+import { usePaywallStore } from '../../src/stores/paywallStore';
 import {
   CAFFEINE_PRESETS,
   getCaffeineWarningLevel,
@@ -192,21 +193,33 @@ export default function WorkoutSessionScreen() {
     const original = useProgramStore
       .getState()
       .templates.find((template) => template.id === templateId);
-    updateTemplate(templateId, {
-      exercises: templateExercisesFromSession(exercises, Crypto.randomUUID, original?.exercises),
-    });
-    setSaveModalVisible(false);
-    finalizeWorkout();
+    try {
+      updateTemplate(templateId, {
+        exercises: templateExercisesFromSession(exercises, Crypto.randomUUID, original?.exercises),
+      });
+      setSaveModalVisible(false);
+      finalizeWorkout();
+    } catch (err) {
+      if (err instanceof Error && err.message === 'TEMPLATE_LOCKED') {
+        usePaywallStore.getState().openPaywall('pro', 'template_limit');
+      }
+    }
   };
 
   const handleSaveTemplate = (templateName: string) => {
     if (isFinishing) return;
-    createTemplate({
-      name: templateName,
-      exercises: templateExercisesFromSession(exercises, Crypto.randomUUID),
-    });
-    setSaveModalVisible(false);
-    finalizeWorkout();
+    try {
+      createTemplate({
+        name: templateName,
+        exercises: templateExercisesFromSession(exercises, Crypto.randomUUID),
+      });
+      setSaveModalVisible(false);
+      finalizeWorkout();
+    } catch (err) {
+      if (err instanceof Error && err.message === 'TEMPLATE_LIMIT_REACHED') {
+        usePaywallStore.getState().openPaywall('pro', 'template_limit');
+      }
+    }
   };
 
   const handleSkipTemplate = () => {

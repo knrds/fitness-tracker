@@ -8,6 +8,7 @@ import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useProfileStore } from '../../src/stores/profileStore';
+import { usePaywallStore } from '../../src/stores/paywallStore';
 import { SaveTemplateModal } from '../../src/components/workout/SaveTemplateModal';
 import { useI18n } from '../../src/i18n';
 import {
@@ -134,16 +135,23 @@ export default function WorkoutDetailScreen() {
   };
 
   const handleSaveTemplate = async (templateName: string) => {
-    createTemplate({
-      name: templateName,
-      exercises: mapToTemplateExercises(session.exercises),
-    });
-    setSaveModalVisible(false);
-    await showAlert({
-      title: language === 'de' ? 'Erfolg' : 'Success',
-      message: language === 'de' ? 'Vorlage erfolgreich gespeichert!' : 'Template saved successfully!',
-      tone: 'success',
-    });
+    try {
+      createTemplate({
+        name: templateName,
+        exercises: mapToTemplateExercises(session.exercises),
+      });
+      setSaveModalVisible(false);
+      await showAlert({
+        title: language === 'de' ? 'Erfolg' : 'Success',
+        message: language === 'de' ? 'Vorlage erfolgreich gespeichert!' : 'Template saved successfully!',
+        tone: 'success',
+      });
+    } catch (err) {
+      if (err instanceof Error && err.message === 'TEMPLATE_LIMIT_REACHED') {
+        setSaveModalVisible(false);
+        usePaywallStore.getState().openPaywall('pro', 'template_limit');
+      }
+    }
   };
 
   const displayWeight = (w?: number) => {

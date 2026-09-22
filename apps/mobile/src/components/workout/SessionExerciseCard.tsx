@@ -43,6 +43,8 @@ import { useExerciseStore } from '../../stores/exerciseStore';
 import { useProfileStore } from '../../stores/profileStore';
 import { useHistoryStore } from '../../stores/historyStore';
 import { PlateCalculatorModal } from './PlateCalculatorModal';
+import { entitlementService } from '../../services/entitlementService';
+import { usePaywallStore } from '../../stores/paywallStore';
 import { useTheme, Card, useDialog, Modal as DetailModal } from '@fitness-tracker/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../../i18n';
@@ -1506,6 +1508,10 @@ const SetRow = ({
             onChangeText={(text) => {
               let rpe = parseFloat(text.replace(',', '.')) || 0;
               if (rpe > 10) rpe = 10;
+              if (!entitlementService.canUseRPE()) {
+                usePaywallStore.getState().openPaywall('pro', 'rpe');
+                return;
+              }
               onUpdate({ rpe });
             }}
             placeholder="-"
@@ -1537,6 +1543,10 @@ const SetRow = ({
             onChangeText={(text) => {
               let rir = parseInt(text, 10) || 0;
               if (rir > 10) rir = 10;
+              if (!entitlementService.canUseRIR()) {
+                usePaywallStore.getState().openPaywall('pro', 'rir');
+                return;
+              }
               onUpdate({ rir });
             }}
             placeholder="-"

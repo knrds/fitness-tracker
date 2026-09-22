@@ -17,7 +17,9 @@ import {
   AiConsent,
   AiConsentSchema,
   CURRENT_AI_CONSENT_VERSION,
+  SubscriptionTier,
 } from '@fitness-tracker/domain';
+import { entitlementService } from '../services/entitlementService';
 import { z } from 'zod';
 import { useHistoryStore } from './historyStore';
 import { useExerciseStore } from './exerciseStore';
@@ -53,7 +55,8 @@ export type CelebrationEffect =
 export interface Profile {
   displayName: string;
   language?: 'de' | 'en';
-  colorway?: Colorway;
+  colorway?: Colorway | undefined;
+  savedPremiumColorway?: Colorway | undefined;
   celebrationEffect?: CelebrationEffect;
   fitnessGoal?: FitnessGoal;
   experienceLevel?: ExperienceLevel;
@@ -118,6 +121,22 @@ const profileStateSchema = z.object({
   displayName: z.string(),
   language: z.enum(['de', 'en']).optional(),
   colorway: z
+    .enum([
+      'glacier',
+      'arctic',
+      'avionics',
+      'telemetry',
+      'titanium',
+      'ember',
+      'verde',
+      'solar',
+      'alpine',
+      'rose',
+      'crimson',
+      'amber',
+    ])
+    .optional(),
+  savedPremiumColorway: z
     .enum([
       'glacier',
       'arctic',
@@ -382,3 +401,46 @@ export const useProfileStore = create<ProfileState>()(
     },
   ),
 );
+
+const LIGHT_COLORWAYS: Colorway[] = ['arctic', 'solar', 'rose', 'alpine'];
+
+export function syncAppearanceForTier(tier: SubscriptionTier) {
+  const state = useProfileStore.getState();
+  const activeColorway = state.profile.colorway ?? 'glacier';
+  const isFreeColorway = activeColorway === 'glacier' || activeColorway === 'arctic';
+  const isCoachColorway = activeColorway === 'titanium';
+
+  if (tier === 'free') {
+    if (!isFreeColorway) {
+      const isLight = LIGHT_COLORWAYS.includes(activeColorway);
+      state.updateProfile({
+        savedPremiumColorway: activeColorway,
+        colorway: isLight ? 'arctic' : 'glacier',
+      });
+    }
+  } else if (tier === 'pro') {
+    if (isCoachColorway) {
+      state.updateProfile({
+        savedPremiumColorway: activeColorway,
+        colorway: 'glacier',
+      });
+    } else if (state.profile.savedPremiumColorway && state.profile.savedPremiumColorway !== 'titanium') {
+      state.updateProfile({
+        colorway: state.profile.savedPremiumColorway,
+        savedPremiumColorway: undefined,
+      });
+    }
+  } else if (tier === 'coach') {
+    if (state.profile.savedPremiumColorway) {
+      state.updateProfile({
+        colorway: state.profile.savedPremiumColorway,
+        savedPremiumColorway: undefined,
+      });
+    }
+  }
+}
+
+// Hook up automatic tier change synchronization
+entitlementService.onTierChange((tier) => {
+  syncAppearanceForTier(tier);
+});

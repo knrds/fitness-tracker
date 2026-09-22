@@ -18,9 +18,10 @@ import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
-import { useProgramStore } from '../../src/stores/programStore';
+import { useProgramStore, isProgramEditable } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useHistoryStore } from '../../src/stores/historyStore';
+import { usePaywallStore } from '../../src/stores/paywallStore';
 import { useI18n } from '../../src/i18n';
 import {
   WorkoutTemplate,
@@ -173,6 +174,10 @@ export default function ProgramBuilderScreen() {
         );
         return;
       }
+      if (!isProgramEditable()) {
+        usePaywallStore.getState().openPaywall('pro', 'program');
+        return;
+      }
       updateProgram(program.id, localProgram);
       Alert.alert(
         language === 'de' ? 'Erfolg' : 'Success',
@@ -232,12 +237,18 @@ export default function ProgramBuilderScreen() {
 
   const handleSelectHistorySession = (session: WorkoutSession) => {
     const templateId = Crypto.randomUUID();
-    createTemplate({
-      id: templateId,
-      name: `${session.name} (Copy)`,
-      exercises: mapToTemplateExercises(session.exercises),
-    });
-    handleSelectTemplate(templateId);
+    try {
+      createTemplate({
+        id: templateId,
+        name: `${session.name} (Copy)`,
+        exercises: mapToTemplateExercises(session.exercises),
+      });
+      handleSelectTemplate(templateId);
+    } catch (e) {
+      if (e instanceof Error && e.message === 'TEMPLATE_LIMIT_REACHED') {
+        usePaywallStore.getState().openPaywall('pro', 'template_limit');
+      }
+    }
   };
 
   if (!activeProgram) {

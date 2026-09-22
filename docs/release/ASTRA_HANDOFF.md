@@ -1,6 +1,30 @@
 # ASTRA START HERE — aktueller Handoff 2026-09-22
 
-## Aktueller Checkpoint — 22.09.2026: Batch 2 (Onboarding State Machine & Value Reveal)
+## Aktueller Checkpoint — 22.09.2026: Batch 3 (Monetization Integration, Action Guards & Downgrade Preservation)
+
+Gemini hat die bestehende 3-Tier-Monetarisierungsarchitektur (FREE / PRO / COACH) in den realen Produkt-Screens, Stores und Action Handlern fail-closed verdrahtet:
+
+- **WP-05 / S7 — Template Limit & Downgrade Preservation (VERIFIED):**
+  - Einstiegspunkte verdrahtet: `template-builder.tsx`, `workouts.tsx`, `builder.tsx`, `session.tsx`, `history/[id].tsx`.
+  - Fail-closed Store Action Guards: `createTemplate` (`TEMPLATE_LIMIT_REACHED`), `updateTemplate` (`TEMPLATE_LOCKED`).
+  - Deterministisches Downgrade: Älteste 2 Custom Templates editierbar; Rest read-only. Zero Deletion. Re-Upgrade stellt Vollzugriff wieder her.
+- **WP-05 / S7 — Program Gating (VERIFIED):**
+  - Einstiegspunkte verdrahtet: `programs.tsx`, `builder.tsx`, `workouts.tsx`.
+  - Store Action Guards: `createProgram`, `updateProgram` (`PROGRAM_FEATURE_LOCKED`).
+  - Downgrade: Alle Programme bleiben gespeichert und lesbar/startbar; strukturelles Editieren gesperrt.
+- **WP-05 / S7 — RPE / RIR & Metrics Gating (VERIFIED):**
+  - UI Guards in `SessionExerciseCard.tsx` und `body.tsx`.
+  - Store Action Guards: `workoutStore.updateSet` säubert RPE/RIR fail-closed; `bodyMetricStore.addMetric` säubert KFA/Umfänge und wirft `PREMIUM_METRIC_LOCKED`. Historische Werte bleiben 100% erhalten.
+- **WP-05 / S7 — Appearance Gating (VERIFIED):**
+  - Farbschema-Wechsel geschützt (`COLORWAY_LOCKED`); bei Downgrade automatischer sicherer Fallback auf `glacier` mit Speicherung der Auswahl in `savedPremiumColorway` und Wiederherstellung bei Re-Upgrade.
+- **WP-05 / S7 — Coach Access & AI Write Safety (PREPARED & VERIFIED):**
+  - Pro Plan Mode gesperrt (`COACH_PLAN_LOCKED`); AI Write erfordert Coach Tier und explizite User Confirmation (`saveCoachPlan.ts`).
+  - Server Authoritative Quota Ledger: Bleibt `ASTRA_REQUIRED`.
+- **Regressionssuite (12 Tests, VERIFIED):**
+  - `apps/mobile/src/stores/__tests__/monetizationGating.test.ts` (12/12 PASS).
+- **Gesamtmetriken:** **810 Tests PASS** (114 Domain + 631 Mobile in 92 Suiten + 49 Coach-API/Safety + 16 Security-Regressionen). `pnpm verify` PASS, `pnpm build:preview` Web-Export PASS (4.8 MB).
+
+## Vorheriger Checkpoint — 22.09.2026: Batch 2 (Onboarding State Machine & Value Reveal)
 
 Gemini hat den nach der Laptop-Unterbrechung unvollständigen Stand rekonstruiert, syntaktische und Typprobleme korrigiert und verifiziert:
 

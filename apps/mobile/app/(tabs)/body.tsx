@@ -37,6 +37,8 @@ import {
   KEYBOARD_DONE_ID,
 } from '../../src/components/workout/KeyboardDoneAccessory';
 import { useI18n } from '../../src/i18n';
+import { entitlementService } from '../../src/services/entitlementService';
+import { usePaywallStore } from '../../src/stores/paywallStore';
 
 import ExercisesScreen from './exercises';
 
@@ -272,7 +274,20 @@ export default function BodyTrackingScreen() {
       }
     }
 
-    if (updates.weightKg !== undefined || updates.bodyFatPercentage !== undefined || updates.measurements !== undefined) {
+    const hasAdvanced =
+      updates.bodyFatPercentage !== undefined || updates.measurements !== undefined;
+    if (hasAdvanced && !entitlementService.canUseAdvancedMetrics()) {
+      usePaywallStore.getState().openPaywall('pro', 'metric');
+      if (updates.weightKg === undefined) {
+        return;
+      }
+    }
+
+    if (
+      updates.weightKg !== undefined ||
+      updates.bodyFatPercentage !== undefined ||
+      updates.measurements !== undefined
+    ) {
       addMetric(updates);
     }
 

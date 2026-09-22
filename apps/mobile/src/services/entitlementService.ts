@@ -94,6 +94,25 @@ export class EntitlementService {
     this.provider = provider;
   }
 
+  private tierChangeListeners: Array<(tier: SubscriptionTier) => void> = [];
+
+  onTierChange(listener: (tier: SubscriptionTier) => void): () => void {
+    this.tierChangeListeners.push(listener);
+    return () => {
+      this.tierChangeListeners = this.tierChangeListeners.filter((l) => l !== listener);
+    };
+  }
+
+  private notifyTierChange(tier: SubscriptionTier) {
+    for (const listener of this.tierChangeListeners) {
+      try {
+        listener(tier);
+      } catch {
+        // Safe fail-closed
+      }
+    }
+  }
+
   setBetaBypass(enabled: boolean) {
     this.betaBypass = enabled;
     if (this.betaBypass) {
@@ -111,7 +130,39 @@ export class EntitlementService {
           ]),
         ),
       };
+    } else {
+      this.currentState = {
+        ...this.currentState,
+        status: 'free',
+        tier: 'free',
+        isPro: false,
+        isCoach: false,
+        activeEntitlements: [],
+      };
     }
+    this.notifyTierChange(this.currentState.tier);
+  }
+
+  /**
+   * Directly sets the subscription tier for testing, preview, or deterministic QA.
+   * Disables beta bypass automatically.
+   */
+  setMockTier(tier: SubscriptionTier) {
+    this.betaBypass = false;
+    this.currentState = {
+      ...this.currentState,
+      tier,
+      isPro: tier === 'pro' || tier === 'coach',
+      isCoach: tier === 'coach',
+      status: tier === 'free' ? 'free' : 'pro_active',
+      activeEntitlements:
+        tier === 'coach'
+          ? [EVARO_PRO_ENTITLEMENT_ID, EVARO_COACH_ENTITLEMENT_ID]
+          : tier === 'pro'
+            ? [EVARO_PRO_ENTITLEMENT_ID]
+            : [],
+    };
+    this.notifyTierChange(this.currentState.tier);
   }
 
   getEntitlementState(): EntitlementState {

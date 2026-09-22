@@ -14,7 +14,13 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useProgramStore } from '../../src/stores/programStore';
+import {
+  useProgramStore,
+  isDefaultTemplateId,
+  isTemplateEditable,
+} from '../../src/stores/programStore';
+import { entitlementService } from '../../src/services/entitlementService';
+import { usePaywallStore } from '../../src/stores/paywallStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { ExercisePickerModal } from '../../src/components/workout/ExercisePickerModal';
 import { useI18n } from '../../src/i18n';
@@ -80,21 +86,40 @@ export default function WorkoutTemplateBuilderScreen() {
     const trimmedFolder = folder.trim() || undefined;
 
     if (existingTemplate) {
-      updateTemplate(existingTemplate.id, {
-        name,
-        description,
-        folder: trimmedFolder,
-        exercises: templateExercises,
-      });
+      if (!isTemplateEditable(existingTemplate.id, templates)) {
+        usePaywallStore.getState().openPaywall('pro', 'template_limit');
+        return;
+      }
+      try {
+        updateTemplate(existingTemplate.id, {
+          name,
+          description,
+          folder: trimmedFolder,
+          exercises: templateExercises,
+        });
+      } catch {
+        usePaywallStore.getState().openPaywall('pro', 'template_limit');
+        return;
+      }
     } else {
+      const customTemplates = templates.filter((t) => !isDefaultTemplateId(t.id));
+      if (!entitlementService.canCreateTemplate(customTemplates.length)) {
+        usePaywallStore.getState().openPaywall('pro', 'template_limit');
+        return;
+      }
       const newTemplateId = Crypto.randomUUID();
-      createTemplate({
-        id: newTemplateId,
-        name,
-        description,
-        folder: trimmedFolder,
-        exercises: templateExercises,
-      });
+      try {
+        createTemplate({
+          id: newTemplateId,
+          name,
+          description,
+          folder: trimmedFolder,
+          exercises: templateExercises,
+        });
+      } catch {
+        usePaywallStore.getState().openPaywall('pro', 'template_limit');
+        return;
+      }
 
       if (program && dayOfWeek) {
         const targetWeek = week ? parseInt(week, 10) : 1;

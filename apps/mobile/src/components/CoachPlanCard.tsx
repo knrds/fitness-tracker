@@ -6,6 +6,7 @@ import { useTheme } from '@fitness-tracker/ui';
 import { useExerciseStore } from '../stores/exerciseStore';
 import { getStorageScope } from '../data/storageScope';
 import { saveCoachPlan } from '../utils/saveCoachPlan';
+import { usePaywallStore } from '../stores/paywallStore';
 
 export function CoachPlanCard({ message }: { message: ChatMessage }) {
   const theme = useTheme();
@@ -69,6 +70,13 @@ export function CoachPlanCard({ message }: { message: ChatMessage }) {
             saveCoachPlan(message.id, scope.current);
             setError('');
           } catch (e) {
+            if (
+              e instanceof Error &&
+              (e.message === 'COACH_TIER_REQUIRED' ||
+                e.message === 'AI_WRITE_CONFIRMATION_REQUIRED')
+            ) {
+              usePaywallStore.getState().openPaywall('coach', 'coach_write');
+            }
             setError(e instanceof Error ? e.message : 'Plan konnte nicht gespeichert werden.');
           }
         }}

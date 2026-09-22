@@ -24,13 +24,15 @@ import { useTheme, useDialog, withAlpha } from '@fitness-tracker/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { hapticFeedback } from '../../src/utils/haptics';
 import * as Crypto from 'expo-crypto';
-import { useProgramStore } from '../../src/stores/programStore';
+import { useProgramStore, isDefaultTemplateId, isTemplateEditable } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { WorkoutTemplate } from '@fitness-tracker/domain';
 import ProgramListScreen from './programs';
 import { useI18n } from '../../src/i18n';
+import { entitlementService } from '../../src/services/entitlementService';
+import { usePaywallStore } from '../../src/stores/paywallStore';
 
 export default function WorkoutsScreen() {
   const router = useRouter();
@@ -372,6 +374,12 @@ export default function WorkoutsScreen() {
   }, [tab]);
 
   const handleCreateProgramFromWorkouts = () => {
+    if (!entitlementService.canCreateProgram()) {
+      setCreateProgramModalVisible(false);
+      usePaywallStore.getState().openPaywall('pro', 'program');
+      return;
+    }
+
     if (!newProgramName.trim()) {
       const msg =
         language === 'de'
@@ -549,6 +557,11 @@ export default function WorkoutsScreen() {
               ]}
               onPress={() => {
                 void hapticFeedback.selection();
+                const customCount = templates.filter((t) => !isDefaultTemplateId(t.id)).length;
+                if (!entitlementService.canCreateTemplate(customCount)) {
+                  usePaywallStore.getState().openPaywall('pro', 'template_limit');
+                  return;
+                }
                 router.push('/programs/template-builder');
               }}
             >
@@ -929,12 +942,17 @@ export default function WorkoutsScreen() {
               onPress={() => {
                 const id = menuTemplate?.id;
                 setMenuTemplateId(null);
-                if (id)
+                if (id) {
+                  if (!isTemplateEditable(id, templates)) {
+                    usePaywallStore.getState().openPaywall('pro', 'template_limit');
+                    return;
+                  }
                   router.push(
                     `/programs/template-builder?templateId=${id}` as unknown as Parameters<
                       typeof router.push
                     >[0],
                   );
+                }
               }}
             >
               <Ionicons name="create-outline" size={20} color={theme.colors.text} />
@@ -1391,6 +1409,12 @@ export default function WorkoutsScreen() {
               ]}
               onPress={() => {
                 void hapticFeedback.selection();
+                const customCount = templates.filter((t) => !isDefaultTemplateId(t.id)).length;
+                if (!entitlementService.canCreateTemplate(customCount)) {
+                  setCreateMenuVisible(false);
+                  usePaywallStore.getState().openPaywall('pro', 'template_limit');
+                  return;
+                }
                 setCreateMenuVisible(false);
                 router.push('/programs/template-builder');
               }}
@@ -1429,6 +1453,10 @@ export default function WorkoutsScreen() {
               onPress={() => {
                 void hapticFeedback.selection();
                 setCreateMenuVisible(false);
+                if (!entitlementService.canCreateProgram()) {
+                  usePaywallStore.getState().openPaywall('pro', 'program');
+                  return;
+                }
                 setCreateProgramModalVisible(true);
               }}
               accessibilityLabel={t('plans.createPlan')}

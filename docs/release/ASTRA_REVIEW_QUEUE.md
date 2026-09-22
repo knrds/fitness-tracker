@@ -1,5 +1,14 @@
 # EVARO – Astra Review Queue
 
+## Batch 3: Real Product Flow Monetization Integration & Bypass Protection — 22.09.2026
+
+- **AR-050: Monetization Capability Wiring, Direct Store Protection & Downgrade Suite — WP-05 / S7 (VERIFIED).**
+  - Fail-closed Integration in alle aktiven Screens (`template-builder.tsx`, `workouts.tsx`, `programs.tsx`, `builder.tsx`, `session.tsx`, `history/[id].tsx`, `coach.tsx`, `CoachPlanCard.tsx`, `SessionExerciseCard.tsx`, `body.tsx`, `AppearanceSettings.tsx`).
+  - Store-Action Guards in `programStore.ts` (`TEMPLATE_LIMIT_REACHED`, `TEMPLATE_LOCKED`, `PROGRAM_FEATURE_LOCKED`), `workoutStore.ts` (RPE/RIR sanitization), `bodyMetricStore.ts` (`PREMIUM_METRIC_LOCKED`), `profileStore.ts` (`COLORWAY_LOCKED`, Tier-Sync-Listener), `saveCoachPlan.ts` (`AI_WRITE_NOT_AUTHORIZED`).
+  - Zero Data Loss & deterministisches Downgrade: Älteste 2 Custom Templates editierbar, Rest read-only; Programme read-only; historische RPE/RIR und Body Metrics 100% erhalten; Appearance fällt auf `glacier` zurück und stellt bei Re-Upgrade `savedPremiumColorway` wieder her.
+  - Dedizierte Regressionssuite: `apps/mobile/src/stores/__tests__/monetizationGating.test.ts` (12/12 PASS).
+  - Verbleibende externe Gates: Server Authoritative Quota Ledger (`api/coach-chat.js`) und StoreKit/Play-Billing Integration bleiben `ASTRA_REQUIRED`.
+
 ## Batch 2: Onboarding State Machine & 3-Tier Monetization Foundation — 22.09.2026
 
 - **AR-048: Onboarding State Machine & Value Reveal Recommendation — WP-06 Tasks 06.01–06.03 (VERIFIED).**

@@ -2,6 +2,86 @@
 
 Stand: 22.09.2026. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
+## Checkpoint 22.09.2026 — Batch 4: Local Foundations, Preferences, Resilience & Taxonomy Wiring (WP-03, WP-06, WP-07, WP-08, WP-09)
+
+**WP-03 / WP-06 / WP-07 / WP-08 / WP-09, VERIFIED & PREPARED, Risiko LOW-MEDIUM.**
+
+Gemini hat die kanonisch nächsten lokal ausführbaren P1-Aufgaben und Roadmap-Korrekturen implementiert, typgeprüft und automatisiert abgesichert:
+
+1. **Roadmap-Korrekturen (VERIFIED):**
+   - 08.02 bleibt strikt **OPERATIONAL ALERTS** (P0).
+   - 08.03 ist **ANALYTICS TAXONOMY** (P1).
+   - 06.07 (Empty/Error/Offline States) und 07.05 (Haptic Service) wurden verifiziert und nicht redundant neu gebaut.
+   - S1-Status bleibt **PARTIAL** (PREVIEW_SECURITY_GATE: 0 Critical / 0 High / 0 Moderate; FULL_DEPENDENCY_AUDIT: 2 High in `image-size 1.2.1` via Metro/Expo SDK).
+   - App-Identität bleibt provisorisch (`studio.skar.evaro` / EVARO); 01.03 bleibt **PARTIAL / USER_ACTION_REQUIRED** ohne voreilige Store-Verfestigung.
+
+2. **Task 07.04 — Notification Preference Center (`notificationPreferences.ts`, `notificationPreferenceStore.ts`, VERIFIED):**
+   - Granulare Kanäle: `restTimer`, `workoutReminders`, `coachProgress`, `marketingOffers`.
+   - Strikte Entkopplung: Marketing & Produktangebote sind separat konfigurierbar; keine Kopplung von Trainings-Alerts an Marketing-Opt-in.
+   - Privacy-by-design Defaults: Marketing standardmäßig `false`.
+   - Hydrierte, partitionierte Speicherung in `useNotificationPreferenceStore` mit Zod-Validierung und Migration.
+   - UI-Modal `NotificationSettingsModal.tsx` in `<= 2 Taps` aus den Einstellungen erreichbar.
+   - 8 Tests in `packages/domain/src/__tests__/notifications.test.ts` und `apps/mobile/src/stores/__tests__/notificationPreferenceStore.test.ts` (alle PASS).
+
+3. **Task 07.02 — Local Notifications / Rest Timer (`localNotificationService.ts`, PREPARED & VERIFIED):**
+   - Lokaler Service für Rest-Timer und Workout-Erinnerungen ohne externe Serverabhängigkeit.
+   - Lockscreen Privacy: Generische Benachrichtigungstexte ohne sensible Gesundheits-, Workout- oder Coach-Daten.
+   - Sauberes Lifecycle-Handling: Timer-Abbruch oder -Reset annulliert geplante lokale Notifikationen sofort; keine Spam-Schleifen.
+   - Respektiert die Benutzereinstellungen aus `notificationPreferenceStore` (`canSendNotification`).
+   - 5 Tests in `apps/mobile/src/services/__tests__/localNotificationService.test.ts` (5/5 PASS).
+   - Natives Expo-Notifications Push Token / Background Device Gate: `PHYSICAL_DEVICE_REQUIRED`.
+
+4. **Task 06.06 — Contextual Permission Pre-Prompts (`ContextualPermissionModal.tsx`, VERIFIED):**
+   - Transparente, nicht-manipulative Vorab-Erklärung vor nativen Systemdialogen für Benachrichtigungen (`notifications`), Mikrofon (`microphone` für Audio-Coach) und Fotos/Kamera (`photos` für Körpermaße/Fortschritt).
+   - Verständlicher Mehrwert, klare Ablehn-Option („Nicht jetzt“).
+   - Keine störende Permission-Wall beim App-Start.
+   - 3 Tests in `apps/mobile/src/components/__tests__/ContextualPermissionModal.test.tsx` (3/3 PASS).
+
+5. **Task 03.10 — Coach Provider Failure / Circuit Breaker Prep (`coachCircuitBreaker.ts`, `coachApi.ts`, VERIFIED):**
+   - Resilienter `CoachCircuitBreaker` mit Zuständen `CLOSED`, `OPEN`, `HALF_OPEN`.
+   - Fehlerschwelle (3 aufeinanderfolgende 5xx/429/Netzwerkfehler), 30 Sekunden Cooldown, bounded exponential backoff mit Jitter.
+   - Fast-Fail im Zustand `OPEN` mit nutzerfreundlicher Meldung zur Schonung von Akku und Netzwerk; keine unnötigen Provider-Kosten.
+   - Keine sensiblen Prompts, Chatverläufe oder Gesundheitsdaten in Fehler- und State-Logs.
+   - 7 Tests in `apps/mobile/src/utils/__tests__/coachCircuitBreaker.test.ts` (7/7 PASS).
+   - Verteilter serverseitiger Circuit State / Redis Quota Ledger: `ASTRA_REQUIRED`.
+
+6. **Task 08.04 — Remote Config Client Preparation (`remoteConfigService.ts`, `monetizationConfig.ts`, PREPARED & VERIFIED):**
+   - Abstraktion auf Basis von `RemoteSubscriptionConfig` mit Schema-Validierung via Zod.
+   - Konfigurationsfelder für `coach_enabled`, `paywall_variant`, `notification_campaign`, `monetization_config` und `killed_features`.
+   - Fail-safe Defaults bei Netzwerk-Timeout, Offline-Status oder malformed Responses; Stale-Cache-Fallback mit TTL.
+   - Schnelle Feature-Deaktivierung via Kill-Switch (`isFeatureKilled`).
+   - 6 Tests in `apps/mobile/src/services/__tests__/remoteConfigService.test.ts` (6/6 PASS).
+   - Auswahl der Produktions-Remote-Config-Infrastruktur: `ASTRA_REQUIRED`.
+
+7. **Task 08.05 — Support / Feedback Path Preparation (`SupportFeedbackModal.tsx`, PREPARED & VERIFIED):**
+   - Erreichbarkeit aus Profil/Einstellungen in `<= 2 Taps`.
+   - Bereitstellung integrierter FAQ-Punkte und technischer Diagnose-Mail.
+   - Automatische Beilage technischer Diagnosedaten: App-Version, Plattform, OS-Version und Fehler-ID.
+   - Strikter Ausschluss sensibler Daten: Keine Workouts, Gewichte, Körpermaße, Coach-Prompts, Chatverläufe, Tokens oder Fotos.
+   - 3 Tests in `apps/mobile/src/components/__tests__/SupportFeedbackModal.test.tsx` (3/3 PASS).
+   - Finale offizielle Support-E-Mail: `USER_ACTION_REQUIRED`.
+
+8. **Task 08.06 — Review Prompt Policy (`reviewPromptPolicy.ts`, VERIFIED):**
+   - Strenge Richtlinien für Bewertungsaufforderungen: Nur nach echten positiven Momenten (z. B. PR, aktiver Streak, $\ge 3$ abgeschlossene Workouts).
+   - Strikter Cooldown: Mindestens 48 Stunden nach Fehlern, Abbrüchen, Crashes oder Paywall-/Kaufabbrüchen.
+   - Frequenzlimitierung: Mindestens 60 Tage Abstand zwischen Prompts, maximal 3 Prompts pro Kalenderjahr.
+   - Keine aggressive Review-Manipulation.
+   - 6 Tests in `apps/mobile/src/services/__tests__/reviewPromptPolicy.test.ts` (6/6 PASS).
+
+9. **Task 09.05 — Reduced Motion / Large Text Code Prep (PREPARED & VERIFIED):**
+   - Überprüfung und Schutz gegen Text-Clipping bei Dynamic Type: `maxFontSizeMultiplier` auf UI-Buttons (`1.5`) und Modal-Titeln (`1.4`) hinterlegt.
+   - Flex-Wrap und barrierefreie Touch-Targets ($\ge 44 \times 44$\,pt).
+   - Respektierung von `prefers-reduced-motion` in Celebrations, Overlays und Modal-Animationen via `useReducedMotion()`.
+   - 2 Tests in `apps/mobile/src/__tests__/accessibilityScalingRegression.test.tsx` (2/2 PASS).
+   - Reale iOS Dynamic Type & Android Font Scale Abnahme: `PHYSICAL_DEVICE_REQUIRED`.
+
+10. **Task 08.03 — Core Product Analytics Taxonomy Wiring (`monetizationAnalytics.ts`, VERIFIED):**
+    - Verdrahtung der bestehenden kanonischen Lifecycle-Events: `onboarding_started`, `onboarding_completed`, `first_workout`, `second_workout`, `coach_usage`, `coach_error`.
+    - Strikt datenschutzkonform: Keine Gewichte, Wiederholungen, Körpermaße, Prompts oder Coach-Antworten in Telemetrie-Payloads.
+    - 4 Tests in `apps/mobile/src/services/__tests__/monetizationAnalytics.test.ts` (4/4 PASS).
+
+- **Gesamtmetriken:** **851 Tests PASS** (118 Domain Vitest in 14 Suiten + 668 Mobile Jest in 100 Suiten + 49 Coach-API/Safety Node Tests + 16 Security-Regressionen); Workspace-Typecheck PASS; Lint PASS; `pnpm build:preview` Web-Export PASS (4.82 MB); Preview Security Gate PASS.
+
 ## Checkpoint 22.09.2026 — Batch 3: Real Product Flow Monetization Integration & Bypass Protection (WP-05 / S7)
 
 **WP-05 / S7 Monetization Capability Integration, VERIFIED & PREPARED, Risiko MEDIUM.**

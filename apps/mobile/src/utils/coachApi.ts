@@ -9,6 +9,9 @@ import {
   BiologicalSex,
 } from '@fitness-tracker/domain';
 import { supabase, isSupabaseConfigured } from './supabase';
+import { defaultCoachCircuitBreaker } from './coachCircuitBreaker';
+
+export { defaultCoachCircuitBreaker };
 
 const endpoint =
   process.env.EXPO_PUBLIC_COACH_CHAT_ENDPOINT ||
@@ -110,6 +113,14 @@ export async function* streamCoachResponse(
       options.signal.addEventListener('abort', () => controller.abort(), { once: true });
     }
   }
+  const circuitCheck = defaultCoachCircuitBreaker.canExecute();
+  if (!circuitCheck.allowed) {
+    throw new Error(
+      circuitCheck.reason ??
+        'Der KI-Coach ist vorübergehend nicht erreichbar. Bitte versuche es in wenigen Momenten erneut.',
+    );
+  }
+
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -135,6 +146,7 @@ export async function* streamCoachResponse(
       }),
     });
     if (!response.ok) {
+      defaultCoachCircuitBreaker.recordFailure(response.status);
       const data: unknown = await response.json().catch(() => null);
       const providerErrors: Record<string, string> = {
         DAILY_LIMIT_REACHED:
@@ -194,11 +206,13 @@ export async function* streamCoachResponse(
             (source.date === undefined || typeof source.date === 'string'),
         )
       : undefined;
+    defaultCoachCircuitBreaker.recordSuccess();
     options.onResult?.({ plan, sources });
     yield data.reply.trim();
   } catch (error) {
     if (options.signal?.aborted)
       throw new Error('Anfrage durch Nutzer abgebrochen.');
+    defaultCoachCircuitBreaker.recordFailure(error instanceof Error ? error : undefined);
     if (controller.signal.aborted)
       throw new Error('Der Coach antwortet nicht rechtzeitig. Bitte erneut versuchen.');
     if (error instanceof TypeError)

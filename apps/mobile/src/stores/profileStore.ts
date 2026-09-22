@@ -18,6 +18,7 @@ import {
   AiConsentSchema,
   CURRENT_AI_CONSENT_VERSION,
   SubscriptionTier,
+  DEFAULT_NOTIFICATION_PREFERENCES,
 } from '@fitness-tracker/domain';
 import { entitlementService } from '../services/entitlementService';
 import { z } from 'zod';
@@ -32,6 +33,7 @@ import { useHydrationStore } from './hydrationStore';
 import { createHydratedStorage, clearStorageBackups } from './storage';
 import { useCoachStore } from './coachStore';
 import { useSyncStore } from './syncStore';
+import { useNotificationPreferenceStore } from './notificationPreferenceStore';
 import { Colorway } from '@fitness-tracker/ui';
 import { runStorageTransaction } from '../data/storageTransaction';
 import { workoutPersistedSchema } from '../data/persistedContracts';
@@ -277,6 +279,7 @@ export const useProfileStore = create<ProfileState>()(
           snapshotStore(useHydrationStore),
           snapshotStore(useSyncStore),
           snapshotStore(useCoachStore),
+          snapshotStore(useNotificationPreferenceStore),
         ];
         try {
           await clearStorageBackups();
@@ -334,6 +337,11 @@ export const useProfileStore = create<ProfileState>()(
                 dateKey: formatDateLocal(new Date()),
                 dailyGoalMl: 2500,
                 todayIntakeMl: 0,
+              });
+
+              // 10. Notification Preferences
+              useNotificationPreferenceStore.setState({
+                preferences: DEFAULT_NOTIFICATION_PREFERENCES,
               });
             },
             () => restorers.forEach((restore) => restore()),

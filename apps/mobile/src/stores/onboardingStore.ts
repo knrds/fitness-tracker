@@ -14,6 +14,7 @@ import {
 
 import { createHydratedStorage } from './storage';
 import { useProfileStore } from './profileStore';
+import { monetizationAnalytics } from '../services/monetizationAnalytics';
 
 export interface OnboardingStoreState extends OnboardingState {
   setGoal: (goal: OnboardingGoal) => void;
@@ -24,6 +25,7 @@ export interface OnboardingStoreState extends OnboardingState {
   previousStep: () => void;
   skipStep: () => void;
   skipOnboarding: () => void;
+  startOnboarding: () => void;
   completeOnboarding: () => void;
   resetOnboarding: () => void;
   getCurrentStep: () => OnboardingStep;
@@ -97,6 +99,10 @@ export const useOnboardingStore = create<OnboardingStoreState>()(
           updatedAt: new Date().toISOString(),
         })),
 
+      startOnboarding: () => {
+        monetizationAnalytics.track('onboarding_started', { step: 0 });
+      },
+
       completeOnboarding: () => {
         const draft = get().draftData;
         // Sync collected profile attributes into profileStore without overwriting other fields
@@ -107,6 +113,10 @@ export const useOnboardingStore = create<OnboardingStoreState>()(
         if (Object.keys(profileUpdates).length > 0) {
           useProfileStore.getState().updateProfile(profileUpdates);
         }
+
+        monetizationAnalytics.track('onboarding_completed', {
+          step: ONBOARDING_STEPS.length,
+        });
 
         set(() => ({
           completed: true,

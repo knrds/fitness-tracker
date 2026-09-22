@@ -1,5 +1,57 @@
 # EVARO – Astra Review Queue
 
+## Batch 4: Local Foundations, Preferences, Resilience & Taxonomy Wiring — 22.09.2026
+
+- **AR-051: Notification Preference Center & Local Rest Timer Alerts — WP-07 Tasks 07.02, 07.04 (VERIFIED).**
+  - Granulare Notification Channels (`restTimer`, `workoutReminders`, `coachProgress`, `marketingOffers`) mit Privacy-by-design Defaults (Marketing standardmäßig `false`).
+  - Strikte Unabhängigkeit: Keine Koppelung von System-/Workout-Alerts an Marketing-Zustimmung.
+  - Lokaler Rest-Timer Notification Service: Keine Cloud-/Backend-Abhängigkeit; generische Lockscreen-Texte ohne sensible Daten; sauberer Cancel/Reschedule bei Timer-Reset/Abbruch; keine Spam-Schleifen.
+  - Persistiert in `notificationPreferenceStore.ts` via `createHydratedStorage`; UI-Modal in `NotificationSettingsModal.tsx` in `<= 2 Taps` erreichbar.
+  - 13 Tests in `notifications.test.ts`, `notificationPreferenceStore.test.ts`, `localNotificationService.test.ts` (alle PASS).
+  - Verbleibendes Gate: Reales Push Token & Background Device Handling bleibt `PHYSICAL_DEVICE_REQUIRED`.
+
+- **AR-052: Contextual Permission Pre-Prompts — WP-06 Task 06.06 (VERIFIED).**
+  - Transparente, nicht-manipulative Vorab-Erklärung in `ContextualPermissionModal.tsx` vor nativen Systemdialogen für Benachrichtigungen (`notifications`), Mikrofon (`microphone`) und Fotos (`photos`).
+  - Klarer Mehrwert ohne Dark Patterns, einfache Ablehnung („Nicht jetzt“), keine störende Permission Wall beim Start.
+  - 3 Tests in `ContextualPermissionModal.test.tsx` (3/3 PASS).
+
+- **AR-053: Coach Provider Failure & Circuit Breaker — WP-03 Task 03.10 (VERIFIED).**
+  - Resilienter `CoachCircuitBreaker` (`CLOSED`, `OPEN`, `HALF_OPEN`) mit 3-Fehler-Schwelle, 30s Cooldown und bounded backoff.
+  - Fast-Fail im Zustand `OPEN` in `coachApi.ts` mit user-friendly Fehler zur Vermeidung von unnötigen Kosten und Retry-Storms.
+  - Striktes Scrubbing: Keine Prompts, Health-Daten oder Tokens in Logs.
+  - 7 Tests in `coachCircuitBreaker.test.ts` (7/7 PASS).
+  - Verbleibendes Gate: Verteilter serverseitiger Circuit State / Redis Quota Ledger bleibt `ASTRA_REQUIRED`.
+
+- **AR-054: Remote Config Client Abstraction & Kill Switches — WP-08 Task 08.04 (PREPARED & VERIFIED).**
+  - Abstraktion auf Basis von `RemoteSubscriptionConfig` mit Zod-Validierung in `remoteConfigService.ts`.
+  - Schema unterstützt `coach_enabled`, `paywall_variant`, `notification_campaign`, `monetization_config` und `killed_features`.
+  - Fail-safe Defaults bei Timeout/Offline, Stale-Cache Fallback, Feature-Kill-Switch (`isFeatureKilled`).
+  - 6 Tests in `remoteConfigService.test.ts` (6/6 PASS).
+  - Verbleibendes Gate: Backend / Provider Auswahl bleibt `ASTRA_REQUIRED`.
+
+- **AR-055: Support / Feedback Path & Privacy Diagnostics — WP-08 Task 08.05 (PREPARED & VERIFIED).**
+  - `SupportFeedbackModal.tsx` in `<= 2 Taps` aus Profil/Einstellungen erreichbar mit FAQ und Feedback-Möglichkeit.
+  - Automatische Beilage technischer Diagnosedaten (App-Version, OS-Version, Plattform, Fehler-ID).
+  - Striktes No-PII-Prinzip: Zero Workouts, Gewichte, Maße, Coach-Prompts, Chatverlauf, Tokens oder Fotos.
+  - 3 Tests in `SupportFeedbackModal.test.tsx` (3/3 PASS).
+  - Verbleibendes Gate: Echte offizielle Support-E-Mail bleibt `USER_ACTION_REQUIRED`.
+
+- **AR-056: Review Prompt Policy — WP-08 Task 08.06 (VERIFIED).**
+  - `ReviewPromptPolicy` in `reviewPromptPolicy.ts`: Nur nach echten positiven Momenten (PR, Streak, $\ge 3$ Workouts).
+  - 48h Error-Cooldown, 60d Re-Prompt-Intervall, maximal 3 Prompts pro Jahr.
+  - 6 Tests in `reviewPromptPolicy.test.ts` (6/6 PASS).
+
+- **AR-057: Large Text / Accessibility Scaling Safeguards — WP-09 Task 09.05 (PREPARED & VERIFIED).**
+  - Dynamic Type `maxFontSizeMultiplier` (`1.5` für Buttons, `1.4` für Modal-Titel), Flex-Wrap und barrierefreie Touch-Targets ($\ge 44 \times 44$\,pt).
+  - Respektierung von `prefers-reduced-motion` in Animationen via `useReducedMotion()`.
+  - 2 Tests in `accessibilityScalingRegression.test.tsx` (2/2 PASS).
+  - Verbleibendes Gate: Reale iOS Dynamic Type & Android Font Scale Abnahme bleibt `PHYSICAL_DEVICE_REQUIRED`.
+
+- **AR-058: Core Product Analytics Taxonomy Wiring — WP-08 Task 08.03 (VERIFIED).**
+  - Verdrahtung bestehender kanonischer Lifecycle-Events (`onboarding_started`, `onboarding_completed`, `first_workout`, `second_workout`, `coach_usage`, `coach_error`) in Stores und Action Handlern.
+  - Null Gesundheits-/Workout-Rohdaten in Telemetrie-Payloads.
+  - 4 Tests in `monetizationAnalytics.test.ts` (4/4 PASS).
+
 ## Batch 3: Real Product Flow Monetization Integration & Bypass Protection — 22.09.2026
 
 - **AR-050: Monetization Capability Wiring, Direct Store Protection & Downgrade Suite — WP-05 / S7 (VERIFIED).**

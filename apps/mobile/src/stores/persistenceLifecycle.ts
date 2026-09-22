@@ -9,6 +9,7 @@ import { useHydrationStore } from './hydrationStore';
 import { useCaffeineStore } from './caffeineStore';
 import { useCoachStore } from './coachStore';
 import { useSyncStore } from './syncStore';
+import { useNotificationPreferenceStore } from './notificationPreferenceStore';
 
 import type { StoreApi } from 'zustand';
 import { withoutStorageWrites } from '../data/storageTransaction';
@@ -39,6 +40,7 @@ const stores = [
   trackStore(useCaffeineStore),
   trackStore(useCoachStore),
   trackStore(useSyncStore),
+  trackStore(useNotificationPreferenceStore),
 ];
 
 export const isPersistenceReady = () => stores.every((store) => store.persist.hasHydrated());

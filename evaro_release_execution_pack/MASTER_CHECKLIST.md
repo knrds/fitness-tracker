@@ -29,21 +29,21 @@ Diese Datei ist die kompakte Sicht auf alle Release-Gates. Die ausführliche Ums
 | 23 | P0 | Monetization | StoreKit purchase/restore | NOT_STARTED | Gemappt in `docs/release/SUBSCRIPTION_INTEGRATION_MAP.md` |
 | 24 | P0 | Monetization | Google Billing purchase/restore | NOT_STARTED | Gemappt in `docs/release/SUBSCRIPTION_INTEGRATION_MAP.md` |
 | 25 | P0 | Monetization | Renewal/cancel/expiry/refund getestet | NOT_STARTED | `docs/release/SUBSCRIPTION_INTEGRATION_MAP.md` |
-| 26 | P0 | Monitoring | Crash/Error/Sync/AI spend Monitoring | NOT_STARTED | Sentry/Monitoring noch nicht integriert |
-| 27 | P0 | Store | Apple Privacy Details / Manifest geprüft | NOT_STARTED | `PrivacyInfo.xcprivacy` Manifest noch nicht angelegt |
+| 26 | P0 | Monitoring | Crash/Error/Sync/AI spend Monitoring | PREPARED | `observabilityService.ts` (sanitized local buffer + ErrorBoundary; 9 Tests PASS) |
+| 27 | P0 | Store | Apple Privacy Details / Manifest geprüft | PREPARED | `PrivacyInfo.xcprivacy` & `app.json` ios.privacyManifests (3 Tests PASS) |
 | 28 | P0 | Store | Google Data Safety + Health Declaration | NOT_STARTED | Deklaration ausstehend |
 | 29 | P0 | Store | Reviewer Demo Account | NOT_STARTED | Demo-Zugang mit Daten ausstehend |
 | 30 | P0 | QA | Migration von Beta-Daten getestet | PARTIAL | SQLite v1->v2 Migration unit-getestet (`documentDatabase.test.ts`) |
 | 31 | P0 | QA | Release Candidate P0 Device Matrix bestanden | NOT_STARTED | Physische Testmatrix ausstehend |
-| 32 | P1 | UX | Onboarding + personalized result + fair paywall | [ ] |  |
-| 33 | P1 | UX | Empty/Error/Offline States | [ ] |  |
-| 34 | P1 | Native Feel | Push Preferences + local reminders | [ ] |  |
-| 35 | P1 | Native Feel | Haptic Service + Settings | [ ] |  |
-| 36 | P1 | Native Feel | Audio Service + Settings | [ ] |  |
-| 37 | P1 | Accessibility | VoiceOver/TalkBack/Large Text | [ ] |  |
-| 38 | P1 | Analytics | Event taxonomy ohne Health payloads | [ ] |  |
-| 39 | P1 | Operations | Remote config / kill switches | [ ] |  |
-| 40 | P1 | Support | Support/FAQ/feedback path | [ ] |  |
+| 32 | P1 | UX | Onboarding + personalized result + fair paywall | VERIFIED | `onboardingLogic.ts`, `onboardingStore.ts`, `PaywallModal.tsx` (22 Tests PASS) |
+| 33 | P1 | UX | Empty/Error/Offline States | VERIFIED | `EmptyState.tsx`, `ErrorBoundary.tsx`, offline fallback |
+| 34 | P1 | Native Feel | Push Preferences + local reminders | PREPARED | `notificationPreferenceStore.ts`, `localNotificationService.ts` (13 Tests PASS; PHYSICAL_DEVICE_REQUIRED) |
+| 35 | P1 | Native Feel | Haptic Service + Settings | VERIFIED | `hapticService.ts`, `AppearanceSettings.tsx` |
+| 36 | P1 | Native Feel | Audio Service + Settings | VERIFIED | `audioService.ts`, `timerAudio.ts` |
+| 37 | P1 | Accessibility | VoiceOver/TalkBack/Large Text | PREPARED | `Button.tsx`, `LockedFeatureModal.tsx` (Touch $\ge 44$ pt, maxFontSize; PHYSICAL_DEVICE_REQUIRED) |
+| 38 | P1 | Analytics | Event taxonomy ohne Health payloads | VERIFIED | `monetizationAnalytics.ts` (Lifecycle & Monetization events wired; 0 health data) |
+| 39 | P1 | Operations | Remote config / kill switches | PREPARED | `remoteConfigService.ts` (Fail-safe defaults, kill switches; ASTRA_REQUIRED) |
+| 40 | P1 | Support | Support/FAQ/feedback path | PREPARED | `SupportFeedbackModal.tsx` (<=2 taps, diagnostic metadata only; USER_ACTION_REQUIRED) |
 
 ## Go-Live-Regel
 

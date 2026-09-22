@@ -1,6 +1,44 @@
 # ASTRA START HERE — aktueller Handoff 2026-09-22
 
-## Aktueller Checkpoint — 22.09.2026: Batch 3 (Monetization Integration, Action Guards & Downgrade Preservation)
+## Aktueller Checkpoint — 22.09.2026: Batch 4 (Local Foundations, Preferences, Resilience & Taxonomy Wiring)
+
+Gemini hat die kanonisch nächsten lokal ausführbaren P1-Aufgaben und Roadmap-Korrekturen implementiert und verifiziert:
+
+- **WP-07 Task 07.04 — Notification Preference Center (VERIFIED):**
+  - Granulare Kanäle (`restTimer`, `workoutReminders`, `coachProgress`, `marketingOffers`).
+  - Strikte Entkopplung von Marketing und Trainings-Alerts; Privacy-by-default (Marketing `false`).
+  - Persistiert in `notificationPreferenceStore.ts` via `createHydratedStorage`; UI in `NotificationSettingsModal.tsx`.
+  - 8 Tests in `notifications.test.ts` und `notificationPreferenceStore.test.ts` (alle PASS).
+- **WP-07 Task 07.02 — Local Notifications / Rest Timer (PREPARED & VERIFIED):**
+  - Lokale Benachrichtigungen ohne Cloud-/Backend-Abhängigkeit in `localNotificationService.ts`.
+  - Generische Kopien auf Lockscreen (keine Workouts, Gewichte, Reps oder Prompts).
+  - Automatischer Cancel/Reschedule bei Timer-Reset/Abbruch; keine Spam-Schleifen.
+  - 5 Tests in `localNotificationService.test.ts` (5/5 PASS). Natives Expo Push Token: `PHYSICAL_DEVICE_REQUIRED`.
+- **WP-06 Task 06.06 — Contextual Permission Pre-Prompts (VERIFIED):**
+  - Transparente Pre-Prompts in `ContextualPermissionModal.tsx` für Notifications, Mikrofon und Fotos vor Systemdialogen; klare Ablehn-Option („Nicht jetzt“); keine Start-Wall.
+  - 3 Tests in `ContextualPermissionModal.test.tsx` (3/3 PASS).
+- **WP-03 Task 03.10 — Coach Provider Failure / Circuit Breaker Prep (VERIFIED):**
+  - `CoachCircuitBreaker` in `coachCircuitBreaker.ts` mit Schwellenwert (3 Fehler), 30s Cooldown, bounded backoff.
+  - Fast-Fail im Zustand `OPEN` in `coachApi.ts`; keine sensiblen Chat-/Gesundheitsdaten in Logs.
+  - 7 Tests in `coachCircuitBreaker.test.ts` (7/7 PASS). Verteilter Status: `ASTRA_REQUIRED`.
+- **WP-08 Task 08.04 — Remote Config Client Preparation (PREPARED & VERIFIED):**
+  - Abstraktion in `remoteConfigService.ts` mit Zod-Schema, Timeout, Stale-Cache und Kill Switches (`isFeatureKilled`).
+  - 6 Tests in `remoteConfigService.test.ts` (6/6 PASS). Backend-Auswahl: `ASTRA_REQUIRED`.
+- **WP-08 Task 08.05 — Support / Feedback Path Preparation (PREPARED & VERIFIED):**
+  - `SupportFeedbackModal.tsx` in `<= 2 Taps` aus den Einstellungen erreichbar. Technische Diagnosedaten ohne sensible Gesundheits- oder Coach-Daten.
+  - 3 Tests in `SupportFeedbackModal.test.tsx` (3/3 PASS). Support-E-Mail: `USER_ACTION_REQUIRED`.
+- **WP-08 Task 08.06 — Review Prompt Policy (VERIFIED):**
+  - `ReviewPromptPolicy` in `reviewPromptPolicy.ts`: Nur nach positiven Momenten, 48h Error-Cooldown, 60d Intervall, max 3/Jahr.
+  - 6 Tests in `reviewPromptPolicy.test.ts` (6/6 PASS).
+- **WP-09 Task 09.05 — Reduced Motion / Large Text Code Prep (PREPARED & VERIFIED):**
+  - Dynamic Type `maxFontSizeMultiplier` (`1.5` für Buttons, `1.4` für Modal-Titel), `prefers-reduced-motion` Respektierung.
+  - 2 Tests in `accessibilityScalingRegression.test.tsx` (2/2 PASS). Geräte-Abnahme: `PHYSICAL_DEVICE_REQUIRED`.
+- **WP-08 Task 08.03 — Core Product Analytics Taxonomy Wiring (VERIFIED):**
+  - Verdrahtung von `onboarding_started`, `onboarding_completed`, `first_workout`, `second_workout`, `coach_usage`, `coach_error` in `monetizationAnalytics.ts`, `workoutStore.ts`, `onboardingStore.ts`. Null Gesundheitsdaten.
+  - 4 Tests in `monetizationAnalytics.test.ts` (4/4 PASS).
+- **Gesamtmetriken:** **851 Tests PASS** (118 Domain Vitest in 14 Suiten + 668 Mobile Jest in 100 Suiten + 49 Coach-API/Safety Node Tests + 16 Security-Regressionen). `pnpm verify` PASS, `pnpm build:preview` Web-Export PASS (4.82 MB).
+
+## Vorheriger Checkpoint — 22.09.2026: Batch 3 (Monetization Integration, Action Guards & Downgrade Preservation)
 
 Gemini hat die bestehende 3-Tier-Monetarisierungsarchitektur (FREE / PRO / COACH) in den realen Produkt-Screens, Stores und Action Handlern fail-closed verdrahtet:
 

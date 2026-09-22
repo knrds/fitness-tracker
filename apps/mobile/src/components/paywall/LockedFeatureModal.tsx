@@ -114,7 +114,7 @@ export function LockedFeatureModal({
               accessibilityLabel={t('common.cancel')}
               testID="locked-feature-dismiss"
             >
-              <Text style={[styles.dismissText, { color: theme.colors.muted }]}>
+              <Text maxFontSizeMultiplier={1.4} style={[styles.dismissText, { color: theme.colors.muted }]}>
                 {t('common.notNow') || 'Nicht jetzt'}
               </Text>
             </Pressable>
@@ -126,7 +126,7 @@ export function LockedFeatureModal({
               accessibilityLabel={`${requiredTier.toUpperCase()} ${t('paywall.view') || 'ansehen'}`}
               testID="locked-feature-upgrade"
             >
-              <Text style={[styles.upgradeText, { color: theme.colors.background }]}>
+              <Text maxFontSizeMultiplier={1.4} style={[styles.upgradeText, { color: theme.colors.background }]}>
                 {requiredTier === 'coach' ? 'Coach ansehen' : 'Pro ansehen'}
               </Text>
             </Pressable>

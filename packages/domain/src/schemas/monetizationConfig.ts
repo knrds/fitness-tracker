@@ -66,6 +66,9 @@ export const RemoteSubscriptionConfigSchema = z.object({
   recommended_plan: z.enum(['annual', 'monthly']).default('annual'),
   appearance_access: z.enum(['standard', 'premium', 'all']).default('standard'),
   metric_access: z.enum(['basic', 'advanced', 'all']).default('basic'),
+  coach_enabled: z.boolean().default(true),
+  notification_campaign: z.string().nullable().default(null),
+  killed_features: z.array(z.string()).default([]),
   pricing_defaults: z.record(PricingPlanConfigSchema).default(LAUNCH_PRICING_DEFAULTS),
 });
 

@@ -84,4 +84,30 @@ describe('Monetization Analytics Privacy & Funnel (WP-08 / WP-05 / S5 / S7)', ()
     expect(props.coachResponse).toBeUndefined();
     expect(props.bodyWeightKg).toBeUndefined();
   });
+
+  it('4. Successfully records canonical activation & core lifecycle events (08.03)', () => {
+    monetizationAnalytics.track('onboarding_started', { step: 0 });
+    monetizationAnalytics.track('onboarding_completed', { step: 4 });
+    monetizationAnalytics.track('first_workout', { duration_seconds: 1800 });
+    monetizationAnalytics.track('second_workout', { duration_seconds: 2400 });
+    monetizationAnalytics.track('coach_usage', { mode: 'plan' });
+    monetizationAnalytics.track('coach_error', { error_code: 'CIRCUIT_OPEN' });
+
+    const events = monetizationAnalytics.getRecordedEvents();
+    expect(events.length).toBe(6);
+    expect(events.map((e) => e.event)).toEqual([
+      'onboarding_started',
+      'onboarding_completed',
+      'first_workout',
+      'second_workout',
+      'coach_usage',
+      'coach_error',
+    ]);
+    expect(events[0]!.properties.step).toBe(0);
+    expect(events[1]!.properties.step).toBe(4);
+    expect(events[2]!.properties.duration_seconds).toBe(1800);
+    expect(events[3]!.properties.duration_seconds).toBe(2400);
+    expect(events[4]!.properties.mode).toBe('plan');
+    expect(events[5]!.properties.error_code).toBe('CIRCUIT_OPEN');
+  });
 });

@@ -24,6 +24,13 @@ export const MONETIZATION_EVENTS = [
   'program_feature_clicked',
   'premium_metric_clicked',
   'premium_appearance_clicked',
+  // Canonical core lifecycle & activation events (08.03)
+  'onboarding_started',
+  'onboarding_completed',
+  'first_workout',
+  'second_workout',
+  'coach_usage',
+  'coach_error',
 ] as const;
 
 export type MonetizationEventName = (typeof MONETIZATION_EVENTS)[number];
@@ -38,6 +45,10 @@ export interface MonetizationEventProperties {
   platform?: string | undefined;
   app_version?: string | undefined;
   country?: string | undefined;
+  mode?: string | undefined;
+  error_code?: string | undefined;
+  step?: number | undefined;
+  duration_seconds?: number | undefined;
 }
 
 export interface RecordedMonetizationEvent {
@@ -64,6 +75,10 @@ export class MonetizationAnalytics {
       platform: properties.platform ?? Platform.OS,
       app_version: properties.app_version ?? '0.1.0-beta.6',
       country: properties.country,
+      mode: properties.mode,
+      error_code: properties.error_code,
+      step: properties.step,
+      duration_seconds: properties.duration_seconds,
     };
 
     const recorded: RecordedMonetizationEvent = {

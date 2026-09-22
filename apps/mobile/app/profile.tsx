@@ -2,6 +2,8 @@ import { Theme, useThemeStyles, useTheme, withAlpha } from '@fitness-tracker/ui'
 import { parseDecimalInput } from '../src/utils/decimalInput';
 import { LevelProgress } from '../src/components/LevelProgress';
 import { AppearanceSettings } from '../src/components/AppearanceSettings';
+import { NotificationSettingsModal } from '../src/components/NotificationSettingsModal';
+import { SupportFeedbackModal } from '../src/components/SupportFeedbackModal';
 import { useAchievementStore } from '../src/stores/achievementStore';
 import { getStorageScope, isScopeCurrent } from '../src/data/storageScope';
 import { scopedAlert as Alert } from '../src/utils/scopedAlert';
@@ -104,6 +106,8 @@ export default function ProfileScreen() {
     [historySessions, exercises],
   );
   const [saveToast, setSaveToast] = useState(false);
+  const [notificationModalVisible, setNotificationModalVisible] = useState(false);
+  const [supportModalVisible, setSupportModalVisible] = useState(false);
 
   const [weight, setWeight] = useState(() => {
     if (profile.weightKg === undefined) return '';
@@ -1011,7 +1015,7 @@ export default function ProfileScreen() {
 
           {/* Sound Toggle */}
           <Pressable
-            style={[styles.settingsRow, styles.lastRow]}
+            style={styles.settingsRow}
             accessibilityRole="switch"
             accessibilityState={{ checked: profile.soundEnabled ?? true }}
             onPress={() =>
@@ -1045,6 +1049,42 @@ export default function ProfileScreen() {
                   ]}
                 />
               </View>
+            </View>
+          </Pressable>
+
+          {/* Notification Preferences */}
+          <Pressable
+            style={styles.settingsRow}
+            accessibilityRole="button"
+            accessibilityLabel={language === 'de' ? 'Benachrichtigungen anpassen' : 'Manage Notifications'}
+            onPress={() => setNotificationModalVisible(true)}
+          >
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="notifications-outline" size={22} color={theme.colors.muted} />
+              <Text style={styles.settingsLabel}>
+                {language === 'de' ? 'Benachrichtigungen' : 'Notifications'}
+              </Text>
+            </View>
+            <View style={styles.settingsRowRight}>
+              <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
+            </View>
+          </Pressable>
+
+          {/* Help & Support */}
+          <Pressable
+            style={[styles.settingsRow, styles.lastRow]}
+            accessibilityRole="button"
+            accessibilityLabel={language === 'de' ? 'Hilfe und Support öffnen' : 'Open Help and Support'}
+            onPress={() => setSupportModalVisible(true)}
+          >
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="help-buoy-outline" size={22} color={theme.colors.muted} />
+              <Text style={styles.settingsLabel}>
+                {language === 'de' ? 'Hilfe & Support' : 'Help & Support'}
+              </Text>
+            </View>
+            <View style={styles.settingsRowRight}>
+              <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
             </View>
           </Pressable>
         </View>
@@ -1409,6 +1449,15 @@ export default function ProfileScreen() {
         visible={isRirPickerVisible}
         onClose={() => setRirPickerVisible(false)}
         onSelect={(exerciseIds) => updateProfile({ rirEnabledExerciseIds: exerciseIds })}
+      />
+      <NotificationSettingsModal
+        visible={notificationModalVisible}
+        onClose={() => setNotificationModalVisible(false)}
+      />
+      <SupportFeedbackModal
+        visible={supportModalVisible}
+        onClose={() => setSupportModalVisible(false)}
+        language={language}
       />
 
       {/* JSON Backup viewer Modal */}

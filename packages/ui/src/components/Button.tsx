@@ -125,7 +125,10 @@ export const Button: React.FC<ButtonProps> = ({
       {isLoading ? (
         <ActivityIndicator color={textColor} />
       ) : (
-        <Text style={[styles.text, { color: textColor, ...theme.typography.button }, textStyle]}>
+        <Text
+          maxFontSizeMultiplier={1.5}
+          style={[styles.text, { color: textColor, ...theme.typography.button }, textStyle]}
+        >
           {title}
         </Text>
       )}

@@ -34,6 +34,7 @@ export const LEGACY_STORAGE_IDS = [
   'caffeine-storage',
   'volt-coach-store',
   'volt-sync-store',
+  'notification-preferences-storage',
 ] as const;
 
 export async function purgeLegacyPartition(): Promise<void> {

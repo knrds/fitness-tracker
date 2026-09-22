@@ -60,7 +60,7 @@ Auditbasis: `6471138`, frisch gefetchtes `origin/main`; Branch `astra/p0-release
 | P03 AI Backend | PARTIAL | HTTPS-Preview vorhanden; reale Auth/Pro, verteilte Quoten/Budget, DE/EN Safety offen |
 | P04 Privacy / Legal / Licensing | USER_ACTION_REQUIRED | Rechtstexte/Kontakte, Foto-Rechte; Consent/Export technisch offen |
 | P05 Subscriptions | PREPARED | SDKs/Serverentitlements, Produkte/Verträge |
-| P06 Onboarding / Paywall | PARTIAL | Onboarding vorhanden, reale Paywall fehlt |
+| P06 Onboarding / Paywall | PARTIAL | Resumable State Machine & Value Reveal VERIFIED; Store-Integration offen |
 | P07 Push / Haptics / Audio | PARTIAL | Audio/Haptik vorhanden, Push fehlt, Geräteabnahme |
 | P08 Analytics / Monitoring / Support | PARTIAL | Lokale Diagnostics; Support/Production-Monitoring offen |
 | P09 QA / Accessibility / Performance | PARTIAL | Hosttests; Geräte/Screenreader/Performance offen |

@@ -2,6 +2,28 @@
 
 Stand: 22.09.2026. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
+## Checkpoint 22.09.2026 — Batch 2: Resilient Onboarding State Machine & Value Reveal (WP-06 Tasks 06.01–06.03)
+
+**WP-06 Tasks 06.01, 06.02, 06.03, VERIFIED & PREPARED, Risiko LOW.**
+
+Gemini hat nach der Laptop-Unterbrechung den Arbeitsstand vollständig rekonstruiert, syntaktische und Typprobleme korrigiert und verifiziert:
+
+1. **Task 06.01 — Onboarding State Machine (`onboardingState.ts`, `onboardingStore.ts`, VERIFIED):**
+   - Versionierte State Machine mit `CURRENT_ONBOARDING_VERSION = 1` im Domain-Paket.
+   - Resumable: Erlaubt Vor- und Zurück-Navigation (`nextStep`, `previousStep`), schrittweises Überspringen (`skipStep`) und vollständiges Überspringen (`skipOnboarding`).
+   - Hydrierte, schema-validierte Speicherung im `onboardingStore` über `createHydratedStorage` mit `OnboardingStateSchema` und migrationssicherem `completedVersion`-Feld.
+   - `needsOnboarding`-Gate: Erzwingt kein erneutes Onboarding für bestehende Nutzer bei kleineren Versions-Updates.
+   - 7 Tests in `apps/mobile/src/stores/__tests__/onboardingStore.test.ts` (7/7 PASS).
+2. **Task 06.02 — Datensparsame Präferenz-Erfassung (`OnboardingDraftDataSchema`, VERIFIED):**
+   - Erfassung von Fitnessziel (`fitnessGoal`), Trainingserfahrung (`experienceLevel`), Trainingsfrequenz (`trainingFrequency`, 1–7 Tage) und Equipment (`equipment`).
+   - Keine Erfassung von sensiblen Gesundheits-, Körper- oder Trackingdaten ohne expliziten Nutzen.
+   - Synchronisation der ausgewählten Präferenzen in den `profileStore` bei Abschluss des Onboardings.
+3. **Task 06.03 — Personalized Result / Value Reveal Recommendation (`getPersonalizedPlanRecommendation`, VERIFIED):**
+   - Pure, deterministische Domain-Funktion zur Generierung eines konkreten Trainingssplit-Vorschlags (Ganzkörper, Upper/Lower oder Push/Pull/Legs) basierend auf Frequenz und Erfahrung, vollständig ohne externe Netzwerk- oder KI-Abhängigkeit.
+   - Konkreter Nutzen für den Nutzer sichtbar, bevor eine Paywall erscheint.
+   - 8 Tests in `packages/domain/src/__tests__/onboardingLogic.test.ts` (8/8 PASS).
+- **Gesamtmetriken:** **774 Tests PASS** (100 Domain in 12 Suiten + 609 Mobile in 89 Suiten + 49 Coach-API/Safety + 16 Security-Regressionen); Workspace-Typecheck PASS; Lint PASS; `pnpm build:preview` Web-Export PASS (4.77 MB).
+
 ## Checkpoint 22.09.2026 — Batch 1: Compliance, Operations & Monitoring (P0)
 
 **WP-04 / WP-05 / WP-08 / WP-10 / WP-11, VERIFIED & PREPARED, Risiko LOW-MEDIUM.**

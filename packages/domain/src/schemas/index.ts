@@ -438,3 +438,5 @@ export function hasValidAiConsent(
   return parsed.data.version === requiredVersion;
 }
 
+export * from './onboardingState';
+

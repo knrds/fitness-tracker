@@ -1,6 +1,21 @@
 # ASTRA START HERE — aktueller Handoff 2026-09-22
 
-## Aktueller Checkpoint — 22.09.2026: Batch 1 (Compliance, Operations & Monitoring)
+## Aktueller Checkpoint — 22.09.2026: Batch 2 (Onboarding State Machine & Value Reveal)
+
+Gemini hat den nach der Laptop-Unterbrechung unvollständigen Stand rekonstruiert, syntaktische und Typprobleme korrigiert und verifiziert:
+
+- **WP-06 Task 06.01 — Onboarding State Machine (VERIFIED):**
+  - Resumable, versionierte Onboarding State Machine (`CURRENT_ONBOARDING_VERSION = 1`) in Domain & `onboardingStore.ts`.
+  - Vor-, Zurück- und Überspringen-Optionen mit hydrierter `createHydratedStorage`-Speicherung und Zod-Validierung.
+  - 7 Tests in `onboardingStore.test.ts` (7/7 PASS).
+- **WP-06 Task 06.02 — Datensparsame Präferenz-Erfassung (VERIFIED):**
+  - Erfassung von Fitnessziel, Trainingslevel, Frequenz (1–7 Tage) und Equipment ohne sensible Gesundheitsdaten.
+- **WP-06 Task 06.03 — Value Reveal Recommendation (VERIFIED):**
+  - Pure deterministische Domain-Funktion `getPersonalizedPlanRecommendation` für Trainingsplan-Vorschläge vor Paywall-Anzeige.
+  - 8 Tests in `onboardingLogic.test.ts` (8/8 PASS).
+- **Gesamtmetriken:** **774 Tests PASS** (100 Domain + 609 Mobile in 89 Suiten + 49 Coach-API/Safety + 16 Security-Regressionen). `pnpm verify` PASS, `pnpm build:preview` Web-Export PASS (4.77 MB).
+
+## Vorheriger Checkpoint — 22.09.2026: Batch 1 (Compliance, Operations & Monitoring)
 
 Gemini hat den ersten Block der ausführbaren P0-Roadmap-Aufgaben vollständig implementiert und verifiziert:
 

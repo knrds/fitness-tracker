@@ -31,7 +31,7 @@ import {
 import { useBodyMetricStore } from '../../src/stores/bodyMetricStore';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { useHydrationStore } from '../../src/stores/hydrationStore';
-import { useTheme, Card, Modal, Input } from '@fitness-tracker/ui';
+import { useTheme, Card, Modal, Input, withAlpha } from '@fitness-tracker/ui';
 import {
   KeyboardDoneAccessory,
   KEYBOARD_DONE_ID,
@@ -43,6 +43,81 @@ import { usePaywallStore } from '../../src/stores/paywallStore';
 import ExercisesScreen from './exercises';
 
 type BodyTab = 'metrics' | 'exercises';
+type BodyWidgetKey = 'weight' | 'height' | 'bodyFat' | 'bmi';
+
+const BODY_WIDGET_FACTS: Record<
+  BodyWidgetKey,
+  {
+    title: { de: string; en: string };
+    icon: React.ComponentProps<typeof Ionicons>['name'];
+    facts: { de: string[]; en: string[] };
+  }
+> = {
+  weight: {
+    title: { de: 'KÖRPERGEWICHT & TRENDS', en: 'BODY WEIGHT & TRENDS' },
+    icon: 'scale-outline',
+    facts: {
+      de: [
+        'Das Tagesgewicht kann durch Wasserhaushalt, Natriumzufuhr und Verdauung um 1–2 kg schwanken.',
+        'Für verlässliche Trends ist ein wöchentlicher gleitender Durchschnitt aussagekräftiger als einzelne Tageswerte.',
+        'Wiege dich idealerweise morgens nüchtern nach dem Aufstehen für maximale Vergleichbarkeit.',
+      ],
+      en: [
+        'Daily body weight can fluctuate by 1–2 kg due to water retention, sodium intake, and digestion.',
+        'For reliable trends, a weekly moving average is far more informative than isolated daily weigh-ins.',
+        'Weigh yourself consistently in the morning after waking up for optimal comparability.',
+      ],
+    },
+  },
+  height: {
+    title: { de: 'KÖRPERGRÖSSE & HEBEL', en: 'HEIGHT & LEVERAGES' },
+    icon: 'body-outline',
+    facts: {
+      de: [
+        'Durch Entlastung der Bandscheiben über Nacht bist du morgens ca. 1–2 cm größer als am Abend.',
+        'Für Trainings- und Hebelberechnungen sollte eine einheitliche Standardangabe verwendet werden.',
+        'Körpergröße und Gliedmaßenproportionen bestimmen deine individuellen biomechanischen Hebelverhältnisse.',
+      ],
+      en: [
+        'Spinal decompression overnight makes you roughly 1–2 cm taller in the morning than in the evening.',
+        'Use a consistent standard measurement for training volume and leverage calculations.',
+        'Height and limb proportions directly influence your natural biomechanical leverages.',
+      ],
+    },
+  },
+  bodyFat: {
+    title: { de: 'KÖRPERFETT-MESSUNG', en: 'BODY FAT METRICS' },
+    icon: 'water-outline',
+    facts: {
+      de: [
+        'Verschiedene Messmethoden (BIA-Waage, Caliper, DEXA) können messbedingt voneinander abweichen.',
+        'Langfristige Trendlinien und der Taillenumfang sind oft aussagekräftiger als einzelne Momentaufnahmen.',
+        'Im Krafttraining schützt eine ausreichende Proteinzufuhr während einer Reduktionsphase deine Muskelmasse.',
+      ],
+      en: [
+        'Different measurement methods (bioimpedance scales, calipers, DEXA) can show substantial variance.',
+        'Long-term trendlines and waist circumference give a much clearer picture than single readings.',
+        'Adequate protein intake during a caloric deficit helps preserve lean muscle tissue in resistance training.',
+      ],
+    },
+  },
+  bmi: {
+    title: { de: 'BMI EINORDNUNG', en: 'BMI CONTEXT' },
+    icon: 'pulse-outline',
+    facts: {
+      de: [
+        'Der BMI setzt Körpergewicht und Körpergröße ins Verhältnis, unterscheidet aber nicht zwischen Fett- und Muskelmasse.',
+        'Bei intensiv trainierenden Personen mit hoher Muskelmasse hat der BMI allein nur eingeschränkte Aussagekraft.',
+        'Kombiniere den BMI stets mit Kraftwerten, Spiegelbild und Taillenumfang für eine realistische Einschätzung.',
+      ],
+      en: [
+        'BMI relates body weight to height, but cannot distinguish between lean muscle mass and fat tissue.',
+        'In heavily muscled strength athletes, BMI alone has limited applicability.',
+        'Combine BMI with strength benchmarks, visual progress, and waist measurements for an accurate assessment.',
+      ],
+    },
+  },
+};
 
 export default function BodyTrackingScreen() {
   const reducedMotion = useReducedMotion();
@@ -64,6 +139,8 @@ export default function BodyTrackingScreen() {
   const [activeBodyTab, setActiveBodyTab] = useState<BodyTab>(
     params.tab === 'exercises' ? 'exercises' : 'metrics',
   );
+  const [activeBodyWidget, setActiveBodyWidget] = useState<BodyWidgetKey | null>(null);
+  const [bodyFactIndex, setBodyFactIndex] = useState(0);
   const [selectedPoint, setSelectedPoint] = useState<{
     date: string;
     value: string;
@@ -304,6 +381,73 @@ export default function BodyTrackingScreen() {
     setModalVisible(false);
   };
 
+  const handleToggleBodyWidget = (widget: BodyWidgetKey) => {
+    if (activeBodyWidget === widget) {
+      setActiveBodyWidget(null);
+    } else {
+      const langKey = language === 'en' ? 'en' : 'de';
+      const count = BODY_WIDGET_FACTS[widget].facts[langKey].length;
+      const nextIdx = Math.floor(Math.random() * count);
+      setBodyFactIndex(nextIdx);
+      setActiveBodyWidget(widget);
+    }
+  };
+
+  const renderBodyFactPanel = (widgetKey: BodyWidgetKey) => {
+    const widgetData = BODY_WIDGET_FACTS[widgetKey];
+    const langKey = language === 'en' ? 'en' : 'de';
+    const facts = widgetData.facts[langKey];
+    const currentFact = facts[bodyFactIndex % facts.length];
+
+    return (
+      <Card
+        key={`fact-${widgetKey}`}
+        padding="md"
+        style={[
+          styles.bodyFactCard,
+          {
+            borderColor: withAlpha(theme.colors.primary, 0.35),
+            backgroundColor: withAlpha(theme.colors.surface, 0.95),
+          },
+        ]}
+        testID={`body-fact-${widgetKey}`}
+      >
+        <View style={styles.bodyFactHeader}>
+          <View style={styles.bodyFactHeaderLeft}>
+            <Ionicons name={widgetData.icon} size={16} color={theme.colors.primary} />
+            <Text style={[styles.bodyFactTitle, { color: theme.colors.primary }]}>
+              {widgetData.title[langKey]}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => setActiveBodyWidget(null)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={language === 'en' ? 'Close info' : 'Info schließen'}
+          >
+            <Ionicons name="close" size={18} color={theme.colors.muted} />
+          </Pressable>
+        </View>
+        <Text style={[styles.bodyFactText, { color: theme.colors.text }]}>
+          {currentFact}
+        </Text>
+        <Pressable
+          onPress={() => {
+            setBodyFactIndex((prev) => (prev + 1) % facts.length);
+          }}
+          style={styles.bodyFactCycleBtn}
+          accessibilityRole="button"
+          accessibilityLabel={language === 'en' ? 'Next fact' : 'Nächster Fakt'}
+        >
+          <Ionicons name="sparkles-outline" size={13} color={theme.colors.muted} />
+          <Text style={[styles.bodyFactCycleText, { color: theme.colors.muted }]}>
+            {language === 'en' ? 'Tap for another tip' : 'Tippen für weiteren Hinweis'}
+          </Text>
+        </Pressable>
+      </Card>
+    );
+  };
+
   // Convert weight display values
   const displayWeight = (kg?: number) => {
     if (!kg) return '--';
@@ -513,13 +657,42 @@ export default function BodyTrackingScreen() {
         >
           {/* Latest Overview Cards */}
           <View style={styles.overviewRow}>
-            <Card style={styles.overviewCard} padding="md">
-              <Ionicons
-                name="scale-outline"
-                size={24}
-                color={theme.colors.muted}
-                style={styles.cardIcon}
-              />
+            <Card
+              style={[
+                styles.overviewCard,
+                activeBodyWidget === 'weight' && {
+                  borderColor: theme.colors.primary,
+                  backgroundColor: withAlpha(theme.colors.primary, 0.08),
+                },
+              ]}
+              padding="md"
+              onPress={() => handleToggleBodyWidget('weight')}
+              accessibilityRole="button"
+              accessibilityLabel={`${t('body.weight')}: ${displayWeight(currentWeightKg)}. ${
+                activeBodyWidget === 'weight'
+                  ? language === 'en'
+                    ? 'Collapse info'
+                    : 'Info einklappen'
+                  : language === 'en'
+                    ? 'Tap for info'
+                    : 'Tippen für Info'
+              }`}
+              accessibilityState={{ expanded: activeBodyWidget === 'weight' }}
+              testID="body-widget-weight"
+            >
+              <View style={styles.cardHeaderRow}>
+                <Ionicons
+                  name="scale-outline"
+                  size={24}
+                  color={activeBodyWidget === 'weight' ? theme.colors.primary : theme.colors.muted}
+                  style={styles.cardIcon}
+                />
+                <Ionicons
+                  name={activeBodyWidget === 'weight' ? 'chevron-up' : 'information-circle-outline'}
+                  size={16}
+                  color={activeBodyWidget === 'weight' ? theme.colors.primary : theme.colors.muted}
+                />
+              </View>
               <Text
                 style={[
                   styles.cardLabel,
@@ -537,13 +710,49 @@ export default function BodyTrackingScreen() {
                 {displayWeight(currentWeightKg)}
               </Text>
             </Card>
-            <Card style={styles.overviewCard} padding="md">
-              <Ionicons
-                name="body-outline"
-                size={24}
-                color={theme.colors.muted}
-                style={styles.cardIcon}
-              />
+
+            <Card
+              style={[
+                styles.overviewCard,
+                activeBodyWidget === 'height' && {
+                  borderColor: theme.colors.primary,
+                  backgroundColor: withAlpha(theme.colors.primary, 0.08),
+                },
+              ]}
+              padding="md"
+              onPress={() => handleToggleBodyWidget('height')}
+              accessibilityRole="button"
+              accessibilityLabel={`${language === 'en' ? 'Height' : 'Größe'}: ${
+                currentHeightCm
+                  ? isImperial
+                    ? `${(currentHeightCm / 2.54).toFixed(1)} in`
+                    : `${currentHeightCm.toFixed(0)} cm`
+                  : '--'
+              }. ${
+                activeBodyWidget === 'height'
+                  ? language === 'en'
+                    ? 'Collapse info'
+                    : 'Info einklappen'
+                  : language === 'en'
+                    ? 'Tap for info'
+                    : 'Tippen für Info'
+              }`}
+              accessibilityState={{ expanded: activeBodyWidget === 'height' }}
+              testID="body-widget-height"
+            >
+              <View style={styles.cardHeaderRow}>
+                <Ionicons
+                  name="body-outline"
+                  size={24}
+                  color={activeBodyWidget === 'height' ? theme.colors.primary : theme.colors.muted}
+                  style={styles.cardIcon}
+                />
+                <Ionicons
+                  name={activeBodyWidget === 'height' ? 'chevron-up' : 'information-circle-outline'}
+                  size={16}
+                  color={activeBodyWidget === 'height' ? theme.colors.primary : theme.colors.muted}
+                />
+              </View>
               <Text
                 style={[
                   styles.cardLabel,
@@ -567,14 +776,56 @@ export default function BodyTrackingScreen() {
             </Card>
           </View>
 
-          <View style={[styles.overviewRow, { marginTop: -10 }]}>
-            <Card style={styles.overviewCard} padding="md">
-              <Ionicons
-                name="water-outline"
-                size={24}
-                color={theme.colors.muted}
-                style={styles.cardIcon}
-              />
+          {(activeBodyWidget === 'weight' || activeBodyWidget === 'height') &&
+            renderBodyFactPanel(activeBodyWidget)}
+
+          <View
+            style={[
+              styles.overviewRow,
+              {
+                marginTop:
+                  activeBodyWidget === 'weight' || activeBodyWidget === 'height' ? 0 : -10,
+              },
+            ]}
+          >
+            <Card
+              style={[
+                styles.overviewCard,
+                activeBodyWidget === 'bodyFat' && {
+                  borderColor: theme.colors.primary,
+                  backgroundColor: withAlpha(theme.colors.primary, 0.08),
+                },
+              ]}
+              padding="md"
+              onPress={() => handleToggleBodyWidget('bodyFat')}
+              accessibilityRole="button"
+              accessibilityLabel={`${t('body.bodyFat')}: ${
+                latest?.bodyFatPercentage ? latest.bodyFatPercentage.toFixed(1) + '%' : '--'
+              }. ${
+                activeBodyWidget === 'bodyFat'
+                  ? language === 'en'
+                    ? 'Collapse info'
+                    : 'Info einklappen'
+                  : language === 'en'
+                    ? 'Tap for info'
+                    : 'Tippen für Info'
+              }`}
+              accessibilityState={{ expanded: activeBodyWidget === 'bodyFat' }}
+              testID="body-widget-bodyFat"
+            >
+              <View style={styles.cardHeaderRow}>
+                <Ionicons
+                  name="water-outline"
+                  size={24}
+                  color={activeBodyWidget === 'bodyFat' ? theme.colors.primary : theme.colors.muted}
+                  style={styles.cardIcon}
+                />
+                <Ionicons
+                  name={activeBodyWidget === 'bodyFat' ? 'chevron-up' : 'information-circle-outline'}
+                  size={16}
+                  color={activeBodyWidget === 'bodyFat' ? theme.colors.primary : theme.colors.muted}
+                />
+              </View>
               <Text
                 style={[
                   styles.cardLabel,
@@ -592,13 +843,43 @@ export default function BodyTrackingScreen() {
                 {latest?.bodyFatPercentage ? latest.bodyFatPercentage.toFixed(1) + '%' : '--'}
               </Text>
             </Card>
-            <Card style={styles.overviewCard} padding="md">
-              <Ionicons
-                name="pulse-outline"
-                size={24}
-                color={theme.colors.muted}
-                style={styles.cardIcon}
-              />
+
+            <Card
+              style={[
+                styles.overviewCard,
+                activeBodyWidget === 'bmi' && {
+                  borderColor: theme.colors.primary,
+                  backgroundColor: withAlpha(theme.colors.primary, 0.08),
+                },
+              ]}
+              padding="md"
+              onPress={() => handleToggleBodyWidget('bmi')}
+              accessibilityRole="button"
+              accessibilityLabel={`BMI: ${bmi !== null ? bmi : '--'}. ${
+                activeBodyWidget === 'bmi'
+                  ? language === 'en'
+                    ? 'Collapse info'
+                    : 'Info einklappen'
+                  : language === 'en'
+                    ? 'Tap for info'
+                    : 'Tippen für Info'
+              }`}
+              accessibilityState={{ expanded: activeBodyWidget === 'bmi' }}
+              testID="body-widget-bmi"
+            >
+              <View style={styles.cardHeaderRow}>
+                <Ionicons
+                  name="pulse-outline"
+                  size={24}
+                  color={activeBodyWidget === 'bmi' ? theme.colors.primary : theme.colors.muted}
+                  style={styles.cardIcon}
+                />
+                <Ionicons
+                  name={activeBodyWidget === 'bmi' ? 'chevron-up' : 'information-circle-outline'}
+                  size={16}
+                  color={activeBodyWidget === 'bmi' ? theme.colors.primary : theme.colors.muted}
+                />
+              </View>
               <Text
                 style={[
                   styles.cardLabel,
@@ -617,6 +898,9 @@ export default function BodyTrackingScreen() {
               </Text>
             </Card>
           </View>
+
+          {(activeBodyWidget === 'bodyFat' || activeBodyWidget === 'bmi') &&
+            renderBodyFactPanel(activeBodyWidget)}
 
           <Text
             style={[
@@ -1036,7 +1320,7 @@ export default function BodyTrackingScreen() {
             label={language === 'en' ? 'Date (YYYY-MM-DD)' : 'Datum (JJJJ-MM-TT)'}
             value={dateStr}
             onChangeText={setDateStr}
-            placeholder="e.g. 2026-06-02"
+            placeholder={language === 'en' ? 'e.g. 2026-06-02' : 'z. B. 2026-06-02'}
             inputAccessoryViewID={KEYBOARD_DONE_ID}
           />
 
@@ -1046,7 +1330,7 @@ export default function BodyTrackingScreen() {
                 label={`${t('settings.weight')} (${isImperial ? 'lbs' : 'kg'})`}
                 value={weight}
                 onChangeText={setWeight}
-                placeholder="e.g. 80"
+                placeholder={language === 'en' ? 'e.g. 80' : 'z. B. 80'}
                 keyboardType="numeric"
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
               />
@@ -1061,7 +1345,9 @@ export default function BodyTrackingScreen() {
                     ? isImperial
                       ? (profile.heightCm / 2.54).toFixed(1)
                       : profile.heightCm.toFixed(0)
-                    : 'e.g. 180'
+                    : language === 'en'
+                      ? 'e.g. 180'
+                      : 'z. B. 180'
                 }
                 keyboardType="numeric"
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
@@ -1075,7 +1361,7 @@ export default function BodyTrackingScreen() {
                 label={`${t('body.bodyFat')} %`}
                 value={bodyFat}
                 onChangeText={setBodyFat}
-                placeholder="e.g. 15"
+                placeholder={language === 'en' ? 'e.g. 15' : 'z. B. 15'}
                 keyboardType="numeric"
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
               />
@@ -1184,6 +1470,51 @@ const styles = StyleSheet.create({
   },
   overviewCard: {
     flex: 1,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  bodyFactCard: {
+    marginBottom: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  bodyFactHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  bodyFactHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bodyFactTitle: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 12,
+    letterSpacing: 0.8,
+  },
+  bodyFactText: {
+    fontFamily: 'Manrope_500Medium',
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 10,
+  },
+  bodyFactCycleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    paddingVertical: 2,
+  },
+  bodyFactCycleText: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 11,
+    letterSpacing: 0.5,
   },
   quickEntryCard: {
     marginBottom: 24,

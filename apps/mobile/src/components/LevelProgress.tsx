@@ -88,11 +88,13 @@ export function LevelProgress({
               color: theme.colors.text,
               fontFamily: 'SpaceGrotesk_600SemiBold',
               fontSize: compact ? 12 : 13,
+              flex: 1,
             }}
+            numberOfLines={1}
           >
             Level {level} · {t('rank.rank')} {rankInfo.rank} ({rankInfo.title})
           </Text>
-          {compact && (
+          {compact ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Text
                 style={{
@@ -107,6 +109,10 @@ export function LevelProgress({
                 <Ionicons name="chevron-forward" size={12} color={theme.colors.muted} />
               )}
             </View>
+          ) : (
+            onPress && (
+              <Ionicons name="chevron-forward" size={14} color={theme.colors.muted} />
+            )
           )}
         </View>
         <View

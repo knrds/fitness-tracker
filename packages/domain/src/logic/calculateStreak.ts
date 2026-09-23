@@ -78,3 +78,61 @@ export function calculateLongestStreak(sessions: WorkoutSession[]): number {
 
   return longestStreak;
 }
+
+export interface LongestStreakDetails {
+  longestStreak: number;
+  startDate?: Date | undefined;
+  endDate?: Date | undefined;
+}
+
+export function calculateLongestStreakDetails(sessions: WorkoutSession[]): LongestStreakDetails {
+  if (sessions.length === 0) return { longestStreak: 0 };
+
+  const uniqueDates = Array.from(new Set(sessions.map((s) => formatDateLocal(s.startedAt)))).sort();
+
+  let longestStreak = 0;
+  let currentStreak = 0;
+  let currentStart: Date | null = null;
+  let prevDate: Date | null = null;
+
+  let bestStart: Date | undefined;
+  let bestEnd: Date | undefined;
+
+  for (const dateStr of uniqueDates) {
+    const parts = dateStr.split('-').map(Number);
+    const currentDate = new Date(parts[0]!, parts[1]! - 1, parts[2]!, 12);
+    if (prevDate === null) {
+      currentStreak = 1;
+      currentStart = currentDate;
+    } else {
+      const diffTime = currentDate.getTime() - prevDate.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
+      if (diffDays <= 1) {
+        if (diffDays > 0) {
+          currentStreak++;
+        }
+      } else {
+        if (currentStreak > longestStreak) {
+          longestStreak = currentStreak;
+          bestStart = currentStart ?? undefined;
+          bestEnd = prevDate;
+        }
+        currentStreak = 1;
+        currentStart = currentDate;
+      }
+    }
+    prevDate = currentDate;
+  }
+
+  if (currentStreak > longestStreak) {
+    longestStreak = currentStreak;
+    bestStart = currentStart ?? undefined;
+    bestEnd = prevDate ?? undefined;
+  }
+
+  return {
+    longestStreak,
+    startDate: bestStart,
+    endDate: bestEnd,
+  };
+}

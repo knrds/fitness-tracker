@@ -75,8 +75,8 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '24'
-      - name: Audit locked dependencies (known high findings block release)
-        run: pnpm audit --audit-level=high
+      - name: Audit locked dependencies (unreviewed high findings block release)
+        run: node scripts/security/ci-dependency-gate.cjs
 
   rls:
     name: PostgreSQL ownership & RLS

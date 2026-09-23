@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { fireEvent, render } from '@testing-library/react-native';
 import { ThemeProvider } from '@fitness-tracker/ui';
 import { BattlePassModal } from '../BattlePassModal';
@@ -114,5 +115,24 @@ describe('BattlePassModal', () => {
     expect(getByText('Cyber Neon Rain')).toBeTruthy();
 
     fireEvent.press(getByLabelText('Detailansicht schließen'));
+  });
+
+  it('places the close/back control on the top left with minimum 44pt touch target', () => {
+    const handleClose = jest.fn();
+    const { getByLabelText } = render(
+      <ThemeProvider>
+        <BattlePassModal visible={true} onClose={handleClose} level={4} xp={1850} />
+      </ThemeProvider>,
+    );
+
+    const closeBtn = getByLabelText('Schließen');
+    expect(closeBtn).toBeTruthy();
+
+    const flatStyle = StyleSheet.flatten(closeBtn.props.style);
+    expect(flatStyle.width).toBeGreaterThanOrEqual(44);
+    expect(flatStyle.height).toBeGreaterThanOrEqual(44);
+
+    fireEvent.press(closeBtn);
+    expect(handleClose).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,9 +1,15 @@
-import { Theme, useThemeStyles, useTheme, withAlpha } from '@fitness-tracker/ui';
+import { Theme, useThemeStyles, useTheme, withAlpha, Card } from '@fitness-tracker/ui';
 import { parseDecimalInput } from '../src/utils/decimalInput';
 import { LevelProgress } from '../src/components/LevelProgress';
+import { BattlePassModal } from '../src/components/BattlePassModal';
 import { AppearanceSettings } from '../src/components/AppearanceSettings';
 import { NotificationSettingsModal } from '../src/components/NotificationSettingsModal';
 import { SupportFeedbackModal } from '../src/components/SupportFeedbackModal';
+import { DatePickerModal } from '../src/components/DatePickerModal';
+import {
+  MONTH_NAMES_DE,
+  MONTH_NAMES_EN,
+} from '../src/components/DateWheelPicker';
 import { useAchievementStore } from '../src/stores/achievementStore';
 import { getStorageScope, isScopeCurrent } from '../src/data/storageScope';
 import { scopedAlert as Alert } from '../src/utils/scopedAlert';
@@ -46,6 +52,7 @@ import {
   UnitSystem,
   BiologicalSex,
   parseBirthDateInput,
+  calculateAge,
   hasValidAiConsent,
 } from '@fitness-tracker/domain';
 import { hapticFeedback } from '../src/utils/haptics';
@@ -109,6 +116,49 @@ export default function ProfileScreen() {
   const [saveToast, setSaveToast] = useState(false);
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
   const [supportModalVisible, setSupportModalVisible] = useState(false);
+  const [datePickerModalVisible, setDatePickerModalVisible] = useState(false);
+
+  const { formattedBirthDateDisplay, birthDateAgeText } = React.useMemo(() => {
+    if (!birthDateInput.trim()) {
+      return {
+        formattedBirthDateDisplay:
+          language === 'de'
+            ? 'Datum auswählen (optional)'
+            : 'Select date (optional)',
+        birthDateAgeText: null,
+      };
+    }
+
+    const trimmed = birthDateInput.trim();
+    const age = calculateAge(trimmed);
+    const ageStr =
+      age !== undefined
+        ? `${age} ${language === 'de' ? 'Jahre' : 'years'}`
+        : null;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      const [yStr, mStr, dStr] = trimmed.split('-');
+      const day = Number(dStr);
+      const month = Number(mStr) - 1;
+      const year = Number(yStr);
+      const monthNames = language === 'de' ? MONTH_NAMES_DE : MONTH_NAMES_EN;
+      const monthName = monthNames[month] ?? '';
+      const dateFormatted =
+        language === 'de'
+          ? `${day}. ${monthName} ${year}`
+          : `${monthName} ${day}, ${year}`;
+      return {
+        formattedBirthDateDisplay: dateFormatted,
+        birthDateAgeText: ageStr,
+      };
+    }
+
+    // Birth year only (e.g. "1995")
+    return {
+      formattedBirthDateDisplay: trimmed,
+      birthDateAgeText: ageStr,
+    };
+  }, [birthDateInput, language]);
 
   const [weight, setWeight] = useState(() => {
     if (profile.weightKg === undefined) return '';
@@ -146,6 +196,9 @@ export default function ProfileScreen() {
 
   const [isRpePickerVisible, setRpePickerVisible] = useState(false);
   const [isRirPickerVisible, setRirPickerVisible] = useState(false);
+  const [battlePassVisible, setBattlePassVisible] = useState(false);
+  type LifetimeStatKey = 'workouts' | 'volume' | 'longestStreak' | 'currentStreak';
+  const [activeStatCard, setActiveStatCard] = useState<LifetimeStatKey | null>(null);
   const stats = getStatistics();
 
   const handleSaveProfile = () => {
@@ -507,7 +560,11 @@ export default function ProfileScreen() {
         automaticallyAdjustKeyboardInsets={true}
       >
         {/* Profile Picture */}
-        <LevelProgress level={achievement.level} xp={achievement.xp} />
+        <LevelProgress
+          level={achievement.level}
+          xp={achievement.xp}
+          onPress={() => setBattlePassVisible(true)}
+        />
         <View style={styles.avatarSection}>
           <Pressable
             onPress={handlePickImage}
@@ -625,19 +682,75 @@ export default function ProfileScreen() {
 
           <View style={{ marginBottom: 14 }}>
             <Text style={[styles.inputLabel, { marginTop: 12, marginBottom: 6 }]}>
-              {t('settings.dateOfBirth')} / {t('settings.birthYear')}
+              {t('settings.dateOfBirth')}
             </Text>
-            <TextInput
-              style={styles.input}
-              value={birthDateInput}
-              onChangeText={setBirthDateInput}
-              placeholder={language === 'de' ? 'JJJJ-MM-TT oder JJJJ (optional)' : 'YYYY-MM-DD or YYYY (optional)'}
-              placeholderTextColor={theme.colors.muted}
-              inputAccessoryViewID={KEYBOARD_DONE_ID}
-              onSubmitEditing={() => Keyboard.dismiss()}
-              accessibilityLabel={`${t('settings.dateOfBirth')} ${t('settings.birthYear')}`}
-              accessibilityHint={language === 'de' ? 'Optionales Geburtsdatum oder Geburtsjahr zur Personalisierung' : 'Optional date of birth or birth year for personalization'}
-            />
+            <Pressable
+              style={[
+                styles.datePickerTrigger,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                },
+              ]}
+              onPress={() => {
+                Keyboard.dismiss();
+                setDatePickerModalVisible(true);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`${t('settings.dateOfBirth')}: ${formattedBirthDateDisplay}`}
+              accessibilityHint={
+                language === 'de'
+                  ? 'Tippen, um Geburtsdatum mit dem Rad-Wähler auszuwählen'
+                  : 'Tap to select date of birth with wheel picker'
+              }
+            >
+              <View style={styles.datePickerLeft}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={20}
+                  color={
+                    birthDateInput ? theme.colors.primary : theme.colors.muted
+                  }
+                  style={{ marginRight: 10 }}
+                />
+                <Text
+                  style={[
+                    styles.datePickerValueText,
+                    {
+                      color: birthDateInput
+                        ? theme.colors.text
+                        : theme.colors.muted,
+                      fontWeight: birthDateInput ? '600' : '400',
+                    },
+                  ]}
+                >
+                  {formattedBirthDateDisplay}
+                </Text>
+              </View>
+
+              <View style={styles.datePickerRight}>
+                {birthDateAgeText ? (
+                  <Text
+                    style={[
+                      styles.datePickerAgeBadge,
+                      {
+                        color: theme.colors.primary,
+                        backgroundColor: withAlpha(theme.colors.primary, 0.1),
+                        borderColor: withAlpha(theme.colors.primary, 0.25),
+                      },
+                    ]}
+                  >
+                    {birthDateAgeText}
+                  </Text>
+                ) : null}
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={theme.colors.muted}
+                  style={{ marginLeft: 6 }}
+                />
+              </View>
+            </Pressable>
           </View>
 
           <View style={styles.inputGrid}>
@@ -649,7 +762,15 @@ export default function ProfileScreen() {
                 style={styles.input}
                 value={height}
                 onChangeText={setHeight}
-                placeholder={profile.preferredUnits === 'imperial' ? 'e.g. 70' : 'e.g. 180'}
+                placeholder={
+                  profile.preferredUnits === 'imperial'
+                    ? language === 'de'
+                      ? 'z. B. 70'
+                      : 'e.g. 70'
+                    : language === 'de'
+                      ? 'z. B. 180'
+                      : 'e.g. 180'
+                }
                 placeholderTextColor={theme.colors.muted}
                 keyboardType="numeric"
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
@@ -664,7 +785,15 @@ export default function ProfileScreen() {
                 style={styles.input}
                 value={weight}
                 onChangeText={setWeight}
-                placeholder={profile.preferredUnits === 'imperial' ? 'e.g. 175' : 'e.g. 80'}
+                placeholder={
+                  profile.preferredUnits === 'imperial'
+                    ? language === 'de'
+                      ? 'z. B. 175'
+                      : 'e.g. 175'
+                    : language === 'de'
+                      ? 'z. B. 80'
+                      : 'e.g. 80'
+                }
                 placeholderTextColor={theme.colors.muted}
                 keyboardType="numeric"
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
@@ -674,17 +803,29 @@ export default function ProfileScreen() {
           </View>
 
           <Text style={styles.sectionDivider}>
-            {t('settings.biometrics')} ({profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'})
+            {t('settings.biometrics')} · 1RM ({profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'})
           </Text>
 
           <View style={styles.inputGrid}>
             <View style={styles.gridField}>
-              <Text style={styles.inputLabel}>{t('settings.benchPressMax')}</Text>
+              <View style={styles.gridLabelContainer}>
+                <Text style={styles.gridInputLabel} numberOfLines={2}>
+                  {t('settings.benchPressMax')}
+                </Text>
+              </View>
               <TextInput
                 style={styles.input}
                 value={benchPressMax}
                 onChangeText={setBenchPressMax}
-                placeholder="Bench"
+                placeholder={
+                  profile.preferredUnits === 'imperial'
+                    ? language === 'de'
+                      ? 'z. B. 225'
+                      : 'e.g. 225'
+                    : language === 'de'
+                      ? 'z. B. 100'
+                      : 'e.g. 100'
+                }
                 placeholderTextColor={theme.colors.muted}
                 keyboardType="numeric"
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
@@ -700,12 +841,24 @@ export default function ProfileScreen() {
               ) : null}
             </View>
             <View style={styles.gridField}>
-              <Text style={styles.inputLabel}>{t('settings.squatMax')}</Text>
+              <View style={styles.gridLabelContainer}>
+                <Text style={styles.gridInputLabel} numberOfLines={2}>
+                  {t('settings.squatMax')}
+                </Text>
+              </View>
               <TextInput
                 style={styles.input}
                 value={squatMax}
                 onChangeText={setSquatMax}
-                placeholder="Squat"
+                placeholder={
+                  profile.preferredUnits === 'imperial'
+                    ? language === 'de'
+                      ? 'z. B. 315'
+                      : 'e.g. 315'
+                    : language === 'de'
+                      ? 'z. B. 140'
+                      : 'e.g. 140'
+                }
                 placeholderTextColor={theme.colors.muted}
                 keyboardType="numeric"
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
@@ -721,12 +874,24 @@ export default function ProfileScreen() {
               ) : null}
             </View>
             <View style={styles.gridField}>
-              <Text style={styles.inputLabel}>{t('settings.deadliftMax')}</Text>
+              <View style={styles.gridLabelContainer}>
+                <Text style={styles.gridInputLabel} numberOfLines={2}>
+                  {t('settings.deadliftMax')}
+                </Text>
+              </View>
               <TextInput
                 style={styles.input}
                 value={deadliftMax}
                 onChangeText={setDeadliftMax}
-                placeholder="Deadlift"
+                placeholder={
+                  profile.preferredUnits === 'imperial'
+                    ? language === 'de'
+                      ? 'z. B. 405'
+                      : 'e.g. 405'
+                    : language === 'de'
+                      ? 'z. B. 180'
+                      : 'e.g. 180'
+                }
                 placeholderTextColor={theme.colors.muted}
                 keyboardType="numeric"
                 inputAccessoryViewID={KEYBOARD_DONE_ID}
@@ -760,26 +925,239 @@ export default function ProfileScreen() {
         {/* Statistics Grid */}
         <Text style={styles.listSectionTitle}>{t('settings.lifetimeStats')}</Text>
         <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>{t('workout.workout')}</Text>
+          <Pressable
+            style={[
+              styles.statCard,
+              activeStatCard === 'workouts' && styles.statCardActive,
+            ]}
+            onPress={() => setActiveStatCard(activeStatCard === 'workouts' ? null : 'workouts')}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('workout.workout')}: ${stats.totalWorkouts}. ${
+              activeStatCard === 'workouts'
+                ? language === 'de'
+                  ? 'Info einklappen'
+                  : 'Collapse info'
+                : language === 'de'
+                  ? 'Tippen für Details'
+                  : 'Tap for details'
+            }`}
+            accessibilityState={{ expanded: activeStatCard === 'workouts' }}
+            testID="stat-card-workouts"
+          >
+            <View style={styles.statCardHeader}>
+              <Text style={styles.statLabel}>{t('workout.workout')}</Text>
+              <Ionicons
+                name={activeStatCard === 'workouts' ? 'chevron-up' : 'information-circle-outline'}
+                size={14}
+                color={activeStatCard === 'workouts' ? theme.colors.primary : theme.colors.muted}
+              />
+            </View>
             <Text style={styles.statValue}>{stats.totalWorkouts}</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>{t('workout.volume')}</Text>
+          </Pressable>
+
+          <Pressable
+            style={[
+              styles.statCard,
+              activeStatCard === 'volume' && styles.statCardActive,
+            ]}
+            onPress={() => setActiveStatCard(activeStatCard === 'volume' ? null : 'volume')}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('workout.volume')}: ${stats.totalVolume.toLocaleString()} ${
+              profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'
+            }. ${
+              activeStatCard === 'volume'
+                ? language === 'de'
+                  ? 'Info einklappen'
+                  : 'Collapse info'
+                : language === 'de'
+                  ? 'Tippen für Details'
+                  : 'Tap for details'
+            }`}
+            accessibilityState={{ expanded: activeStatCard === 'volume' }}
+            testID="stat-card-volume"
+          >
+            <View style={styles.statCardHeader}>
+              <Text style={styles.statLabel}>{t('workout.volume')}</Text>
+              <Ionicons
+                name={activeStatCard === 'volume' ? 'chevron-up' : 'information-circle-outline'}
+                size={14}
+                color={activeStatCard === 'volume' ? theme.colors.primary : theme.colors.muted}
+              />
+            </View>
             <Text style={styles.statValue}>
               {stats.totalVolume.toLocaleString()}{' '}
               {profile.preferredUnits === 'imperial' ? 'lbs' : 'kg'}
             </Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>{t('workout.longestStreak')}</Text>
-            <Text style={styles.statValue}>{stats.longestStreak} {t('time.days')}</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>{t('workout.currentStreak')}</Text>
-            <Text style={styles.statValue}>{stats.currentStreak} {t('time.days')}</Text>
-          </View>
+          </Pressable>
+
+          <Pressable
+            style={[
+              styles.statCard,
+              activeStatCard === 'longestStreak' && styles.statCardActive,
+            ]}
+            onPress={() =>
+              setActiveStatCard(activeStatCard === 'longestStreak' ? null : 'longestStreak')
+            }
+            accessibilityRole="button"
+            accessibilityLabel={`${t('workout.longestStreak')}: ${stats.longestStreak} ${t('time.days')}. ${
+              activeStatCard === 'longestStreak'
+                ? language === 'de'
+                  ? 'Info einklappen'
+                  : 'Collapse info'
+                : language === 'de'
+                  ? 'Tippen für Details'
+                  : 'Tap for details'
+            }`}
+            accessibilityState={{ expanded: activeStatCard === 'longestStreak' }}
+            testID="stat-card-longestStreak"
+          >
+            <View style={styles.statCardHeader}>
+              <Text style={styles.statLabel}>{t('workout.longestStreak')}</Text>
+              <Ionicons
+                name={activeStatCard === 'longestStreak' ? 'chevron-up' : 'information-circle-outline'}
+                size={14}
+                color={
+                  activeStatCard === 'longestStreak' ? theme.colors.primary : theme.colors.muted
+                }
+              />
+            </View>
+            <Text style={styles.statValue}>
+              {stats.longestStreak} {t('time.days')}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[
+              styles.statCard,
+              activeStatCard === 'currentStreak' && styles.statCardActive,
+            ]}
+            onPress={() =>
+              setActiveStatCard(activeStatCard === 'currentStreak' ? null : 'currentStreak')
+            }
+            accessibilityRole="button"
+            accessibilityLabel={`${t('workout.currentStreak')}: ${stats.currentStreak} ${t('time.days')}. ${
+              activeStatCard === 'currentStreak'
+                ? language === 'de'
+                  ? 'Info einklappen'
+                  : 'Collapse info'
+                : language === 'de'
+                  ? 'Tippen für Details'
+                  : 'Tap for details'
+            }`}
+            accessibilityState={{ expanded: activeStatCard === 'currentStreak' }}
+            testID="stat-card-currentStreak"
+          >
+            <View style={styles.statCardHeader}>
+              <Text style={styles.statLabel}>{t('workout.currentStreak')}</Text>
+              <Ionicons
+                name={activeStatCard === 'currentStreak' ? 'chevron-up' : 'information-circle-outline'}
+                size={14}
+                color={
+                  activeStatCard === 'currentStreak' ? theme.colors.primary : theme.colors.muted
+                }
+              />
+            </View>
+            <Text style={styles.statValue}>
+              {stats.currentStreak} {t('time.days')}
+            </Text>
+          </Pressable>
         </View>
+
+        {activeStatCard && (
+          <Card
+            padding="md"
+            style={[
+              styles.statDetailCard,
+              {
+                borderColor: withAlpha(theme.colors.primary, 0.35),
+                backgroundColor: withAlpha(theme.colors.surface, 0.95),
+              },
+            ]}
+            testID={`stat-detail-${activeStatCard}`}
+          >
+            <View style={styles.statDetailHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons
+                  name="information-circle-outline"
+                  size={16}
+                  color={theme.colors.primary}
+                />
+                <Text style={[styles.statDetailTitle, { color: theme.colors.primary }]}>
+                  {activeStatCard === 'workouts'
+                    ? t('workout.workout')
+                    : activeStatCard === 'volume'
+                      ? t('workout.volume')
+                      : activeStatCard === 'longestStreak'
+                        ? t('workout.longestStreak')
+                        : t('workout.currentStreak')}
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setActiveStatCard(null)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={language === 'de' ? 'Info schließen' : 'Close info'}
+              >
+                <Ionicons name="close" size={18} color={theme.colors.muted} />
+              </Pressable>
+            </View>
+            <Text style={[styles.statDetailText, { color: theme.colors.text }]}>
+              {(() => {
+                if (activeStatCard === 'workouts') {
+                  const count = stats.totalWorkouts;
+                  return language === 'de'
+                    ? `Du hast bisher insgesamt ${count} ${count === 1 ? 'Workout' : 'Workouts'} abgeschlossen.`
+                    : `You have completed a total of ${count} ${count === 1 ? 'workout' : 'workouts'} so far.`;
+                }
+                if (activeStatCard === 'volume') {
+                  const volStr = stats.totalVolume.toLocaleString(
+                    language === 'de' ? 'de-DE' : 'en-US',
+                  );
+                  const unit = profile.preferredUnits === 'imperial' ? 'lbs' : 'kg';
+                  return language === 'de'
+                    ? `Dein bisher geloggtes Gesamtvolumen beträgt ${volStr} ${unit}. Dies entspricht dem bewegten Gesamtgewicht über alle protokollierten Sätze.`
+                    : `Your total logged workout volume is ${volStr} ${unit}. This represents the cumulative weight moved across all logged sets.`;
+                }
+                if (activeStatCard === 'currentStreak') {
+                  const days = stats.currentStreak;
+                  return language === 'de'
+                    ? `Deine aktuelle Serie beträgt ${days} ${days === 1 ? 'Tag' : 'Tage'}. Ein Streak zählt aufeinanderfolgende Trainingstage oder Tage mit kurzen Trainingsintervallen (max. 1 Ruhetag dazwischen).`
+                    : `Your current streak is ${days} ${days === 1 ? 'day' : 'days'}. Streaks count consecutive training days or active periods with at most one rest day in between.`;
+                }
+                if (activeStatCard === 'longestStreak') {
+                  const days = stats.longestStreak;
+                  const details = stats.longestStreakDetails;
+                  let periodText = '';
+                  if (details?.startDate && details?.endDate) {
+                    const startStr = details.startDate.toLocaleDateString(
+                      language === 'de' ? 'de-DE' : 'en-US',
+                      { month: 'long', year: 'numeric' },
+                    );
+                    const endStr = details.endDate.toLocaleDateString(
+                      language === 'de' ? 'de-DE' : 'en-US',
+                      { month: 'long', year: 'numeric' },
+                    );
+                    if (startStr === endStr) {
+                      periodText =
+                        language === 'de'
+                          ? ` Erreicht im ${startStr}.`
+                          : ` Achieved in ${startStr}.`;
+                    } else {
+                      periodText =
+                        language === 'de'
+                          ? ` Erreicht von ${startStr} bis ${endStr}.`
+                          : ` Achieved from ${startStr} to ${endStr}.`;
+                    }
+                  }
+                  return language === 'de'
+                    ? `Deine längste Serie beträgt ${days} ${days === 1 ? 'Tag' : 'Tage'}.${periodText} Sie zeigt deine bisher beständigste Trainingsphase.`
+                    : `Your longest streak is ${days} ${days === 1 ? 'day' : 'days'}.${periodText} It shows your most consistent training stretch.`;
+                }
+                return '';
+              })()}
+            </Text>
+          </Card>
+        )}
 
         {/* Settings options */}
         <Text style={styles.listSectionTitle}>{t('settings.preferences')}</Text>
@@ -1267,7 +1645,7 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
           </Pressable>
 
-          {/* AI Coach Privacy & Consent [LEGAL_REVIEW_REQUIRED] */}
+          {/* AI Coach Privacy & Consent */}
           <View style={[styles.settingsRowVertical, { marginBottom: 16 }]}>
             <View
               style={{
@@ -1473,6 +1851,14 @@ export default function ProfileScreen() {
         onClose={() => setSupportModalVisible(false)}
         language={language}
       />
+      <DatePickerModal
+        visible={datePickerModalVisible}
+        value={birthDateInput}
+        onConfirm={(isoDate) => setBirthDateInput(isoDate)}
+        onClear={() => setBirthDateInput('')}
+        onClose={() => setDatePickerModalVisible(false)}
+        language={language}
+      />
 
       {/* JSON Backup viewer Modal */}
       <Modal
@@ -1497,6 +1883,12 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+      <BattlePassModal
+        visible={battlePassVisible}
+        onClose={() => setBattlePassVisible(false)}
+        level={achievement.level}
+        xp={achievement.xp}
+      />
       <KeyboardDoneAccessory />
     </View>
   );
@@ -1589,6 +1981,18 @@ const createStyles = (theme: Theme) =>
       marginBottom: 6,
       marginTop: 12,
       textTransform: 'uppercase',
+    },
+    gridLabelContainer: {
+      minHeight: 36,
+      justifyContent: 'flex-end',
+      marginBottom: 6,
+    },
+    gridInputLabel: {
+      fontSize: 11,
+      fontFamily: 'SpaceGrotesk_600SemiBold',
+      color: theme.colors.muted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
     },
     input: {
       minHeight: 44,
@@ -1791,6 +2195,38 @@ const createStyles = (theme: Theme) =>
       fontFamily: 'SpaceGrotesk_700Bold',
       color: theme.colors.text,
     },
+    statCardActive: {
+      borderColor: theme.colors.primary,
+      backgroundColor: withAlpha(theme.colors.primary, 0.08),
+    },
+    statCardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+    statDetailCard: {
+      width: '100%',
+      marginBottom: 20,
+      borderRadius: 14,
+      borderWidth: 1,
+    },
+    statDetailHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    statDetailTitle: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 12,
+      letterSpacing: 0.8,
+    },
+    statDetailText: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 13,
+      lineHeight: 19,
+    },
     settingsRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -1980,5 +2416,36 @@ const createStyles = (theme: Theme) =>
       fontSize: 20,
       color: theme.colors.text,
       textTransform: 'uppercase',
+    },
+    datePickerTrigger: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      height: 48,
+      borderRadius: 10,
+      borderWidth: 1,
+      paddingHorizontal: 14,
+    },
+    datePickerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    datePickerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    datePickerValueText: {
+      fontSize: 15,
+      fontFamily: 'SpaceGrotesk_500Medium',
+    },
+    datePickerAgeBadge: {
+      fontSize: 12,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 6,
+      borderWidth: 1,
+      overflow: 'hidden',
     },
   });

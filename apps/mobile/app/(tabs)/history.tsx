@@ -42,6 +42,7 @@ import { useAchievementCheck } from '../../src/hooks/useAchievementCheck';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { useTheme, Card, EmptyState } from '@fitness-tracker/ui';
 import { LevelProgress } from '../../src/components/LevelProgress';
+import { BattlePassModal } from '../../src/components/BattlePassModal';
 import { HorizontalFadeScroll } from '../../src/components/HorizontalFadeScroll';
 import { VerticalFadeScroll } from '../../src/components/VerticalFadeScroll';
 import { useI18n } from '../../src/i18n';
@@ -1609,6 +1610,7 @@ function AchievementsView() {
   const { language, formatAchievement } = useI18n();
   const { xp, level, unlockedAchievements, repeatCounts } = useAchievementStore();
   const { getProgress } = useAchievementCheck();
+  const [battlePassVisible, setBattlePassVisible] = useState(false);
 
   const oneTime = ACHIEVEMENTS.filter((a) => !a.repeatable);
   const repeatables = ACHIEVEMENTS.filter((a) => a.repeatable);
@@ -1620,7 +1622,11 @@ function AchievementsView() {
       ref={scrollRef}
       contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom + 20, 100) }]}
     >
-      <LevelProgress level={level} xp={xp} />
+      <LevelProgress
+        level={level}
+        xp={xp}
+        onPress={() => setBattlePassVisible(true)}
+      />
 
       {/* Repeatable */}
       <Text
@@ -1841,6 +1847,12 @@ function AchievementsView() {
           })}
         </>
       )}
+      <BattlePassModal
+        visible={battlePassVisible}
+        onClose={() => setBattlePassVisible(false)}
+        level={level}
+        xp={xp}
+      />
     </ScrollView>
   );
 }

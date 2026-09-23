@@ -30,7 +30,7 @@ describe('Observability & Crash Monitoring Sanitization (WP-08 Task 08.01)', () 
   describe('Context & Health Data Scrubbing', () => {
     it('redacts health and workout metric keys completely', () => {
       const rawContext = {
-        appVersion: '0.1.0-beta.6',
+        appVersion: '0.1.0-beta.7',
         platform: 'ios',
         weight: 85.5,
         gewicht: 85.5,
@@ -46,7 +46,7 @@ describe('Observability & Crash Monitoring Sanitization (WP-08 Task 08.01)', () 
 
       const sanitized = sanitizeContext(rawContext);
 
-      expect(sanitized.appVersion).toBe('0.1.0-beta.6');
+      expect(sanitized.appVersion).toBe('0.1.0-beta.7');
       expect(sanitized.platform).toBe('ios');
 
       // All health/workout keys must be redacted

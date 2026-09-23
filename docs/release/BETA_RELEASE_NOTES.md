@@ -1,5 +1,70 @@
 # EVARO Beta Release Notes
 
+## EVARO Beta 0.1.0-beta.7 (Release Candidate – Stability, Recovery & Architecture Hardening)
+
+**Release-Datum:** 23. September 2026  
+**Commit-Basis:** `main` (Merge von `astra/p0-release-core`)  
+**Status:** `PRE-RELEASE / BETA CANDIDATE` (Automated Beta Ready; Physical Device Validation Required)
+
+### Neu / Behoben in Beta 0.1.0-beta.7
+
+- **Beta-Blocker #1 – Profilbild-Persistenz (iOS & Android & Web):**
+  - Ursache behoben: Temporäre Image-Picker-Cache-URIs (`/tmp/ImagePicker/`) wurden im Profil persistiert und nach App-Neustart bzw. OS-Cache-Eviction invalidiert.
+  - Neuer `avatarStorageService`: Kopiert gewählte Profilbilder sofort in ein persistentes, app-eigenes Verzeichnis (`Paths.document/avatars/`).
+  - Container-UUID-Resilienz für iOS: Speicherung als Sandbox-relativer Pfad (`avatars/avatar_<partition>.jpg`), wodurch iOS-Container-UUID-Rotationen bei App-Updates sicher überstanden werden.
+  - Strikte Account-Isolation: Getrennte Speicherung nach Account-Scope/Partition (`legacy`, `guest`, `account:<id>`). Beim Logout/Account-Wechsel kein Leck; beim Account-Löschen saubere Bereinigung.
+  - Web/Safari/PWA: Persistente Data-URIs statt flüchtiger `blob:`-URLs.
+  - Sichere Migration: Bestehende lesbare Altdaten werden beim Laden automatisch in das persistente Verzeichnis überführt; gelöschte Dateien fallen ohne Absturz auf den Initialen-Avatar zurück.
+
+- **Beta-Blocker #2 – Android Storage Hydration & Safe Recovery (Samsung Galaxy S25 / Android 14+):**
+  - Ursache behoben: Synchrones Schema-Parsing in `storage.ts:decode()` warf vor der Ausführung von Zustands `migrate()` einen unüberwindbaren `StorageHydrationError`, der im `useStorageHealth`-Store gefangen blieb. Die "Erneut laden"-Funktion setzte geblockte Stores nicht zurück.
+  - Gestufte, nicht-destruktive Recovery-Architektur:
+    - **Level 1 (Normal Hydrate):** Zod-Parsing mit Defaults und Transformationen.
+    - **Level 2 (Schema Version Migration):** Ältere Schema-Payloads werden intakt an Zustands `migrate()`-Funktion weitergereicht, anstatt vorab blockiert zu werden.
+    - **Level 3 (Safe Field-Level Repair):** Fehlende nicht-kritische additive Felder werden atomar mit Vorgabewerten ergänzt, ohne Workouts, Templates oder Verläufe anzutasten.
+    - **Level 4 (Non-PII Diagnostics):** Detaillierte Fehlercode- und Schemapfad-Anzeige in der UI (`PersistenceGate`) ohne Exposition sensibler Gesundheits- oder Trainingsdaten.
+  - Echte Retry-Logik: `retryHydration()` setzt den Health-Zustand zurück und führt eine frische Rehydration aus.
+
+- **Program Schedule & Preview Wrap-Around:**
+  - `getProgramScheduleStatus` behoben: Liegt der aktuelle Wochentag hinter den geplanten Trainingstagen der Woche, während die Gesamtdauer noch nicht abgelaufen ist, schlägt der Home-Screen-Preview nahtlos das erste Workout der Folgewoche vor.
+
+- **Neues Onboarding & Wertversprechen:**
+  - Multistep-Onboarding mit Zielabfrage, Trainingserfahrung, Frequenz, dynamischer XP-Vorschau und reibungslosem Übergang in den Guest-Modus (kein Zwangs-Login vor dem ersten Training).
+
+- **Monetarisierungsarchitektur (FREE / PRO / COACH Gates):**
+  - Saubere Trennung der Berechtigungsstufen im Entitlement-System:
+    - **FREE:** Unbegrenzte echte Workouts, max. 2 Custom-Templates, kein AI-Coach.
+    - **PRO:** Unbegrenzte Templates, Trainingsprogramme, RPE/RIR, erweiterte Metriken, Coach-Vorschau.
+    - **COACH:** Vollständige KI-Planung, Confirmation-Pflicht für Trainingsplanänderungen.
+  - Strikte Downgrade-Datenintegrität: Bei Statuswechsel bleiben alle zuvor erstellten Templates, Workouts und Programme vollständig und unverändert erhalten.
+
+- **Coach Context Intelligence & Datensparsamkeit:**
+  - Context-Builder liefert zielgerichtete, minimierte Trainingsdaten (relevante Übungshistorie, PRs, aktuelles Programm) an den KI-Coach. Keine unnötigen Voll-Dumps der gesamten Datenbank.
+  - Vollständige Account-Isolation für Coach-Kontexte und Verwerfen temporärer KI-Entwürfe bei Accountwechsel.
+
+- **Program UX & Drag-and-Drop:**
+  - Robuste Neuordnung von Tagen und Übungen in Programmen mit Kollisionserkennung und Vermeidung doppelter Zuweisungen.
+  - Workout-Preview-Modal auf dem Home-Screen: Ermöglicht Vorschau vor Start ohne versehentliches Auslösen.
+
+- **Barrierefreiheit & System-Settings:**
+  - Einhaltung der 44x44-pt Touch-Targets, Reduzierte-Bewegung-Support (`reduceMotion`), dynamische Schriftgrößenskalierung (`largeText`), i18n-Vollständigkeit (DE/EN) und Notification Preference Center.
+
+### Status der Release-Voraussetzungen (Gates)
+
+| Komponente | Status | Anmerkung |
+| :--- | :--- | :--- |
+| **Lokale Persistenz & Stores** | **VERIFIED** | Alle 13 Stores auditiert; Hydration- und Migrations-Fixtures grün |
+| **Automatisierte Tests** | **VERIFIED** | 824 Tests bestanden (759 Mobile + 49 Coach API/Safety + 16 Security) |
+| **TypeScript / Typecheck** | **VERIFIED** | 0 Fehler über alle Workspaces |
+| **ESLint / Linter** | **VERIFIED** | 0 Fehler über alle Workspaces |
+| **Web Preview Export** | **VERIFIED** | Erfolgreich generiert und geprüft |
+| **Preview Security Gate** | **VERIFIED** | 0 Critical, 0 High, 0 Moderate in Client-Reichweite |
+| **In-App Billing (Store)** | **PREPARED** | *ASTRA_REQUIRED* (Kein Store-Billing vor Produktions-Setup) |
+| **Supabase Cloud Sync** | **PREPARED** | *ASTRA_REQUIRED* (RLS-Migrationen lokal geprüft; kein Cloud-Push) |
+| **Physische Android-Prüfung** | **REQUIRED** | *PHYSICAL_DEVICE_REQUIRED* (Samsung S25 Verifikation vor Store) |
+
+---
+
 ## EVARO Beta 0.1.0-beta.6 (RC Preparation & Exercise Dataset Consolidation)
 
 **Release-Datum:** 16. September 2026  

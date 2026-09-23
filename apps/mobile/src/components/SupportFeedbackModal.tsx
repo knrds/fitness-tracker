@@ -27,7 +27,7 @@ export function generateSupportDiagnosticPayload(): {
   diagnosticId: string;
 } {
   return {
-    appVersion: '0.1.0-beta.6',
+    appVersion: '0.1.0-beta.7',
     platform: Platform.OS,
     osVersion: Platform.Version ?? 'unknown',
     diagnosticId: Math.random().toString(36).substring(2, 10).toUpperCase(),

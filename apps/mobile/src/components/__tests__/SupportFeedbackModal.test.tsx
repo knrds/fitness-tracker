@@ -22,7 +22,7 @@ describe('SupportFeedbackModal', () => {
   it('generates privacy-compliant diagnostic payload with technical IDs only', () => {
     const payload = generateSupportDiagnosticPayload();
 
-    expect(payload.appVersion).toBe('0.1.0-beta.6');
+    expect(payload.appVersion).toBe('0.1.0-beta.7');
     expect(payload.platform).toBeDefined();
     expect(payload.osVersion).toBeDefined();
     expect(payload.diagnosticId).toMatch(/^[A-Z0-9]+$/);

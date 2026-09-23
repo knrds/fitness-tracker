@@ -1,17 +1,17 @@
 # EVARO – kostenlos auf dem iPhone testen
 
-Stand: 21.09.2026 (Gemini Stabilization & Preview Recovery). Branch: `astra/p0-release-core`. SDK 54 bleibt unverändert. Kein Apple-Abo oder Store-Upload nötig.
+Stand: 23.09.2026 (EVARO Beta 0.1.0-beta.8 Release). Branch: `main` / `astra/p0-release-core`. SDK 54 bleibt unverändert. Kein Apple-Abo oder Store-Upload nötig.
 
 ## Zwei Testwege:
-- **Vercel HTTPS-Preview (Aktualisierter Stand):** [EVARO in Safari öffnen](https://fitness-tracker-git-a-808f13-skwarskikonrad1-gmailcoms-projects.vercel.app/).
-  - Nach Gemini Takeover: i18n Session-Telemetry vollständig DE/EN, barrierefreie Buttons, Preview-Security-Gate mit Zero-Critical-Garantie und 0 Client-Runtime-Reachability.
-  - Streng NON-RELEASE: Nur erfundene Testdaten, kein Billing, keine Production-Secrets.
+- **Vercel HTTPS Deployment (Aktueller Beta.8 Stand):** [EVARO in Safari öffnen](https://fitness-tracker-emttidcbh-skwarskikonrad1-gmailcoms-projects.vercel.app/).
+  - Enthält alle Beta.8 Features: Einheitlicher DateWheelPicker, Workout-Historie Bearbeiten/Löschen mit deterministischer PR-Neuberechnung, anonymer KI-Coach-Gast-Auth und Beta Full-Access.
+  - Streng NON-RELEASE: Nur synthetische Testdaten, kein echtes Billing, keine Produktions-Secrets.
 - **Lokaler WLAN-Stand:** per `pnpm preview:iphone` im eigenen privaten WLAN öffnen.
   - Unabhängig von Vercel und externen Servern; bindet deine lokale WLAN-IPv4 (z. B. `http://192.168.x.x:8097`).
 
 ## Dual-Gate Sicherheitsarchitektur
-- **Release / Production:** Bleibt in GitHub Actions CI strikt blockiert (`pnpm audit --audit-level=high`), solange 43 High Findings in Build-Tools (Metro, Plist, Jest) offen sind.
-- **Private Test Preview:** Führt `pnpm verify` (alle 654 Tests), `scripts/security/preview-security-gate.cjs` (Sicherheitsprüfung, Protokollierung aller Befunde) und `pnpm build` aus. Ermöglicht Safari-Tests auf dem echten iPhone ohne Verharmlosung der Release-Gates.
+- **Release / Production:** Bleibt in GitHub Actions CI strikt blockiert (`pnpm audit --audit-level=high`), solange High Findings in vorgelagerten Build-Tools (image-size, Metro) offen sind.
+- **Private Test Preview:** Führt `pnpm verify` (alle 1031 Tests), `scripts/security/preview-security-gate.cjs` (Sicherheitsprüfung, Protokollierung aller Befunde) und `pnpm build` aus. Ermöglicht Safari-Tests auf dem echten iPhone ohne Verharmlosung der Release-Gates.
 
 Windows-PC und iPhone im **selben vertrauenswürdigen privaten WLAN**, PC eingeschaltet. PowerShell, Git für Windows, Node 24 und pnpm 11.5.0. Auf diesem Desktop sind pnpm, Testtools und Dependencies bereits vorhanden.
 

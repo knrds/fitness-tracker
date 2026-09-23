@@ -70,9 +70,9 @@ export interface Profile {
   birthYear?: number | undefined;
   heightCm?: number;
   weightKg?: number;
-  benchPressMaxKg?: number;
-  squatMaxKg?: number;
-  deadliftMaxKg?: number;
+  benchPressMaxKg?: number | undefined;
+  squatMaxKg?: number | undefined;
+  deadliftMaxKg?: number | undefined;
   showRpe?: boolean;
   showRir?: boolean;
   rpeMode?: 'always_on' | 'always_off' | 'selected_exercises';

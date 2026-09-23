@@ -40,9 +40,11 @@ import { matchesExerciseSearch } from '../../src/utils/exerciseSearch';
 import { useAchievementStore } from '../../src/stores/achievementStore';
 import { useAchievementCheck } from '../../src/hooks/useAchievementCheck';
 import { useProfileStore } from '../../src/stores/profileStore';
-import { useTheme, Card, EmptyState } from '@fitness-tracker/ui';
+import { useTheme, Card, EmptyState, useDialog } from '@fitness-tracker/ui';
 import { LevelProgress } from '../../src/components/LevelProgress';
 import { BattlePassModal } from '../../src/components/BattlePassModal';
+import { HistoryEditModal } from '../../src/components/history/HistoryEditModal';
+import { recalculateDerivedStatsAfterHistoryMutation } from '../../src/utils/historyRecalculation';
 import { HorizontalFadeScroll } from '../../src/components/HorizontalFadeScroll';
 import { VerticalFadeScroll } from '../../src/components/VerticalFadeScroll';
 import { useI18n } from '../../src/i18n';
@@ -104,8 +106,34 @@ function HistoryView() {
   useHistoryStore((state) => state.sessions);
   const { getSessionsByDateDesc } = useHistoryStore();
   const sessions = getSessionsByDateDesc();
+  const { showConfirm } = useDialog();
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
+  const [overflowSession, setOverflowSession] = useState<WorkoutSession | null>(null);
+  const [actionMenuVisible, setActionMenuVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+
+  const handleDeleteWorkout = async (sessionToDelete: WorkoutSession) => {
+    setActionMenuVisible(false);
+    const confirmed = await showConfirm({
+      title: language === 'de' ? 'Workout löschen?' : 'Delete Workout?',
+      message:
+        language === 'de'
+          ? 'Dieses abgeschlossene Workout wird aus deinem Verlauf entfernt. Dadurch können sich Statistiken, PRs und Streaks ändern.'
+          : 'This completed workout will be removed from your history. This may alter your statistics, PRs, and streaks.',
+      confirmLabel: language === 'de' ? 'Workout löschen' : 'Delete Workout',
+      cancelLabel: language === 'de' ? 'Abbrechen' : 'Cancel',
+      destructive: true,
+    });
+
+    if (confirmed) {
+      useHistoryStore.getState().deleteSession(sessionToDelete.id);
+      recalculateDerivedStatsAfterHistoryMutation();
+      if (selectedSession?.id === sessionToDelete.id) {
+        setSelectedSession(null);
+      }
+    }
+  };
 
   const sessionsByDate = React.useMemo(() => {
     return sessions.reduce<Record<string, WorkoutSession[]>>((acc, session) => {
@@ -347,14 +375,30 @@ function HistoryView() {
           <Text
             style={[
               styles.title,
-              { color: theme.colors.text, ...theme.typography.heading, fontSize: 18 },
+              { color: theme.colors.text, ...theme.typography.heading, fontSize: 18, flex: 1 },
             ]}
+            numberOfLines={1}
           >
             {item.name}
           </Text>
-          <Text style={[styles.date, { color: theme.colors.muted, ...theme.typography.caption }]}>
-            {formatDate(item.startedAt)}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={[styles.date, { color: theme.colors.muted, ...theme.typography.caption }]}>
+              {formatDate(item.startedAt)}
+            </Text>
+            <Pressable
+              onPress={(e) => {
+                e.stopPropagation?.();
+                setOverflowSession(item);
+                setActionMenuVisible(true);
+              }}
+              style={styles.cardOverflowBtn}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={language === 'de' ? 'Optionen' : 'Options'}
+            >
+              <Ionicons name="ellipsis-horizontal" size={18} color={theme.colors.muted} />
+            </Pressable>
+          </View>
         </View>
         <Text
           style={{
@@ -841,6 +885,19 @@ function HistoryView() {
             {selectedSession && (
               <>
                 <Pressable
+                  style={styles.modalOverflowBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel={language === 'de' ? 'Optionen' : 'Options'}
+                  onPress={() => {
+                    setOverflowSession(selectedSession);
+                    setActionMenuVisible(true);
+                  }}
+                  hitSlop={12}
+                >
+                  <Ionicons name="ellipsis-horizontal" size={22} color={theme.colors.muted} />
+                </Pressable>
+
+                <Pressable
                   style={styles.modalCloseBtn}
                   accessibilityRole="button"
                   accessibilityLabel="Trainingsübersicht schließen"
@@ -962,6 +1019,79 @@ function HistoryView() {
           </View>
         </View>
       </Modal>
+
+      {/* Overflow Action Sheet */}
+      <Modal
+        visible={actionMenuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActionMenuVisible(false)}
+      >
+        <Pressable
+          style={styles.sheetOverlay}
+          onPress={() => setActionMenuVisible(false)}
+        >
+          <View
+            style={[
+              styles.sheetContent,
+              { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+            ]}
+          >
+            <Pressable
+              style={styles.sheetItem}
+              onPress={() => {
+                setActionMenuVisible(false);
+                setEditModalVisible(true);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={language === 'de' ? 'Workout bearbeiten' : 'Edit workout'}
+            >
+              <Ionicons name="pencil-outline" size={20} color={theme.colors.text} style={{ marginRight: 12 }} />
+              <Text style={[styles.sheetItemText, { color: theme.colors.text }]}>
+                {language === 'de' ? 'Bearbeiten' : 'Edit'}
+              </Text>
+            </Pressable>
+
+            <View style={[styles.sheetDivider, { backgroundColor: theme.colors.border }]} />
+
+            <Pressable
+              style={styles.sheetItem}
+              onPress={() => overflowSession && handleDeleteWorkout(overflowSession)}
+              accessibilityRole="button"
+              accessibilityLabel={language === 'de' ? 'Workout löschen' : 'Delete workout'}
+            >
+              <Ionicons name="trash-outline" size={20} color={theme.colors.error} style={{ marginRight: 12 }} />
+              <Text style={[styles.sheetItemText, { color: theme.colors.error }]}>
+                {language === 'de' ? 'Löschen' : 'Delete'}
+              </Text>
+            </Pressable>
+
+            <View style={[styles.sheetDivider, { backgroundColor: theme.colors.border }]} />
+
+            <Pressable
+              style={[styles.sheetItem, { justifyContent: 'center' }]}
+              onPress={() => setActionMenuVisible(false)}
+              accessibilityRole="button"
+              accessibilityLabel={language === 'de' ? 'Abbrechen' : 'Cancel'}
+            >
+              <Text style={[styles.sheetItemText, { color: theme.colors.muted, textAlign: 'center' }]}>
+                {language === 'de' ? 'Abbrechen' : 'Cancel'}
+              </Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+
+      <HistoryEditModal
+        visible={editModalVisible}
+        session={overflowSession}
+        onClose={() => setEditModalVisible(false)}
+        onSaved={(updated) => {
+          if (selectedSession?.id === updated.id) {
+            setSelectedSession(updated);
+          }
+        }}
+      />
     </>
   );
 }
@@ -2379,6 +2509,47 @@ const createStyles = (theme: Theme) =>
       top: 16,
       right: 16,
       zIndex: 10,
+    },
+    cardOverflowBtn: {
+      width: 44,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalOverflowBtn: {
+      position: 'absolute',
+      top: 16,
+      left: 16,
+      zIndex: 10,
+      width: 44,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sheetOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+      padding: 16,
+      paddingBottom: 32,
+    },
+    sheetContent: {
+      borderRadius: 16,
+      borderWidth: 1,
+      overflow: 'hidden',
+    },
+    sheetItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      height: 52,
+    },
+    sheetItemText: {
+      fontSize: 16,
+      fontFamily: 'Manrope_600SemiBold',
+    },
+    sheetDivider: {
+      height: 1,
     },
     daySessionList: {
       width: '100%',

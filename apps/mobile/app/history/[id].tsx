@@ -1,8 +1,9 @@
-import { Theme, useThemeStyles } from '@fitness-tracker/ui';
+import { Theme, useThemeStyles, useTheme } from '@fitness-tracker/ui';
 import { getStorageScope, isScopeCurrent } from '../../src/data/storageScope';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Share } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Share, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
@@ -10,6 +11,8 @@ import { useProgramStore } from '../../src/stores/programStore';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { usePaywallStore } from '../../src/stores/paywallStore';
 import { SaveTemplateModal } from '../../src/components/workout/SaveTemplateModal';
+import { HistoryEditModal } from '../../src/components/history/HistoryEditModal';
+import { recalculateDerivedStatsAfterHistoryMutation } from '../../src/utils/historyRecalculation';
 import { useI18n } from '../../src/i18n';
 import {
   TemplateExercise,
@@ -34,7 +37,10 @@ export default function WorkoutDetailScreen() {
   const { language } = useI18n();
   const isImperial = profile.preferredUnits === 'imperial';
 
+  const theme = useTheme();
   const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [actionSheetVisible, setActionSheetVisible] = useState(false);
 
   const session = sessions.find((s) => s.id === id);
 
@@ -45,6 +51,26 @@ export default function WorkoutDetailScreen() {
       </View>
     );
   }
+
+  const handleDeleteWorkout = async () => {
+    setActionSheetVisible(false);
+    const confirmed = await showConfirm({
+      title: language === 'de' ? 'Workout löschen?' : 'Delete Workout?',
+      message:
+        language === 'de'
+          ? 'Dieses abgeschlossene Workout wird aus deinem Verlauf entfernt. Dadurch können sich Statistiken, PRs und Streaks ändern.'
+          : 'This completed workout will be removed from your history. This may alter your statistics, PRs, and streaks.',
+      confirmLabel: language === 'de' ? 'Workout löschen' : 'Delete Workout',
+      cancelLabel: language === 'de' ? 'Abbrechen' : 'Cancel',
+      destructive: true,
+    });
+
+    if (confirmed) {
+      useHistoryStore.getState().deleteSession(session.id);
+      recalculateDerivedStatsAfterHistoryMutation();
+      router.back();
+    }
+  };
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat(language === 'de' ? 'de-DE' : 'en-US', {
@@ -165,7 +191,20 @@ export default function WorkoutDetailScreen() {
   return (
     <View style={styles.outerContainer}>
       <Stack.Screen
-        options={{ title: session.name || (language === 'de' ? 'Trainingsdetails' : 'Workout Details') }}
+        options={{
+          title: session.name || (language === 'de' ? 'Trainingsdetails' : 'Workout Details'),
+          headerRight: () => (
+            <Pressable
+              onPress={() => setActionSheetVisible(true)}
+              hitSlop={12}
+              style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+              accessibilityRole="button"
+              accessibilityLabel={language === 'de' ? 'Optionen' : 'Options'}
+            >
+              <Ionicons name="ellipsis-horizontal" size={22} color={theme.colors.text} />
+            </Pressable>
+          ),
+        }}
       />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <View style={styles.header}>
@@ -238,6 +277,74 @@ export default function WorkoutDetailScreen() {
         onClose={() => setSaveModalVisible(false)}
         onSave={handleSaveTemplate}
         onSkip={() => setSaveModalVisible(false)}
+      />
+
+      {/* Overflow Action Sheet */}
+      <Modal
+        visible={actionSheetVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActionSheetVisible(false)}
+      >
+        <Pressable
+          style={styles.sheetOverlay}
+          onPress={() => setActionSheetVisible(false)}
+        >
+          <View
+            style={[
+              styles.sheetContent,
+              { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+            ]}
+          >
+            <Pressable
+              style={styles.sheetItem}
+              onPress={() => {
+                setActionSheetVisible(false);
+                setEditModalVisible(true);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={language === 'de' ? 'Workout bearbeiten' : 'Edit workout'}
+            >
+              <Ionicons name="pencil-outline" size={20} color={theme.colors.text} style={{ marginRight: 12 }} />
+              <Text style={[styles.sheetItemText, { color: theme.colors.text }]}>
+                {language === 'de' ? 'Bearbeiten' : 'Edit'}
+              </Text>
+            </Pressable>
+
+            <View style={[styles.sheetDivider, { backgroundColor: theme.colors.border }]} />
+
+            <Pressable
+              style={styles.sheetItem}
+              onPress={handleDeleteWorkout}
+              accessibilityRole="button"
+              accessibilityLabel={language === 'de' ? 'Workout löschen' : 'Delete workout'}
+            >
+              <Ionicons name="trash-outline" size={20} color={theme.colors.error} style={{ marginRight: 12 }} />
+              <Text style={[styles.sheetItemText, { color: theme.colors.error }]}>
+                {language === 'de' ? 'Löschen' : 'Delete'}
+              </Text>
+            </Pressable>
+
+            <View style={[styles.sheetDivider, { backgroundColor: theme.colors.border }]} />
+
+            <Pressable
+              style={[styles.sheetItem, { justifyContent: 'center' }]}
+              onPress={() => setActionSheetVisible(false)}
+              accessibilityRole="button"
+              accessibilityLabel={language === 'de' ? 'Abbrechen' : 'Cancel'}
+            >
+              <Text style={[styles.sheetItemText, { color: theme.colors.muted, textAlign: 'center' }]}>
+                {language === 'de' ? 'Abbrechen' : 'Cancel'}
+              </Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+
+      <HistoryEditModal
+        visible={editModalVisible}
+        session={session}
+        onClose={() => setEditModalVisible(false)}
       />
     </View>
   );
@@ -369,5 +476,30 @@ const createStyles = (theme: Theme) =>
       textAlign: 'center',
       fontFamily: 'Manrope_500Medium',
       color: theme.colors.text,
+    },
+    sheetOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+      padding: 16,
+      paddingBottom: 32,
+    },
+    sheetContent: {
+      borderRadius: 16,
+      borderWidth: 1,
+      overflow: 'hidden',
+    },
+    sheetItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      height: 52,
+    },
+    sheetItemText: {
+      fontSize: 16,
+      fontFamily: 'Manrope_600SemiBold',
+    },
+    sheetDivider: {
+      height: 1,
     },
   });

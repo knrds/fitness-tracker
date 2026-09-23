@@ -15,6 +15,7 @@ import { useSyncStore } from './syncStore';
 export interface HistoryStore {
   sessions: WorkoutSession[];
   addSession: (session: WorkoutSession) => void;
+  updateSession: (session: WorkoutSession) => void;
   deleteSession: (id: UUID) => void;
   clearHistory: () => void;
   getSessionsByDateDesc: () => WorkoutSession[];
@@ -45,6 +46,16 @@ export const useHistoryStore = create<HistoryStore>()(
           useSyncStore.getState().addToQueue('workout_sessions', 'INSERT', session);
           return {
             sessions: [...state.sessions, session],
+          };
+        }),
+
+      updateSession: (updatedSession) =>
+        set((state) => {
+          useSyncStore.getState().addToQueue('workout_sessions', 'UPDATE', updatedSession);
+          return {
+            sessions: state.sessions.map((s) =>
+              s.id === updatedSession.id ? updatedSession : s,
+            ),
           };
         }),
 

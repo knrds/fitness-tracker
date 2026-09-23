@@ -16,12 +16,29 @@
 const { spawnSync } = require('node:child_process');
 
 function runAudit() {
-  const pnpmCmd = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
-  const result = spawnSync(pnpmCmd, ['audit', '--json'], {
-    encoding: 'utf8',
-    maxBuffer: 50 * 1024 * 1024,
-    env: process.env,
-  });
+  if (process.env.EVARO_AUDIT_DATA) {
+    try {
+      return JSON.parse(process.env.EVARO_AUDIT_DATA);
+    } catch {
+      return null;
+    }
+  }
+
+  const isWin = process.platform === 'win32';
+  const result = isWin
+    ? spawnSync('pnpm audit --json', {
+        shell: true,
+        encoding: 'utf8',
+        maxBuffer: 50 * 1024 * 1024,
+        env: process.env,
+        timeout: 180000,
+      })
+    : spawnSync('pnpm', ['audit', '--json'], {
+        encoding: 'utf8',
+        maxBuffer: 50 * 1024 * 1024,
+        env: process.env,
+        timeout: 180000,
+      });
 
   let auditData = null;
   const rawOutput = result.stdout || result.stderr || '';
@@ -40,6 +57,7 @@ function runAudit() {
 
   return auditData;
 }
+
 
 function verifyEnvironmentSafety() {
   const forbiddenProductionKeys = [

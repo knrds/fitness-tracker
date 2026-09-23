@@ -49,12 +49,17 @@ export function subscribeToHydration(listener: () => void) {
   return () => unsubscribes.forEach((unsubscribe) => unsubscribe());
 }
 export async function retryHydration() {
+  // Clear transient error state before retrying so blocked stores get a fresh evaluation
+  useStorageHealth.getState().reset();
   // Failed stores never finish hydrating. Successful stores must not reload over live edits.
   await Promise.all(
     stores
       .filter((store) => !store.persist.hasHydrated())
       .map((store) => store.persist.rehydrate()),
   );
+  if (!isPersistenceReady() || useStorageHealth.getState().blockedStores.length > 0) {
+    throw new Error('Hydration retry failed');
+  }
 }
 
 export async function switchPersistencePartition(partition: string, generation: number) {

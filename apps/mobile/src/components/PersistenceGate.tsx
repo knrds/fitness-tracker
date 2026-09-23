@@ -78,8 +78,12 @@ export function PersistenceGate({ children }: { children: React.ReactNode }) {
                 setRetrying(true);
                 setRetryError(false);
                 try {
-                  if (sessionError) await initialize();
-                  else await retryHydration();
+                  if (sessionError) {
+                    useAuthStore.setState({ sessionError: null });
+                    await initialize();
+                  } else {
+                    await retryHydration();
+                  }
                 } catch {
                   setRetryError(true);
                 } finally {
@@ -88,8 +92,13 @@ export function PersistenceGate({ children }: { children: React.ReactNode }) {
               }}
             />
             {retryError && (
-              <Text accessibilityRole="alert" style={{ color: theme.colors.text }}>
+              <Text accessibilityRole="alert" style={{ color: theme.colors.text, marginTop: 8 }}>
                 Das erneute Laden ist fehlgeschlagen. Deine Daten bleiben geschützt.
+              </Text>
+            )}
+            {(blocked.length > 0 || sessionError) && (
+              <Text style={{ fontSize: 11, color: theme.colors.muted, marginTop: 8, textAlign: 'center' }}>
+                [Diagnose: {blocked.length ? blocked.join(', ') : 'Auth Session'}]
               </Text>
             )}
           </>

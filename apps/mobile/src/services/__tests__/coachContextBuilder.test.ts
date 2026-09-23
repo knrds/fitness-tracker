@@ -481,6 +481,8 @@ describe('coachContextBuilder', () => {
     it('Coach sees correct exercise order', () => {
       useProgramStore.setState({
         templates: [
+          mockTemplatePush,
+          mockTemplateLegs,
           {
             ...mockTemplatePush,
             id: 'tmpl-ordered',

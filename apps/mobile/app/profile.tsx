@@ -8,7 +8,8 @@ import { useAchievementStore } from '../src/stores/achievementStore';
 import { getStorageScope, isScopeCurrent } from '../src/data/storageScope';
 import { scopedAlert as Alert } from '../src/utils/scopedAlert';
 import { useI18n } from '../src/i18n';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { persistAvatar, resolveAvatarUri } from '../src/services/avatarStorageService';
 
 const GOAL_OPTIONS: {
   id: FitnessGoal;
@@ -436,6 +437,11 @@ export default function ProfileScreen() {
     );
   };
 
+  const [avatarError, setAvatarError] = useState(false);
+  useEffect(() => {
+    setAvatarError(false);
+  }, [profile.profileImageUri]);
+
   const handlePickImage = async () => {
     const scope = getStorageScope();
     try {
@@ -443,18 +449,20 @@ export default function ProfileScreen() {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.5,
+        quality: 0.7,
         base64: true,
       });
       if (!isScopeCurrent(scope)) return;
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        if (asset.base64) {
-          const uri = `data:image/jpeg;base64,${asset.base64}`;
-          updateProfile({ profileImageUri: uri });
-        } else if (asset.uri) {
-          updateProfile({ profileImageUri: asset.uri });
-        }
+        const persistentUri = await persistAvatar({
+          sourceUri: asset.uri,
+          base64: asset.base64,
+          partition: scope.partition,
+        });
+        if (!isScopeCurrent(scope)) return;
+        updateProfile({ profileImageUri: persistentUri });
+        setAvatarError(false);
       }
     } catch {
       Alert.alert(
@@ -463,6 +471,8 @@ export default function ProfileScreen() {
       );
     }
   };
+
+  const resolvedAvatarUri = resolveAvatarUri(profile.profileImageUri);
 
   const profileInitials = (profile.displayName || 'U')
     .split(' ')
@@ -479,12 +489,12 @@ export default function ProfileScreen() {
           hitSlop={15}
           style={styles.backBtn}
           accessibilityRole="button"
-          accessibilityLabel={language === 'de' ? 'Zurück' : 'Back'}
+          accessibilityLabel={t('common.back')}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>{t('settings.profileAndSettings')}</Text>
-        <View style={styles.headerRight} />
+        <Text style={styles.headerTitle}>{t('settings.profile')}</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView
@@ -507,8 +517,12 @@ export default function ProfileScreen() {
               language === 'de' ? 'Profilbild bearbeiten' : 'Edit profile picture'
             }
           >
-            {profile.profileImageUri ? (
-              <Image source={{ uri: profile.profileImageUri }} style={styles.avatarImage} />
+            {resolvedAvatarUri && !avatarError ? (
+              <Image
+                source={{ uri: resolvedAvatarUri }}
+                style={styles.avatarImage}
+                onError={() => setAvatarError(true)}
+              />
             ) : (
               <View style={[styles.avatarImage, styles.avatarPlaceholder]}>
                 <Text style={styles.avatarInitials}>{profileInitials}</Text>

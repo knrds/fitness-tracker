@@ -152,8 +152,14 @@ export function getProgramScheduleStatus(
       nextWorkout = upcoming;
       nextWorkoutWeek = upcoming.week;
       nextWorkoutDayOfWeek = upcoming.dayOfWeek;
+    } else if (sortedWorkouts.length > 0 && currentWeek < durationWeeks && sortedWorkouts[0]) {
+      // If no further workouts scheduled in the rest of this week/future weeks,
+      // but the program duration has not ended, wrap around to the first scheduled workout for the next week
+      const firstWorkout = sortedWorkouts[0];
+      nextWorkout = firstWorkout;
+      nextWorkoutWeek = currentWeek + 1;
+      nextWorkoutDayOfWeek = firstWorkout.dayOfWeek;
     } else {
-      // If none found in future weeks of this cycle, could wrap around if repeating, or null if complete
       nextWorkout = null;
     }
   }

@@ -77,16 +77,79 @@ export class StorageHydrationError extends Error {
     this.name = 'StorageHydrationError';
   }
 }
+interface DecodeOptions<T> {
+  storageId: string;
+  schema: z.ZodType<T>;
+  maxVersion: number;
+  defaultState?: T;
+}
+
 function decode<T extends object>(
   raw: string,
-  schema: z.ZodType<T>,
-  maxVersion: number,
+  options: DecodeOptions<T>,
 ): StorageValue<T> {
+  const { storageId, schema, maxVersion, defaultState } = options;
   // Decode dates only through field schemas, never by changing arbitrary text.
   const envelope = envelopeSchema.parse(JSON.parse(raw));
-  if ((envelope.version ?? 0) > maxVersion) throw new Error('Unsupported storage version');
-  const state = schema.parse(envelope.state);
-  return envelope.version === undefined ? { state } : { state, version: envelope.version };
+
+  if ((envelope.version ?? 0) > maxVersion) {
+    useStorageHealth.getState().reportDiagnostic?.({
+      storageId,
+      code: 'UNSUPPORTED_VERSION',
+      fieldPath: `version: ${envelope.version} > max: ${maxVersion}`,
+      timestamp: Date.now(),
+    });
+    throw new Error('Unsupported storage version');
+  }
+
+  // Level 1: Normal schema parse (also applies schema defaults and transformations)
+  const primaryParse = schema.safeParse(envelope.state);
+  if (primaryParse.success) {
+    useStorageHealth.getState().clearDiagnostic?.(storageId);
+    return envelope.version === undefined
+      ? { state: primaryParse.data }
+      : { state: primaryParse.data, version: envelope.version };
+  }
+
+  // Level 2 (Version Migration Support):
+  // If version is an older version than maxVersion and failed direct schema parse,
+  // pass the raw state to Zustand so its persist migrate(persistedState, version) can handle it!
+  if (envelope.version !== undefined && envelope.version < maxVersion) {
+    return { state: envelope.state as T, version: envelope.version };
+  }
+
+  // Level 3: Safe field-level repair for non-critical additive/optional fields
+  if (
+    defaultState &&
+    typeof envelope.state === 'object' &&
+    envelope.state !== null &&
+    !Array.isArray(envelope.state)
+  ) {
+    const mergedCandidate = { ...defaultState, ...(envelope.state as Record<string, unknown>) };
+    const repairedParse = schema.safeParse(mergedCandidate);
+    if (repairedParse.success) {
+      logger.warn(`[Storage] Safely repaired missing non-critical fields in ${storageId}`);
+      useStorageHealth.getState().clearDiagnostic?.(storageId);
+      return envelope.version === undefined
+        ? { state: repairedParse.data }
+        : { state: repairedParse.data, version: envelope.version };
+    }
+  }
+
+  // Level 4: Report exact non-PII diagnostic metadata before failing
+  const firstIssue = primaryParse.error.issues[0];
+  const fieldPath = firstIssue?.path?.join('.') || 'root';
+  logger.warn(
+    `[Storage] Hydration validation failure in ${storageId} at ${fieldPath}: ${firstIssue?.message}`,
+  );
+  useStorageHealth.getState().reportDiagnostic?.({
+    storageId,
+    code: 'SCHEMA_VALIDATION_ERROR',
+    fieldPath: `${fieldPath}: ${firstIssue?.message}`,
+    timestamp: Date.now(),
+  });
+
+  throw new StorageHydrationError(storageId);
 }
 function temporaryValue(name: string): string | null {
   // Denied reads must propagate; treating them as empty can overwrite existing data.
@@ -119,7 +182,15 @@ export function createHydratedStorage<T extends object>(
     throw new StorageHydrationError(storageId);
   };
   const accept = (raw: string | null | undefined): StorageValue<T> | null => {
-    const result = raw == null ? null : decode(raw, schema, supportedVersion);
+    const result =
+      raw == null
+        ? null
+        : decode(raw, {
+            storageId,
+            schema,
+            maxVersion: supportedVersion,
+            defaultState: _defaultPersistedState,
+          });
     writable = true;
     useStorageHealth.getState().clear(storageId);
     return result;
@@ -161,7 +232,15 @@ export function createHydratedStorage<T extends object>(
               ? (legacy?.getString(name) ?? (await AsyncStorage.getItem(name)))
               : null;
           if (!isSameScope(scope)) throw new Error('Stale storage read');
-          const validated = raw == null ? null : decode(raw, schema, supportedVersion);
+          const validated =
+            raw == null
+              ? null
+              : decode(raw, {
+                  storageId,
+                  schema,
+                  maxVersion: supportedVersion,
+                  defaultState: _defaultPersistedState,
+                });
           database.importLegacy(
             name,
             raw,

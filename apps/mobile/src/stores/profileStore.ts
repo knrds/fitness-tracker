@@ -37,6 +37,7 @@ import { useNotificationPreferenceStore } from './notificationPreferenceStore';
 import { Colorway } from '@fitness-tracker/ui';
 import { runStorageTransaction } from '../data/storageTransaction';
 import { workoutPersistedSchema } from '../data/persistedContracts';
+import { deleteAvatarForPartition } from '../services/avatarStorageService';
 
 function snapshotStore<T extends object>(store: {
   getState: () => T;
@@ -293,6 +294,7 @@ export const useProfileStore = create<ProfileState>()(
 
               // 1. Profile Store
               set({ profile: defaultProfile });
+              void deleteAvatarForPartition(scope.partition);
 
               // 2. History Store
               useHistoryStore.setState({ sessions: [] });

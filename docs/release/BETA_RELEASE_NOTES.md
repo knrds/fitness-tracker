@@ -1,5 +1,63 @@
 # EVARO Beta Release Notes
 
+## EVARO Beta 0.1.0-beta.8 (DateWheel Unification, Workout History Management & Beta Full-Access)
+
+**Release-Datum:** 23. September 2026  
+**Commit-Basis:** `main` (Merge von `astra/p0-release-core`)  
+**Status:** `PRE-RELEASE / BETA CANDIDATE` (Automated CI Green; Ready for Physical Device Verification)
+
+### Neu / Behoben in Beta 0.1.0-beta.8
+
+- **Einheitlicher DateWheelPicker über alle Datumseingaben:**
+  - Zentraler iOS-Style Wheel-Picker (`DatePickerModal` / `DateWheelPicker`) konsistent über die gesamte App integriert:
+    - **Profil:** Auswahl des Geburtsdatums mit sofortiger Alters- und Validierungsanzeige.
+    - **Body-Metriken:** Schnell-Erfassung von Körpergewicht, KFA und Umfangswerten mit Datumswahl per Wheel.
+    - **Body-Metriken-Historie:** Nachträgliches Bearbeiten des Eintragsdatums im Detail-Modal.
+    - **Workout-Historie:** Nachträgliches Anpassen des Trainingsdatums im Workout-Edit-Modal.
+  - Vollständige Barrierefreiheit: 44x44-pt Mindest-Touch-Targets, Haptik-Feedback bei Ziffernwechsel, Screenreader-Aktionen (`increment`/`decrement`) sowie Web-/Desktop-Tastatur- und Scrollrad-Support.
+  - Sichere Bestätigungs-Logik: Keine unabsichtliche Persistierung; Änderungen werden erst bei Klick auf *Fertig* / *Done* übernommen; *Abbrechen* verwirft sauber.
+
+- **Workout-Historie: Bearbeiten & Löschen mit deterministischer Neuberechnung:**
+  - Neues Overflow-Aktionsmenü (`⋯`) in der Historienliste sowie auf der Workout-Detailseite (`/history/[id]`).
+  - **Umfassendes Workout-Edit-Modal:**
+    - Anpassung von Datum, Dauer (Minuten) und Notizen.
+    - Vollständige Satz-Bearbeitung: Gewicht, Wiederholungen, RPE (Rating of Perceived Exertion) und Status (abgeschlossen).
+    - Hinzufügen neuer Sätze sowie Löschen einzelner Sätze mit sofortiger Validierung.
+  - **Sicherheits-Löschdialog:** Explizite Bestätigung vor dem Löschen eines Trainings mit Haptik und destruktivem Alert.
+  - **Deterministische Neuberechnung (`historyRecalculation.ts`):**
+    - Automatische Neuberechnung der Big-Three-Bestleistungen (Bankdrücken, Kniebeuge, Kreuzheben) aus allen verbleibenden Trainings (Wiederherstellung vorheriger PRs bei Löschen/Abwerten).
+    - Neuberechnung von Gesamtvolumen und Trainingsserien (Streaks).
+    - **XP- und Level-Integrität:** Kein doppelter XP-Zuwachs bei Bearbeitung; Trainings-XP bleibt strikt an den ursprünglichen Trainingsabschluss gekoppelt.
+
+- **Beta Full Access & Coach Guest-Authentifizierung:**
+  - **Zentrale Beta-Konfiguration (`betaAccessConfig.ts`):**
+    - Strikter Produktions-Fail-Closed-Schutz (`isFailClosedProduction()`): Beta-Bypässe und Test-Tokens werden in Produktions-Umgebungen hart deaktiviert.
+    - Beta-Tester erhalten vollen COACH-Zugriff ohne störende Paywall.
+  - **Server-seitige Scoped Beta-Tokens (`/api/beta-session.js` & `api/beta-auth.cjs`):**
+    - HMAC-SHA256 signierte Kurzzeit-Tokens für anonymer KI-Coach-Nutzung ohne Zwang zum Sofort-Login.
+    - Deterministische Pseudonymisierung der Geräte-Installations-ID (`beta_guest_<hash>`) – kein Durchsickern nativer Hardware-Fingerabdrücke an Dritte.
+  - **Provider Circuit Breaker Verfeinerung (`coachCircuitBreaker.ts`):**
+    - Client-Fehler (401, 403, 400, 404, 422) lösen keinen Circuit-Breaker-Ausfall mehr aus; nur echte Provider-Überlastungen (429) und Serverfehler (5xx) zählen als Ausfall.
+  - **KI-Sicherheitsgating:** Planänderungen durch den KI-Coach bleiben strikt bestätigungspflichtig (`confirmation_required`).
+
+### Status der Release-Voraussetzungen (Gates)
+
+| Komponente | Status | Anmerkung |
+| :--- | :--- | :--- |
+| **Lokale Persistenz & Stores** | **VERIFIED** | Deterministische PR- & History-Neuberechnung; Hydration-Resilienz intakt |
+| **Automatisierte Tests** | **VERIFIED** | 1031 Tests bestanden (829 Mobile + 133 Domain + 49 Coach API + 20 Security) |
+| **TypeScript / Typecheck** | **VERIFIED** | 0 Fehler über alle Workspaces |
+| **ESLint / Linter** | **VERIFIED** | 0 Fehler über alle Workspaces |
+| **Web Preview Export** | **VERIFIED** | Erfolgreich generiert und geprüft |
+| **Preview Security Gate** | **VERIFIED** | 0 Critical, 0 High, 0 Moderate in Client-Reichweite |
+| **Gitleaks Secret Scan** | **VERIFIED** | 0 Leaks über 238 Commits |
+| **PostgreSQL RLS Gate** | **VERIFIED** | Echte RLS-Assertions und Rollback-Proof bestanden |
+| **In-App Billing (Store)** | **PREPARED** | *ASTRA_REQUIRED* (Kein Store-Billing vor Produktions-Setup) |
+| **Supabase Cloud Sync** | **PREPARED** | *ASTRA_REQUIRED* (RLS-Migrationen lokal geprüft; kein Cloud-Push) |
+| **Physische Geräteprüfung** | **REQUIRED** | *PHYSICAL_DEVICE_REQUIRED* (iPhone TestFlight/Safari & Samsung S25) |
+
+---
+
 ## EVARO Beta 0.1.0-beta.7 (Release Candidate – Stability, Recovery & Architecture Hardening)
 
 **Release-Datum:** 23. September 2026  

@@ -73,7 +73,7 @@ export class MonetizationAnalytics {
       billing_period: properties.billing_period,
       trial: properties.trial,
       platform: properties.platform ?? Platform.OS,
-      app_version: properties.app_version ?? '0.1.0-beta.7',
+      app_version: properties.app_version ?? '0.1.0-beta.8',
       country: properties.country,
       mode: properties.mode,
       error_code: properties.error_code,

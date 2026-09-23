@@ -187,7 +187,7 @@ export class DiagnosticsService {
       .slice(-10);
 
     return {
-      appVersion: Constants.expoConfig?.version ?? '0.1.0-beta.7',
+      appVersion: Constants.expoConfig?.version ?? '0.1.0-beta.8',
       sdkVersion: Constants.expoConfig?.sdkVersion ?? '54.0.0',
       platform: Platform.OS,
       isDev: typeof __DEV__ !== 'undefined' ? __DEV__ : false,

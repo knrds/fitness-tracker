@@ -187,5 +187,54 @@ describe('Profile Header Translation & DateWheelPicker', () => {
       expect(getByText('Done')).toBeTruthy();
       expect(getByText('Cancel')).toBeTruthy();
     });
+
+    test('supports accessibility actions for increment and decrement', () => {
+      const onChange = jest.fn();
+      const { getByLabelText } = render(
+        <DateWheelPicker
+          value={new Date(1995, 8, 15)}
+          onChange={onChange}
+          locale="de"
+        />,
+      );
+
+      const dayColumn = getByLabelText('Tag auswählen');
+      expect(dayColumn).toBeTruthy();
+
+      // Trigger increment accessibility action
+      fireEvent(dayColumn, 'accessibilityAction', {
+        nativeEvent: { actionName: 'increment' },
+      });
+      expect(onChange).toHaveBeenCalled();
+
+      // Trigger decrement accessibility action
+      fireEvent(dayColumn, 'accessibilityAction', {
+        nativeEvent: { actionName: 'decrement' },
+      });
+      expect(onChange).toHaveBeenCalledTimes(2);
+    });
+
+    test('does not trigger onConfirm until Fertig / Done is explicitly pressed', () => {
+      const onConfirm = jest.fn();
+      const onClose = jest.fn();
+
+      const { getByText } = render(
+        <DatePickerModal
+          visible={true}
+          value="1995-09-15"
+          onConfirm={onConfirm}
+          onClose={onClose}
+          language="de"
+        />,
+      );
+
+      // Verify no persistence occurred upon mount or render
+      expect(onConfirm).not.toHaveBeenCalled();
+
+      // Tap Cancel -> still no confirm
+      fireEvent.press(getByText('Abbrechen'));
+      expect(onConfirm).not.toHaveBeenCalled();
+      expect(onClose).toHaveBeenCalled();
+    });
   });
 });

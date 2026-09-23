@@ -151,9 +151,20 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
             },
           ]}
         >
-          {/* Top Bar with Title & Close Button */}
+          {/* Top Bar with Back/Close Button on Left & Centered Title */}
           <View style={styles.topBar}>
-            <View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('common.close')}
+              accessibilityHint={language === 'de' ? 'Schließt den Level Pass' : 'Closes the level pass'}
+              onPress={onClose}
+              hitSlop={15}
+              style={[styles.closeBtn, { backgroundColor: c.surface, borderColor: c.border }]}
+            >
+              <Ionicons name="arrow-back" size={22} color={c.text} />
+            </Pressable>
+
+            <View style={styles.topBarCenter}>
               <View style={styles.passHeaderTag}>
                 <Ionicons name="flash" size={13} color={c.primary} />
                 <Text style={[styles.passHeaderTagText, { color: c.primary }]}>
@@ -163,15 +174,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
               <Text style={[styles.modalTitle, { color: c.text }]}>{t('rank.levelPass')}</Text>
             </View>
 
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('common.close')}
-              onPress={onClose}
-              hitSlop={12}
-              style={[styles.closeBtn, { backgroundColor: c.surface, borderColor: c.border }]}
-            >
-              <Ionicons name="close" size={22} color={c.muted} />
-            </Pressable>
+            <View style={styles.topBarSpacer} />
           </View>
 
           {/* Current Rank & XP Card (Hero Status) */}
@@ -1030,8 +1033,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingBottom: 14,
+  },
+  topBarCenter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topBarSpacer: {
+    width: 44,
+    height: 44,
   },
   passHeaderTag: {
     flexDirection: 'row',
@@ -1045,14 +1057,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   modalTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontFamily: 'SpaceGrotesk_700Bold',
     letterSpacing: 0.5,
   },
   closeBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

@@ -7,6 +7,8 @@ import {
   StyleSheet,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  Platform,
+  ViewStyle,
 } from 'react-native';
 import { useTheme, withAlpha } from '@fitness-tracker/ui';
 import { hapticFeedback } from '../utils/haptics';
@@ -69,6 +71,17 @@ interface WheelColumnProps {
   accessibilityLabel: string;
 }
 
+type ExtendedViewStyle = ViewStyle & {
+  outline?: string;
+  scrollbarWidth?: string;
+  msOverflowStyle?: string;
+};
+
+interface WebDomEventProps {
+  tabIndex?: number;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
+}
+
 const WheelColumn: React.FC<WheelColumnProps> = ({
   items,
   selectedIndex,
@@ -81,6 +94,7 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
   const theme = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
   const isScrollingRef = useRef(false);
+  const webScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync scroll position whenever selectedIndex changes
   useEffect(() => {
@@ -92,10 +106,18 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
     }
   }, [selectedIndex]);
 
+  // Clean up web scroll timer
+  useEffect(() => {
+    return () => {
+      if (webScrollTimeoutRef.current) {
+        clearTimeout(webScrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleScrollEnd = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    (offsetY: number) => {
       isScrollingRef.current = false;
-      const offsetY = e.nativeEvent.contentOffset.y;
       const newIndex = Math.max(
         0,
         Math.min(items.length - 1, Math.round(offsetY / ITEM_HEIGHT)),
@@ -108,19 +130,126 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
     [items.length, selectedIndex, onSelect],
   );
 
+  const handleScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (Platform.OS === 'web') {
+        if (webScrollTimeoutRef.current) {
+          clearTimeout(webScrollTimeoutRef.current);
+        }
+        const offsetY = e.nativeEvent.contentOffset.y;
+        webScrollTimeoutRef.current = setTimeout(() => {
+          handleScrollEnd(offsetY);
+          const targetIndex = Math.max(
+            0,
+            Math.min(items.length - 1, Math.round(offsetY / ITEM_HEIGHT)),
+          );
+          scrollViewRef.current?.scrollTo({
+            y: targetIndex * ITEM_HEIGHT,
+            animated: true,
+          });
+        }, 120);
+      }
+    },
+    [items.length, handleScrollEnd],
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (disabled) return;
+      let newIndex = selectedIndex;
+      if (e.key === 'ArrowUp') {
+        newIndex = Math.max(0, selectedIndex - 1);
+      } else if (e.key === 'ArrowDown') {
+        newIndex = Math.min(items.length - 1, selectedIndex + 1);
+      } else if (e.key === 'PageUp') {
+        newIndex = Math.max(0, selectedIndex - 5);
+      } else if (e.key === 'PageDown') {
+        newIndex = Math.min(items.length - 1, selectedIndex + 5);
+      } else if (e.key === 'Home') {
+        newIndex = 0;
+      } else if (e.key === 'End') {
+        newIndex = items.length - 1;
+      } else {
+        return;
+      }
+
+      if (newIndex !== selectedIndex) {
+        e.preventDefault?.();
+        void hapticFeedback.selection();
+        onSelect(newIndex);
+        scrollViewRef.current?.scrollTo({
+          y: newIndex * ITEM_HEIGHT,
+          animated: true,
+        });
+      }
+    },
+    [disabled, selectedIndex, items.length, onSelect],
+  );
+
+  const webWrapperStyle: ExtendedViewStyle | undefined =
+    Platform.OS === 'web' ? { outline: 'none' } : undefined;
+
+  const webScrollStyle: ExtendedViewStyle | undefined =
+    Platform.OS === 'web'
+      ? { scrollbarWidth: 'none', msOverflowStyle: 'none' }
+      : undefined;
+
+  const webEventProps: WebDomEventProps =
+    Platform.OS === 'web'
+      ? {
+          tabIndex: disabled ? -1 : 0,
+          onKeyDown: handleKeyDown,
+        }
+      : {};
+
   return (
     <View
-      style={[styles.columnWrapper, { width }]}
+      style={[styles.columnWrapper, { width }, webWrapperStyle]}
       accessible={true}
       accessibilityRole="adjustable"
       accessibilityLabel={accessibilityLabel}
       accessibilityValue={{ text: String(items[selectedIndex] ?? '') }}
+      accessibilityActions={[
+        { name: 'increment', label: 'Nächster Wert / Next Value' },
+        { name: 'decrement', label: 'Vorheriger Wert / Previous Value' },
+      ]}
+      onAccessibilityAction={(event) => {
+        if (disabled) return;
+        if (event.nativeEvent.actionName === 'increment') {
+          const next = Math.min(items.length - 1, selectedIndex + 1);
+          if (next !== selectedIndex) {
+            void hapticFeedback.selection();
+            onSelect(next);
+            scrollViewRef.current?.scrollTo({
+              y: next * ITEM_HEIGHT,
+              animated: true,
+            });
+          }
+        } else if (event.nativeEvent.actionName === 'decrement') {
+          const prev = Math.max(0, selectedIndex - 1);
+          if (prev !== selectedIndex) {
+            void hapticFeedback.selection();
+            onSelect(prev);
+            scrollViewRef.current?.scrollTo({
+              y: prev * ITEM_HEIGHT,
+              animated: true,
+            });
+          }
+        }
+      }}
+      {...(webEventProps as unknown as Record<string, unknown>)}
     >
       <ScrollView
         ref={scrollViewRef}
         showsVerticalScrollIndicator={false}
+        contentOffset={{ x: 0, y: selectedIndex * ITEM_HEIGHT }}
         snapToInterval={ITEM_HEIGHT}
+        snapToAlignment="center"
         decelerationRate="fast"
+        bounces={true}
+        overScrollMode="never"
+        nestedScrollEnabled={true}
+        scrollEventThrottle={16}
         contentContainerStyle={{
           paddingTop: CENTER_OFFSET,
           paddingBottom: CENTER_OFFSET,
@@ -128,12 +257,15 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
         onScrollBeginDrag={() => {
           isScrollingRef.current = true;
         }}
-        onMomentumScrollEnd={handleScrollEnd}
-        onScrollEndDrag={(e) => {
-          // If no momentum occurs, snap cleanly
-          handleScrollEnd(e);
-        }}
+        onScroll={handleScroll}
+        onMomentumScrollEnd={(e) =>
+          handleScrollEnd(e.nativeEvent.contentOffset.y)
+        }
+        onScrollEndDrag={(e) =>
+          handleScrollEnd(e.nativeEvent.contentOffset.y)
+        }
         scrollEnabled={!disabled}
+        style={webScrollStyle}
       >
         {items.map((item, index) => {
           const isSelected = index === selectedIndex;

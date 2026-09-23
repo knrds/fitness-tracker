@@ -5,6 +5,11 @@ import { BattlePassModal } from '../src/components/BattlePassModal';
 import { AppearanceSettings } from '../src/components/AppearanceSettings';
 import { NotificationSettingsModal } from '../src/components/NotificationSettingsModal';
 import { SupportFeedbackModal } from '../src/components/SupportFeedbackModal';
+import { DatePickerModal } from '../src/components/DatePickerModal';
+import {
+  MONTH_NAMES_DE,
+  MONTH_NAMES_EN,
+} from '../src/components/DateWheelPicker';
 import { useAchievementStore } from '../src/stores/achievementStore';
 import { getStorageScope, isScopeCurrent } from '../src/data/storageScope';
 import { scopedAlert as Alert } from '../src/utils/scopedAlert';
@@ -47,6 +52,7 @@ import {
   UnitSystem,
   BiologicalSex,
   parseBirthDateInput,
+  calculateAge,
   hasValidAiConsent,
 } from '@fitness-tracker/domain';
 import { hapticFeedback } from '../src/utils/haptics';
@@ -110,6 +116,49 @@ export default function ProfileScreen() {
   const [saveToast, setSaveToast] = useState(false);
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
   const [supportModalVisible, setSupportModalVisible] = useState(false);
+  const [datePickerModalVisible, setDatePickerModalVisible] = useState(false);
+
+  const { formattedBirthDateDisplay, birthDateAgeText } = React.useMemo(() => {
+    if (!birthDateInput.trim()) {
+      return {
+        formattedBirthDateDisplay:
+          language === 'de'
+            ? 'Datum auswählen (optional)'
+            : 'Select date (optional)',
+        birthDateAgeText: null,
+      };
+    }
+
+    const trimmed = birthDateInput.trim();
+    const age = calculateAge(trimmed);
+    const ageStr =
+      age !== undefined
+        ? `${age} ${language === 'de' ? 'Jahre' : 'years'}`
+        : null;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      const [yStr, mStr, dStr] = trimmed.split('-');
+      const day = Number(dStr);
+      const month = Number(mStr) - 1;
+      const year = Number(yStr);
+      const monthNames = language === 'de' ? MONTH_NAMES_DE : MONTH_NAMES_EN;
+      const monthName = monthNames[month] ?? '';
+      const dateFormatted =
+        language === 'de'
+          ? `${day}. ${monthName} ${year}`
+          : `${monthName} ${day}, ${year}`;
+      return {
+        formattedBirthDateDisplay: dateFormatted,
+        birthDateAgeText: ageStr,
+      };
+    }
+
+    // Birth year only (e.g. "1995")
+    return {
+      formattedBirthDateDisplay: trimmed,
+      birthDateAgeText: ageStr,
+    };
+  }, [birthDateInput, language]);
 
   const [weight, setWeight] = useState(() => {
     if (profile.weightKg === undefined) return '';
@@ -633,19 +682,75 @@ export default function ProfileScreen() {
 
           <View style={{ marginBottom: 14 }}>
             <Text style={[styles.inputLabel, { marginTop: 12, marginBottom: 6 }]}>
-              {t('settings.dateOfBirth')} / {t('settings.birthYear')}
+              {t('settings.dateOfBirth')}
             </Text>
-            <TextInput
-              style={styles.input}
-              value={birthDateInput}
-              onChangeText={setBirthDateInput}
-              placeholder={language === 'de' ? 'JJJJ-MM-TT oder JJJJ (optional)' : 'YYYY-MM-DD or YYYY (optional)'}
-              placeholderTextColor={theme.colors.muted}
-              inputAccessoryViewID={KEYBOARD_DONE_ID}
-              onSubmitEditing={() => Keyboard.dismiss()}
-              accessibilityLabel={`${t('settings.dateOfBirth')} ${t('settings.birthYear')}`}
-              accessibilityHint={language === 'de' ? 'Optionales Geburtsdatum oder Geburtsjahr zur Personalisierung' : 'Optional date of birth or birth year for personalization'}
-            />
+            <Pressable
+              style={[
+                styles.datePickerTrigger,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                },
+              ]}
+              onPress={() => {
+                Keyboard.dismiss();
+                setDatePickerModalVisible(true);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`${t('settings.dateOfBirth')}: ${formattedBirthDateDisplay}`}
+              accessibilityHint={
+                language === 'de'
+                  ? 'Tippen, um Geburtsdatum mit dem Rad-Wähler auszuwählen'
+                  : 'Tap to select date of birth with wheel picker'
+              }
+            >
+              <View style={styles.datePickerLeft}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={20}
+                  color={
+                    birthDateInput ? theme.colors.primary : theme.colors.muted
+                  }
+                  style={{ marginRight: 10 }}
+                />
+                <Text
+                  style={[
+                    styles.datePickerValueText,
+                    {
+                      color: birthDateInput
+                        ? theme.colors.text
+                        : theme.colors.muted,
+                      fontWeight: birthDateInput ? '600' : '400',
+                    },
+                  ]}
+                >
+                  {formattedBirthDateDisplay}
+                </Text>
+              </View>
+
+              <View style={styles.datePickerRight}>
+                {birthDateAgeText ? (
+                  <Text
+                    style={[
+                      styles.datePickerAgeBadge,
+                      {
+                        color: theme.colors.primary,
+                        backgroundColor: withAlpha(theme.colors.primary, 0.1),
+                        borderColor: withAlpha(theme.colors.primary, 0.25),
+                      },
+                    ]}
+                  >
+                    {birthDateAgeText}
+                  </Text>
+                ) : null}
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={theme.colors.muted}
+                  style={{ marginLeft: 6 }}
+                />
+              </View>
+            </Pressable>
           </View>
 
           <View style={styles.inputGrid}>
@@ -1746,6 +1851,14 @@ export default function ProfileScreen() {
         onClose={() => setSupportModalVisible(false)}
         language={language}
       />
+      <DatePickerModal
+        visible={datePickerModalVisible}
+        value={birthDateInput}
+        onConfirm={(isoDate) => setBirthDateInput(isoDate)}
+        onClear={() => setBirthDateInput('')}
+        onClose={() => setDatePickerModalVisible(false)}
+        language={language}
+      />
 
       {/* JSON Backup viewer Modal */}
       <Modal
@@ -2303,5 +2416,36 @@ const createStyles = (theme: Theme) =>
       fontSize: 20,
       color: theme.colors.text,
       textTransform: 'uppercase',
+    },
+    datePickerTrigger: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      height: 48,
+      borderRadius: 10,
+      borderWidth: 1,
+      paddingHorizontal: 14,
+    },
+    datePickerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    datePickerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    datePickerValueText: {
+      fontSize: 15,
+      fontFamily: 'SpaceGrotesk_500Medium',
+    },
+    datePickerAgeBadge: {
+      fontSize: 12,
+      fontFamily: 'SpaceGrotesk_700Bold',
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 6,
+      borderWidth: 1,
+      overflow: 'hidden',
     },
   });

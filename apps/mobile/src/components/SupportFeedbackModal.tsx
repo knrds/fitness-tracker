@@ -158,8 +158,8 @@ export const SupportFeedbackModal: React.FC<SupportFeedbackModalProps> = ({
               <Ionicons name="information-circle-outline" size={16} color={theme.colors.muted} />
               <Text style={[styles.noticeText, { color: theme.colors.muted }]}>
                 {language === 'de'
-                  ? 'Offizieller Support-Kanal: Vorläufige Adresse (USER_ACTION_REQUIRED)'
-                  : 'Official support channel: Provisional address (USER_ACTION_REQUIRED)'}
+                  ? 'Offizieller Support-Kanal: Vorläufige Adresse'
+                  : 'Official support channel: Provisional address'}
               </Text>
             </View>
 

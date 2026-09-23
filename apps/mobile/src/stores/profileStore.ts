@@ -12,7 +12,8 @@ import {
   UnitSystemSchema,
   BiologicalSexSchema,
   calculateVolume,
-  calculateLongestStreak,
+  calculateLongestStreakDetails,
+  type LongestStreakDetails,
   formatDateLocal,
   AiConsent,
   AiConsentSchema,
@@ -97,6 +98,7 @@ export interface ProfileState {
     totalVolume: number; // expressed in preferred units
     longestStreak: number;
     currentStreak: number;
+    longestStreakDetails: LongestStreakDetails;
   };
   clearAllData: () => Promise<void>;
   exportData: () => string;
@@ -246,8 +248,8 @@ export const useProfileStore = create<ProfileState>()(
             : Math.round(totalVolumeKg);
 
         // Longest Streak (derived from unique local dates)
-        // Longest Streak (derived from unique local dates)
-        const longestStreak = calculateLongestStreak(sessions);
+        const longestStreakDetails = calculateLongestStreakDetails(sessions);
+        const longestStreak = longestStreakDetails.longestStreak;
 
         // Current Streak (uses timezone-fixed helper via historyStore)
         const currentStreak = useHistoryStore.getState().getStreak();
@@ -257,6 +259,7 @@ export const useProfileStore = create<ProfileState>()(
           totalVolume,
           longestStreak,
           currentStreak,
+          longestStreakDetails,
         };
       },
 

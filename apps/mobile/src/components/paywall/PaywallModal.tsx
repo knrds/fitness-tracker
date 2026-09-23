@@ -31,7 +31,7 @@ export function PaywallModal({
 }: PaywallModalProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
 
   const {
     context,
@@ -70,14 +70,18 @@ export function PaywallModal({
   const openTerms = () => {
     Alert.alert(
       t('paywall.terms'),
-      'Nutzungsbedingungen (AGB) werden vor kommerziellem Release juristisch bereitgestellt. [LEGAL_REVIEW_REQUIRED]',
+      language === 'en'
+        ? 'Terms of Service will be made available before commercial release.'
+        : 'Nutzungsbedingungen (AGB) werden vor kommerziellem Release bereitgestellt.',
     );
   };
 
   const openPrivacy = () => {
     Alert.alert(
       t('paywall.privacy'),
-      'Datenschutzerklärung wird vor kommerziellem Release juristisch bereitgestellt. [LEGAL_REVIEW_REQUIRED]',
+      language === 'en'
+        ? 'Privacy Policy will be made available before commercial release.'
+        : 'Datenschutzerklärung wird vor kommerziellem Release bereitgestellt.',
     );
   };
 

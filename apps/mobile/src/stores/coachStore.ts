@@ -61,7 +61,7 @@ export const useCoachStore = create<CoachState>()(
         if (!hasValidAiConsent(aiConsent, CURRENT_AI_CONSENT_VERSION)) {
           set({
             error:
-              'AI_CONSENT_REQUIRED: Für die Nutzung des KI-Coaches ist deine vorherige Zustimmung erforderlich. [LEGAL_REVIEW_REQUIRED]',
+              'AI_CONSENT_REQUIRED: Für die Nutzung des KI-Coaches ist deine vorherige Zustimmung erforderlich.',
             isSending: false,
           });
           return;

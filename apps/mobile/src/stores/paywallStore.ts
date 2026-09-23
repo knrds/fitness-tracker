@@ -178,7 +178,7 @@ export const usePaywallStore = create<PaywallState>()((set, get) => ({
       set({
         isPurchasing: false,
         error:
-          'STORE_INTEGRATION_PENDING: Echte In-App-Käufe erfordern ein aktives Store-Konto. [USER_ACTION_REQUIRED]',
+          'STORE_INTEGRATION_PENDING: Echte In-App-Käufe erfordern ein aktives Store-Konto.',
       });
       monetizationAnalytics.track('subscription_failed', {
         tier: get().context,

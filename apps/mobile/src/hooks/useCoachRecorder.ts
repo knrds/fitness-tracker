@@ -129,7 +129,7 @@ export function useCoachRecorder(onText: (text: string) => void) {
       if (generation !== epoch.current || !isScopeCurrent(scope)) return;
       const aiConsent = useProfileStore.getState().profile.aiConsent;
       if (!hasValidAiConsent(aiConsent, CURRENT_AI_CONSENT_VERSION)) {
-        throw Error('AI_CONSENT_REQUIRED: Keine KI-Zustimmung vorhanden. [LEGAL_REVIEW_REQUIRED]');
+        throw Error('AI_CONSENT_REQUIRED: Keine KI-Zustimmung vorhanden.');
       }
       for await (const text of streamCoachResponse(
         [

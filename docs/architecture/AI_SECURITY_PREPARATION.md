@@ -71,3 +71,28 @@ export interface AiQuotaService {
 - [ ] Astra to review bilingual escalation copy with medical/legal advisor (`LEGAL_REVIEW_REQUIRED`).
 - [ ] Astra to implement distributed Redis quota ledger for Pro vs Free tiers.
 - [ ] Astra to connect production OpenRouter credits with monthly spending caps.
+
+---
+
+## 5. Client-Side Coach Context Layer & Targeted Retrieval (WP-03 / S6)
+
+In `apps/mobile/src/services/coachContextBuilder.ts`, the client assembles task-specific context rather than transmitting the entire SQLite database to the LLM:
+
+```
+RESOURCE INDEX
+      ↓
+INTENT / RESOURCE SELECTION (Keywords: exercise, template, program, PR, metric)
+      ↓
+TARGETED DETAIL FETCH (Max 5 exercises, max 3 templates, max 5 history sessions)
+      ↓
+CONTEXT MINIMIZATION & SCRUBBING (120-char note truncation, zero PII / tokens)
+      ↓
+AI REQUEST (Streamed via secure proxy)
+```
+
+### Tier Capabilities & Write Safety
+- **FREE:** Blocked fail-closed (`COACH_LOCKED`). Zero provider requests.
+- **PRO:** Reduced preview context (Resource Index, profile, basic stats, max 2 sessions; no detailed program reasoning).
+- **COACH:** Full selective retrieval across real athlete templates, programs, performance history, PRs, and relevant body metrics.
+- **AI Write Safety:** Coach cannot mutate user data directly. Modifications flow through `ANALYSIS` -> `STRUCTURED DRAFT` -> `DIFF` -> `USER CONFIRMATION` -> `VALIDATED PERSISTENCE` (`canUseAIWrite(true)`).
+

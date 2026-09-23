@@ -161,6 +161,9 @@ export const translations = {
       runningWorkoutMessageEmpty: 'Ein Training ist bereits aktiv. Möchtest du es verwerfen und ein neues leeres Training starten?',
       runningWorkoutMessageTemplate: 'Ein Training ist bereits aktiv. Möchtest du es verwerfen und stattdessen diese Vorlage starten?',
       discardAndStart: 'Verwerfen & Starten',
+      unfinishedWorkoutTitle: 'Nicht beendetes Training',
+      unfinishedWorkoutMessage: 'Du hast ein aktives Training. Möchtest du es fortsetzen oder verwerfen und neu starten?',
+      discardAndStartNew: 'Verwerfen & Neu starten',
       deleteTemplateConfirmTitle: 'Vorlage löschen',
       deleteTemplateConfirmMessage: 'Möchtest du diese Trainingsvorlage wirklich löschen?',
       effortExplanation:
@@ -737,6 +740,9 @@ export const translations = {
       runningWorkoutMessageEmpty: 'A workout is already active. Do you want to discard it and start a new empty workout?',
       runningWorkoutMessageTemplate: 'A workout is already active. Do you want to discard it and start this template instead?',
       discardAndStart: 'Discard & Start',
+      unfinishedWorkoutTitle: 'Unfinished Workout',
+      unfinishedWorkoutMessage: 'You have an active workout session in progress. Resume it or start fresh?',
+      discardAndStartNew: 'Discard & Start New',
       deleteTemplateConfirmTitle: 'Delete Template',
       deleteTemplateConfirmMessage: 'Do you really want to delete this workout template?',
       effortExplanation:

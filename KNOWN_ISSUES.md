@@ -1,6 +1,6 @@
 # Bekannte Probleme und Freigabegrenzen
 
-20.09.2026 — iPhone-Web-Preview: englischer „Unfinished Workout / Resume Workout“-Dialog bei deutscher UI im Browser reproduziert (P1/i18n). Safari/Home-Screen/VoiceOver auf echtem iPhone noch nicht abgenommen; kein Service Worker, daher keine Offline-Kaltstartgarantie. Vorhandene HTTPS-Astra-Preview zeigt `3bd4713`; neue Preview-Builds müssen wegen hoher Dependency-Befunde blockieren. Anleitung und genaue Teststände: `docs/release/IPHONE_FREE_TEST_GUIDE.md`.
+20.09.2026 — iPhone-Web-Preview: englischer „Unfinished Workout / Resume Workout“-Dialog (P1/i18n) behoben (extrahiert in `StartupWorkoutChecker`, DE/EN i18n). Safari/Home-Screen/VoiceOver auf echtem iPhone noch nicht abgenommen; kein Service Worker, daher keine Offline-Kaltstartgarantie. Vorhandene HTTPS-Astra-Preview zeigt `3bd4713`; neue Preview-Builds müssen wegen hoher Dependency-Befunde blockieren. Anleitung und genaue Teststände: `docs/release/IPHONE_FREE_TEST_GUIDE.md`.
 
 20.09.2026 — S4-Teilfix: zuvor ignorierte Child-Read/Delete-/Pull-Fehler werden jetzt behandelt, offene Outbox-Operationen erhalten und vollständige Pulls vor Anwendung validiert. Native lokale SQLite-Übernahme mit Memory-Rollback getestet. Historischer Befund unten insoweit überholt. Cloud-Aggregate bleiben mehrstufig und nicht atomar; Mehrgeräte-Konflikte/Tombstones/Revisionen und echte Cloud-/Geräteabnahme weiterhin offen. Keine Releasefreigabe.
 
@@ -25,6 +25,7 @@ Aktualisierung: Schlüssel/Modell sind inzwischen konfiguriert; echter DeepSeek-
 Keine Releasefreigabe. Der historische Audit B01–B23 bleibt in docs/AUDIT_2026-09-10.md.
 
 ## Bearbeitet
+- P1 i18n: Startup-Resume-Dialog („Unfinished Workout / Resume Workout“) lokalisiert (DE/EN) und in eigene Komponente StartupWorkoutChecker extrahiert.
 - B01: Start/Recovery löscht keine neuen oder alten Sessions mehr; auch leeres Finish verlangt ausdrückliches Verwerfen.
 - B02/B08: Worker vor erstem await gesperrt, Ack anhand ID, parallel angefügte und fehlgeschlagene Operationen bleiben erhalten.
 - B03: Rohdaten/Backups behalten, validierte Werte verwendet, UI bis Hydration gesperrt. Unbekannte defekte Altformate benötigen weiterhin gezielte Reparatur.

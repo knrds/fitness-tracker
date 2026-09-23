@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Platform, Modal, View, Text, StyleSheet, Pressable, Keyboard } from 'react-native';
+import { Platform, View, StyleSheet, Keyboard } from 'react-native';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -23,10 +23,8 @@ import {
 import { AchievementCelebration } from '../src/components/workout/AchievementCelebration';
 import { WorkoutCompleteModal } from '../src/components/workout/WorkoutCompleteModal';
 import { KeyboardDoneAccessory } from '../src/components/workout/KeyboardDoneAccessory';
+import { StartupWorkoutChecker } from '../src/components/workout/StartupWorkoutChecker';
 import { useAuthStore } from '../src/stores/authStore';
-import { useWorkoutStore } from '../src/stores/workoutStore';
-import { getResumeWorkoutDecision } from '../src/utils/resumeWorkoutGuard';
-import { inspectStartupState } from '../src/utils/startup-recovery';
 import { PersistenceGate } from '../src/components/PersistenceGate';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { useProfileStore } from '../src/stores/profileStore';
@@ -38,121 +36,6 @@ if (typeof __DEV__ !== 'undefined' && __DEV__) {
 
 if (Platform.OS !== 'web') {
   SplashScreen.preventAutoHideAsync().catch(() => {});
-}
-
-function StartupWorkoutChecker() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const { status, resetWorkout, resumeWorkout } = useWorkoutStore();
-  const [modalVisible, setModalVisible] = useState(false);
-  const theme = useTheme();
-
-  useEffect(() => {
-    return inspectStartupState(useWorkoutStore.persist, () => {
-      const decision = getResumeWorkoutDecision(useWorkoutStore.getState());
-      if (decision === 'prompt') setModalVisible(true);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      const handleUnload = () => {
-        const currentStatus = useWorkoutStore.getState().status;
-        if (currentStatus === 'active') {
-          useWorkoutStore.getState().pauseWorkout();
-        }
-      };
-      const win = globalThis as unknown as {
-        addEventListener?: (type: string, listener: () => void) => void;
-        removeEventListener?: (type: string, listener: () => void) => void;
-      };
-      const add = win.addEventListener;
-      const remove = win.removeEventListener;
-      if (typeof add === 'function' && typeof remove === 'function') {
-        add('beforeunload', handleUnload);
-        return () => {
-          remove('beforeunload', handleUnload);
-        };
-      }
-    }
-  }, []);
-
-  return (
-    <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => {}}>
-      <View style={styles.modalOverlay}>
-        <View
-          style={[
-            styles.modalCard,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.border,
-              borderRadius: theme.radius.lg,
-            },
-          ]}
-        >
-          <Text
-            style={[styles.modalTitle, { color: theme.colors.text, ...theme.typography.heading }]}
-          >
-            Unfinished Workout
-          </Text>
-          <Text
-            style={[styles.modalMessage, { color: theme.colors.muted, ...theme.typography.body }]}
-          >
-            You have an active workout session in progress. Resume it or start fresh?
-          </Text>
-          <View style={styles.modalActions}>
-            <Pressable
-              style={[
-                styles.modalBtn,
-                { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md },
-              ]}
-              onPress={() => {
-                if (status === 'paused') {
-                  resumeWorkout();
-                }
-                setModalVisible(false);
-                useWorkoutStore.getState().setMinimized(false);
-                if (pathname !== '/workout/session') router.navigate('/workout/session');
-              }}
-            >
-              <Text
-                style={[
-                  styles.modalBtnText,
-                  { color: theme.colors.background, ...theme.typography.button },
-                ]}
-              >
-                Resume Workout
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.modalBtn,
-                {
-                  backgroundColor: 'transparent',
-                  borderColor: theme.colors.border,
-                  borderWidth: 1,
-                  borderRadius: theme.radius.md,
-                },
-              ]}
-              onPress={() => {
-                resetWorkout();
-                setModalVisible(false);
-              }}
-            >
-              <Text
-                style={[
-                  styles.modalBtnText,
-                  { color: theme.colors.accent, ...theme.typography.button },
-                ]}
-              >
-                Discard &amp; Start New
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
 }
 
 function RootNavigator() {
@@ -308,43 +191,5 @@ const styles = StyleSheet.create({
   bootScreen: {
     flex: 1,
     backgroundColor: defaultTheme.colors.background,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: defaultTheme.colors.overlay,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalCard: {
-    borderWidth: 1,
-    padding: 24,
-    width: '100%',
-    maxWidth: 380,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 20,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  modalMessage: {
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  modalActions: {
-    width: '100%',
-    gap: 12,
-  },
-  modalBtn: {
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  modalBtnText: {
-    fontSize: 15,
   },
 });

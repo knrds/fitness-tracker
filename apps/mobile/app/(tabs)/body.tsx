@@ -36,6 +36,7 @@ import {
   KeyboardDoneAccessory,
   KEYBOARD_DONE_ID,
 } from '../../src/components/workout/KeyboardDoneAccessory';
+import { DatePickerModal } from '../../src/components/DatePickerModal';
 import { useI18n } from '../../src/i18n';
 import { entitlementService } from '../../src/services/entitlementService';
 import { usePaywallStore } from '../../src/stores/paywallStore';
@@ -185,6 +186,7 @@ export default function BodyTrackingScreen() {
   const [arms, setArms] = useState('');
   const [legs, setLegs] = useState('');
   const [dateStr, setDateStr] = useState(formatDateLocal(new Date()));
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [hydrationGoalInput, setHydrationGoalInput] = useState(String(dailyGoalMl));
 
   const latest = getLatestMetric();
@@ -256,6 +258,14 @@ export default function BodyTrackingScreen() {
         language === 'en'
           ? 'Please enter a valid date (YYYY-MM-DD).'
           : 'Bitte ein gültiges Datum (JJJJ-MM-TT) eingeben.',
+      );
+    }
+    if (parsedDate.getTime() > Date.now()) {
+      return Alert.alert(
+        t('common.error'),
+        language === 'en'
+          ? 'Measurement date cannot be in the future.'
+          : 'Das Messdatum darf nicht in der Zukunft liegen.',
       );
     }
 
@@ -912,21 +922,36 @@ export default function BodyTrackingScreen() {
           </Text>
           <Card padding="md" style={styles.quickEntryCard}>
             <View style={styles.quickEntryRow}>
-              <TextInput
+              <Pressable
+                onPress={() => setDatePickerVisible(true)}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  language === 'de' ? `Messdatum: ${dateStr}` : `Measurement Date: ${dateStr}`
+                }
                 style={[
-                  styles.quickInput,
+                  styles.dateTriggerBtn,
                   {
-                    color: theme.colors.text,
                     borderColor: theme.colors.border,
                     backgroundColor: theme.colors.background,
                   },
                 ]}
-                value={dateStr}
-                onChangeText={setDateStr}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={theme.colors.muted}
-                inputAccessoryViewID={KEYBOARD_DONE_ID}
-              />
+              >
+                <Ionicons
+                  name="calendar-outline"
+                  size={18}
+                  color={theme.colors.primary}
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={[styles.dateTriggerText, { color: theme.colors.text }]}>
+                  {dateStr}
+                </Text>
+                <Ionicons
+                  name="chevron-down"
+                  size={16}
+                  color={theme.colors.muted}
+                  style={{ marginLeft: 'auto' }}
+                />
+              </Pressable>
             </View>
             <View style={styles.quickEntryRow}>
               <TextInput
@@ -1316,13 +1341,41 @@ export default function BodyTrackingScreen() {
         onSecondaryAction={() => setModalVisible(false)}
       >
         <ScrollView style={styles.modalForm} contentContainerStyle={styles.modalFormContent}>
-          <Input
-            label={language === 'en' ? 'Date (YYYY-MM-DD)' : 'Datum (JJJJ-MM-TT)'}
-            value={dateStr}
-            onChangeText={setDateStr}
-            placeholder={language === 'en' ? 'e.g. 2026-06-02' : 'z. B. 2026-06-02'}
-            inputAccessoryViewID={KEYBOARD_DONE_ID}
-          />
+          <View style={{ marginBottom: 16 }}>
+            <Text style={[styles.modalLabel, { color: theme.colors.text }]}>
+              {language === 'en' ? 'Date' : 'Datum'}
+            </Text>
+            <Pressable
+              onPress={() => setDatePickerVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel={
+                language === 'de' ? `Messdatum: ${dateStr}` : `Measurement Date: ${dateStr}`
+              }
+              style={[
+                styles.dateTriggerBtn,
+                {
+                  borderColor: theme.colors.border,
+                  backgroundColor: theme.colors.background,
+                },
+              ]}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={18}
+                color={theme.colors.primary}
+                style={{ marginRight: 8 }}
+              />
+              <Text style={[styles.dateTriggerText, { color: theme.colors.text }]}>
+                {dateStr}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={16}
+                color={theme.colors.muted}
+                style={{ marginLeft: 'auto' }}
+              />
+            </Pressable>
+          </View>
 
           <View style={styles.inputGrid}>
             <View style={styles.gridField}>
@@ -1404,6 +1457,16 @@ export default function BodyTrackingScreen() {
           />
         </ScrollView>
       </Modal>
+      <DatePickerModal
+        visible={datePickerVisible}
+        value={dateStr}
+        onConfirm={(iso) => setDateStr(iso)}
+        onClose={() => setDatePickerVisible(false)}
+        language={language}
+        title={language === 'en' ? 'Measurement Date' : 'Messdatum'}
+        maxDate={new Date()}
+        defaultToToday={true}
+      />
       <KeyboardDoneAccessory />
     </View>
   );
@@ -1534,6 +1597,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontFamily: 'Manrope_600SemiBold',
     fontSize: 14,
+  },
+  dateTriggerBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dateTriggerText: {
+    fontFamily: 'Manrope_600SemiBold',
+    fontSize: 14,
+  },
+  modalLabel: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
   },
   quickActions: {
     flexDirection: 'row',

@@ -23,6 +23,15 @@ export interface DatePickerModalProps {
   onClear?: () => void;
   onClose: () => void;
   language?: 'de' | 'en';
+  title?: string;
+  showAge?: boolean;
+  minYear?: number;
+  maxYear?: number;
+  maxDate?: Date;
+  minDate?: Date;
+  defaultToToday?: boolean;
+  clearLabel?: string;
+  allowClear?: boolean;
 }
 
 export function toIsoDateString(date: Date): string {
@@ -32,7 +41,7 @@ export function toIsoDateString(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-export function parseDateOrDefault(value?: string): Date {
+export function parseDateOrDefault(value?: string, defaultToToday = false): Date {
   if (value && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
     const [yStr, mStr, dStr] = value.trim().split('-');
     const parsed = new Date(Number(yStr), Number(mStr) - 1, Number(dStr));
@@ -43,6 +52,9 @@ export function parseDateOrDefault(value?: string): Date {
     if (year >= 1900 && year <= new Date().getFullYear()) {
       return new Date(year, 0, 1);
     }
+  }
+  if (defaultToToday) {
+    return new Date();
   }
   // Default fallback: 25 years ago
   const fallbackYear = new Date().getFullYear() - 25;
@@ -56,21 +68,31 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
   onClear,
   onClose,
   language = 'de',
+  title,
+  showAge,
+  minYear = 1920,
+  maxYear,
+  maxDate,
+  minDate,
+  defaultToToday = false,
+  clearLabel,
+  allowClear,
 }) => {
   const theme = useTheme();
   const [selectedDate, setSelectedDate] = useState<Date>(() =>
-    parseDateOrDefault(value),
+    parseDateOrDefault(value, defaultToToday),
   );
 
   // Reset selected date whenever modal becomes visible
   useEffect(() => {
     if (visible) {
-      setSelectedDate(parseDateOrDefault(value));
+      setSelectedDate(parseDateOrDefault(value, defaultToToday));
     }
-  }, [visible, value]);
+  }, [visible, value, defaultToToday]);
 
   const isoString = toIsoDateString(selectedDate);
-  const age = calculateAge(isoString);
+  const effectiveShowAge = showAge ?? (title === undefined);
+  const age = effectiveShowAge ? calculateAge(isoString) : undefined;
 
   const formattedDate = React.useMemo(() => {
     const day = selectedDate.getDate();
@@ -86,7 +108,14 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
   }, [selectedDate, language]);
 
   const handleDone = () => {
-    onConfirm(isoString);
+    let finalDate = selectedDate;
+    if (maxDate && finalDate.getTime() > maxDate.getTime()) {
+      finalDate = maxDate;
+    }
+    if (minDate && finalDate.getTime() < minDate.getTime()) {
+      finalDate = minDate;
+    }
+    onConfirm(toIsoDateString(finalDate));
     onClose();
   };
 
@@ -96,6 +125,29 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
     }
     onClose();
   };
+
+  const defaultTitle = effectiveShowAge
+    ? language === 'de'
+      ? 'Geburtsdatum'
+      : 'Date of Birth'
+    : language === 'de'
+      ? 'Datum auswählen'
+      : 'Select Date';
+  const modalTitle = title ?? defaultTitle;
+
+  const effectiveMaxYear =
+    maxYear ?? (maxDate ? maxDate.getFullYear() : new Date().getFullYear());
+
+  const canClear = allowClear ?? Boolean(onClear);
+  const effectiveClearLabel =
+    clearLabel ??
+    (effectiveShowAge
+      ? language === 'de'
+        ? 'Geburtsdatum entfernen'
+        : 'Remove Date of Birth'
+      : language === 'de'
+        ? 'Datum entfernen'
+        : 'Remove Date');
 
   return (
     <Modal
@@ -144,7 +196,7 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
             </Pressable>
 
             <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-              {language === 'de' ? 'Geburtsdatum' : 'Date of Birth'}
+              {modalTitle}
             </Text>
 
             <Pressable
@@ -165,7 +217,7 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
             </Pressable>
           </View>
 
-          {/* Live Date & Age Preview Chip */}
+          {/* Live Date & Optional Age Preview Chip */}
           <View
             style={[
               styles.previewBadge,
@@ -186,7 +238,7 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
             >
               {formattedDate}
             </Text>
-            {age !== undefined && (
+            {effectiveShowAge && age !== undefined && (
               <Text
                 style={[styles.previewAgeText, { color: theme.colors.primary }]}
               >
@@ -202,22 +254,18 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
               value={selectedDate}
               onChange={setSelectedDate}
               locale={language}
-              minYear={1920}
-              maxYear={new Date().getFullYear()}
+              minYear={minYear}
+              maxYear={effectiveMaxYear}
             />
           </View>
 
           {/* Optional Clear/Remove Date Button */}
-          {Boolean(value && value.trim()) && (
+          {canClear && Boolean(value && value.trim()) && (
             <Pressable
               onPress={handleClear}
               style={styles.clearBtn}
               accessibilityRole="button"
-              accessibilityLabel={
-                language === 'de'
-                  ? 'Geburtsdatum entfernen'
-                  : 'Remove Date of Birth'
-              }
+              accessibilityLabel={effectiveClearLabel}
             >
               <Ionicons
                 name="trash-outline"
@@ -228,9 +276,7 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
               <Text
                 style={[styles.clearBtnText, { color: theme.colors.error }]}
               >
-                {language === 'de'
-                  ? 'Geburtsdatum entfernen'
-                  : 'Remove Date of Birth'}
+                {effectiveClearLabel}
               </Text>
             </Pressable>
           )}

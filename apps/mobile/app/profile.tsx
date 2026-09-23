@@ -1858,6 +1858,7 @@ export default function ProfileScreen() {
         onClear={() => setBirthDateInput('')}
         onClose={() => setDatePickerModalVisible(false)}
         language={language}
+        showAge={true}
       />
 
       {/* JSON Backup viewer Modal */}

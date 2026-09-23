@@ -5,6 +5,7 @@ import {
   DEFAULT_PRO_FAST_WEEKLY_QUOTA,
 } from '@fitness-tracker/domain';
 import { logger } from '../utils/logger';
+import { isBetaFullAccess, isFailClosedProduction } from '../utils/betaAccessConfig';
 
 export type EntitlementStatus =
   | 'free'
@@ -48,9 +49,9 @@ export const EVARO_COACH_ENTITLEMENT_ID = 'evaro_coach';
 /**
  * BETA MODE SWITCH:
  * In beta builds, all users retain access to all features so no active testers lose functionality.
- * Astra can switch this flag or connect the RevenueCat provider when the commercial launch is scheduled.
+ * Fail-closed in production.
  */
-export const BETA_ALL_FEATURES_ENABLED = true;
+export const BETA_ALL_FEATURES_ENABLED = isBetaFullAccess();
 
 export interface EntitlementServiceConfig {
   betaBypass?: boolean;
@@ -71,7 +72,11 @@ export class EntitlementService {
   private currentState: EntitlementState;
 
   constructor(config?: EntitlementServiceConfig) {
-    this.betaBypass = config?.betaBypass ?? BETA_ALL_FEATURES_ENABLED;
+    if (isFailClosedProduction()) {
+      this.betaBypass = false;
+    } else {
+      this.betaBypass = config?.betaBypass ?? isBetaFullAccess();
+    }
     this.provider = config?.provider ?? null;
 
     this.currentState = {
@@ -114,6 +119,19 @@ export class EntitlementService {
   }
 
   setBetaBypass(enabled: boolean) {
+    if (isFailClosedProduction()) {
+      this.betaBypass = false;
+      this.currentState = {
+        ...this.currentState,
+        status: 'free',
+        tier: 'free',
+        isPro: false,
+        isCoach: false,
+        activeEntitlements: [],
+      };
+      this.notifyTierChange(this.currentState.tier);
+      return;
+    }
     this.betaBypass = enabled;
     if (this.betaBypass) {
       this.currentState = {
@@ -165,12 +183,48 @@ export class EntitlementService {
     this.notifyTierChange(this.currentState.tier);
   }
 
+  private isBetaActive(): boolean {
+    if (isFailClosedProduction()) return false;
+    if (!isBetaFullAccess()) return false;
+    return this.betaBypass;
+  }
+
   getEntitlementState(): EntitlementState {
+    if (isFailClosedProduction()) {
+      const hasRealCoach = Boolean(this.provider && this.currentState.activeEntitlements.includes(EVARO_COACH_ENTITLEMENT_ID));
+      const hasRealPro = Boolean(this.provider && this.currentState.activeEntitlements.includes(EVARO_PRO_ENTITLEMENT_ID));
+      if (hasRealCoach) {
+        return { ...this.currentState, tier: 'coach', isCoach: true, isPro: true };
+      }
+      if (hasRealPro) {
+        return { ...this.currentState, tier: 'pro', isCoach: false, isPro: true };
+      }
+      return {
+        ...this.currentState,
+        status: 'free',
+        tier: 'free',
+        isPro: false,
+        isCoach: false,
+        activeEntitlements: [],
+      };
+    }
+
+    if (this.isBetaActive()) {
+      return {
+        ...this.currentState,
+        status: 'pro_active',
+        tier: 'coach',
+        isPro: true,
+        isCoach: true,
+        activeEntitlements: [EVARO_PRO_ENTITLEMENT_ID, EVARO_COACH_ENTITLEMENT_ID],
+      };
+    }
+
     return { ...this.currentState };
   }
 
   getTier(): SubscriptionTier {
-    return this.currentState.tier;
+    return this.getEntitlementState().tier;
   }
 
   /**
@@ -178,66 +232,65 @@ export class EntitlementService {
    * During beta, always returns true if betaBypass is active.
    */
   hasEntitlement(entitlementId: string): boolean {
-    if (this.betaBypass) {
+    if (this.isBetaActive()) {
       return true;
     }
-    return this.currentState.activeEntitlements.includes(entitlementId);
+    return this.getEntitlementState().activeEntitlements.includes(entitlementId);
   }
 
   // Capability queries
   canCreateTemplate(currentCount = 0, limit = DEFAULT_FREE_TEMPLATE_LIMIT): boolean {
-    if (this.betaBypass) return true;
-    return Capabilities.canCreateTemplate(this.currentState.tier, currentCount, limit);
+    if (this.isBetaActive()) return true;
+    return Capabilities.canCreateTemplate(this.getTier(), currentCount, limit);
   }
 
   canEditTemplate(templateIndex: number, limit = DEFAULT_FREE_TEMPLATE_LIMIT): boolean {
-    if (this.betaBypass) return true;
-    return Capabilities.canEditTemplate(this.currentState.tier, templateIndex, limit);
+    if (this.isBetaActive()) return true;
+    return Capabilities.canEditTemplate(this.getTier(), templateIndex, limit);
   }
 
   canCreateProgram(): boolean {
-    if (this.betaBypass) return true;
-    return Capabilities.canCreateProgram(this.currentState.tier);
+    if (this.isBetaActive()) return true;
+    return Capabilities.canCreateProgram(this.getTier());
   }
 
   canUseRPE(): boolean {
-    if (this.betaBypass) return true;
-    return Capabilities.canUseRPE(this.currentState.tier);
+    if (this.isBetaActive()) return true;
+    return Capabilities.canUseRPE(this.getTier());
   }
 
   canUseRIR(): boolean {
-    if (this.betaBypass) return true;
-    return Capabilities.canUseRIR(this.currentState.tier);
+    if (this.isBetaActive()) return true;
+    return Capabilities.canUseRIR(this.getTier());
   }
 
   canUseAdvancedMetrics(): boolean {
-    if (this.betaBypass) return true;
-    return Capabilities.canUseAdvancedMetrics(this.currentState.tier);
+    if (this.isBetaActive()) return true;
+    return Capabilities.canUseAdvancedMetrics(this.getTier());
   }
 
   canUseAdvancedAnalytics(): boolean {
-    if (this.betaBypass) return true;
-    return Capabilities.canUseAdvancedAnalytics(this.currentState.tier);
+    if (this.isBetaActive()) return true;
+    return Capabilities.canUseAdvancedAnalytics(this.getTier());
   }
 
   canUsePremiumAppearance(): boolean {
-    if (this.betaBypass) return true;
-    return Capabilities.canUsePremiumAppearance(this.currentState.tier);
+    if (this.isBetaActive()) return true;
+    return Capabilities.canUsePremiumAppearance(this.getTier());
   }
 
   canUseCoachFast(weeklyUsed = 0, quota = DEFAULT_PRO_FAST_WEEKLY_QUOTA): boolean {
-    if (this.betaBypass) return true;
-    return Capabilities.canUseCoachFast(this.currentState.tier, weeklyUsed, quota);
+    if (this.isBetaActive()) return true;
+    return Capabilities.canUseCoachFast(this.getTier(), weeklyUsed, quota);
   }
 
   canUseCoachPlan(): boolean {
-    if (this.betaBypass) return true;
-    return Capabilities.canUseCoachPlan(this.currentState.tier);
+    if (this.isBetaActive()) return true;
+    return Capabilities.canUseCoachPlan(this.getTier());
   }
 
   canUseAIWrite(hasConfirmation = false): boolean {
-    const effectiveTier = this.betaBypass ? 'coach' : this.currentState.tier;
-    return Capabilities.canUseAIWrite(effectiveTier, hasConfirmation);
+    return Capabilities.canUseAIWrite(this.getTier(), hasConfirmation);
   }
 
   /**

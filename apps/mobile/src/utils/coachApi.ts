@@ -10,20 +10,95 @@ import {
 } from '@fitness-tracker/domain';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { defaultCoachCircuitBreaker } from './coachCircuitBreaker';
+import { isBetaFullAccess } from './betaAccessConfig';
 
 export { defaultCoachCircuitBreaker };
 
-const endpoint =
-  process.env.EXPO_PUBLIC_COACH_CHAT_ENDPOINT ||
-  (isSupabaseConfigured && process.env.EXPO_PUBLIC_SUPABASE_URL
-    ? process.env.EXPO_PUBLIC_SUPABASE_URL + '/functions/v1/coach-chat'
-    : Platform.OS === 'web'
-      ? '/api/coach-chat'
-      : undefined);
+export function getCoachEndpoint(): string | undefined {
+  return (
+    process.env.EXPO_PUBLIC_COACH_CHAT_ENDPOINT ||
+    (isSupabaseConfigured && process.env.EXPO_PUBLIC_SUPABASE_URL
+      ? process.env.EXPO_PUBLIC_SUPABASE_URL + '/functions/v1/coach-chat'
+      : Platform.OS === 'web'
+        ? '/api/coach-chat'
+        : undefined)
+  );
+}
+
+let cachedBetaToken: { token: string; expiresAt: number } | null = null;
+let cachedInstallationId: string | null = null;
+
+export function resetBetaTokenCache(): void {
+  cachedBetaToken = null;
+}
+
+function getOrCreateInstallationId(): string {
+  if (cachedInstallationId) return cachedInstallationId;
+  try {
+    const key = 'evaro_beta_install_id';
+    const storage = typeof globalThis !== 'undefined'
+      ? (globalThis as unknown as { localStorage?: { getItem: (k: string) => string | null; setItem: (k: string, v: string) => void } }).localStorage
+      : undefined;
+    if (storage) {
+      const stored = storage.getItem(key);
+      if (stored) {
+        cachedInstallationId = stored;
+        return stored;
+      }
+      const fresh = 'inst_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+      storage.setItem(key, fresh);
+      cachedInstallationId = fresh;
+      return fresh;
+    }
+  } catch {
+    // Fall back to memory
+  }
+  cachedInstallationId = 'inst_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+  return cachedInstallationId;
+}
+
+export async function fetchBetaSessionToken(): Promise<string | null> {
+  if (cachedBetaToken && cachedBetaToken.expiresAt > Date.now()) {
+    return cachedBetaToken.token;
+  }
+
+  const endpoint = getCoachEndpoint();
+  const betaEndpoint =
+    process.env.EXPO_PUBLIC_BETA_SESSION_ENDPOINT ||
+    (endpoint && endpoint.includes('/api/coach-chat')
+      ? endpoint.replace('/api/coach-chat', '/api/beta-session')
+      : Platform.OS === 'web'
+        ? '/api/beta-session'
+        : undefined);
+
+  if (!betaEndpoint) return null;
+
+  try {
+    const resp = await fetch(betaEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ installationId: getOrCreateInstallationId() }),
+    });
+    if (resp.ok) {
+      const body = (await resp.json().catch(() => null)) as { token?: string; expiresIn?: number } | null;
+      if (body && typeof body.token === 'string') {
+        const expiresInSec = typeof body.expiresIn === 'number' ? body.expiresIn : 86400;
+        cachedBetaToken = {
+          token: body.token,
+          expiresAt: Date.now() + Math.max(60, expiresInSec - 300) * 1000,
+        };
+        return body.token;
+      }
+    }
+  } catch {
+    // Fail silently; request proceeds without token
+  }
+  return null;
+}
 
 // Configuration availability; the actual request determines reachability.
 export async function checkConnectivity(): Promise<boolean> {
-  return Boolean(endpoint);
+  return Boolean(getCoachEndpoint());
 }
 
 export interface CoachContext {
@@ -80,6 +155,7 @@ export async function* streamCoachResponse(
   context: CoachContext,
   options: CoachOptions = {},
 ): AsyncGenerator<string, void, unknown> {
+  const endpoint = getCoachEndpoint();
   if (!endpoint)
     throw new Error(
       'Der Coach ist noch nicht eingerichtet. Bitte die Coach-Backend-URL konfigurieren.',
@@ -92,16 +168,28 @@ export async function* streamCoachResponse(
     throw new Error('Der Coach benötigt eine gültige HTTPS-Backend-URL.');
   }
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  let hasUserAuth = false;
   if (isSupabaseConfigured) {
     const { data, error } = await supabase.auth.getSession();
     if (error)
       throw new Error('Deine Anmeldung konnte nicht geprüft werden. Bitte erneut anmelden.');
-    if (data.session?.access_token) headers.Authorization = 'Bearer ' + data.session.access_token;
+    if (data.session?.access_token) {
+      headers.Authorization = 'Bearer ' + data.session.access_token;
+      hasUserAuth = true;
+    }
     if (
       process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY &&
       endpoint.startsWith(process.env.EXPO_PUBLIC_SUPABASE_URL + '/functions/v1/')
     ) {
       headers.apikey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+    }
+  }
+
+  // If unauthenticated guest and Beta Full Access is active, attach scoped beta token
+  if (!hasUserAuth && isBetaFullAccess()) {
+    const betaToken = await fetchBetaSessionToken();
+    if (betaToken) {
+      headers.Authorization = 'Bearer ' + betaToken;
     }
   }
   const controller = new AbortController();
@@ -122,6 +210,7 @@ export async function* streamCoachResponse(
     );
   }
 
+  let responseReceived = false;
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -146,6 +235,7 @@ export async function* streamCoachResponse(
         ...(options.createPlan || options.mode === 'plan' ? { createPlan: true } : {}),
       }),
     });
+    responseReceived = true;
     if (!response.ok) {
       defaultCoachCircuitBreaker.recordFailure(response.status);
       const data: unknown = await response.json().catch(() => null);
@@ -213,7 +303,9 @@ export async function* streamCoachResponse(
   } catch (error) {
     if (options.signal?.aborted)
       throw new Error('Anfrage durch Nutzer abgebrochen.');
-    defaultCoachCircuitBreaker.recordFailure(error instanceof Error ? error : undefined);
+    if (!responseReceived) {
+      defaultCoachCircuitBreaker.recordFailure(error instanceof Error ? error : undefined);
+    }
     if (controller.signal.aborted)
       throw new Error('Der Coach antwortet nicht rechtzeitig. Bitte erneut versuchen.');
     if (error instanceof TypeError)

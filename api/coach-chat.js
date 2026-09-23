@@ -6,6 +6,7 @@ const {
 } = require('./coach-plans.cjs');
 const { getResearch } = require('./coach-research.cjs');
 const { screenCoachSafety } = require('./coach-safety.cjs');
+const { verifyBetaToken } = require('./beta-auth.cjs');
 const limits = new Map();
 const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const systemPrompt =
@@ -40,11 +41,21 @@ module.exports = async function handler(req, res) {
     req.localCoachUser.startsWith('loopback-')
       ? { id: req.localCoachUser }
       : null;
-  if (!localUser && (typeof authorization !== 'string' || !/^Bearer \S+$/.test(authorization)))
+
+  let betaUser = null;
+  if (!localUser && typeof authorization === 'string' && authorization.startsWith('Bearer beta_')) {
+    const betaToken = authorization.slice(7);
+    betaUser = verifyBetaToken(betaToken);
+    if (!betaUser) {
+      return res.status(401).json({ error: 'Beta session expired or invalid' });
+    }
+  }
+
+  if (!localUser && !betaUser && (typeof authorization !== 'string' || !/^Bearer \S+$/.test(authorization)))
     return res.status(401).json({ error: 'Sign in required' });
   const { SUPABASE_URL, SUPABASE_ANON_KEY, OPENROUTER_API_KEY, OPENROUTER_MODEL } = process.env;
   if (
-    (!localUser && (!SUPABASE_URL || !SUPABASE_ANON_KEY)) ||
+    (!localUser && !betaUser && (!SUPABASE_URL || !SUPABASE_ANON_KEY)) ||
     !OPENROUTER_API_KEY ||
     !OPENROUTER_MODEL
   )
@@ -118,7 +129,7 @@ module.exports = async function handler(req, res) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 65000);
   try {
-    let user = localUser;
+    let user = localUser || betaUser;
     if (!user) {
       const userResponse = await fetch(SUPABASE_URL.replace(/\/$/, '') + '/auth/v1/user', {
         headers: { apikey: SUPABASE_ANON_KEY, Authorization: authorization },

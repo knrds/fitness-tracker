@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { monetizationAnalytics } from '../services/monetizationAnalytics';
+import { isBetaFullAccess } from '../utils/betaAccessConfig';
 
 export type PackageType = 'annual' | 'monthly';
 export type PaywallContext = 'pro' | 'coach';
@@ -136,7 +137,12 @@ export const usePaywallStore = create<PaywallState>()((set, get) => ({
     });
   },
 
-  openPaywall: (context, source) => get().setContext(context, source),
+  openPaywall: (context, source) => {
+    if (isBetaFullAccess()) {
+      return;
+    }
+    get().setContext(context, source);
+  },
 
   selectPackage: (type: PackageType) => set({ selectedPackage: type, error: null }),
 

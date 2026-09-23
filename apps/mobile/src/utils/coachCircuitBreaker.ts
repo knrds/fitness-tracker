@@ -61,9 +61,26 @@ export class CoachCircuitBreaker {
 
   public recordFailure(statusOrError?: number | string | Error): void {
     // Determine if this is a transient/infrastructure failure that trips the breaker
-    // 401 (Unauthorized) and 403 (Forbidden) are auth issues, NOT provider outages.
+    // 401 (Unauthorized), 403 (Forbidden), and 4xx client errors are auth / validation issues, NOT provider outages.
     if (typeof statusOrError === 'number') {
-      if (statusOrError === 401 || statusOrError === 403 || statusOrError === 400) {
+      if (statusOrError >= 400 && statusOrError < 500 && statusOrError !== 429) {
+        return;
+      }
+    }
+
+    if (statusOrError instanceof Error) {
+      const msg = statusOrError.message || '';
+      if (
+        /401|403|400|404|422|sign in|anmelden|zugriff|nicht angemeldet|auth|entitlement|valid/i.test(msg)
+      ) {
+        return;
+      }
+    }
+
+    if (typeof statusOrError === 'string') {
+      if (
+        /401|403|400|404|422|sign in|anmelden|zugriff|nicht angemeldet|auth|entitlement|valid/i.test(statusOrError)
+      ) {
         return;
       }
     }

@@ -2,11 +2,14 @@ import { Theme, useThemeStyles, useTheme, withAlpha } from '@fitness-tracker/ui'
 import { parseDecimalInput } from '../src/utils/decimalInput';
 import { LevelProgress } from '../src/components/LevelProgress';
 import { AppearanceSettings } from '../src/components/AppearanceSettings';
+import { NotificationSettingsModal } from '../src/components/NotificationSettingsModal';
+import { SupportFeedbackModal } from '../src/components/SupportFeedbackModal';
 import { useAchievementStore } from '../src/stores/achievementStore';
 import { getStorageScope, isScopeCurrent } from '../src/data/storageScope';
 import { scopedAlert as Alert } from '../src/utils/scopedAlert';
 import { useI18n } from '../src/i18n';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { persistAvatar, resolveAvatarUri } from '../src/services/avatarStorageService';
 
 const GOAL_OPTIONS: {
   id: FitnessGoal;
@@ -42,8 +45,8 @@ import {
   ExperienceLevel,
   UnitSystem,
   BiologicalSex,
-  calculateAge,
   parseBirthDateInput,
+  hasValidAiConsent,
 } from '@fitness-tracker/domain';
 import { hapticFeedback } from '../src/utils/haptics';
 import { useExerciseStore } from '../src/stores/exerciseStore';
@@ -66,7 +69,15 @@ export default function ProfileScreen() {
   const router = useRouter();
   const achievement = useAchievementStore();
   const insets = useSafeAreaInsets();
-  const { profile, updateProfile, getStatistics, clearAllData, exportData } = useProfileStore();
+  const {
+    profile,
+    updateProfile,
+    getStatistics,
+    clearAllData,
+    exportData,
+    setAiConsent,
+    revokeAiConsent,
+  } = useProfileStore();
   const { isConfigured: isAuthConfigured, signOut } = useAuthStore();
   const { isEnabled: caffeineEnabled, setEnabled: setCaffeineEnabled } = useCaffeineStore();
   const { t, language, formatGoal, formatLevel, formatSex } = useI18n();
@@ -82,10 +93,6 @@ export default function ProfileScreen() {
     return '';
   });
 
-  const computedAge = React.useMemo(() => {
-    return calculateAge(birthDateInput);
-  }, [birthDateInput]);
-
   const [height, setHeight] = useState(() => {
     if (profile.heightCm === undefined) return '';
     return profile.preferredUnits === 'imperial'
@@ -100,6 +107,8 @@ export default function ProfileScreen() {
     [historySessions, exercises],
   );
   const [saveToast, setSaveToast] = useState(false);
+  const [notificationModalVisible, setNotificationModalVisible] = useState(false);
+  const [supportModalVisible, setSupportModalVisible] = useState(false);
 
   const [weight, setWeight] = useState(() => {
     if (profile.weightKg === undefined) return '';
@@ -428,6 +437,11 @@ export default function ProfileScreen() {
     );
   };
 
+  const [avatarError, setAvatarError] = useState(false);
+  useEffect(() => {
+    setAvatarError(false);
+  }, [profile.profileImageUri]);
+
   const handlePickImage = async () => {
     const scope = getStorageScope();
     try {
@@ -435,18 +449,20 @@ export default function ProfileScreen() {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.5,
+        quality: 0.7,
         base64: true,
       });
       if (!isScopeCurrent(scope)) return;
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        if (asset.base64) {
-          const uri = `data:image/jpeg;base64,${asset.base64}`;
-          updateProfile({ profileImageUri: uri });
-        } else if (asset.uri) {
-          updateProfile({ profileImageUri: asset.uri });
-        }
+        const persistentUri = await persistAvatar({
+          sourceUri: asset.uri,
+          base64: asset.base64,
+          partition: scope.partition,
+        });
+        if (!isScopeCurrent(scope)) return;
+        updateProfile({ profileImageUri: persistentUri });
+        setAvatarError(false);
       }
     } catch {
       Alert.alert(
@@ -455,6 +471,8 @@ export default function ProfileScreen() {
       );
     }
   };
+
+  const resolvedAvatarUri = resolveAvatarUri(profile.profileImageUri);
 
   const profileInitials = (profile.displayName || 'U')
     .split(' ')
@@ -471,12 +489,12 @@ export default function ProfileScreen() {
           hitSlop={15}
           style={styles.backBtn}
           accessibilityRole="button"
-          accessibilityLabel={language === 'de' ? 'Zurück' : 'Back'}
+          accessibilityLabel={t('common.back')}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>{t('settings.profileAndSettings')}</Text>
-        <View style={styles.headerRight} />
+        <Text style={styles.headerTitle}>{t('settings.profile')}</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView
@@ -499,8 +517,12 @@ export default function ProfileScreen() {
               language === 'de' ? 'Profilbild bearbeiten' : 'Edit profile picture'
             }
           >
-            {profile.profileImageUri ? (
-              <Image source={{ uri: profile.profileImageUri }} style={styles.avatarImage} />
+            {resolvedAvatarUri && !avatarError ? (
+              <Image
+                source={{ uri: resolvedAvatarUri }}
+                style={styles.avatarImage}
+                onError={() => setAvatarError(true)}
+              />
             ) : (
               <View style={[styles.avatarImage, styles.avatarPlaceholder]}>
                 <Text style={styles.avatarInitials}>{profileInitials}</Text>
@@ -602,19 +624,9 @@ export default function ProfileScreen() {
           </View>
 
           <View style={{ marginBottom: 14 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <Text style={[styles.inputLabel, { marginTop: 12, marginBottom: 0 }]}>
-                {t('settings.dateOfBirth')} / {t('settings.birthYear')}
-              </Text>
-              {computedAge !== null && (
-                <View style={styles.ageBadge}>
-                  <Ionicons name="sparkles-outline" size={12} color={theme.colors.primary} />
-                  <Text style={styles.ageBadgeText}>
-                    {computedAge} {t('settings.yearsOld')}
-                  </Text>
-                </View>
-              )}
-            </View>
+            <Text style={[styles.inputLabel, { marginTop: 12, marginBottom: 6 }]}>
+              {t('settings.dateOfBirth')} / {t('settings.birthYear')}
+            </Text>
             <TextInput
               style={styles.input}
               value={birthDateInput}
@@ -1017,7 +1029,7 @@ export default function ProfileScreen() {
 
           {/* Sound Toggle */}
           <Pressable
-            style={[styles.settingsRow, styles.lastRow]}
+            style={styles.settingsRow}
             accessibilityRole="switch"
             accessibilityState={{ checked: profile.soundEnabled ?? true }}
             onPress={() =>
@@ -1051,6 +1063,42 @@ export default function ProfileScreen() {
                   ]}
                 />
               </View>
+            </View>
+          </Pressable>
+
+          {/* Notification Preferences */}
+          <Pressable
+            style={styles.settingsRow}
+            accessibilityRole="button"
+            accessibilityLabel={language === 'de' ? 'Benachrichtigungen anpassen' : 'Manage Notifications'}
+            onPress={() => setNotificationModalVisible(true)}
+          >
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="notifications-outline" size={22} color={theme.colors.muted} />
+              <Text style={styles.settingsLabel}>
+                {language === 'de' ? 'Benachrichtigungen' : 'Notifications'}
+              </Text>
+            </View>
+            <View style={styles.settingsRowRight}>
+              <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
+            </View>
+          </Pressable>
+
+          {/* Help & Support */}
+          <Pressable
+            style={[styles.settingsRow, styles.lastRow]}
+            accessibilityRole="button"
+            accessibilityLabel={language === 'de' ? 'Hilfe und Support öffnen' : 'Open Help and Support'}
+            onPress={() => setSupportModalVisible(true)}
+          >
+            <View style={styles.settingsRowLeft}>
+              <Ionicons name="help-buoy-outline" size={22} color={theme.colors.muted} />
+              <Text style={styles.settingsLabel}>
+                {language === 'de' ? 'Hilfe & Support' : 'Help & Support'}
+              </Text>
+            </View>
+            <View style={styles.settingsRowRight}>
+              <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
             </View>
           </Pressable>
         </View>
@@ -1218,6 +1266,117 @@ export default function ProfileScreen() {
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
           </Pressable>
+
+          {/* AI Coach Privacy & Consent [LEGAL_REVIEW_REQUIRED] */}
+          <View style={[styles.settingsRowVertical, { marginBottom: 16 }]}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <View style={styles.settingsRowLeft}>
+                <Ionicons name="sparkles-outline" size={20} color={theme.colors.primary} />
+                <Text style={styles.settingsLabel}>{t('coach.consent.title')}</Text>
+              </View>
+              <View
+                style={{
+                  backgroundColor: hasValidAiConsent(profile.aiConsent)
+                    ? withAlpha(theme.colors.success, 0.15)
+                    : withAlpha(theme.colors.accent, 0.15),
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 6,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontFamily: 'SpaceGrotesk_700Bold',
+                    color: hasValidAiConsent(profile.aiConsent)
+                      ? theme.colors.success
+                      : theme.colors.accent,
+                  }}
+                >
+                  {hasValidAiConsent(profile.aiConsent)
+                    ? t('coach.consent.statusActive').replace(
+                        '{version}',
+                        String(profile.aiConsent?.version ?? 1),
+                      )
+                    : profile.aiConsent?.revokedAt
+                      ? t('coach.consent.statusRevoked')
+                      : t('coach.consent.statusNone')}
+                </Text>
+              </View>
+            </View>
+            <Text style={{ fontSize: 12, color: theme.colors.muted, lineHeight: 18 }}>
+              {t('coach.consent.description')}
+            </Text>
+            {hasValidAiConsent(profile.aiConsent) ? (
+              <Pressable
+                style={{
+                  alignSelf: 'flex-start',
+                  paddingVertical: 6,
+                  paddingHorizontal: 12,
+                  borderRadius: 6,
+                  backgroundColor: withAlpha(theme.colors.error, 0.12),
+                  marginTop: 4,
+                }}
+                onPress={() => {
+                  Alert.alert(
+                    t('coach.consent.revoke'),
+                    t('coach.consent.revokedNotice'),
+                    [
+                      { text: t('common.cancel'), style: 'cancel' },
+                      {
+                        text: t('coach.consent.revoke'),
+                        style: 'destructive',
+                        onPress: () => revokeAiConsent(),
+                      },
+                    ],
+                  );
+                }}
+                accessibilityRole="button"
+                testID="revoke-ai-consent-btn"
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontFamily: 'SpaceGrotesk_600SemiBold',
+                    color: theme.colors.error,
+                  }}
+                >
+                  {t('coach.consent.revoke')}
+                </Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                style={{
+                  alignSelf: 'flex-start',
+                  paddingVertical: 6,
+                  paddingHorizontal: 12,
+                  borderRadius: 6,
+                  backgroundColor: theme.colors.primary,
+                  marginTop: 4,
+                }}
+                onPress={() => setAiConsent()}
+                accessibilityRole="button"
+                testID="profile-accept-ai-consent-btn"
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontFamily: 'SpaceGrotesk_600SemiBold',
+                    color: theme.colors.background,
+                  }}
+                >
+                  {t('coach.consent.accept')}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+
           <View style={{ gap: 10 }}>
             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
               <Ionicons
@@ -1304,6 +1463,15 @@ export default function ProfileScreen() {
         visible={isRirPickerVisible}
         onClose={() => setRirPickerVisible(false)}
         onSelect={(exerciseIds) => updateProfile({ rirEnabledExerciseIds: exerciseIds })}
+      />
+      <NotificationSettingsModal
+        visible={notificationModalVisible}
+        onClose={() => setNotificationModalVisible(false)}
+      />
+      <SupportFeedbackModal
+        visible={supportModalVisible}
+        onClose={() => setSupportModalVisible(false)}
+        language={language}
       />
 
       {/* JSON Backup viewer Modal */}

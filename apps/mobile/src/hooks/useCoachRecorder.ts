@@ -5,6 +5,8 @@ import { AppState, Platform } from 'react-native';
 import { getStorageScope, isScopeCurrent } from '../data/storageScope';
 import { streamCoachResponse } from '../utils/coachApi';
 import { readRecording, releaseRecording } from '../utils/recordingFile';
+import { hasValidAiConsent, CURRENT_AI_CONSENT_VERSION } from '@fitness-tracker/domain';
+import { useProfileStore } from '../stores/profileStore';
 
 interface SpeechRecognitionResultItem {
   transcript: string;
@@ -125,6 +127,10 @@ export function useCoachRecorder(onText: (text: string) => void) {
       if (!uri) throw Error('Keine Aufnahme verfügbar.');
       const audio = await readRecording(uri);
       if (generation !== epoch.current || !isScopeCurrent(scope)) return;
+      const aiConsent = useProfileStore.getState().profile.aiConsent;
+      if (!hasValidAiConsent(aiConsent, CURRENT_AI_CONSENT_VERSION)) {
+        throw Error('AI_CONSENT_REQUIRED: Keine KI-Zustimmung vorhanden. [LEGAL_REVIEW_REQUIRED]');
+      }
       for await (const text of streamCoachResponse(
         [
           {

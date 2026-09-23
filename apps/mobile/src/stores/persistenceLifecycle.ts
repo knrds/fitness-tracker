@@ -9,6 +9,7 @@ import { useHydrationStore } from './hydrationStore';
 import { useCaffeineStore } from './caffeineStore';
 import { useCoachStore } from './coachStore';
 import { useSyncStore } from './syncStore';
+import { useNotificationPreferenceStore } from './notificationPreferenceStore';
 
 import type { StoreApi } from 'zustand';
 import { withoutStorageWrites } from '../data/storageTransaction';
@@ -39,6 +40,7 @@ const stores = [
   trackStore(useCaffeineStore),
   trackStore(useCoachStore),
   trackStore(useSyncStore),
+  trackStore(useNotificationPreferenceStore),
 ];
 
 export const isPersistenceReady = () => stores.every((store) => store.persist.hasHydrated());
@@ -47,12 +49,17 @@ export function subscribeToHydration(listener: () => void) {
   return () => unsubscribes.forEach((unsubscribe) => unsubscribe());
 }
 export async function retryHydration() {
+  // Clear transient error state before retrying so blocked stores get a fresh evaluation
+  useStorageHealth.getState().reset();
   // Failed stores never finish hydrating. Successful stores must not reload over live edits.
   await Promise.all(
     stores
       .filter((store) => !store.persist.hasHydrated())
       .map((store) => store.persist.rehydrate()),
   );
+  if (!isPersistenceReady() || useStorageHealth.getState().blockedStores.length > 0) {
+    throw new Error('Hydration retry failed');
+  }
 }
 
 export async function switchPersistencePartition(partition: string, generation: number) {

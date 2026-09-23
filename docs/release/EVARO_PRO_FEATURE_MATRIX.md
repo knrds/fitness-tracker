@@ -1,91 +1,77 @@
-# EVARO Pro – Feature Entitlement Matrix
+# EVARO – 3-Tier Feature Entitlement Matrix (FREE / PRO / COACH)
 
-**Document Version:** 1.0.0  
-**Date:** 2026-09-16  
-**Status:** PROPOSED (Pre-Astra Monetization Planning Baseline)  
-**Notice:** All commercial tier allocations in this document are **PROPOSED** models designed for technical analysis. Final business pricing and gating decisions reside with the project owner / Astra.  
-**Astra Review ID:** AR-008  
+**Document Version:** 2.0.0  
+**Date:** 2026-09-22  
+**Status:** SPECIFICATION / ARCHITECTURAL BASELINE (WP-05 / S7)  
+**Notice:** Commercial pricing numbers are **LAUNCH DEFAULTS** for UI preview/mocking. Platform store receipts (App Store Connect / Google Play Billing) are the authoritative production source of truth.  
+**Hierarchy:** `COACH` > `PRO` > `FREE` (COACH inherits all PRO rights; PRO inherits all FREE rights).
 
 ---
 
 ## 1. Executive Summary & Design Principles
 
-EVARO's monetization model follows a **transparent freemium architecture**:
-1. **Core Workout Tracking is Never Gated:** Logging workouts, tracking sets/reps/weight, local history, resting timer, personal records, and GDPR data export must remain 100% free, permanent, and functional offline without an account or subscription.
-2. **Heavy Operational Cost Drivers are Pro:** High-cost token/compute features (AI Coach, Voice Whisper, Computer Vision posture checks, multi-device cloud synchronization) require a paid subscription (`EVARO Pro`) to ensure sustainable unit economics.
-3. **No Lock-In Loop:** If an active subscription expires or is cancelled, existing user workout history and templates remain completely accessible in read/write mode locally.
+EVARO's monetization architecture follows a **transparent 3-tier freemium model**:
+1. **Core Workout Tracking is Never Gated (FREE):** Logging workouts, tracking sets/reps/weight, local history, resting timer, personal records, and GDPR data export remain 100% free, permanent, and functional offline. Workout count is **never limited**.
+2. **Advanced Tracker Capabilities & Progressions are PRO:** Unlimited templates, program/periodization system, RPE/RIR tracking, advanced body metrics, detailed muscle group and volume analytics, and premium appearance. Includes a remote-configurable **Coach Preview** (Default: 5 Fast Requests / week, AI_READ=limited, AI_WRITE=false).
+3. **Hyper-Personalized AI Training Partner is COACH:** Everything in PRO plus Full AI (Fast Mode + Plan Mode), structured action generation (`ProgramDraft`, `WorkoutTemplateDraft`, `Diff`), strict human confirmation before persisting changes (`AI_WRITE = confirmation_required`), and monthly credit quota (Default: 300 credits/mo, Fast=1, Plan=5).
+4. **Zero-Data-Loss Downgrade Policy:** If a PRO or COACH subscription expires:
+   - All historical data is preserved (RPE/RIR records, body metrics, custom templates, generated programs).
+   - Up to 2 custom templates remain editable; surplus templates (#3+) become read-only/locked.
+   - Programs become read-only.
+   - Re-subscribing instantly unlocks full editing access.
 
 ---
 
-## 2. Comprehensive Entitlement Matrix
+## 2. Launch Pricing Defaults (Preview / Configuration Baseline)
 
-| Feature / Capability | Free Tier [PROPOSED] | EVARO Pro [PROPOSED] | Client Gate | Server Gate | Offline Behavior | Store Dependency | Status |
-|---|---|---|---|---|---|---|---|
-| **Workout Logging & Sets** | Unbegrenzt | Unbegrenzt | Keiner | Keiner | Vollständig offline | Keine | `PROPOSED` |
-| **Lokale Historie & PRs** | Unbegrenzt | Unbegrenzt | Keiner | Keiner | Vollständig offline | Keine | `PROPOSED` |
-| **Katalog & Anatomie-Heatmap** | Vollzugriff | Vollzugriff | Keiner | Keiner | Vollständig offline | Keine | `PROPOSED` |
-| **Rest Timer & Haptik** | Vollzugriff | Vollzugriff | Keiner | Keiner | Vollständig offline | Keine | `PROPOSED` |
-| **DSGVO Datenexport (JSON)** | Vollzugriff | Vollzugriff | Keiner | Keiner | Vollständig offline | Keine | `PROPOSED` |
-| **Workout Templates (Vorlagen)** | 3 Templates | Unbegrenzt | `template-builder.tsx` | Nein (lokal) | Gecachte Templates editierbar | Keine | `PROPOSED` |
-| **AI Coach: Text-Chat** | 3 Test-Prompts (Total) | Unbegrenzt (Fair Use) | `CoachComposer.tsx` | `api/coach-chat.js` (HTTP 403) | Nicht verfügbar (Netzwerk nötig) | RevenueCat Entitlement | `PROPOSED` |
-| **AI Coach: Voice (Audio/Whisper)** | Gesperrt | Unbegrenzt | `useCoachRecorder.ts` | `api/coach-chat.js` | Nicht verfügbar | RevenueCat Entitlement | `PROPOSED` |
-| **AI Coach: Multi-Wochen-Planung** | Gesperrt | Unbegrenzt | `coach.tsx:PlanMode` | `api/coach-chat.js` | Nicht verfügbar | RevenueCat Entitlement | `PROPOSED` |
-| **AI Coach: Vision / Fotoanalyse** | Gesperrt | Unbegrenzt | `coach.tsx:ImagePicker` | `api/coach-chat.js` | Nicht verfügbar | RevenueCat Entitlement | `PROPOSED` |
-| **Multi-Device Cloud Sync** | 1 Gerät (Lokal) | Unbegrenzt synchronisiert | `syncWorker.ts` | Supabase RLS / Proxy | Lokale Queue puffert offline | RevenueCat Entitlement | `PROPOSED` |
-| **Erweiterte Volumen-Telemetrie** | Letzte 30 Tage | Unbegrenzt + Trendkurven | `DashboardSummary.tsx` | Nein (lokal berechnet) | Vollständig offline | RevenueCat Entitlement | `PROPOSED` |
-| **Custom Colorways / Themes** | Standard (Glacier, Arctic) | Alle Farbwelten (Titanium, etc.) | `AppearanceSettings.tsx` | Nein (lokal) | Vollständig offline | RevenueCat Entitlement | `PROPOSED` |
+| Tier | Billing Period | Launch Default Price | Effective Monthly | Trial / Conditions | Positioning |
+|---|---|---|---|---|---|
+| **FREE** | Permanent | **0,00 €** | 0,00 € | Forever Free | "Der vollwertige EVARO Fitness Tracker" |
+| **PRO** | Monthly | **4,99 € / Monat** | 4,99 € | Keiner | "EVARO ohne Tracker-Einschränkungen" |
+| **PRO** | Annual | **29,99 € / Jahr** | ~2,50 € / Monat | Visuell bevorzugt | "EVARO ohne Tracker-Einschränkungen" |
+| **COACH** | Monthly | **11,99 € / Monat** | 11,99 € | Keiner | "Tracker + persönlicher AI Trainingscoach" |
+| **COACH** | Annual | **69,99 € / Jahr** | ~5,83 € / Monat | **14 Tage Trial** (Visuell bevorzugt) | "Tracker + persönlicher AI Trainingscoach" |
+
+*Note: Production pricing is dynamically injected via RevenueCat / StoreKit / Play Billing. In-app code never hardcodes prices as authoritative business logic.*
 
 ---
 
-## 3. Detailed Gating Specifications
+## 3. Comprehensive Entitlement & Capability Matrix
 
-### 3.1 AI Coach (Text, Voice, Plan Generation)
-- **Client Gate (`apps/mobile`):**
-  - Wenn `!hasProEntitlement`: Composer zeigt Badge *"EVARO Pro"*. Beim Tippen auf Senden oder Mikrofon öffnet sich das Paywall-Modal.
-  - Wenn Free-Test-Kontingent (z. B. 3 Prompts) aktiv ist, zählt ein lokaler / serverseitiger Zähler herunter (*"Noch 2 kostenlose Coach-Fragen"*).
-- **Server Gate (`api/coach-chat.js`):**
-  - **Zwingend serverseitige Validierung:** Das Backend vertraut niemals dem Client.
-  - Bei fehlendem Pro-Status antwortet das Backend mit HTTP 403:
-    ```json
-    {
-      "code": "ENTITLEMENT_REQUIRED",
-      "error": "Der KI-Coach ist Teil von EVARO Pro. Bitte aktiviere dein Abonnement."
-    }
-    ```
-
-### 3.2 Template Limit (Free = 3, Pro = Unbegrenzt)
-- **Client Gate (`apps/mobile/app/programs/template-builder.tsx`):**
-  - Beim Klick auf *"Vorlage speichern"* prüft der Store:
-    ```typescript
-    if (!hasPro && templates.length >= 3) {
-      showPaywall({ trigger: 'template_limit_reached' });
-      return;
-    }
-    ```
-- **Fallback bei Abo-Ablauf:**
-  - Hat ein Nutzer während seines Pro-Abos 10 Templates erstellt und kündigt danach, bleiben **alle 10 Templates lesbar und trainierbar**. Der Nutzer kann lediglich kein 11. Template anlegen. Kein Datenverlust, keine feindliche Nutzererfahrung.
-
-### 3.3 Cloud Sync & Multi-Device
-- **Client Gate (`apps/mobile/src/stores/syncWorker.ts`):**
-  - Im Free-Modus verbleiben alle Änderungen in der lokalen SQLite-Datenbank (`training.sqlite`).
-  - Der `syncWorker` pausiert den Upload nach Supabase und informiert den Nutzer im Profil über die Backup-Vorteile von EVARO Pro.
-  - Lokaler JSON-Export bleibt jederzeit kostenlos verfügbar.
+| Feature / Capability | FREE | PRO | COACH | Client Capability API | Server Enforcement | Downgrade Behavior |
+|---|---|---|---|---|---|---|
+| **Workout Logging & Sets** | Unbegrenzt | Unbegrenzt | Unbegrenzt | `canLogWorkout()` | Keiner (Client-first) | Vollständig erhalten |
+| **Lokale Historie & Basic PRs** | Unbegrenzt | Unbegrenzt | Unbegrenzt | `canViewBasicHistory()` | Keiner | Vollständig erhalten |
+| **Starter Vorlagen (P/P/L, etc.)** | Ausführbar, Reps/Kg editierbar (Struktur fix) | Voll editierbar | Voll editierbar | `canEditStarterTemplate()` | Keiner | Zurück auf feste Struktur |
+| **Eigene Vorlagen (Custom Templates)** | Max. 2 Templates | Unbegrenzt | Unbegrenzt | `canCreateTemplate()` | Sync/DB validation | Alle behalten; max 2 editierbar, Rest read-only |
+| **Programm-System & Periodisierung** | Read-only | Vollzugriff | Vollzugriff | `canCreateProgram()` | Sync/DB validation | Alle Programme behalten; read-only |
+| **RPE & RIR Erfassung** | Gesperrt (Historie sichtbar) | Vollzugriff | Vollzugriff | `canUseRPE()`, `canUseRIR()` | API/Ingest Gate | Historische Daten sichtbar; neue Eingabe gesperrt |
+| **Body Metrics** | Basis (Gewicht, Größe) | Voll (Taille, Brust, KFA, etc.) | Voll | `canUseAdvancedMetrics()` | Ingest Gate | Historie erhalten; Premium-Eingabe gesperrt |
+| **Advanced Analytics & Heatmaps** | Basis Historie & PRs | Voll (Volumen, Muskelgruppen, Trends) | Voll | `canUseAdvancedAnalytics()` | Ingest Gate | Basis Stats sichtbar; Advanced Charts gesperrt |
+| **Appearance & Themes** | Basis Themes | Premium Themes & Rewards | Alle + Coach Prestige | `canUsePremiumAppearance()` | Local UI | Zurück auf Standard-Theme |
+| **AI Coach: Fast Mode** | Gesperrt | Preview (5 / Woche) | Voll (1 Credit / Req) | `canUseCoachFast()` | `api/coach-chat.js` (Token/Credit Gate) | Preview-Limit oder gesperrt |
+| **AI Coach: Plan Mode** | Gesperrt | Gesperrt (Coach Paywall) | Voll (5 Credits / Req) | `canUseCoachPlan()` | `api/coach-chat.js` (HTTP 403) | Gesperrt |
+| **AI Coach: Persistenter Write** | Gesperrt | Gesperrt | Nur mit User Confirmation | `canUseAIWrite()` | Draft/Diff Validation | Gesperrt |
 
 ---
 
-## 4. Offline Resilience & Grace Handling
+## 4. Quota & Credit Governance
 
-1. **Fitnessstudio-Szenario (Funkloch):**
-   - Nutzer trainieren häufig in Kellern oder Funklöchern ohne LTE/5G.
-   - Ein flüchtiges Netzproblem darf niemals mitten im Workout den Pro-Status entziehen!
-2. **Cached Entitlement Policy:**
-   - Das RevenueCat SDK cached den Entitlement-Zustand lokal verschlüsselt.
-   - **Offline Grace Period:** 72 Stunden. Wenn das Gerät 72 Stunden lang offline ist, bleibt der gecachte Pro-Status aktiv. Erst nach 72 Stunden kontinuierlichem Offline-Zustand ohne Revalidierung greift ein sanftes Fallback für rein lokale Pro-Features.
+1. **PRO Preview Window:**
+   - Default: 5 Fast Requests / Woche.
+   - Fenster wird serverseitig rolling / wöchentlich berechnet.
+   - Kein Plan Mode, kein AI Write.
+2. **COACH Monthly Credits:**
+   - Default: 300 Credits / Monat.
+   - Fast Request: 1 Credit.
+   - Plan Request: 5 Credits.
+   - Idempotente Reservierung vor Provider-Call; Verbuchung nach erfolgreicher Antwort.
+   - Quota-Warnschwellen: 80% (`quota_warning_threshold_1`) und 95% (`quota_warning_threshold_2`).
 
 ---
 
-## 5. Offene Entscheidungen für Astra (ASTRA_REQUIRED)
+## 5. Security & Privacy Guardrails
 
-- [ ] **Exaktes Free-Kontingent für Coach:** Soll es 3 kostenlose Lifetime-Prompts geben oder 1 Prompt pro Tag oder 0 Prompts (harte Paywall)?
-- [ ] **Cloud-Sync Gating:** Bleibt Cloud-Sync für 1 Gerät kostenlos (als Disaster Recovery) und wird erst ab dem 2. Gerät kostenpflichtig, oder ist Cloud-Sync generell Pro?
-- [ ] **Template-Deckel:** Ist die Obergrenze von 3 Vorlagen für Free-Nutzer wettbewerbsfähig gegenüber Strong/Hevy (dort meist 3 Vorlagen)?
+1. **Client is Untrusted:** Clientseitige `tier` Flags steuern nur UI-Routing und Optimistic Rendering. Alle AI-Calls und Backend-Syncs prüfen serverseitig `public.subscriptions` und verbleibende Quotas.
+2. **Zero Telemetry Leakage:** Monetarisierungs-Events (`paywall_viewed`, `subscription_started`, `ai_fast_requested`) übertragen niemals Chat-Prompts, Antworten, Trainingsgewichte oder Körperdaten.
+3. **Structured Write Safety:** AI erzeugt strukturierte Drafts (`ProgramDraft`, `WorkoutTemplateDraft`). Persistierung erfordert explizite Bestätigung durch den Nutzer im Preview/Diff-Modal.

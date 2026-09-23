@@ -1,4 +1,4 @@
-import * as Crypto from 'expo-crypto';
+import * as Crypto from './uuid';
 import {
   CoachPlanSchema,
   WorkoutTemplateSchema,
@@ -13,6 +13,8 @@ import { useSyncStore } from '../stores/syncStore';
 import { getCurrentUserId } from '../stores/local-user';
 import { getStorageScope, isScopeCurrent, StorageScope } from '../data/storageScope';
 import { runStorageTransaction } from '../data/storageTransaction';
+import { entitlementService } from '../services/entitlementService';
+import { monetizationAnalytics } from '../services/monetizationAnalytics';
 
 export function saveCoachPlan(
   messageId: string,
@@ -20,6 +22,13 @@ export function saveCoachPlan(
 ): string[] {
   if (!isScopeCurrent(scope))
     throw Error('Das Profil wurde gewechselt. Bitte den Plan erneut öffnen.');
+  if (!entitlementService.canUseAIWrite(true)) {
+    monetizationAnalytics.track('locked_feature_clicked', {
+      tier: entitlementService.getTier(),
+      feature_source: 'coach_plan',
+    });
+    throw Error('AI_WRITE_NOT_AUTHORIZED: Das Speichern von KI-Trainingsplänen erfordert ein aktives EVARO Coach Abonnement.');
+  }
   const coach = useCoachStore.getState();
   const message = coach.messages.find((item) => item.id === messageId && item.role === 'assistant');
   if (!message?.plan) throw Error('Kein speicherbarer Plan vorhanden.');

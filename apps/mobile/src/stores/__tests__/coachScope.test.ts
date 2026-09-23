@@ -1,4 +1,5 @@
 import { useCoachStore } from '../coachStore';
+import { useProfileStore } from '../profileStore';
 import {
   beginScopeChange,
   completeScopeChange,
@@ -26,6 +27,7 @@ it('ignores old streamed coach content and preserves the next account request st
     await response;
     yield 'A private response';
   });
+  useProfileStore.getState().setAiConsent();
   await useCoachStore.persist.rehydrate();
   const sending = useCoachStore.getState().sendMessage('A private request');
   await started;

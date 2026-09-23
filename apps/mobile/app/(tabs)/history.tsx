@@ -45,6 +45,8 @@ import { LevelProgress } from '../../src/components/LevelProgress';
 import { HorizontalFadeScroll } from '../../src/components/HorizontalFadeScroll';
 import { VerticalFadeScroll } from '../../src/components/VerticalFadeScroll';
 import { useI18n } from '../../src/i18n';
+import { entitlementService } from '../../src/services/entitlementService';
+import { usePaywallStore } from '../../src/stores/paywallStore';
 
 export default function HistoryScreen() {
   const [activeTab, setActiveTab] = useState<'history' | 'progress' | 'achievements'>('history');
@@ -1495,27 +1497,41 @@ function ProgressView() {
                     </View>
 
                     {/* e1RM Row */}
-                    <View style={[styles.detailsRow, { borderBottomColor: theme.colors.border }]}>
-                      <Text style={[styles.detailLabel, { color: theme.colors.muted }]}>
-                        {language === 'de' ? 'Geschätztes 1RM' : 'Estimated 1RM'}
-                      </Text>
+                    <Pressable
+                      style={[styles.detailsRow, { borderBottomColor: theme.colors.border }]}
+                      onPress={() => {
+                        if (!entitlementService.canUseAdvancedAnalytics()) {
+                          usePaywallStore.getState().openPaywall('pro', 'analytics');
+                        }
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={[styles.detailLabel, { color: theme.colors.muted }]}>
+                          {language === 'de' ? 'Geschätztes 1RM' : 'Estimated 1RM'}
+                        </Text>
+                        {!entitlementService.canUseAdvancedAnalytics() && (
+                          <Ionicons name="lock-closed" size={13} color={theme.colors.muted} />
+                        )}
+                      </View>
                       <Text style={[styles.detailVal, { color: theme.colors.text }]}>
-                        {(() => {
-                          const init = progressDetails.initialE1RM;
-                          const lat = progressDetails.latestE1RM;
-                          const peak = progressDetails.peakE1RM;
+                        {!entitlementService.canUseAdvancedAnalytics()
+                          ? 'PRO Feature'
+                          : (() => {
+                              const init = progressDetails.initialE1RM;
+                              const lat = progressDetails.latestE1RM;
+                              const peak = progressDetails.peakE1RM;
 
-                          const unit = isImperial ? 'lbs' : 'kg';
-                          const initVal = isImperial ? init * 2.20462 : init;
-                          const latVal = isImperial ? lat * 2.20462 : lat;
-                          const peakVal = isImperial ? peak * 2.20462 : peak;
+                              const unit = isImperial ? 'lbs' : 'kg';
+                              const initVal = isImperial ? init * 2.20462 : init;
+                              const latVal = isImperial ? lat * 2.20462 : lat;
+                              const peakVal = isImperial ? peak * 2.20462 : peak;
 
-                          return language === 'de'
-                            ? `Start: ${initVal.toFixed(1)} | Spitze: ${peakVal.toFixed(1)} | Zuletzt: ${latVal.toFixed(1)} ${unit}`
-                            : `Init: ${initVal.toFixed(1)} | Peak: ${peakVal.toFixed(1)} | Latest: ${latVal.toFixed(1)} ${unit}`;
-                        })()}
+                              return language === 'de'
+                                ? `Start: ${initVal.toFixed(1)} | Spitze: ${peakVal.toFixed(1)} | Zuletzt: ${latVal.toFixed(1)} ${unit}`
+                                : `Init: ${initVal.toFixed(1)} | Peak: ${peakVal.toFixed(1)} | Latest: ${latVal.toFixed(1)} ${unit}`;
+                            })()}
                       </Text>
-                    </View>
+                    </Pressable>
 
                     {/* Avg Reps / RPE */}
                     <View

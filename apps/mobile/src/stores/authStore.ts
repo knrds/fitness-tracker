@@ -9,6 +9,17 @@ import {
   isScopeCurrent,
 } from '../data/storageScope';
 import { UUIDSchema } from '@fitness-tracker/domain';
+import { translations } from '../i18n/translations';
+
+async function persistenceErrorMessage(key: 'sessionStorageFailed' | 'sessionCleanupFailed') {
+  try {
+    const { useProfileStore } = await import('./profileStore');
+    const language = useProfileStore.getState().profile.language === 'en' ? 'en' : 'de';
+    return translations[language].auth[key];
+  } catch {
+    return translations.de.auth[key];
+  }
+}
 
 interface AuthCredentials {
   email: string;
@@ -78,13 +89,14 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     }
 
     set({ isLoading: true });
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    set({ isLoading: false });
-
-    return error ? { error: error.message } : {};
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      return error ? { error: error.message } : {};
+    } catch {
+      return { error: await persistenceErrorMessage('sessionStorageFailed') };
+    } finally {
+      set({ isLoading: false });
+    }
   },
 
   signUp: async ({ email, password, displayName }) => {
@@ -96,33 +108,44 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     }
 
     set({ isLoading: true });
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          display_name: displayName,
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: displayName,
+          },
         },
-      },
-    });
-    set({ isLoading: false });
+      });
+      if (error) {
+        return { error: error.message, needsEmailVerification: false };
+      }
 
-    if (error) {
-      return { error: error.message, needsEmailVerification: false };
+      return { needsEmailVerification: data.session === null };
+    } catch {
+      return {
+        error: await persistenceErrorMessage('sessionStorageFailed'),
+        needsEmailVerification: false,
+      };
+    } finally {
+      set({ isLoading: false });
     }
-
-    return { needsEmailVerification: data.session === null };
   },
 
   signOut: async () => {
     if (!isSupabaseConfigured) return {};
 
     set({ isLoading: true });
-    const { error } = await supabase.auth.signOut();
-    if (!error) await applyAccountSession(null);
-    set({ isLoading: false });
-
-    return error ? { error: error.message } : {};
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (!error) await applyAccountSession(null);
+      return error ? { error: error.message } : {};
+    } catch {
+      return { error: await persistenceErrorMessage('sessionCleanupFailed') };
+    } finally {
+      set({ isLoading: false });
+    }
   },
 
   resendVerificationEmail: async (email) => {
@@ -135,7 +158,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       type: 'signup',
       email,
       options: {
-        emailRedirectTo: 'fitness-tracker://',
+        emailRedirectTo: 'evaro://',
       },
     });
     set({ isLoading: false });
@@ -150,7 +173,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
 
     set({ isLoading: true });
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'fitness-tracker://auth/reset-password',
+      redirectTo: 'evaro://auth/reset-password',
     });
     set({ isLoading: false });
 
@@ -163,10 +186,14 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     }
 
     set({ isLoading: true });
-    const { error } = await supabase.auth.updateUser({ password });
-    set({ isLoading: false });
-
-    return error ? { error: error.message } : {};
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      return error ? { error: error.message } : {};
+    } catch {
+      return { error: await persistenceErrorMessage('sessionStorageFailed') };
+    } finally {
+      set({ isLoading: false });
+    }
   },
 }));
 
@@ -182,15 +209,32 @@ export function applyAccountSession(session: Session | null): Promise<void> {
     useAuthStore.setState({ session, user: session?.user ?? null, isLoading: false });
     return Promise.resolve();
   }
+  const previousPartition = getStorageScope().partition;
   const generation = beginScopeChange();
   useAuthStore.setState({ isSwitchingAccount: true, sessionError: null });
   accountChange = accountChange.then(async () => {
     if (generation !== getStorageScope().generation) return;
     try {
+      const isGuestToAccount = previousPartition === 'legacy' && session !== null;
+      let guestSnapshot: import('./authMigration').GuestSnapshot | null = null;
+      if (isGuestToAccount) {
+        const { captureGuestSnapshot, hasGuestData } = await import('./authMigration');
+        const snapshot = captureGuestSnapshot();
+        if (hasGuestData(snapshot)) {
+          guestSnapshot = snapshot;
+        }
+      }
+
       const partition = session ? `account:${UUIDSchema.parse(session.user.id)}` : 'legacy';
       const { switchPersistencePartition } = await import('./persistenceLifecycle');
       await switchPersistencePartition(partition, generation);
       if (!completeScopeChange(generation)) return;
+
+      if (guestSnapshot && session) {
+        const { migrateGuestSnapshotToAccount } = await import('./authMigration');
+        await migrateGuestSnapshotToAccount(guestSnapshot, session.user.id);
+      }
+
       useAuthStore.setState({
         session,
         user: session?.user ?? null,

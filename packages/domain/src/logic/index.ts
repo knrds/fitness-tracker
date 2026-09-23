@@ -11,3 +11,4 @@ export * from './workoutPlanning';
 export * from './muscleRegions';
 export * from './workoutDateUtils';
 export * from './bodyMetricsLogic';
+export * from './levelProgression';

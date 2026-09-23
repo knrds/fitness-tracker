@@ -1,5 +1,19 @@
 # EVARO – Sync & Data Integrity Test Matrix
 
+## Outbox-Dauerhaftigkeit — Ergänzung 20.09.2026
+
+HIGH, Datenklassen/Trust Boundaries wie im S4-Checkpoint. Enqueue, Cloud-ACK, Retry-Metadaten und explizites Clear rollen die Memory-Queue bei lokaler SQLite-Schreibstörung zurück. Vier echte SQLite-Triggerfälle prüfen diese Grenzen, darunter Cloud-Erfolg/ACK-Fehler/erneutes Laden/erfolgreicher Retry. Keine Schemaänderung, keine neue Dependency und keine zusätzlichen Logs. Gleiche IDs bleiben erhalten; Wiederholung nach nicht lokal bestätigtem Cloud-Erfolg ist bewusst möglich und erfordert weiterhin serverseitige Idempotenz. Native Device-/Cloud-Abnahme bleibt offen, S4 PARTIAL.
+
+## Astra-Checkpoint 20.09.2026 — maßgebliche Ergänzung
+
+Risiko CRITICAL; Schutzbedarf PERSONAL/SENSITIVE/HIGH_SENSITIVITY. Vertrauensgrenzen: nicht vertrauenswürdige Cloud-Antwort → validierte Domain-Daten → kontoabhängige lokale SQLite-Persistenz. Ownership wird zusätzlich clientseitig geprüft, ersetzt aber niemals RLS. Fehlermeldungen der Pull-Protokollierung enthalten keine Cloud-Rohdaten.
+
+18 neue Regressionen in syncResponseFailures.test.ts prüfen Child-Read/Delete-Fehler, alle sechs Pull-Abfragen, fehlende Beziehungen/null-Antworten, fremde Owner, Pending-Outbox vor/während Pull, erfolgreichen Merge sowie Rollback bei echtem SQLite-Triggerfehler nach bereits geschriebenem Profil und Verlauf. Ein früherer Stand hatte 15 rote Negativfälle; finale Nachweise stehen in EXECUTION_STATUS.md.
+
+Implementiert: fehlgeschlagene Push-Operationen bleiben in FIFO; vollständige Pull-Validierung vor Store-Änderungen; native lokale Transaktion mit Memory-Rollback. Keine neue Dependency, Datenformatmigration oder Produktions-RPC. Revert benötigt keine lokale Datenkonvertierung, würde jedoch die behobenen Fehler erneut einführen.
+
+Offen: Cloud-Aggregate können vor Fehlern teilweise geändert sein; Retries sind keine bewiesene serverseitige Idempotenz. Sechs Pull-Requests bilden keinen konsistenten Server-Snapshot. updatedAt-Merge bleibt uhrenabhängig; Revisionen, Tombstones und Mehrgeräte-Konflikte sind nicht gelöst. Web-Preview besitzt keine äquivalente dauerhafte SQLite-Atomizität. Physische Geräte-/Prozessabbruch- und echte Supabase-End-to-End-Tests bleiben erforderlich. S4 ist PARTIAL, keine Produktionsfreigabe.
+
 Diese Matrix dokumentiert den aktuellen Implementierungs- und Teststatus aller Synchronisations- und Persistenzszenarien für die mobile EVARO-App (Offline-First-Architektur mit SQLite, MMKV-Storage und Supabase Cloud-Sync).
 
 **Status-Definitionen:**

@@ -86,7 +86,7 @@ export function useFolderTemplateReorder({
   const shifts = useRef(new Map<string, Animated.Value>());
   const frame = useRef<number | null>(null);
 
-  const hoverExpandTimer = useRef<NodeJS.Timeout | null>(null);
+  const hoverExpandTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastHoveredFolderRef = useRef<string | null>(null);
 
   const drag = useRef<{

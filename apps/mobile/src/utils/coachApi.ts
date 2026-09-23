@@ -9,6 +9,9 @@ import {
   BiologicalSex,
 } from '@fitness-tracker/domain';
 import { supabase, isSupabaseConfigured } from './supabase';
+import { defaultCoachCircuitBreaker } from './coachCircuitBreaker';
+
+export { defaultCoachCircuitBreaker };
 
 const endpoint =
   process.env.EXPO_PUBLIC_COACH_CHAT_ENDPOINT ||
@@ -24,38 +27,39 @@ export async function checkConnectivity(): Promise<boolean> {
 }
 
 export interface CoachContext {
-  exerciseCatalog?: Array<{ id: string; name: string }>;
+  exerciseCatalog?: Array<{ id: string; name: string }> | undefined;
   profile: {
     displayName: string;
-    experienceLevel?: ExperienceLevel;
+    experienceLevel?: ExperienceLevel | undefined;
     preferredUnits: UnitSystem;
-    fitnessGoal?: FitnessGoal;
-    biologicalSex?: BiologicalSex;
-    heightCm?: number;
-    weightKg?: number;
-    benchPressMaxKg?: number;
-    squatMaxKg?: number;
-    deadliftMaxKg?: number;
+    fitnessGoal?: FitnessGoal | undefined;
+    biologicalSex?: BiologicalSex | undefined;
+    heightCm?: number | undefined;
+    weightKg?: number | undefined;
+    benchPressMaxKg?: number | undefined;
+    squatMaxKg?: number | undefined;
+    deadliftMaxKg?: number | undefined;
     age?: number | undefined;
-    language?: 'de' | 'en';
+    language?: 'de' | 'en' | undefined;
   };
-  stats: {
+  stats?: {
     totalWorkouts: number;
     currentStreak: number;
-    latestWeight?: number;
-  };
+    latestWeight?: number | undefined;
+  } | undefined;
   recentWorkouts?: Array<{
     name: string;
     startedAt: string;
-    durationMinutes?: number;
-    totalVolume?: number;
+    durationMinutes?: number | undefined;
+    totalVolume?: number | undefined;
     exercises: Array<{
       name: string;
       workingSets: number;
-      volume?: number;
-      topSet?: string;
+      volume?: number | undefined;
+      topSet?: string | undefined;
     }>;
-  }>;
+  }> | undefined;
+  [key: string]: unknown;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -110,11 +114,20 @@ export async function* streamCoachResponse(
       options.signal.addEventListener('abort', () => controller.abort(), { once: true });
     }
   }
+  const circuitCheck = defaultCoachCircuitBreaker.canExecute();
+  if (!circuitCheck.allowed) {
+    throw new Error(
+      circuitCheck.reason ??
+        'Der KI-Coach ist vorübergehend nicht erreichbar. Bitte versuche es in wenigen Momenten erneut.',
+    );
+  }
+
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers,
-      signal: controller.signal,
+      // Expo web adds DOM globals alongside RN's fetch declarations; both accept this same runtime signal.
+      signal: controller.signal as NonNullable<RequestInit['signal']>,
       body: JSON.stringify({
         messages: messages.slice(-10).map(({ role, content, plan, savedTemplateIds }) => ({
           role,
@@ -134,6 +147,7 @@ export async function* streamCoachResponse(
       }),
     });
     if (!response.ok) {
+      defaultCoachCircuitBreaker.recordFailure(response.status);
       const data: unknown = await response.json().catch(() => null);
       const providerErrors: Record<string, string> = {
         DAILY_LIMIT_REACHED:
@@ -193,11 +207,13 @@ export async function* streamCoachResponse(
             (source.date === undefined || typeof source.date === 'string'),
         )
       : undefined;
+    defaultCoachCircuitBreaker.recordSuccess();
     options.onResult?.({ plan, sources });
     yield data.reply.trim();
   } catch (error) {
     if (options.signal?.aborted)
       throw new Error('Anfrage durch Nutzer abgebrochen.');
+    defaultCoachCircuitBreaker.recordFailure(error instanceof Error ? error : undefined);
     if (controller.signal.aborted)
       throw new Error('Der Coach antwortet nicht rechtzeitig. Bitte erneut versuchen.');
     if (error instanceof TypeError)

@@ -11,8 +11,9 @@
 --   * Canonical units are metric (kg, cm, metres); the client converts for
 --     display based on users.preferred_units.
 --
--- Apply with: psql "$DATABASE_URL" -f docs/schema.sql
---          or paste into the Supabase SQL editor.
+-- Baseline schema only. Fresh databases also require versioned migrations in
+-- supabase/migrations, in filename order. Do not paste this into production.
+-- Local verification and migration gates: docs/release/RLS_LOCAL_TEST_HARNESS.md.
 -- =============================================================================
 
 -- Needed for gen_random_uuid()

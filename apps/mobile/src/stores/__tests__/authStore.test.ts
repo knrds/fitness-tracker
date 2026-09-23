@@ -2,6 +2,7 @@ type MockAuthClient = {
   getSession?: jest.Mock;
   onAuthStateChange?: jest.Mock;
   signInWithPassword?: jest.Mock;
+  signUp?: jest.Mock;
   signOut?: jest.Mock;
   resend?: jest.Mock;
   resetPasswordForEmail?: jest.Mock;
@@ -28,7 +29,7 @@ const mockSession = {
   access_token: 'token',
   refresh_token: 'refresh',
   expires_in: 3600,
-  token_type: 'bearer',
+  token_type: 'bearer' as const,
   user: {
     id: '99999999-9999-4999-8999-999999999999',
     app_metadata: {},
@@ -39,6 +40,55 @@ const mockSession = {
 };
 
 describe('authStore', () => {
+  it.each(['de', 'en'] as const)(
+    'returns the storage failure in profile language %s',
+    async (language) => {
+      const { useProfileStore } = await import('../profileStore');
+      const { translations } = await import('../../i18n/translations');
+      const previous = useProfileStore.getState().profile;
+      useProfileStore.setState({ profile: { ...previous, language } });
+      try {
+        mockIsSupabaseConfigured = true;
+        mockSupabaseAuth = { signOut: jest.fn().mockRejectedValue(new Error('locked')) };
+        useAuthStore.setState({ session: mockSession, user: mockSession.user });
+        expect((await useAuthStore.getState().signOut()).error).toBe(
+          translations[language].auth.sessionCleanupFailed,
+        );
+        expect(useAuthStore.getState().user?.id).toBe(mockSession.user.id);
+      } finally {
+        useProfileStore.setState({ profile: previous });
+      }
+    },
+  );
+  it.each(['signIn', 'signUp', 'updatePassword', 'signOut'] as const)(
+    'reports storage rejection during %s without leaking credentials or retaining the loading state',
+    async (operation) => {
+      mockIsSupabaseConfigured = true;
+      const reject = jest.fn().mockRejectedValue(new Error('private-refresh-token'));
+      mockSupabaseAuth = {
+        signInWithPassword: reject,
+        signUp: reject,
+        updateUser: reject,
+        signOut: reject,
+      };
+      const current = useAuthStore.getState();
+      const result =
+        operation === 'signIn'
+          ? await current.signIn({ email: 'test@example.com', password: 'password' })
+          : operation === 'signUp'
+            ? await current.signUp({
+                email: 'test@example.com',
+                password: 'password',
+                displayName: 'Test',
+              })
+            : operation === 'updatePassword'
+              ? await current.updatePassword('new-password')
+              : await current.signOut();
+      expect(result.error).toBeTruthy();
+      expect(result.error).not.toContain('private-refresh-token');
+      expect(useAuthStore.getState().isLoading).toBe(false);
+    },
+  );
   beforeEach(() => {
     mockIsSupabaseConfigured = false;
     mockSupabaseAuth = {};
@@ -130,7 +180,7 @@ describe('authStore', () => {
       expect(resendMock).toHaveBeenCalledWith({
         type: 'signup',
         email: 'test@example.com',
-        options: { emailRedirectTo: 'fitness-tracker://' },
+        options: { emailRedirectTo: 'evaro://' },
       });
     });
 
@@ -152,14 +202,16 @@ describe('authStore', () => {
       const result = await useAuthStore.getState().sendPasswordResetEmail('test@example.com');
       expect(result.error).toBeUndefined();
       expect(resetMock).toHaveBeenCalledWith('test@example.com', {
-        redirectTo: 'fitness-tracker://auth/reset-password',
+        redirectTo: 'evaro://auth/reset-password',
       });
     });
 
     it('handles resetPasswordForEmail errors', async () => {
       mockIsSupabaseConfigured = true;
       mockSupabaseAuth = {
-        resetPasswordForEmail: jest.fn().mockResolvedValue({ error: { message: 'Email not found' } }),
+        resetPasswordForEmail: jest
+          .fn()
+          .mockResolvedValue({ error: { message: 'Email not found' } }),
       };
 
       const result = await useAuthStore.getState().sendPasswordResetEmail('test@example.com');

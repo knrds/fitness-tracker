@@ -1,5 +1,14 @@
 import { Colorway } from '@fitness-tracker/ui';
+import {
+  getXpRequiredForLevel,
+  calculateLevelFromXp,
+  getLevelProgress,
+  type LevelProgressInfo,
+} from '@fitness-tracker/domain';
 import { CelebrationEffect } from '../stores/profileStore';
+import { translations, Language } from '../i18n';
+
+export { getXpRequiredForLevel, calculateLevelFromXp, getLevelProgress, type LevelProgressInfo };
 
 export interface RewardColorwayConfig {
   id: Colorway;
@@ -193,9 +202,24 @@ export function getCelebrationRewardConfig(
   return CELEBRATION_REWARDS.find((c) => c.id === effectId);
 }
 
+export function getLocalizedCelebrationConfig(
+  config: RewardCelebrationConfig,
+  lang: Language = 'de',
+): RewardCelebrationConfig {
+  const loc =
+    translations[lang]?.celebrations?.[config.id] ||
+    translations.de.celebrations?.[config.id];
+  if (!loc) return config;
+  return {
+    ...config,
+    name: loc.name,
+    subtitle: loc.subtitle,
+    description: loc.description,
+  };
+}
+
 export function getXpForLevel(level: number): number {
-  const normalized = Math.max(1, Math.floor(level || 1));
-  return (normalized - 1) * 500;
+  return getXpRequiredForLevel(level);
 }
 
 export function getRemainingXpForLevel(targetLevel: number, currentXp: number): number {

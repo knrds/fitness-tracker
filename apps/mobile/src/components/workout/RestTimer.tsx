@@ -14,10 +14,12 @@ import { useWorkoutStore } from '../../stores/workoutStore';
 import Svg, { Circle } from 'react-native-svg';
 import { triggerRestTimerAlarm } from '../../utils/timerAudio';
 import { shouldCaptureTimerSwipe, shouldTriggerTimerAction } from '../../utils/timerSwipe';
+import { useI18n } from '../../i18n';
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export const RestTimer = () => {
   const theme = useTheme();
+  const { t, language } = useI18n();
   const { restTimer, startRestTimer, stopRestTimer, tickRestTimer, resetRestTimer } =
     useWorkoutStore();
   const [remaining, setRemaining] = useState(restTimer.durationSeconds);
@@ -135,7 +137,7 @@ export const RestTimer = () => {
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={expanded ? 'Pausentimer einklappen' : 'Pausentimer öffnen'}
+          accessibilityLabel={expanded ? t('workout.collapseTimer') : t('workout.openTimer')}
           accessibilityState={{ expanded }}
           onPress={() => {
             setEditing(false);
@@ -153,7 +155,7 @@ export const RestTimer = () => {
         </Pressable>
         {editing ? (
           <TextInput
-            accessibilityLabel="Pausendauer"
+            accessibilityLabel={t('workout.restDuration')}
             style={[styles.time, { color: theme.colors.text, minWidth: 90 }]}
             value={input}
             onChangeText={setInput}
@@ -168,7 +170,7 @@ export const RestTimer = () => {
           <Pressable
             style={styles.timeButton}
             accessibilityRole="button"
-            accessibilityLabel="Pausendauer bearbeiten"
+            accessibilityLabel={t('workout.editDuration')}
             onPress={() => {
               if (!expanded) setExpanded(true);
               else if (!restTimer.isRunning) {
@@ -183,7 +185,7 @@ export const RestTimer = () => {
         <Pressable
           testID={restTimer.isRunning ? 'stop-timer-btn' : 'start-timer-btn'}
           accessibilityRole="button"
-          accessibilityLabel={restTimer.isRunning ? 'Pause anhalten' : 'Pause starten'}
+          accessibilityLabel={restTimer.isRunning ? t('workout.pauseTimer') : t('workout.startTimer')}
           style={[styles.play, { backgroundColor: theme.colors.primary }]}
           onPress={restTimer.isRunning ? stopRestTimer : () => startRestTimer(remaining || 90)}
         >
@@ -203,7 +205,7 @@ export const RestTimer = () => {
         <View
           testID="rest-timer-clock-surface"
           style={{ alignSelf: 'center', width: 112, height: 112 }}
-          accessibilityLabel={`Pause ${formatTime(remaining)}`}
+          accessibilityLabel={`${t('workout.restTimer')} ${formatTime(remaining)}`}
           {...panResponder.panHandlers}
         >
           <Svg width={112} height={112} viewBox="0 0 112 112">
@@ -243,7 +245,18 @@ export const RestTimer = () => {
             <Pressable
               key={amount}
               accessibilityRole="button"
-              accessibilityLabel={`${amount > 0 ? 'Plus' : 'Minus'} ${Math.abs(amount)} Sekunden`}
+              accessibilityLabel={t('workout.secondsAdjustment')
+                .replace(
+                  '{sign}',
+                  amount > 0
+                    ? language === 'de'
+                      ? 'Plus'
+                      : '+'
+                    : language === 'de'
+                    ? 'Minus'
+                    : '-',
+                )
+                .replace('{seconds}', String(Math.abs(amount)))}
               style={[styles.adjust, { borderColor: theme.colors.border }]}
               onPress={() => startRestTimer(Math.max(1, remaining + amount))}
             >
@@ -260,7 +273,7 @@ export const RestTimer = () => {
           onPress={resetRestTimer}
           style={styles.reset}
         >
-          <Text style={{ color: theme.colors.muted }}>Timer zurücksetzen</Text>
+          <Text style={{ color: theme.colors.muted }}>{t('workout.resetTimer')}</Text>
         </Pressable>
       </Animated.View>
     </Animated.View>

@@ -43,6 +43,8 @@ import { useExerciseStore } from '../../stores/exerciseStore';
 import { useProfileStore } from '../../stores/profileStore';
 import { useHistoryStore } from '../../stores/historyStore';
 import { PlateCalculatorModal } from './PlateCalculatorModal';
+import { entitlementService } from '../../services/entitlementService';
+import { usePaywallStore } from '../../stores/paywallStore';
 import { useTheme, Card, useDialog, Modal as DetailModal } from '@fitness-tracker/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../../i18n';
@@ -121,7 +123,7 @@ export const SessionExerciseCard = ({
   const { height: windowHeight } = useWindowDimensions();
   const compact = true;
   const router = useRouter();
-  const { language } = useI18n();
+  const { t, language } = useI18n();
   const navigateToInstructions = () => {
     router.push(`/exercise/${sessionExercise.exerciseId}`);
   };
@@ -527,7 +529,7 @@ export const SessionExerciseCard = ({
               onPress={() => setOptionsVisible(true)}
               style={styles.iconBtn}
               accessibilityRole="button"
-              accessibilityLabel="Übungsoptionen"
+              accessibilityLabel={t('workout.exerciseOptions')}
               testID="exercise-options-btn"
             >
               <Ionicons name="ellipsis-horizontal" size={24} color={theme.colors.muted} />
@@ -538,7 +540,7 @@ export const SessionExerciseCard = ({
               onPress={onToggleCollapse}
               style={styles.iconBtn}
               accessibilityRole="button"
-              accessibilityLabel={collapsed ? 'Übung ausklappen' : 'Übung einklappen'}
+              accessibilityLabel={collapsed ? t('workout.tapToExpand') : t('workout.tapToCollapse')}
               testID="exercise-collapse-btn"
             >
               <Ionicons
@@ -756,7 +758,9 @@ export const SessionExerciseCard = ({
             onPress={() => addSet(sessionExercise.id)}
           >
             <Ionicons name="add" size={20} color={theme.colors.primary} />
-            <Text style={[styles.addSetRowText, { color: theme.colors.primary }]}>ADD SET</Text>
+            <Text style={[styles.addSetRowText, { color: theme.colors.primary }]}>
+              {t('workout.addSet').toUpperCase()}
+            </Text>
           </Pressable>
         </>
       )}
@@ -1244,7 +1248,7 @@ const SetRow = ({
 }: SetRowProps) => {
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
-  const { language } = useI18n();
+  const { t, language } = useI18n();
   const isDone = set.completed;
   const reducedMotion = useReducedMotion();
   const showSetOptions = showRpe || showRir;
@@ -1504,6 +1508,10 @@ const SetRow = ({
             onChangeText={(text) => {
               let rpe = parseFloat(text.replace(',', '.')) || 0;
               if (rpe > 10) rpe = 10;
+              if (!entitlementService.canUseRPE()) {
+                usePaywallStore.getState().openPaywall('pro', 'rpe');
+                return;
+              }
               onUpdate({ rpe });
             }}
             placeholder="-"
@@ -1535,6 +1543,10 @@ const SetRow = ({
             onChangeText={(text) => {
               let rir = parseInt(text, 10) || 0;
               if (rir > 10) rir = 10;
+              if (!entitlementService.canUseRIR()) {
+                usePaywallStore.getState().openPaywall('pro', 'rir');
+                return;
+              }
               onUpdate({ rir });
             }}
             placeholder="-"
@@ -1745,8 +1757,8 @@ const SetRow = ({
                 testID={`set-options-btn-${set.id}`}
                 style={[styles.deleteCol, styles.centerAlign, { minHeight: 44 }]}
                 accessibilityRole="button"
-                accessibilityLabel={`Satz ${workingSetNumber} Details`}
-                accessibilityActions={[{ name: 'delete', label: 'Satz entfernen' }]}
+                accessibilityLabel={`${t('workout.set')} ${workingSetNumber} ${t('common.details')}`}
+                accessibilityActions={[{ name: 'delete', label: t('workout.removeSet') }]}
                 onAccessibilityAction={(event) => {
                   if (event.nativeEvent.actionName === 'delete') handleDeleteSet();
                 }}
@@ -1767,13 +1779,13 @@ const SetRow = ({
       </View>
       <DetailModal
         visible={showSetOptions && detailsVisible}
-        title={`Satz ${workingSetNumber} · Details`}
+        title={t('workout.setDetails').replace('{number}', String(workingSetNumber))}
         onClose={closeDetails}
-        primaryActionTitle="Fertig"
+        primaryActionTitle={t('common.done')}
         onPrimaryAction={closeDetails}
       >
         <Text style={{ color: theme.colors.muted, marginBottom: 16, lineHeight: 21 }}>
-          RPE beschreibt die Anstrengung. RIR zählt die noch möglichen Wiederholungen.
+          {t('workout.effortExplanation')}
         </Text>
         <View style={{ gap: 12 }}>{effortInputs}</View>
         <Pressable
@@ -1784,7 +1796,7 @@ const SetRow = ({
           }}
           style={{ minHeight: 48, justifyContent: 'center', marginTop: 16 }}
         >
-          <Text style={{ color: theme.colors.error }}>Satz entfernen</Text>
+          <Text style={{ color: theme.colors.error }}>{t('workout.removeSet')}</Text>
         </Pressable>
       </DetailModal>
       {lastPerformanceSet && (

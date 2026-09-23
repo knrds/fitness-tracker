@@ -70,14 +70,15 @@ EVARO uses **RevenueCat** as the central abstraction layer over Apple StoreKit 2
 
 To guarantee financial safety and prevent client spoofing, the AI Coach proxy (`api/coach-chat.js`) validates subscriptions against the server database, never trusting client state.
 
-### 3.1 Supabase Schema (`public.subscriptions`)
+### 3.1 Supabase Schema (`public.subscriptions` & `public.users`)
 ```sql
--- Migration: docs/migrations/20260916_subscriptions_schema.sql
+-- Migration: docs/migrations/20260922_subscriptions_3tier_schema.sql
 CREATE TABLE IF NOT EXISTS public.subscriptions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  tier text NOT NULL CHECK (tier IN ('free', 'pro', 'coach')),
   status text NOT NULL CHECK (status IN ('active', 'trialing', 'past_due', 'canceled', 'expired')),
-  product_id text NOT NULL, -- e.g. 'evaro_pro_monthly', 'evaro_pro_annual'
+  product_id text NOT NULL, -- 'evaro_pro_monthly', 'evaro_pro_annual', 'evaro_coach_monthly', 'evaro_coach_annual'
   store text NOT NULL CHECK (store IN ('app_store', 'play_store', 'stripe', 'promotional')),
   current_period_start timestamptz NOT NULL,
   current_period_end timestamptz NOT NULL,
@@ -91,18 +92,20 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_status 
 ON public.subscriptions (user_id, status);
 
--- Add denormalized fast-flag on public.users
+-- Denormalized fast-tier on public.users
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS tier text DEFAULT 'free' CHECK (tier IN ('free', 'pro', 'coach'));
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_pro boolean DEFAULT false;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_coach boolean DEFAULT false;
 ```
 
 ### 3.2 RevenueCat Webhook Handler (`api/webhooks/revenuecat.js`)
 RevenueCat sends server-to-server POST events for every subscription lifecycle change.
 Events to handle:
-- `INITIAL_PURCHASE`: User purchased subscription -> Set `status = 'active'`, `is_pro = true`.
+- `INITIAL_PURCHASE`: User purchased subscription -> Determine tier (`coach` if product is Coach, else `pro`), set `status = 'active'`, `tier = ...`, `is_pro = true`, `is_coach = (tier === 'coach')`.
 - `RENEWAL`: Auto-renew successful -> Extend `current_period_end`.
-- `CANCELLATION`: User cancelled auto-renew in iOS/Android settings -> Keep `is_pro = true` until `current_period_end`, set `cancel_at_period_end = true`.
-- `EXPIRATION`: Billing period ended without renewal -> Set `status = 'expired'`, `is_pro = false`.
-- `BILLING_ISSUE`: Credit card failed -> Set `status = 'past_due'`. If store offers billing grace period (Apple allows up to 16 days), keep `is_pro = true` during grace.
+- `CANCELLATION`: User cancelled auto-renew in iOS/Android settings -> Keep active tier until `current_period_end`, set `cancel_at_period_end = true`.
+- `EXPIRATION`: Billing period ended without renewal -> Set `status = 'expired'`, `tier = 'free'`, `is_pro = false`, `is_coach = false`.
+- `BILLING_ISSUE`: Credit card failed -> Set `status = 'past_due'`. If store offers billing grace period (Apple allows up to 16 days), keep active tier during grace.
 
 **Webhook Security:**
 Verify the `Authorization: Bearer <REVENUECAT_WEBHOOK_AUTH_TOKEN>` header before processing any payload.

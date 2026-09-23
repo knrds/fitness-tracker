@@ -1,5 +1,17 @@
 # Roadmap
 
+20.09.2026 — Kostenloser iPhone-Testpfad ergänzt: bestehende HTTPS-Astra-Preview nachgewiesen; neuer statischer WLAN-Export, Home-Screen-Metadaten und sicherer Web-UUID-Fix lokal geprüft. EAS-Verknüpfung vorhanden, signierter iPhone-Build weiterhin offen. Anleitung: `docs/release/IPHONE_FREE_TEST_GUIDE.md`. Vercel-Build auf Verify/Audit vor Export umgestellt; bekannte hohe Findings blockieren neue HTTPS-Updates. Kein Main-/Production-Rollout. S4 serverseitige Atomizität/Idempotenz/Konflikte bleibt nächste Datenpriorität, danach S5. S1-Abhilfe für Preview-Freigabe nötig. Browser-Smoke ersetzt keine Safari-/Native-Abnahme.
+
+## Fortsetzung 20.09.2026 — sichere inkrementelle Beta
+
+Abgeschlossene, separat geprüfte Blöcke dürfen nach aktuellem Nutzerauftrag nach main integriert werden. Zu jedem Block gehören konkrete Schritte und Soll-Ergebnisse in docs/release/BETA_REGRESSION_MATRIX.md. Vor Main-Push tatsächlichen automatischen/manuellen Auslieferungsweg und Release-Gates prüfen. Aktuelle Gesamtbranch bleibt wegen offener nativer Session-Abnahme und Security-Gates nicht pauschal freigegeben.
+
+Produktpfad P02 und Securitypfad S4: Pull-Fehlergrenzen und lokale Outbox-Dauerhaftigkeit härten. Danach atomare serverseitige Aggregate samt Idempotenz-/Konflikt-/Tombstone-Vertrag mit echten Backendtests; anschließend S5 Account-Löschung. P03/S6, Billing, Legal und Geräte bleiben gemäß P0_READINESS_MATRIX offen. Keine Feature-Erweiterung.
+
+## Aktueller Releasepfad — 19.09.2026
+
+Die aktuelle P00–P11-Bewertung steht in [P0_READINESS_MATRIX](docs/release/P0_READINESS_MATRIX.md), die frisch ausgeführten Gates in [EXECUTION_STATUS](docs/release/EXECUTION_STATUS.md). Feature Expansion bleibt eingefroren. Native SecureStore-Integration ist auf der Astra-Review-Branch implementiert; iPhone-/Android-Migration, große Sessionwerte und kompatibler Rollback bleiben PHYSICAL_DEVICE_REQUIRED. Danach: echte RLS-Negativtests und atomare Cloud-Synchronisation. Keine Releasefreigabe; die folgenden September-13-Einträge sind historische Zwischenstände.
+
 13.09.2026: Neueste Nutzerliste abgeschlossen: zurückhaltende Koffeinnotiz, Quick-Entry-Overflow, Desktop-Rahmen, Heatmap-Hintergrund, Glas-/Wasseranimation, Bild- und Sprachcoach, validierte Plananlage und aktuelle Quellenabfrage. 246 Tests und Exporte; Geräte-/Cloud-Gates bleiben offen. Größerer UI-/Planeditor-Umbau ist vom Nutzer für den nächsten Schritt vorgesehen. Phase 4b.2 ist weiterhin nicht als erledigt markiert.
 
 12.09.2026 – Nutzerergänzungen implementiert: Navigation/Scroll-Fokus, Suchnormalisierung, Coach-Themenbegrenzung, Kreis-Timer, Abschlussdialoge, Achievement-Status und Vergabekorrektur, anatomische Karten, Body-/Profil-/XP-/Trinkanzeige und Wochenbearbeitung. 237 Tests sowie Web-/Hermes-Exporte erfolgreich. Nächste Kernarbeit bleibt Phase 4b.2; native Geräte-/Account-/Backend-Release-Gates sind weiterhin offen.

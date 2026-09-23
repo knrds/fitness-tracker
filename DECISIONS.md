@@ -1,5 +1,11 @@
 # Entscheidungen
 
+## ADR-012 — Native Sessionmigration mit Fail-closed und überprüfbarem Commit (19.09.2026)
+
+Bestehendes expo-secure-store wiederverwenden, keine zusätzliche Dependency. Kein RAM-/Klartext-Fallback bei nativen Fehlern. Migration liest SecureStore zuerst und bestätigt Nutzlast und Marker durch Readback, bevor beide Altquellen bereinigt werden. Logout setzt zuerst einen nicht sensiblen Sperrmarker, damit Teilfehler keine alten Tokens wiederbeleben. Supabase-Prozesslock plus gemeinsame Adapter-Serialisierung schützen den einzelnen nativen JS-Prozess. Fehlerhafte Altbytes werden erhalten; abgelaufene gültige Sessions werden weiterhin migriert.
+
+Geräteabnahme einschließlich großer Sessions bleibt Release-Gate; OS-Größenfehler verlieren keine Originalbytes, können aber die Anmeldung blockieren. Keine Behauptung vollständiger Hardware-Abnahme. Rollback nach Auslieferung muss den v1-Reader behalten, kein Revert auf MMKV-only. Vollständiger Vertrag und offener Review-Punkt: `docs/release/SECURE_STORAGE_MIGRATION_PLAN.md`.
+
 ## ADR-011 – Lokaler Coach und gemessene Sortierung (12.09.2026)
 Nutzer hat OpenRouter, kein Backend. Deshalb Loopback-Server für lokale Browserentwicklung, ohne zusätzliche Kontoanforderung; öffentlicher Handler bleibt authentifiziert. Native Nutzung braucht später HTTPS-Hosting. Keine öffentliche API ohne Auth und keine Providersecrets im Client. Gemeinsamer PanResponder-Hook reduziert Layoutwechsel und Persistenzwrites beim Sortieren; native Framerate ist noch zu messen. Heatmap zeigt Arbeitssatzzahlen statt kg-Volumen, damit Körpergewichtsübungen sichtbar werden; keine physiologische Belastungsmessung.
 

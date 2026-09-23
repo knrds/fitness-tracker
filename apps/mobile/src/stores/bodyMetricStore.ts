@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { BodyMetric, UUID, BodyMetricSchema } from '@fitness-tracker/domain';
-import * as Crypto from 'expo-crypto';
+import * as Crypto from '../utils/uuid';
 import { z } from 'zod';
 
 import { getCurrentUserId } from './local-user';
 import { createHydratedStorage } from './storage';
 import { useSyncStore } from './syncStore';
+import { entitlementService } from '../services/entitlementService';
+import { monetizationAnalytics } from '../services/monetizationAnalytics';
 
 export interface BodyMetricStore {
   metrics: BodyMetric[];
@@ -34,16 +36,31 @@ export const useBodyMetricStore = create<BodyMetricStore>()(
 
       addMetric: (metric) =>
         set((state) => {
+          const sanitized = { ...metric };
+          const hasAdvanced = sanitized.bodyFatPercentage !== undefined || sanitized.measurements !== undefined;
+          if (hasAdvanced && !entitlementService.canUseAdvancedMetrics()) {
+            monetizationAnalytics.track('locked_feature_clicked', {
+              tier: entitlementService.getTier(),
+              feature_source: 'metric',
+            });
+            if (sanitized.weightKg === undefined) {
+              throw new Error('PREMIUM_METRIC_LOCKED: Advanced body metrics require EVARO Pro or Coach.');
+            }
+            delete sanitized.bodyFatPercentage;
+            delete sanitized.measurements;
+          }
+
           const newMetric: BodyMetric = {
-            ...metric,
+            ...sanitized,
             id: Crypto.randomUUID(),
             userId: getCurrentUserId(),
             createdAt: new Date(),
+            recordedAt: sanitized.recordedAt || new Date(),
           };
           useSyncStore.getState().addToQueue('body_metrics', 'INSERT', newMetric);
           // Sort descending: newest first
           const updated = [...state.metrics, newMetric].sort(
-            (a, b) => b.recordedAt.getTime() - a.recordedAt.getTime(),
+            (a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime(),
           );
           return { metrics: updated };
         }),

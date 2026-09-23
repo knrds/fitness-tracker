@@ -1,0 +1,11 @@
+{
+  "name": "EVARO Preview",
+  "short_name": "EVARO",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0B0B0F",
+  "theme_color": "#0B0B0F",
+  "icons": [{ "src": "/app-icon.png", "type": "image/png", "sizes": "1024x1024", "purpose": "any" }]
+}

@@ -1,5 +1,184 @@
 # EVARO – Astra Review Queue
 
+## Zusatzblock: Coach Data Intelligence & Program UX — 22.09.2026
+
+- **AR-059: Coach Data Access Layer & App-weites Wissen — WP-03 / S6 (VERIFIED).**
+  - Zentraler Lese- und Kontext-Builder in `coachContextBuilder.ts` mit 15 Selektoren für Profil, Templates, Programme, Historie, PRs, Performance, Körpermetriken und Trainingsstatus.
+  - Fail-closed Tier-Gating (`FREE` via `COACH_LOCKED` blockiert, `PRO` reduzierter Preview-Snapshot, `COACH` selektiver Vollzugriff).
+  - Intelligente, selektive Keyword-Extraktion bei Chat-Anfragen mit strikten Obergrenzen (max. 5 Übungen, max. 3 Templates, max. 5 Sessions, Notizen auf 120 Zeichen gekürzt) und vollständigem PII-Schutz (0 Passwörter, E-Mails, Tokens).
+  - `coachStore.ts` nutzt `coachContextBuilder.buildContextForQuery` als alleinige strukturierte Kontextquelle.
+  - 49 Tests in `coachContextBuilder.test.ts` (49/49 PASS, inkl. Phase 13 Regressionssuite).
+  - Verbleibendes Gate: Serverseitige RLS-Richtlinien für Coach-DB-Zugriff bleiben `ASTRA_REQUIRED`.
+
+- **AR-060: Program Editor Drag & Drop Parity & Reorder Geometry — WP-09 (VERIFIED).**
+  - Volle visuelle und interaktive Parität im Program Editor `programs/builder.tsx` mit Template-/Folder-Reorder: Drag Handle, Card Elevation 25, zIndex 10000, 103% Skalierung (`useReducedMotion`-konform).
+  - Day-Hover-Erkennung mit visualisiertem Drop-Target-Badge („Hier ablegen“ / „Drop here“) und Border-Hervorhebung.
+  - Mathematisch reine Reorder-Funktion in `programReorderGeometry.ts`: saubere Neuindizierung, Erhalt unberührter Wochen/Tage, kein Datenverlust, Haptik beim Ablegen.
+  - 21 Tests in `programReorder.test.ts` (21/21 PASS, inkl. Phase 15 Suite).
+  - Verbleibendes Gate: Reale iOS/Android Drag & Drop Gestenabnahme auf physischem Gerät bleibt `PHYSICAL_DEVICE_REQUIRED`.
+
+- **AR-061: Home Active Program Workout Preview & Scheduling — Core Tracker UX / WP-06 (VERIFIED).**
+  - Reine Domain-Planungslogik in `programSchedule.ts` (`getProgramScheduleStatus`) zur exakten Ermittlung von Woche, Rest Days, heutigem Status und nächstem Workout.
+  - Modulares, wiederverwendbares `WorkoutPreviewModal.tsx` auf Home-Screen (`(tabs)/index.tsx`) und im Workouts-Tab (`(tabs)/workouts.tsx`): kein versehentliches Sofort-Starten mehr, transparente Übersicht über alle Übungen, Ziel-Sätze, Wdh und RPE/RIR. Barrierefreie Touch-Targets ($\ge 44 \times 44$\,pt).
+  - 19 Tests: 15 Vitest in `programSchedule.test.ts` + 4 Jest in `WorkoutPreviewModal.test.tsx` (alle PASS).
+
+## Batch 4: Local Foundations, Preferences, Resilience & Taxonomy Wiring — 22.09.2026
+
+- **AR-051: Notification Preference Center & Local Rest Timer Alerts — WP-07 Tasks 07.02, 07.04 (VERIFIED).**
+  - Granulare Notification Channels (`restTimer`, `workoutReminders`, `coachProgress`, `marketingOffers`) mit Privacy-by-design Defaults (Marketing standardmäßig `false`).
+  - Strikte Unabhängigkeit: Keine Koppelung von System-/Workout-Alerts an Marketing-Zustimmung.
+  - Lokaler Rest-Timer Notification Service: Keine Cloud-/Backend-Abhängigkeit; generische Lockscreen-Texte ohne sensible Daten; sauberer Cancel/Reschedule bei Timer-Reset/Abbruch; keine Spam-Schleifen.
+  - Persistiert in `notificationPreferenceStore.ts` via `createHydratedStorage`; UI-Modal in `NotificationSettingsModal.tsx` in `<= 2 Taps` erreichbar.
+  - 13 Tests in `notifications.test.ts`, `notificationPreferenceStore.test.ts`, `localNotificationService.test.ts` (alle PASS).
+  - Verbleibendes Gate: Reales Push Token & Background Device Handling bleibt `PHYSICAL_DEVICE_REQUIRED`.
+
+- **AR-052: Contextual Permission Pre-Prompts — WP-06 Task 06.06 (VERIFIED).**
+  - Transparente, nicht-manipulative Vorab-Erklärung in `ContextualPermissionModal.tsx` vor nativen Systemdialogen für Benachrichtigungen (`notifications`), Mikrofon (`microphone`) und Fotos (`photos`).
+  - Klarer Mehrwert ohne Dark Patterns, einfache Ablehnung („Nicht jetzt“), keine störende Permission Wall beim Start.
+  - 3 Tests in `ContextualPermissionModal.test.tsx` (3/3 PASS).
+
+- **AR-053: Coach Provider Failure & Circuit Breaker — WP-03 Task 03.10 (VERIFIED).**
+  - Resilienter `CoachCircuitBreaker` (`CLOSED`, `OPEN`, `HALF_OPEN`) mit 3-Fehler-Schwelle, 30s Cooldown und bounded backoff.
+  - Fast-Fail im Zustand `OPEN` in `coachApi.ts` mit user-friendly Fehler zur Vermeidung von unnötigen Kosten und Retry-Storms.
+  - Striktes Scrubbing: Keine Prompts, Health-Daten oder Tokens in Logs.
+  - 7 Tests in `coachCircuitBreaker.test.ts` (7/7 PASS).
+  - Verbleibendes Gate: Verteilter serverseitiger Circuit State / Redis Quota Ledger bleibt `ASTRA_REQUIRED`.
+
+- **AR-054: Remote Config Client Abstraction & Kill Switches — WP-08 Task 08.04 (PREPARED & VERIFIED).**
+  - Abstraktion auf Basis von `RemoteSubscriptionConfig` mit Zod-Validierung in `remoteConfigService.ts`.
+  - Schema unterstützt `coach_enabled`, `paywall_variant`, `notification_campaign`, `monetization_config` und `killed_features`.
+  - Fail-safe Defaults bei Timeout/Offline, Stale-Cache Fallback, Feature-Kill-Switch (`isFeatureKilled`).
+  - 6 Tests in `remoteConfigService.test.ts` (6/6 PASS).
+  - Verbleibendes Gate: Backend / Provider Auswahl bleibt `ASTRA_REQUIRED`.
+
+- **AR-055: Support / Feedback Path & Privacy Diagnostics — WP-08 Task 08.05 (PREPARED & VERIFIED).**
+  - `SupportFeedbackModal.tsx` in `<= 2 Taps` aus Profil/Einstellungen erreichbar mit FAQ und Feedback-Möglichkeit.
+  - Automatische Beilage technischer Diagnosedaten (App-Version, OS-Version, Plattform, Fehler-ID).
+  - Striktes No-PII-Prinzip: Zero Workouts, Gewichte, Maße, Coach-Prompts, Chatverlauf, Tokens oder Fotos.
+  - 3 Tests in `SupportFeedbackModal.test.tsx` (3/3 PASS).
+  - Verbleibendes Gate: Echte offizielle Support-E-Mail bleibt `USER_ACTION_REQUIRED`.
+
+- **AR-056: Review Prompt Policy — WP-08 Task 08.06 (VERIFIED).**
+  - `ReviewPromptPolicy` in `reviewPromptPolicy.ts`: Nur nach echten positiven Momenten (PR, Streak, $\ge 3$ Workouts).
+  - 48h Error-Cooldown, 60d Re-Prompt-Intervall, maximal 3 Prompts pro Jahr.
+  - 6 Tests in `reviewPromptPolicy.test.ts` (6/6 PASS).
+
+- **AR-057: Large Text / Accessibility Scaling Safeguards — WP-09 Task 09.05 (PREPARED & VERIFIED).**
+  - Dynamic Type `maxFontSizeMultiplier` (`1.5` für Buttons, `1.4` für Modal-Titel), Flex-Wrap und barrierefreie Touch-Targets ($\ge 44 \times 44$\,pt).
+  - Respektierung von `prefers-reduced-motion` in Animationen via `useReducedMotion()`.
+  - 2 Tests in `accessibilityScalingRegression.test.tsx` (2/2 PASS).
+  - Verbleibendes Gate: Reale iOS Dynamic Type & Android Font Scale Abnahme bleibt `PHYSICAL_DEVICE_REQUIRED`.
+
+- **AR-058: Core Product Analytics Taxonomy Wiring — WP-08 Task 08.03 (VERIFIED).**
+  - Verdrahtung bestehender kanonischer Lifecycle-Events (`onboarding_started`, `onboarding_completed`, `first_workout`, `second_workout`, `coach_usage`, `coach_error`) in Stores und Action Handlern.
+  - Null Gesundheits-/Workout-Rohdaten in Telemetrie-Payloads.
+  - 4 Tests in `monetizationAnalytics.test.ts` (4/4 PASS).
+
+## Batch 3: Real Product Flow Monetization Integration & Bypass Protection — 22.09.2026
+
+- **AR-050: Monetization Capability Wiring, Direct Store Protection & Downgrade Suite — WP-05 / S7 (VERIFIED).**
+  - Fail-closed Integration in alle aktiven Screens (`template-builder.tsx`, `workouts.tsx`, `programs.tsx`, `builder.tsx`, `session.tsx`, `history/[id].tsx`, `coach.tsx`, `CoachPlanCard.tsx`, `SessionExerciseCard.tsx`, `body.tsx`, `AppearanceSettings.tsx`).
+  - Store-Action Guards in `programStore.ts` (`TEMPLATE_LIMIT_REACHED`, `TEMPLATE_LOCKED`, `PROGRAM_FEATURE_LOCKED`), `workoutStore.ts` (RPE/RIR sanitization), `bodyMetricStore.ts` (`PREMIUM_METRIC_LOCKED`), `profileStore.ts` (`COLORWAY_LOCKED`, Tier-Sync-Listener), `saveCoachPlan.ts` (`AI_WRITE_NOT_AUTHORIZED`).
+  - Zero Data Loss & deterministisches Downgrade: Älteste 2 Custom Templates editierbar, Rest read-only; Programme read-only; historische RPE/RIR und Body Metrics 100% erhalten; Appearance fällt auf `glacier` zurück und stellt bei Re-Upgrade `savedPremiumColorway` wieder her.
+  - Dedizierte Regressionssuite: `apps/mobile/src/stores/__tests__/monetizationGating.test.ts` (12/12 PASS).
+  - Verbleibende externe Gates: Server Authoritative Quota Ledger (`api/coach-chat.js`) und StoreKit/Play-Billing Integration bleiben `ASTRA_REQUIRED`.
+
+## Batch 2: Onboarding State Machine & 3-Tier Monetization Foundation — 22.09.2026
+
+- **AR-048: Onboarding State Machine & Value Reveal Recommendation — WP-06 Tasks 06.01–06.03 (VERIFIED).**
+  - Resiliente 7-Stufen State Machine (`experience`, `primaryGoals`, `trainingFrequency`, `equipment`, `splitPreference`, `physicalProfile`, `valueReveal`) in `onboardingStore.ts` und `onboardingLogic.ts`.
+  - Schema-Versionierung (`ONBOARDING_SCHEMA_VERSION = 1`) mit robuster Migration / Sanierung ungültiger Stände.
+  - Deterministischer Split-Empfehlungs-Scoring-Algorithmus basierend auf Zielen und Frequenz.
+  - 14 automatisierte Tests in `onboardingLogic.test.ts` und `onboardingStore.test.ts` (14/14 PASS).
+- **AR-049: 3-Tier Commercial Monetization Foundation & Capability Layer — WP-05 / S7 (PREPARED & VERIFIED).**
+  - Strikte 3-Stufen-Hierarchie `COACH` > `PRO` > `FREE` mit zentraler Capability Registry (`packages/domain/src/schemas/entitlements.ts`) und 11 deterministischen Methoden (`canCreateTemplate()`, `canUseRPE()`, `canUseCoachPlan()`, etc.).
+  - Offizielle Launch Pricing Defaults (Pro: 4,99 € / 29,99 €; Coach: 11,99 € / 69,99 € mit 14 Tagen Trial) entkoppelt von autoritativer Store-Wahrheit in `packages/domain/src/schemas/monetizationConfig.ts`.
+  - Dual-Context-Paywall (`pro` vs `coach`) mit Source-Tracking und nicht-aggressivem `LockedFeatureModal.tsx` zur Werterklärung gesperrter Features.
+  - Strukturierte AI Drafts (`ProgramDraft`, `WorkoutTemplateDraft`, `Diff`) und striktes `confirmation_required` für `AI_WRITE`.
+  - Zero-Data-Loss Downgrade: Überschüssige Templates und Programme bleiben vollständig erhalten und read-only.
+  - Datenschutzkonforme Monetarisierungs-Telemetrie mit 22 Events und striktem Filter gegen Workout-/Gesundheits-/Prompt-Leaks (`apps/mobile/src/services/monetizationAnalytics.ts`).
+  - 43 automatisierte Tests (Domain Schemas, Entitlement Service, Paywall Compliance, Analytics, Locked Feature Modal; alle PASS).
+
+## Batch 1: Compliance, Operations & Monitoring (P0) — 22.09.2026
+
+- **AR-043: Asset License BOM & THIRD_PARTY_NOTICES (VERIFIED).** Vollständige Erfassung in `THIRD_PARTY_NOTICES.md` unter dem Grundsatz „UNKNOWN bleibt UNKNOWN“. Unlicense für `free-exercise-db`-Datenbankstruktur; Upstream-Bildurheberkette als UNVERIFIED ausgewiesen; Anatomie (MIT); Fonts (OFL 1.1); Icons (MIT/Apache); Badges/Rank Icons (UNKNOWN Commercial Terms); Node Packages (MIT/Apache-2.0/BSD).
+- **AR-044: Paywall Technical Compliance — WP-05 Task 05.07 (VERIFIED / LEGAL_REVIEW_REQUIRED).** StoreKit-/Play-Billing-konforme Paywall in `PaywallModal.tsx` und `paywallStore.ts`. Tatsächlich belasteter Gesamtpreis als primärer Hauptpreis; Monatsäquivalent ausschließlich als transparente Vergleichszeile; 7 Tage Testphase; Kündigungs- & Verlängerungsklauseln; Restore-Purchases-Button; AGB- und Datenschutz-Links. Fail-closed ohne Store-Credentials. 8 Tests in `paywallCompliance.test.ts` (8/8 PASS).
+- **AR-045: Observability & PII Sanitization — WP-08 Task 08.01 (PREPARED).** Datensparsame Crash-Monitoring-Abstraktion in `observabilityService.ts`. Striktes Scrubbing aller Fitness-, Workout-, Taillen-, Gewichts- und Coach-Rohdaten (`[REDACTED_SENSITIVE_KEY]`); Redigieren von E-Mails und Tokens. Integration in `ErrorBoundary.tsx`. 9 Tests in `observabilitySanitization.test.ts` (9/9 PASS).
+- **AR-046: Apple Privacy Manifest & Required Reason APIs — WP-10 Task 10.02 (PREPARED).** `PrivacyInfo.xcprivacy` und `app.json` `ios.privacyManifests` deklarieren UserDefaults (`CA92.1`), FileTimestamp (`C617.1`), SystemBootTime (`35F9.1`), DiskSpace (`E174.1`), `NSPrivacyTracking: false` und Datentypen Fitness/CrashData (kein Tracking, nicht verknüpft). 3 Tests in `privacyManifest.test.ts` (3/3 PASS).
+- **AR-047: Production Incident Runbooks — WP-11 Task 11.03 (PREPARED).** 6 technische Notfall-Leitfäden in `docs/operations/INCIDENT_RUNBOOKS.md` für AI Incident (Kill Switch), DB/Sync Incident (Rollback/PITR), Leaked Secret (Key Revocation), Subscription (Grace Period), Bad Release (Rollout Halt) und Privacy Breach (72h DSGVO Art. 33). Personenkontakte als `USER_ACTION_REQUIRED` ausgewiesen.
+
+## Recovery & Roadmap-Fortsetzung (AI Consent & Guest Migration) — 22.09.2026
+
+- **AR-041: Versioned AI Consent — WP-04 Task 04.03 / S6 / S10 (VERIFIED / LEGAL_REVIEW_REQUIRED).**
+  - Technischer Mechanismus in Domain (`AiConsentSchema`, `CURRENT_AI_CONSENT_VERSION = 1`, `hasValidAiConsent`) und Store (`profileStore.setAiConsent`, `revokeAiConsent`).
+  - Fail-Closed-Guards vor KI-Aufrufen: `coachStore.sendMessage` und `useCoachRecorder` verweigern jeden Request ohne gültigen Consent mit `AI_CONSENT_REQUIRED`.
+  - UI-Integration: `coach.tsx` Consent-Card vor Chat-Freischaltung; `profile.tsx` Datenschutz-Sektion mit Version/Status, Akzeptieren und Widerrufen (inkl. Alert-Bestätigung).
+  - Zweisprachige Strings (DE/EN) in `translations.ts` mit striktem Tag `[LEGAL_REVIEW_REQUIRED]`.
+  - 6 dedizierte Tests in `apps/mobile/src/stores/__tests__/coachConsent.test.ts` (6/6 PASS).
+- **AR-042: Safe Idempotent Guest-to-Account Migration — WP-02 Task 02.06 / S4 / S5 (VERIFIED).**
+  - Transaktionale, idempotente Migration von Legacy/Gast-Daten (`LOCAL_USER_ID`) in Ziel-Account-Partition (`account:<uuid>`) in `authMigration.ts` und `applyAccountSession`.
+  - Workouts (Ownership-Remapping, UUID-Kollisionsvermeidung, Sync-Enqueue), eigene Übungen, Templates, Pläne, Körpermaße, Gamification/Level-XP und Profile.
+  - Zero Data Loss: Fehler vor Legacy-Purge brechen transaktional ab; Legacy-Daten bleiben intakt.
+  - Tenant-Isolation: Direkter Account-Wechsel A -> B migriert keine Daten; Logout isoliert.
+  - 9 Regressionsszenarien in `apps/mobile/src/stores/__tests__/guestMigration.test.ts` (9/9 PASS).
+
+## Roadmap-Blöcke 1–5 (A11y, S4 Fixtures, Supply Chain, S5 Deletion, AI Safety DE/EN) — 21.09.2026
+
+- **AR-036: Accessibility / VoiceOver Audit & Profile Badge Removal (VERIFIED).** „Jahre / years“-Badge über Geburtsdatum in `profile.tsx` restlos entfernt. Barrierefreiheits-Audit in `RestTimer.tsx`, `AnatomyFigure.tsx`, `session.tsx`, `BattlePassModal.tsx` mit Rollen, Accessibility-Labels, `accessibilityState`, `accessibilityActions` und Touch-Targets $\ge 44 \times 44$\,pt. Automatisierte Tests in `accessibilityAudit.test.tsx` (6/6 PASS).
+- **AR-037: S4 Sync Failure Fixtures — 17 Szenarien (VERIFIED).** Dedizierte Failure- und Resilienz-Suite in `syncFailureScenarios.test.ts` (17/17 PASS) deckt Timeouts, Push/Pull Connection Loss, malformed/partial/stale/duplicate Server Responses, fehlende Children, fehlgeschlagene Remote-Deletes, lokales ACK-Retry, FIFO Reconnect, Account-Switch/Logout-Isolation, Snapshot-Races, Duplicate Completions, leere Snapshots und Cross-Tenant Injection ab. Serverseitige Architektur bleibt `ASTRA_REQUIRED`.
+- **AR-038: Supply Chain Triage & Minor/Patch Overrides (VERIFIED).** 41 von 43 High Findings via versionskompatible Overrides in `pnpm-workspace.yaml` ohne Major Updates und ohne Expo SDK Upgrade behoben. Verbleibend nur noch 2 High Findings in `image-size` 1.2.1 (`EXPO_SDK_UPGRADE_REQUIRED`). Frozen install in 809 ms verifiziert.
+- **AR-039: S5 Account Deletion Contract & Client Guards (PREPARED).** Contract- und Resilienz-Suite in `accountDeletionContract.test.ts` (13/13 PASS) stellt sicher: Server leitet `auth.uid()` ab, kein Client-IDOR, Idempotenz, Zero Data Loss bei Remote-/Teilfehlern, lokaler Wipe strikt erst nach Cloud-Erfolg, Session-Revocation und Account-Switch-Isolation. Supabase-Backend-Deployment bleibt `ASTRA_REQUIRED`.
+- **AR-040: AI Safety DE/EN Bilingual Emergency Suite (VERIFIED).** Vollständige zweisprachige (DE/EN) Absicherung in `api/coach-safety.cjs` und 49 Tests in `api/coach-safety.test.cjs` (49/49 PASS) für Notfälle (Brustschmerz, Atemnot, Bewusstlosigkeit, Verletzung), Starvation, Dehydrierung, PED-Dosierung, Diagnosebypasses, Prompt Injection, System Prompt Leaks und Payload-Limits.
+
+## Three-Phase Level/XP Progression Rebalance (Kandidat B) — 21.09.2026
+
+- **AR-035: Glatte kubische Drei-Phasen-Progression (VERIFIED).** In `packages/domain/src/logic/levelProgression.ts` wurde die Formel $XP(L) = 10(L-1)^3 + 50(L-1)^2 + 350(L-1)$ implementiert. Early Game motivierend (L2 bei 410 XP, ~2.9 Workouts; L3 bei 980 XP, ~7 Workouts; L5 bei 2.840 XP, ~20 Workouts). Mid Game deutlich anspruchsvoller (L10 bei 14.490 XP, ~103 Workouts; L15 bei 42.140 XP, ~301 Workouts). Late Game prestigeträchtig ohne harte Wand (L20 bei 93.290 XP, ~666 Workouts). Session-XP unverändert degressiv begrenzt (max 265 XP). Idempotenz-Schutz gesichert. 677 Tests PASS.
+
+## UI/i18n Cleanup, Level/XP Rebalancing & Age UI — 21.09.2026
+
+- **AR-033: Zentrale Level & Session XP Progression (VERIFIED).** In `packages/domain/src/logic/levelProgression.ts` wurde die zentrale Kurve $XP(L) = 200(L-1)^2 + 800(L-1)$ implementiert. Level 1 -> 2 benötigt 1.000 XP (~7 Workouts). Session-XP wird mit Diminishing Returns berechnet (Base 50, Sätze max 30, Volumen max 110, PR max 75; absolutes Cap 265 XP). Idempotenz-Schutz in `achievementStore.ts` via `awardedSessionIds`.
+- **AR-034: UI/i18n Parity: Plans Modal, Celebrations & Age Badge (VERIFIED).** Plans-Create-Modal zeigt keine Translation Keys mehr; Celebrations-Bereich in AppearanceSettings ist 100 % lokalisiert (DE/EN); dynamische Strings in LevelProgress & BattlePassModal sind locale-aware; Glitzer-Icon am Alters-Badge in Profile wurde entfernt, Barrierefreiheit und Profildaten intakt.
+
+## Gemini Takeover & Preview Recovery — 21.09.2026
+
+- **AR-027: i18n Workout-Abschluss & Session-Telemetry (VERIFIED).** In `WorkoutCompleteModal.tsx` und `WorkoutCompleteModal.test.tsx` wurden alle Telemetrie-Texte, Einheiten (kg/lbs), Labels und Barrierefreiheits-Rollen vollständig DE/EN implementiert. TS-Fehler (`displayName`) behoben. 100 % Session-Unveränderlichkeit verifiziert.
+- **AR-028: Vercel Dual-Gate Preview Architektur (VERIFIED).** `scripts/security/preview-security-gate.cjs` entkoppelt die private Vercel-Preview vom blockierenden Release-Audit. Streng NON_RELEASE_BUILD mit voller Verify-Pflicht und Zero Critical. Release-Gate in CI (`audit:ci`) bleibt unangetastet blockierend.
+- **AR-029: S4 Sync Cloud-Atomizität (ASTRA_REQUIRED / CRITICAL).** In `docs/architecture/S4_SYNC_PREPARATION.md` wurden Fehler- und Konfliktszenarien, Revisionsvektoren und Fixtures vorbereitet. Architekturentscheidung für serverseitige Transaktionen liegt bei Astra.
+- **AR-030: S5 Account Deletion Contract (ASTRA_REQUIRED / CRITICAL).** In `docs/architecture/S5_ACCOUNT_DELETION_SPEC.md` wurde der parametrisierungsfreie RPC-Löschvertrag (`auth.uid()`) und die lokale Wipe-Sequenz nach Server-Erfolg definiert. Migration/Deployment auf Supabase durch Astra.
+- **AR-031: AI Safety & Rate Limits (ASTRA_REQUIRED / CRITICAL).** In `docs/architecture/AI_SECURITY_PREPARATION.md` wurden zweisprachige Notfall-Eskalationen und das distributed Quota-Interface vorbereitet.
+- **AR-032: Supply Chain Matrix (VERIFIED).** `docs/release/DEPENDENCY_AUDIT_REPORT.md` kategorisiert alle 43 High / 14 Moderate Befunde mit dem Nachweis von 0 Client-Runtime-Reachability.
+
+## S4 Sync / Data Integrity (Outbox-Fortsetzung) — 20.09.2026
+
+HIGH: Zustand im Speicher erst nach erfolgreichem lokalen Queue-Write bestätigen bzw. bei Fehler zurückrollen; betrifft Enqueue/ACK/Retry/Clear. Vier SQLite-Fault-Szenarien ergänzen die Pull-Tests. Kein Exactly-once-Versprechen: bei Cloud-Erfolg und lokalem ACK-Fehler wird dieselbe Operation erneut gesendet; serverseitige idempotente Aggregate bleiben Pflicht. Kein neuer Datenvertrag oder Dependency. Main jetzt für geprüfte geeignete Blöcke autorisiert; Gesamtauslieferung bleibt an Security-/Geräte-/Deployment-Gates gebunden. Tester-Anleitung in BETA_REGRESSION_MATRIX.md.
+
+## Aktueller Checkpoint 20.09.2026 — S4 Sync / Data Integrity PARTIAL
+
+Cloud-Child-Read/Delete- und Pull-Fehler werden weitergegeben; die fehlgeschlagene Outbox-Operation bleibt erhalten. Pull übernimmt erst vollständig validierte eigene Daten, überspringt offene lokale Änderungen und verwendet native SQLite-Atomizität plus Memory-Rollback. 18 Regressionen, darunter echter SQLite-Schreibfehler nach Profil-/History-Änderung. Review: keine serverseitige Transaktion, kein konsistenter DB-Snapshot über sechs Requests, keine gelösten Mehrgeräte-/Uhrenkonflikte. Web-Preview hat keine gleichwertige dauerhafte Rollback-Garantie. Frühere Befunde zu ignorierten Fehlern unten sind durch diesen Teilblock überholt; übrige S4-Gates bleiben CRITICAL.
+
+Aktuellster S3-Block: lokale PostgreSQL-17.11-RLS-Abnahme mit 304 Assertions und adversarial Policy-/Preflight-/Rollback-Szenarien; restrictive Migration vorbereitet. Ursprungslücke real reproduziert. Review: Remote-Policy-/Grant-/Dateninventar, Sperrzeitfenster/Backup und Supabase-HTTP-Abnahme erforderlich; keine Produktion migriert. S4 kann auf dem lokal geprüften Ownership-Vertrag weiterarbeiten.
+
+Aktuellster S6-Fix: öffentlicher Prototype-Auth-Bypass entfernt, lokale interne Identität in Production/VERCEL gesperrt. Drei zuvor rote Auth-Negativszenarien grün; 38 API-/Safety-Tests. S6 PARTIAL bis Serverentitlement, verteilte Quoten/Budget/Kill-Switch, DE/EN und reale Abnahme. Kein Remote-Rollout. Vorheriger S1-Patch `26e29d1` gepusht.
+
+## S0 Repository Truth / Threat Model & S1 Secrets / Supply Chain / CI — 19.09.2026
+
+Checkpoint `6c01522` gesichert. Security-Guardrails sind dauerhaft über AGENTS.md verbindlich; S0–S12-Matrix ersetzt den bisherigen Feature-Ausführungspfad. Threat Model/Betriebsrhythmus: SECURITY.md. Secrets/CI-Härtung implementiert, S1 bleibt PARTIAL wegen 67 Dependency-Befunden, fehlender SAST-/Lizenz-/Remote-Abnahme. Exakte historische Fixture-Ausnahmen prüfen; keine generellen Ignore-Regeln. GitHub-Branch-Protection und erforderliche Checks durch Repositoryowner bestätigen. Aktuelle Nachweise in EXECUTION_STATUS.md.
+
+Nachfolgender S1-Patch: nanoid/undici/tar; 4 echte Angriffsregressionen vorher rot, jetzt grün. 602 Tests und Build PASS. Audit reduziert auf 57 (43 high/14 moderate), prod 52. Drei Paketauflösungen geändert, kein SDK-Upgrade. Restbefunde bleiben offene Release-Gates.
+
+## Astra Review 19.09.2026 — maßgeblicher aktueller Stand
+
+- **AR-005/013: MODIFY + ACTIVATE im nativen Review-Branch.** Unsichere RAM-Fallbacks, verschluckte Lesefehler/Logoutfehler und unzureichende Sessionprüfung ersetzt. Serialisierung, Readback, v1-Marker, MMKV/AsyncStorage-Migration und Supabase-Integration getestet. PARTIAL bis native Größen-/Upgrade-/Rollback-Abnahme; kein Rollout.
+- **AR-004/019: ASTRA_REQUIRED / CRITICAL.** Kein blindes Ausrollen von `docs/schema.sql`. RLS-Harness benutzt falsche Spalten und keine Assertions; tatsächliche DB-Nachweise fehlen. Fremde FK-Verweise zusätzlich zur Owner-Spalte prüfen. Cloud-Aggregate werden weiterhin mehrstufig gelöscht/neu geschrieben; Delete-/Pull-Fehler werden teils ignoriert.
+- **AR-014: MODIFY, nicht einfach ACTIVATE.** Capability behauptet Backendbereitschaft allein anhand Config/Auth. Erfolg nur `error:null`, Cleanupfehler verschluckt, Scope-Bindung fehlt; echtes Delete/Auth-Backend bleibt offen.
+- **AR-015: PARTIAL.** Lokaler Export ist kein vollständiger Cloud-/DSGVO-Nachweis; zwei Exportpfade und Datenumfang abgleichen.
+- **AR-007/018: ASTRA_REQUIRED / CRITICAL.** Prototyp-Flag kann Auth umgehen; kein serverseitiges Pro/Budget. Safety-Antworten nur Deutsch. Keine externe Freigabe aus Hosttests ableiten.
+- **AR-016: PREPARED.** Provider-Abstraktion wiederverwenden, globalen Beta-Bypass vor Produktion absichern; native Käufe/Serverautorität fehlen.
+- **AR-024/025: technische Katalogkompatibilität bestätigt.** Aktueller JSON-Blob identisch zu Beta 5 (`494916a8c0b48a50ff726e18b82084fa54ba087b`); bestehende Regressionen laufen. Medienrechte bleiben unbestätigt; kein erledigter Lizenzblocker.
+- **AR-001/021/026: PHYSICAL_DEVICE_REQUIRED / USER_ACTION_REQUIRED.** Config/Checklisten sind Vorbereitung, keine signierten Builds oder Storefreigabe.
+
+Die folgende Gemini-Tabelle ist historische Vorbereitung, keine heutige Astra-Freigabe. Aktuelle Gesamtmatrix: `P0_READINESS_MATRIX.md`.
+
 Zentrale, kanonisch normalisierte Queue aller von Gemini vorbereiteten, analysierten oder implementierten technischen Änderungen, die der nachfolgende Astra-Agent strukturiert überprüfen, entscheiden oder aktivieren soll.
 
 ## Kanonische Prioritätsübersicht
@@ -32,6 +211,21 @@ Zentrale, kanonisch normalisierte Queue aller von Gemini vorbereiteten, analysie
 | **AR-024** | Exercise Catalog | IMPLEMENTED | MEDIUM | VERIFY | `apps/mobile/src/__tests__/exerciseCatalogCompatibility.test.ts`, `docs/release/EXERCISE_DATA_PROVENANCE.md` |
 | **AR-025** | Legacy & Edge Regression | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/__tests__/legacyUpdateRegression.test.ts`, `apps/mobile/src/__tests__/workoutEdgeCaseRegression.test.ts` |
 | **AR-026** | Store & Device QA Package | IMPLEMENTED | LOW | REVIEW | `docs/release/STORE_METADATA_DRAFT.md`, `docs/release/STORE_SCREENSHOT_PLAN.md`, `docs/release/PHYSICAL_DEVICE_SMOKE_TEST.md` |
+| **AR-027** | Telemetry i18n & Modal | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/components/workout/WorkoutCompleteModal.tsx` |
+| **AR-028** | Dual-Gate Preview | IMPLEMENTED | LOW | VERIFY | `scripts/security/preview-security-gate.cjs` |
+| **AR-029** | Sync Cloud Atomicity | PREPARED | CRITICAL | ASTRA_REQUIRED | `docs/architecture/S4_SYNC_PREPARATION.md` |
+| **AR-030** | Account Deletion Spec | PREPARED | CRITICAL | ASTRA_REQUIRED | `docs/architecture/S5_ACCOUNT_DELETION_SPEC.md` |
+| **AR-031** | AI Safety Preparation | PREPARED | CRITICAL | ASTRA_REQUIRED | `docs/architecture/AI_SECURITY_PREPARATION.md` |
+| **AR-032** | Supply Chain Audit | IMPLEMENTED | LOW | VERIFY | `docs/release/DEPENDENCY_AUDIT_REPORT.md` |
+| **AR-033** | Level & Session XP | IMPLEMENTED | LOW | VERIFY | `packages/domain/src/logic/levelProgression.ts` |
+| **AR-034** | UI/i18n Parity | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/i18n/translations.ts` |
+| **AR-035** | Three-Phase Progression | IMPLEMENTED | LOW | VERIFY | `packages/domain/src/logic/levelProgression.ts` |
+| **AR-036** | Accessibility / VoiceOver Audit | IMPLEMENTED | LOW | VERIFY | `apps/mobile/src/components/__tests__/accessibilityAudit.test.tsx` |
+| **AR-037** | S4 Sync Failure Fixtures | IMPLEMENTED | MEDIUM | ASTRA_REQUIRED | `apps/mobile/src/stores/__tests__/syncFailureScenarios.test.ts` |
+| **AR-038** | Dependency Triage & Overrides | IMPLEMENTED | HIGH | VERIFY | `pnpm-workspace.yaml` |
+| **AR-039** | S5 Account Deletion Tests | PREPARED | HIGH | ASTRA_REQUIRED | `apps/mobile/src/services/__tests__/accountDeletionContract.test.ts` |
+| **AR-040** | AI Safety DE/EN Suite | IMPLEMENTED | HIGH | VERIFY | `api/coach-safety.cjs`, `api/coach-safety.test.cjs` |
+
 
 
 ---

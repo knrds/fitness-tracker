@@ -4,9 +4,11 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { MuscleGroup, Equipment } from '@fitness-tracker/domain';
 import { useExerciseStore } from '../../stores/exerciseStore';
 import { HorizontalFadeScroll } from '../HorizontalFadeScroll';
+import { useI18n, formatMuscle, formatEquipment } from '../../i18n';
 
 export const ExerciseFilter = () => {
   const styles = useThemeStyles(createStyles);
+  const { t, language } = useI18n();
   const { selectedMuscleGroup, selectedEquipment, setFilter, resetFilters } = useExerciseStore();
 
   const handleMuscleSelect = (m: MuscleGroup) => {
@@ -22,48 +24,57 @@ export const ExerciseFilter = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Filters</Text>
+        <Text style={styles.title}>{t('exercises.filters')}</Text>
         {hasActiveFilters && (
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel={t('exercises.reset')}
             style={{ minHeight: 44, justifyContent: 'center' }}
             onPress={resetFilters}
           >
-            <Text style={styles.resetText}>Reset</Text>
+            <Text style={styles.resetText}>{t('exercises.reset')}</Text>
           </Pressable>
         )}
       </View>
 
-      <Text style={styles.subtitle}>Muscle Group</Text>
+      <Text style={styles.subtitle}>{t('exercises.muscleGroup')}</Text>
       <HorizontalFadeScroll style={styles.scroll}>
         {Object.values(MuscleGroup).map((m) => {
           const isSelected = selectedMuscleGroup === m;
+          const label = formatMuscle(m, language);
           return (
             <Pressable
               key={m}
+              accessibilityRole="button"
+              accessibilityLabel={label}
+              accessibilityState={{ selected: isSelected }}
               style={[styles.chip, isSelected && styles.chipSelected]}
               onPress={() => handleMuscleSelect(m)}
             >
               <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                {formatName(m)}
+                {label}
               </Text>
             </Pressable>
           );
         })}
       </HorizontalFadeScroll>
 
-      <Text style={styles.subtitle}>Equipment</Text>
+      <Text style={styles.subtitle}>{t('exercises.equipment')}</Text>
       <HorizontalFadeScroll style={styles.scroll}>
         {Object.values(Equipment).map((eq) => {
           const isSelected = selectedEquipment === eq;
+          const label = formatEquipment(eq, language);
           return (
             <Pressable
               key={eq}
+              accessibilityRole="button"
+              accessibilityLabel={label}
+              accessibilityState={{ selected: isSelected }}
               style={[styles.chip, isSelected && styles.chipSelected]}
               onPress={() => handleEquipmentSelect(eq)}
             >
               <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                {formatName(eq)}
+                {label}
               </Text>
             </Pressable>
           );
@@ -71,13 +82,6 @@ export const ExerciseFilter = () => {
       </HorizontalFadeScroll>
     </View>
   );
-};
-
-const formatName = (str: string) => {
-  return str
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
 };
 
 const createStyles = (theme: Theme) =>

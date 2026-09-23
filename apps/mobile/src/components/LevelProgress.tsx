@@ -8,7 +8,9 @@ import Animated, {
   useReducedMotion,
 } from 'react-native-reanimated';
 import { useTheme } from '@fitness-tracker/ui';
+import { getLevelProgress } from '@fitness-tracker/domain';
 import { getRankForLevel } from '../utils/level';
+import { useI18n } from '../i18n';
 import { LevelRankBadge } from './LevelRankBadge';
 import { VoltBackdrop } from './VoltBackdrop';
 
@@ -30,15 +32,28 @@ export function LevelProgress({
   onPress?: () => void;
 }) {
   const theme = useTheme();
+  const { t } = useI18n();
   const reduced = useReducedMotion();
   const rankInfo = getRankForLevel(level);
-  const progress = useSharedValue((xp % 500) / 500);
+  const progressInfo = getLevelProgress(xp);
+
+  const normalizedRatio = progressInfo.progressPercent / 100;
+  const progress = useSharedValue(normalizedRatio);
 
   useEffect(() => {
-    progress.value = withTiming((xp % 500) / 500, { duration: reduced ? 0 : 450 });
-  }, [xp, progress, reduced]);
+    progress.value = withTiming(normalizedRatio, { duration: reduced ? 0 : 450 });
+  }, [normalizedRatio, progress, reduced]);
 
   const barStyle = useAnimatedStyle(() => ({ width: `${progress.value * 100}%` }));
+
+  const rankSubtext =
+    rankInfo.nextRankLevel !== null
+      ? t('rank.nextRankAtLevel')
+          .replace('{rank}', String(rankInfo.rank))
+          .replace('{min}', String(rankInfo.minLevel))
+          .replace('{max}', String(rankInfo.maxLevel))
+          .replace('{next}', String(rankInfo.nextRankLevel))
+      : t('rank.maxRankReached').replace('{rank}', String(rankInfo.rank));
 
   const cardContent = (
     <View
@@ -75,7 +90,7 @@ export function LevelProgress({
               fontSize: compact ? 12 : 13,
             }}
           >
-            Level {level} · Rank {rankInfo.rank} ({rankInfo.title})
+            Level {level} · {t('rank.rank')} {rankInfo.rank} ({rankInfo.title})
           </Text>
           {compact && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -86,7 +101,7 @@ export function LevelProgress({
                   fontVariant: ['tabular-nums'],
                 }}
               >
-                {xp % 500} / 500 XP
+                {progressInfo.xpInCurrentLevel} / {progressInfo.xpRequiredForNextLevel} XP
               </Text>
               {onPress && (
                 <Ionicons name="chevron-forward" size={12} color={theme.colors.muted} />
@@ -96,7 +111,11 @@ export function LevelProgress({
         </View>
         <View
           accessibilityRole="progressbar"
-          accessibilityValue={{ min: 0, max: 500, now: xp % 500 }}
+          accessibilityValue={{
+            min: 0,
+            max: progressInfo.xpRequiredForNextLevel,
+            now: progressInfo.xpInCurrentLevel,
+          }}
           style={{
             height: compact ? 6 : 8,
             borderRadius: compact ? 3 : 4,
@@ -126,7 +145,8 @@ export function LevelProgress({
                 fontVariant: ['tabular-nums'],
               }}
             >
-              {xp % 500} / 500 XP · {500 - (xp % 500)} bis Level {level + 1}
+              {progressInfo.xpInCurrentLevel} / {progressInfo.xpRequiredForNextLevel} XP ·{' '}
+              {progressInfo.remainingXp} {t('rank.toLevel')} {level + 1}
             </Text>
             <Text
               style={{
@@ -135,9 +155,7 @@ export function LevelProgress({
                 fontFamily: 'SpaceGrotesk_500Medium',
               }}
             >
-              {rankInfo.nextRankLevel !== null
-                ? `Rank ${rankInfo.rank} (Lvl ${rankInfo.minLevel}–${rankInfo.maxLevel}) · Nächster Rank bei Level ${rankInfo.nextRankLevel}`
-                : `Max Rank ${rankInfo.rank} (EVARO Master) erreicht`}
+              {rankSubtext}
             </Text>
           </View>
         )}
@@ -149,7 +167,9 @@ export function LevelProgress({
     return (
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Level ${level} ${rankInfo.title}, Level-Pass ansehen`}
+        accessibilityLabel={t('rank.currentLevelStatus')
+          .replace('{level}', String(level))
+          .replace('{title}', rankInfo.title)}
         onPress={onPress}
       >
         {cardContent}

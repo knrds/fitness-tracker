@@ -12,7 +12,7 @@ import {
   repeatSessionExercises,
   startTemplateExercises,
 } from '@fitness-tracker/domain';
-import * as Crypto from 'expo-crypto';
+import * as Crypto from '../utils/uuid';
 import { workoutPersistedSchema } from '../data/persistedContracts';
 import { useHistoryStore } from './historyStore';
 import { useAchievementStore } from './achievementStore';
@@ -27,6 +27,9 @@ import {
 import { getCurrentUserId } from './local-user';
 import { createHydratedStorage } from './storage';
 import { useSyncStore } from './syncStore';
+import { entitlementService } from '../services/entitlementService';
+import { monetizationAnalytics } from '../services/monetizationAnalytics';
+import { localNotificationService } from '../services/localNotificationService';
 import {
   isStorageTransactionActive,
   runStorageTransaction,
@@ -217,6 +220,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
           }),
 
         finishWorkout: () => {
+          void localNotificationService.cancelRestTimer();
           const state = get();
           if (state.status !== 'active' && state.status !== 'paused') {
             return null;
@@ -259,7 +263,21 @@ export const useWorkoutStore = create<WorkoutStore>()(
           runStorageTransaction(
             () => {
               // Native: history, queue, rewards, caffeine and active state share one SQLite commit.
+              const priorSessionsCount = history.sessions.length;
               history.addSession(session);
+              const durationSeconds = Math.max(
+                0,
+                Math.round((completedAt.getTime() - session.startedAt.getTime()) / 1000),
+              );
+              if (priorSessionsCount === 0) {
+                monetizationAnalytics.track('first_workout', {
+                  duration_seconds: durationSeconds,
+                });
+              } else if (priorSessionsCount === 1) {
+                monetizationAnalytics.track('second_workout', {
+                  duration_seconds: durationSeconds,
+                });
+              }
               achievements.awardXpAndCheckAchievements(session);
               caffeine.captureFinishedWorkout();
 
@@ -397,9 +415,25 @@ export const useWorkoutStore = create<WorkoutStore>()(
 
         updateSet: (sessionExerciseId, setId, updates) =>
           set((state) => {
+            const sanitizedUpdates = { ...updates };
+            if (sanitizedUpdates.rpe !== undefined && !entitlementService.canUseRPE()) {
+              delete sanitizedUpdates.rpe;
+              monetizationAnalytics.track('locked_feature_clicked', {
+                tier: entitlementService.getTier(),
+                feature_source: 'rpe',
+              });
+            }
+            if (sanitizedUpdates.rir !== undefined && !entitlementService.canUseRIR()) {
+              delete sanitizedUpdates.rir;
+              monetizationAnalytics.track('locked_feature_clicked', {
+                tier: entitlementService.getTier(),
+                feature_source: 'rir',
+              });
+            }
+
             const exercises = state.exercises.map((ex) => {
               if (ex.id !== sessionExerciseId) return ex;
-              const sets = ex.sets.map((s) => (s.id === setId ? { ...s, ...updates } : s));
+              const sets = ex.sets.map((s) => (s.id === setId ? { ...s, ...sanitizedUpdates } : s));
               return { ...ex, sets };
             });
             return { exercises, lastUpdatedAt: new Date() };
@@ -472,7 +506,8 @@ export const useWorkoutStore = create<WorkoutStore>()(
             return { exercises, lastUpdatedAt: new Date() };
           }),
 
-        startRestTimer: (durationSeconds) =>
+        startRestTimer: (durationSeconds) => {
+          void localNotificationService.scheduleRestTimer(durationSeconds);
           set({
             restTimer: {
               isRunning: true,
@@ -480,9 +515,11 @@ export const useWorkoutStore = create<WorkoutStore>()(
               endsAt: new Date(Date.now() + durationSeconds * 1000),
             },
             lastUpdatedAt: new Date(),
-          }),
+          });
+        },
 
-        stopRestTimer: () =>
+        stopRestTimer: () => {
+          void localNotificationService.cancelRestTimer();
           set((state) => {
             return {
               restTimer: {
@@ -491,22 +528,26 @@ export const useWorkoutStore = create<WorkoutStore>()(
               },
               lastUpdatedAt: new Date(),
             };
-          }),
+          });
+        },
 
-        resetRestTimer: () =>
+        resetRestTimer: () => {
+          void localNotificationService.cancelRestTimer();
           set({
             restTimer: {
               isRunning: false,
               durationSeconds: 90,
             },
             lastUpdatedAt: new Date(),
-          }),
+          });
+        },
 
         tickRestTimer: () =>
           set((state) => {
             if (!state.restTimer.isRunning || !state.restTimer.endsAt) return state;
 
             if (new Date() >= state.restTimer.endsAt) {
+              void localNotificationService.cancelRestTimer();
               return {
                 restTimer: {
                   isRunning: false,

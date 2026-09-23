@@ -14,7 +14,13 @@ import {
   calculateVolume,
   calculateLongestStreak,
   formatDateLocal,
+  AiConsent,
+  AiConsentSchema,
+  CURRENT_AI_CONSENT_VERSION,
+  SubscriptionTier,
+  DEFAULT_NOTIFICATION_PREFERENCES,
 } from '@fitness-tracker/domain';
+import { entitlementService } from '../services/entitlementService';
 import { z } from 'zod';
 import { useHistoryStore } from './historyStore';
 import { useExerciseStore } from './exerciseStore';
@@ -27,9 +33,11 @@ import { useHydrationStore } from './hydrationStore';
 import { createHydratedStorage, clearStorageBackups } from './storage';
 import { useCoachStore } from './coachStore';
 import { useSyncStore } from './syncStore';
+import { useNotificationPreferenceStore } from './notificationPreferenceStore';
 import { Colorway } from '@fitness-tracker/ui';
 import { runStorageTransaction } from '../data/storageTransaction';
 import { workoutPersistedSchema } from '../data/persistedContracts';
+import { deleteAvatarForPartition } from '../services/avatarStorageService';
 
 function snapshotStore<T extends object>(store: {
   getState: () => T;
@@ -50,7 +58,8 @@ export type CelebrationEffect =
 export interface Profile {
   displayName: string;
   language?: 'de' | 'en';
-  colorway?: Colorway;
+  colorway?: Colorway | undefined;
+  savedPremiumColorway?: Colorway | undefined;
   celebrationEffect?: CelebrationEffect;
   fitnessGoal?: FitnessGoal;
   experienceLevel?: ExperienceLevel;
@@ -75,11 +84,14 @@ export interface Profile {
   showExerciseDeleteConfirmation?: boolean;
   hapticsEnabled?: boolean;
   soundEnabled?: boolean;
+  aiConsent?: AiConsent | undefined;
 }
 
 export interface ProfileState {
   profile: Profile;
   updateProfile: (updates: Partial<Profile>) => void;
+  setAiConsent: (version?: number) => void;
+  revokeAiConsent: () => void;
   getStatistics: () => {
     totalWorkouts: number;
     totalVolume: number; // expressed in preferred units
@@ -127,6 +139,22 @@ const profileStateSchema = z.object({
       'amber',
     ])
     .optional(),
+  savedPremiumColorway: z
+    .enum([
+      'glacier',
+      'arctic',
+      'avionics',
+      'telemetry',
+      'titanium',
+      'ember',
+      'verde',
+      'solar',
+      'alpine',
+      'rose',
+      'crimson',
+      'amber',
+    ])
+    .optional(),
   celebrationEffect: z
     .enum(['classic', 'neon', 'inferno', 'gold', 'matrix', 'cosmic'])
     .optional(),
@@ -153,6 +181,7 @@ const profileStateSchema = z.object({
   showExerciseDeleteConfirmation: z.boolean().optional(),
   hapticsEnabled: z.boolean().optional(),
   soundEnabled: z.boolean().optional(),
+  aiConsent: AiConsentSchema.optional(),
 });
 
 const profilePersistedSchema = z.object({
@@ -173,6 +202,30 @@ export const useProfileStore = create<ProfileState>()(
       updateProfile: (updates) =>
         set((state) => ({
           profile: { ...state.profile, ...updates },
+        })),
+
+      setAiConsent: (version = CURRENT_AI_CONSENT_VERSION) =>
+        set((state) => ({
+          profile: {
+            ...state.profile,
+            aiConsent: {
+              version,
+              consentedAt: new Date().toISOString(),
+            },
+          },
+        })),
+
+      revokeAiConsent: () =>
+        set((state) => ({
+          profile: {
+            ...state.profile,
+            aiConsent: state.profile.aiConsent
+              ? {
+                  ...state.profile.aiConsent,
+                  revokedAt: new Date().toISOString(),
+                }
+              : undefined,
+          },
         })),
 
       getStatistics: () => {
@@ -227,6 +280,7 @@ export const useProfileStore = create<ProfileState>()(
           snapshotStore(useHydrationStore),
           snapshotStore(useSyncStore),
           snapshotStore(useCoachStore),
+          snapshotStore(useNotificationPreferenceStore),
         ];
         try {
           await clearStorageBackups();
@@ -240,6 +294,7 @@ export const useProfileStore = create<ProfileState>()(
 
               // 1. Profile Store
               set({ profile: defaultProfile });
+              void deleteAvatarForPartition(scope.partition);
 
               // 2. History Store
               useHistoryStore.setState({ sessions: [] });
@@ -284,6 +339,11 @@ export const useProfileStore = create<ProfileState>()(
                 dateKey: formatDateLocal(new Date()),
                 dailyGoalMl: 2500,
                 todayIntakeMl: 0,
+              });
+
+              // 10. Notification Preferences
+              useNotificationPreferenceStore.setState({
+                preferences: DEFAULT_NOTIFICATION_PREFERENCES,
               });
             },
             () => restorers.forEach((restore) => restore()),
@@ -351,3 +411,46 @@ export const useProfileStore = create<ProfileState>()(
     },
   ),
 );
+
+const LIGHT_COLORWAYS: Colorway[] = ['arctic', 'solar', 'rose', 'alpine'];
+
+export function syncAppearanceForTier(tier: SubscriptionTier) {
+  const state = useProfileStore.getState();
+  const activeColorway = state.profile.colorway ?? 'glacier';
+  const isFreeColorway = activeColorway === 'glacier' || activeColorway === 'arctic';
+  const isCoachColorway = activeColorway === 'titanium';
+
+  if (tier === 'free') {
+    if (!isFreeColorway) {
+      const isLight = LIGHT_COLORWAYS.includes(activeColorway);
+      state.updateProfile({
+        savedPremiumColorway: activeColorway,
+        colorway: isLight ? 'arctic' : 'glacier',
+      });
+    }
+  } else if (tier === 'pro') {
+    if (isCoachColorway) {
+      state.updateProfile({
+        savedPremiumColorway: activeColorway,
+        colorway: 'glacier',
+      });
+    } else if (state.profile.savedPremiumColorway && state.profile.savedPremiumColorway !== 'titanium') {
+      state.updateProfile({
+        colorway: state.profile.savedPremiumColorway,
+        savedPremiumColorway: undefined,
+      });
+    }
+  } else if (tier === 'coach') {
+    if (state.profile.savedPremiumColorway) {
+      state.updateProfile({
+        colorway: state.profile.savedPremiumColorway,
+        savedPremiumColorway: undefined,
+      });
+    }
+  }
+}
+
+// Hook up automatic tier change synchronization
+entitlementService.onTierChange((tier) => {
+  syncAppearanceForTier(tier);
+});

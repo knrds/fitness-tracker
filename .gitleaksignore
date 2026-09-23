@@ -1,0 +1,9 @@
+# Exact historical redaction-test fixtures reviewed 2026-09-19.
+# Two textbook JWT samples, one sequential fake API-key example and two
+# deliberately incomplete JWT placeholders. No file/rule wildcard exclusions.
+# New occurrences/commits still fail the history scan and require review.
+c22bbebd02e987368110ed0d65c78322cf0cc41b:apps/mobile/src/services/__tests__/diagnosticsService.test.ts:generic-api-key:70
+c22bbebd02e987368110ed0d65c78322cf0cc41b:apps/mobile/src/services/__tests__/diagnosticsService.test.ts:jwt:68
+38f8820e32ffc395cb50d030245d65245e4d1097:apps/mobile/src/utils/__tests__/logger.test.ts:generic-api-key:37
+38f8820e32ffc395cb50d030245d65245e4d1097:apps/mobile/src/utils/__tests__/logger.test.ts:generic-api-key:79
+38f8820e32ffc395cb50d030245d65245e4d1097:apps/mobile/src/utils/__tests__/logger.test.ts:jwt:14

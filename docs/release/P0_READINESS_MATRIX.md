@@ -1,4 +1,75 @@
-# EVARO P0 Readiness Matrix
+# EVARO Current State Matrix — Astra / Gemini 2026-09-22
+
+Aktualisierung 22.09.2026 (Zusatzblock: Coach Data Intelligence WP-03 / S6, Program Editor DnD WP-09, Home Program Preview Core Tracker UX; Batch 4: Local Foundations, Preferences, Resilience & Taxonomy Wiring): Central Coach Context Layer (`coachContextBuilder.ts`, 15 Selektoren, Tier-Gating, zero PII, 49 Tests PASS); Program Editor DnD Parity (`builder.tsx`, `programReorderGeometry.ts`, 21 Tests PASS); Home Workout Preview & Schedule (`programSchedule.ts`, `WorkoutPreviewModal.tsx`, 19 Tests PASS). Notification Preference Center (07.04) & Local Rest Timer Notifications (07.02); Contextual Permission Pre-Prompts (06.06); Coach Circuit Breaker (03.10); Remote Config Client (08.04); Support/Feedback (08.05); Review Prompt Policy (08.06); Large Text Font-Scaling (09.05); Core Product Analytics Wiring (08.03). **940 Tests grün** (Workspace-Typecheck PASS, Lint PASS, `pnpm build:preview` PASS). S4, S5, serverseitige Quota- und Remote-Infrastruktur für Astra vorbereitet (`ASTRA_REQUIRED`). Keine Production-/Main-Integration, Remote-Migration oder Billing-Aktivierung.
+
+## Security Roadmap S0–S12 — maßgeblicher Ausführungspfad
+
+Basis: Code-Audit und Checkpoint `6c01522`, Guardrails und zehnseitige Security-Roadmap im Release-Pack. Owner bedeutet technische Zuständigkeit, keine bereits erteilte Produktionsfreigabe. Kein Bereich ist allein aufgrund vorhandener Dokumente DONE. Feature Expansion bleibt eingefroren.
+
+| Block | Current state / Gemini preparation | Verified controls | Missing controls | Risk / release relevance | Astra action / owner | Status |
+|---|---|---|---|---|---|---|
+| S0 Repository Truth / Threat Model | Architektur, Datenkarte, Security-Specs; neue verbindliche Guardrails | Codebezogene Grenzen und Angriffe in SECURITY.md; Agent-Einstieg verlinkt | Team-/Betriebsabnahme, deployed Datenflüsse und Owner bestätigen | HIGH / P0 | Threat Model bei Vertragsänderung pflegen; Astra + Nutzer Betrieb | PARTIAL |
+| S1 Secrets / Supply Chain / CI | 41 von 43 High Findings behoben; Frozen Lockfile, gehärtete CI; Preview Security Gate (Zero Critical) | History-/Bundle-Scan, Fixture-Triage, SHA/Minimalrechte; Overrides in pnpm-workspace.yaml | Noch 2 Audit-Befunde (image-size DoS in Build-Tools); SAST/Lizenzen/SBOM, Branch Protection | HIGH / P0 | Rest-Upgrade via künftiges Expo SDK 53+; Astra, Nutzer Remote-Settings | PARTIAL |
+| S2 Authentication / Secure Session Storage | Gemini Adapter jetzt native Integration | 598 Gesamt-Tests; Dual-Read, Readback, Serialisierung, Fehler-/Logoutguards | Echte iOS/Android-Migration, große Sessions, Reboot/Backup; Deep Links/Refresh/Reauth | HIGH / P0 | Native Abnahme + Auth-Missbrauchstests; Astra / Geräteowner | PHYSICAL_DEVICE_REQUIRED |
+| S3 Authorization / RLS / Multi-Tenant Isolation | Versionierte restrictive Guards, korrigierter Harness, echter lokaler PostgreSQL | 304 Assertions; Baseline-Angriff reproduziert; permissive OR-Bypasses und Migrations-Abbruch geprüft | Supabase Auth/PostgREST/Remote-Schema/Grants und reales Deployment | CRITICAL / P0 | Lokalen Vertrag für Sync nutzen; Remote-Abnahme separat, Astra + Nutzer Zugang | PARTIAL |
+| S4 Sync / Data Integrity | SQLite/Scope/FIFO, strikte Pull-Validierung, Fehlerweitergabe, Rollback und 17 Failure-Fixtures | 39 Resilienz-Regressionen inklusive echter SQLite-Fehlerinjektion und Failure-Fixtures | Cloud-Atomizität, Idempotenz, Konflikte, Tombstones, Multi-Device | CRITICAL / P0 | Serverseitigen Transaktionsvertrag ergänzen; Astra | PARTIAL |
+| S5 Account Lifecycle / Privacy / Health Data | Defensiver Delete-Client, lokaler Export, S5 RPC-Spec & 13 Contract-Tests (Zero-Data-Loss) | 13 Client-Contract-Tests (No-IDOR, Idempotenz, Wipe nach Cloud-Success) | Delete-RPC/Auth-Cascade/Idempotenz auf Supabase, Cloud-Export, Retention | CRITICAL / P0 | Backendvertrag auf Supabase deployen; Astra, Nutzer Privacy | PREPARED |
+| S6 AI Coach Security / Safety / Cost Controls | Serverproxy; öffentlicher Prototyp-Bypass entfernt; zweisprachige DE/EN Guardrail-Schicht; Coach Context Layer (`coachContextBuilder.ts`) mit 15 Selektoren, Tier-Gating & Zero-PII | 49 API-/Safety-Tests (Notfälle DE/EN, Starvation, PEDs, Injection, System-Prompt); 49 Context Builder Tests; Auth gesperrt | Server-Pro, verteilte Limits/Budget, Kill Switch; reale Auth-/Hosting-Abnahme | CRITICAL / P0 | Produktionsvertrag vervollständigen; Astra / Nutzer Providerbetrieb | PARTIAL |
+| S7 Subscription / Premium Integrity | 3-Tier Commercial Monetization (FREE/PRO/COACH), Real Action Guards in Stores (Templates, Programs, RPE/RIR, Metrics, Appearance, AI Write), Zero Data Loss Downgrade | 12 Direct Action Guard / Downgrade Tests (PASS), 14 Domain Entitlement Tests (PASS), 8 Paywall Compliance Tests (PASS), 3 Analytics Tests (PASS) | Store-IAP (RevenueCat SDK), Server Quota Ledger, Webhooks, autoritative Server-Entitlements | HIGH / P1, vor Paid Release | Keine Client-Autorität für Kosten; Astra / Nutzer Store-Verträge | PARTIAL |
+| S8 Infrastructure / Backup / Monitoring / Incident Response | Lokale Backups und Diagnosebuffer | Lokale Recovery-Tests | Echte Cloud-Restoreprobe, IAM, Alarmierung, Incident-/Deploymentprozesse | HIGH / P0–P1 | Restore/Runbooks ohne Rohdaten; Astra / Nutzer Betrieb | PARTIAL |
+| S9 AppSec Automation / Security Testing | Validierung, gebundene lokale SQL, bestehende Media-Grenzen, 721 Tests | 721 Tests, Scope-Regressionen, Supply-Chain-Triage, Preview Security Gate | SAST/DAST, Deep-Link-/Upload-/Netzwerk-Missbrauch, Plattformkonfiguration | HIGH / P0–P1 | Angriffsflächen gezielt testen; Astra | PARTIAL |
+| S10 Legal / Store / Accessibility / Release Compliance | Checklisten, Herkunftsdokumente, DE/EN UI, A11y-Audit (Touch $\ge 44 \times 44$\,pt) | Dataset-Blob kompatibel; A11y-Komponentensuite (6 Tests PASS) | Medienrechte, Texte/Verträge/Retention, Store-Privacy, reale VoiceOver-Abnahme auf iPhone | HIGH / P0–P1 | Technische Fakten liefern; Nutzer Recht/Business, Astra A11y | USER_ACTION_REQUIRED |
+| S11 Physical Device / Pre-Launch Red Team | Geräte-/Beta-Matrizen; kostenloser iPhone Safari QA-Pfad aktiv | Hosttests und Web-Build; 13-Schritte Safari QA | Reale iOS/Android-Abnahme, Pen-/Missbrauchstests, signierte Builds, Restore/Purchase | CRITICAL / P0 | Checklisten auf Builds ausführen; Geräteowner + Astra | PHYSICAL_DEVICE_REQUIRED |
+| S12 Post-Launch Security Operations | Guardrails nennen Betriebsrhythmus | Rhythmus und Eskalation in SECURITY.md verankert | Verantwortliche, Infrastruktur, praktische IR-/Restoreübungen | HIGH / P2+ dauerhaft | Regelbetrieb vor Launch besetzen; Nutzer Betrieb + Astra | PREPARED |
+
+Security-Gates bleiben releaseblockierend, auch wenn die technische Test-Suite grün ist. Reihenfolge: S0/S1, S2-Gerätenachweis, S3/S4/S5; parallel unabhängig vorbereitbare S6-Korrekturen. Keine Remote-Migration ohne Review.
+
+## Produkt- und technische Ausgangsmatrix
+
+Auditbasis: `6471138`, frisch gefetchtes `origin/main`; Branch `astra/p0-release-core`. Diese Bewertung hat Vorrang vor dem historischen Gemini-Stand unten. Hosttests ersetzen keine Geräte-/Cloud-Abnahme. Messergebnisse: `EXECUTION_STATUS.md`.
+
+| Area | Current implementation | Gemini preparation | Tests / evidence | Risk | Remaining work | Astra action |
+|---|---|---|---|---|---|---|
+| Native | Expo 54 / RN 0.81, SQLite, EAS-Profile | Preview/Simulator, Permissions | Config + Hosttests | HIGH | Signierte Builds, Geräte; Bundle-ID erhalten | VERIFY |
+| Auth | Supabase, Partitionen/Generation-Guard | Auth-/Scope-Tests | `authStore`, `accountScope` | HIGH | Persistenz, Fehlerpfade, Deep-Links/Refresh | MODIFY |
+| Secure Storage | Native Supabase-Integration mit serialisiertem Dual-Read, Readback/Logout-Marker; keine RAM-Fallbacks | Adapter/Tests korrigiert und wiederverwendet | Regressionen + installierter Supabase-SDK; keine Geräteabnahme | HIGH | Reale Migration, große Payloads, Reboot/Backup/Rollback prüfen | PARTIAL / PHYSICAL_DEVICE_REQUIRED |
+| RLS | 11 Tabellen plus restrictive Ownership-/FK-Guards als Migration | Gemini-Matrix wiederverwendet, Harness ersetzt | Echte PostgreSQL-17.11-Tests: 304 Assertions, adversarial Policies, Rollback/Preflight | CRITICAL | Supabase API-/Deploymentzustand und Bestandsdaten prüfen | PARTIAL |
+| Sync | FIFO-Outbox, Retry-Erhalt, Scope; Cloud-Fehler behandelt, Pull vor Anwendung validiert | 17 Failure-Fixtures in `syncFailureScenarios.test.ts` implementiert | 39 Fehlergrenzen-Regressionen; kein Multi-Device-Backendtest | CRITICAL | Atomare Cloud-Aggregate, Konflikte/Tombstones, Seeds | PARTIAL |
+| Data Integrity | SQLite v2, Finish-Transaktion, Backups/Hydration | Vertrags-/Recovery-Tests | Echte Host-SQLite-Tests vorhanden | CRITICAL | Cloud-Atomizität, Altbesitzer, Gastidentität, Crash/Low-Space | VERIFY / MODIFY |
+| Account Deletion | Client-RPC; 13 Contract-Tests (No-IDOR, Idempotenz, Zero Data Loss) | Spec, Client-Vertragstests in `accountDeletionContract.test.ts` | 13 Contract-Tests PASS; lokaler Wipe erst nach Remote-Success | CRITICAL | Supabase-Deployment des RPCs, Cascade/Auth-Delete | PREPARED / ASTRA_REQUIRED |
+| Data Export | Lokaler Collector plus Profil-Export | Spec, Collector-Tests | LOCAL_EXPORT_ONLY; kein Cloud-Export | HIGH | Exportpfade/Umfang prüfen; aktuelles Workout/Settings/Queue/Cloud | VERIFY / MODIFY |
+| AI Backend | Node-Proxy, Tokenprüfung, Timeout, Serverkey; öffentlicher Prototyp-Bypass entfernt | Client-/API-Tests korrigiert | 49 API-/Safety-Tests; Provider hier nicht konfiguriert | CRITICAL | HTTPS-Deployment, Pro/Budget, reale Auth-Abnahme | PARTIAL |
+| AI Safety | Deterministische Regeln, zweisprachige DE/EN Notfall- und Guardrail-Schicht | 49 Safety-Tests in `coach-safety.test.cjs` | Notfälle DE & EN, Starvation, PEDs, Injections, Leaks | HIGH | Serverseitiges Token-Ledger & Quota-Storage | VERIFY |
+| AI Cost Control | In-Memory-Limit | Produktions-Testplan | Kein verteiltes Usage-/Budget-Ledger | CRITICAL | Server-Pro, verteilte Limits, Budget, wirksamer Kill-Switch | ASTRA_REQUIRED |
+| Subscriptions | Kein natives Billing-SDK | Integrationsplan, Fehler-Mocks | Keine echten Käufe/Restore | HIGH | SDKs, Produkte, Webhooks, Verträge | ASTRA_REQUIRED / USER_ACTION_REQUIRED |
+| Entitlements | Provider-Abstraktion, evaro_pro, globaler Beta-Bypass true | Cache-/Provider-Tests | Clientzustand ist keine Autorisierung | HIGH | Produktions-Bypass sperren, Serverautorität, Scope | MODIFY |
+| Exercise Dataset | 873 Free-DB-Übungen, deterministische IDs, Fotofallback | Kompatibilität/Provenienz | Dataset-Blob identisch mit Beta 5 (`494916a8`); Foto-Rechtekette unbewiesen | HIGH | Medienrechte/Alternative, Quellen pinnen | VERIFY / USER_ACTION_REQUIRED |
+| Privacy | Logger, Platzhaltertexte, lokaler Export | Datenkarte/Redaktionstests | Keine vollständige Rechts-/Consent-Freigabe | HIGH | Consent, Texte/Kontakte, Cloud-Export | ASTRA_REQUIRED / USER_ACTION_REQUIRED |
+| Observability | Lokaler Ringbuffer, ErrorBoundary | Eventmodell/Sanitizer | Keine Drittanbieter-Telemetrie; beliebige Metadaten als Restrisiko | MEDIUM | Allowlist vor externem Versand; Flags auf Durchsetzung prüfen | VERIFY / MODIFY |
+| Accessibility | Labels/Roles, Touch-Targets $\ge 44 \times 44$\,pt, UI-Härtung | A11y-Audit-Suite in `accessibilityAudit.test.tsx` | 6 A11y-Tests PASS; Gesten und Roles geprüft | MEDIUM | Reales VoiceOver/TalkBack auf echtem Gerät | PHYSICAL_DEVICE_REQUIRED |
+| Device QA | Host-Regressionssuite | Smoke-/Beta-/Device-Matrizen | Keine reale iOS-/Android-Abnahme | HIGH | Haptik/Audio/Keyboard/Gesten/Lock/Kill/Permissions/Käufe/Restore | PHYSICAL_DEVICE_REQUIRED |
+| Store Readiness | EAS, Metadata-/Review-Entwürfe | Submission-/Screenshot-Plan | Keine Einreichung | HIGH | P0-Gates, Identität, Legal, Produkte, Reviewzugang | USER_ACTION_REQUIRED |
+
+## Roadmap gegen Code
+
+| Phase | Status | Offenes Gate |
+|---|---|---|
+| P00 Baseline / Freeze | PARTIAL | Frische Gates dokumentieren; Feature Freeze gilt |
+| P01 Native Foundation | PARTIAL | Signierte Builds und Geräteabnahme |
+| P02 Security / Data Integrity | PARTIAL | Native SecureStore-Abnahme, Supabase-RLS, Cloud-Konflikte/Atomizität, Account-Löschung |
+| P03 AI Backend | PARTIAL | HTTPS-Preview vorhanden; reale Auth/Pro, verteilte Quoten/Budget, DE/EN Safety offen |
+| P04 Privacy / Legal / Licensing | USER_ACTION_REQUIRED | Rechtstexte/Kontakte, Foto-Rechte; Consent/Export technisch offen |
+| P05 Subscriptions | PARTIAL | Real Product Flow Action Guards & UI Locks VERIFIED, Downgrade Safe; SDKs/Serverentitlements, Produkte/Verträge offen |
+| P06 Onboarding / Paywall | PARTIAL | Resumable State Machine & Value Reveal VERIFIED; Store-Integration offen |
+| P07 Push / Haptics / Audio | PARTIAL | Audio/Haptik vorhanden, Push fehlt, Geräteabnahme |
+| P08 Analytics / Monitoring / Support | PARTIAL | Lokale Diagnostics; Support/Production-Monitoring offen |
+| P09 QA / Accessibility / Performance | PARTIAL | Hosttests; Geräte/Screenreader/Performance offen |
+| P10 Store Submission | PREPARED | Checklisten/Entwürfe; P0-Gates/Submission offen |
+| P11 Launch | BLOCKED | Keine Releasefreigabe |
+
+History-Tagesauswahl (inklusive leerem Tag/mehreren Sessions), direkte Template-/Programmanlage und optionale Profilangaben sind im Code vorhanden. `targetedUiEnhancementsRegression.test.ts` prüft Storepfade ohne History/XP-Nebeneffekte, nicht vollständige UI-End-to-End-Abläufe. Vollständige DE/EN-Abnahme bleibt offen; Safety ist ein bestätigtes P0-Detail.
+
+## Historischer Gemini-Stand (überholt; keine aktuelle Freigabe)
 
 **Stand:** 17. September 2026  
 **Checkpoint:** `READY_FOR_ASTRA_CORE_TAKEOVER` (Head, 537 Tests Passing)  
@@ -22,7 +93,7 @@
 | **AI Safety & Guardrails** | `TEST_HARNESS_READY` | YES (Strukturierte Aktions-Validierung, Safety Matrix) | YES (Deterministsche Safety-Cases für Notfälle/Verletzungen) | PARTIAL (System-Prompt Hardening für medizinische Notfälle vorbereitet) | AR-007, AR-018 | Notfall-Haftungsausschluss juristisch freigeben |
 | **AI Cost & Rate Limits** | `PREPARED` | PARTIAL (Prototyp-Limit 6 Req/Tag, Server Validierung) | YES (Unit Tests für 429 & Credit Preservation) | NO (Serverseitiges Redis/Usage-Ledger für Pro-Tier fehlt) | AR-007, AR-018 | OpenRouter Spending Limit festlegen |
 | **Exercise Licensing** | `PARTIAL` | YES (Kostenlose `free-exercise-db`, ExerciseDB restlos entfernt) | YES (873 Übungen, ID-Stabilität 100%, Schema & Legacy gifUrl Tests) | PARTIAL (Data: Unlicense VERIFIED; Fotos: Vorherige Urheberschaft unbestätigt) | AR-017, AR-024 | Entscheidung: Option A (Fotos mit Fallback) vs. Option B (SVG Anatomie) |
-| **Feature Entitlements** | `SCAFFOLDED` | YES (`entitlementService.ts` Provider-Abstraktion) | YES (Feature Gating Tests, Grace Period Tests) | YES (Beta-Modus: Alle Features aktiv, kein Nutzer gesperrt) | AR-016 | Pricing & Free-Tier Limits final bestätigen |
+| **Feature Entitlements & 3-Tier Monetization** | `PREPARED & TESTED` | YES (3-Tier FREE/PRO/COACH Domain Schemas, Capabilities API, Dual Paywall Context, Privacy Telemetry) | YES (Domain vitest 14/14, Entitlement jest 15/15, Paywall jest 8/8, Analytics 3/3, Modal 3/3) | PARTIAL (Launch Defaults aktiv; Native In-App-Purchase SDK & StoreKit Credentials ASTRA_REQUIRED) | AR-016 | StoreKit / RevenueCat Setup in App Store Connect & Play Console |
 | **Privacy & DSGVO** | `SPECIFIED` | YES (Privacy-safe Logger, Consent Flags vorbereitet) | YES (Automatisierte Token-Redaktionstests) | PARTIAL (Datenschutzerklärung & Impressum müssen verlinkt werden) | AR-003, AR-015 | Offizielle Datenschutz-URL bereitstellen |
 | **Store Compliance** | `TECHNICAL_AUDIT_PASS` | YES (Permission Strings in `app.json`, Account Delete Hook) | YES (EAS Config Introspect) | PARTIAL (Screenshots, Marketingtexte, Reviewer-Account fehlen) | AR-021 | Demo-Account für Apple App Review Team anlegen |
 | **Physical Device QA** | `CHECKLIST_READY` | YES (`DEVICE_QA_CHECKLIST.md` für 7 Test-Kategorien) | PARTIAL (Simulatoren & Web-Smoke grün; physische iOS/Android Geräte offen) | NO (Physische On-Device Abnahme vor TestFlight notwendig) | AR-001 | TestFlight Build auf echtem iPhone installieren |

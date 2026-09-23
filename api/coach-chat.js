@@ -31,13 +31,15 @@ module.exports = async function handler(req, res) {
     return res.status(415).json({ error: 'Unsupported media type: application/json required' });
   }
   const authorization = req.headers.authorization;
-  const isPrototype = process.env.ALLOW_PROTOTYPE_COACH === 'true';
+  // Only the loopback-only development server may inject this property.
+  // Public prototype flags, headers and body fields never establish identity.
+  const allowLocalIdentity = process.env.NODE_ENV !== 'production' && !process.env.VERCEL;
   const localUser =
-    typeof req.localCoachUser === 'string' && req.localCoachUser.startsWith('loopback-')
+    allowLocalIdentity &&
+    typeof req.localCoachUser === 'string' &&
+    req.localCoachUser.startsWith('loopback-')
       ? { id: req.localCoachUser }
-      : isPrototype
-        ? { id: 'prototype-' + (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'guest') }
-        : null;
+      : null;
   if (!localUser && (typeof authorization !== 'string' || !/^Bearer \S+$/.test(authorization)))
     return res.status(401).json({ error: 'Sign in required' });
   const { SUPABASE_URL, SUPABASE_ANON_KEY, OPENROUTER_API_KEY, OPENROUTER_MODEL } = process.env;
@@ -128,10 +130,8 @@ module.exports = async function handler(req, res) {
           .json({ error: 'Unable to verify account' });
       user = await userResponse.json();
     }
-    const isPrototypeUser =
-      isPrototype || (typeof user.id === 'string' && user.id.startsWith('prototype-'));
-    const maxRequests = isPrototypeUser ? 6 : 10;
-    const windowMs = isPrototypeUser ? 24 * 60 * 60 * 1000 : 60000;
+    const maxRequests = 10;
+    const windowMs = 60000;
     const now = Date.now();
     for (const [id, entry] of limits) if (entry.until <= now) limits.delete(id);
     if (!limits.has(user.id) && limits.size >= 10000)
@@ -139,12 +139,9 @@ module.exports = async function handler(req, res) {
     const limit = limits.get(user.id) || { count: 0, until: now + windowMs };
     if (limit.count >= maxRequests) {
       res.setHeader('Retry-After', Math.ceil((limit.until - now) / 1000));
-      const errorMessage = isPrototypeUser
-        ? 'Tägliches Limit erreicht: Als Prototyp sind maximal 6 Anfragen pro Tag möglich. Morgen stehen dir wieder neue Anfragen zur Verfügung.'
-        : 'Too many requests';
       return res.status(429).json({
-        code: isPrototypeUser ? 'DAILY_LIMIT_REACHED' : 'RATE_LIMIT',
-        error: errorMessage,
+        code: 'RATE_LIMIT',
+        error: 'Too many requests',
         limit: maxRequests,
         remaining: 0,
       });

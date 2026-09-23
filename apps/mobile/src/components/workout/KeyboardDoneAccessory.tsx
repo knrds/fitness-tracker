@@ -9,11 +9,13 @@ import {
   Platform,
 } from 'react-native';
 import { useTheme } from '@fitness-tracker/ui';
+import { useI18n } from '../../i18n';
 
 export const KEYBOARD_DONE_ID = 'keyboardDoneAccessory';
 
 export const KeyboardDoneAccessory = () => {
   const theme = useTheme();
+  const { t } = useI18n();
 
   if (Platform.OS !== 'ios') return null;
 
@@ -28,12 +30,12 @@ export const KeyboardDoneAccessory = () => {
         <View style={styles.flexSpacer} />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Eingabe fertig"
+          accessibilityLabel={t('common.done')}
           onPress={() => Keyboard.dismiss()}
           style={styles.doneButton}
           hitSlop={10}
         >
-          <Text style={[styles.doneText, { color: theme.colors.primary }]}>Fertig</Text>
+          <Text style={[styles.doneText, { color: theme.colors.primary }]}>{t('common.done')}</Text>
         </Pressable>
       </View>
     </InputAccessoryView>

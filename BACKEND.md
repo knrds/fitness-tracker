@@ -1,5 +1,11 @@
 # Backend
 
+## Security-Korrektur 19.09.2026
+
+Der öffentliche Coach ignoriert `ALLOW_PROTOTYPE_COACH` vollständig. Fehlender Bearer-Token ergibt 401 ohne Provideraufruf, ungültige Sessions werden ausschließlich über Supabase geprüft und abgewiesen. Forwarded-IP, Header und Body können keine Identität herstellen. Auch die ausschließlich serverseitig gesetzte lokale Entwicklungsidentität ist bei NODE_ENV=production oder VERCEL deaktiviert. Der unveröffentlichte Loopback-Entwicklungsserver bleibt für lokale Tests verfügbar. Anonyme öffentliche Prototypen funktionieren damit bewusst nicht mehr; keine automatische Bereitstellung vorgenommen.
+
+Die Auth-Korrektur ist kein Production-Gesamtabschluss: Server-Pro, verteilte Rate-Limits, Kostenbudget/Kill-Switch, echte Hosting-/Auth-Abnahme und zweisprachige deterministische Safety bleiben releaseblockierend. Drei negative Szenarien wurden zuerst gegen den alten Code reproduziert; Providerzugriffe in diesen Tests sind Stubs, keine reale Provider-/Supabase-Abnahme.
+
 ## Lokaler Coach – Stand 13.09.2026
 
 Die ignorierte Datei .env.coach.local enthält ausschließlich serverseitig OPENROUTER_API_KEY und OPENROUTER_MODEL. pnpm dev erstellt einen aktuellen Webexport und startet App/API auf localhost:8081; nach Quelltext- oder Environment-Änderungen neu starten. pnpm coach:local verwendet den vorhandenen Webexport auf Port 8096. api/.env.example dokumentiert die Konfiguration ohne Schlüsselwerte.

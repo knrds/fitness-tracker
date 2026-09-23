@@ -2,6 +2,7 @@ import { useTheme } from '@fitness-tracker/ui';
 import React, { useId } from 'react';
 import Svg, { Path, Defs, LinearGradient, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { MuscleGroup } from '@fitness-tracker/domain';
+import { useI18n } from '../../i18n';
 import { bodyFront } from './bodyFront';
 import { bodyBack } from './bodyBack';
 
@@ -32,13 +33,18 @@ export function AnatomyFigure({
   onSelect?: (muscle: MuscleGroup) => void;
 }) {
   const theme = useTheme();
+  const { t } = useI18n();
   const gradientId = `anatomy${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   return (
     <Svg
       width="100%"
       height={height}
       viewBox={side === 'front' ? '25 80 675 1300' : '749 80 675 1300'}
-      accessibilityLabel={`Muskelkarte ${side === 'front' ? 'Vorderseite' : 'Rückseite'}`}
+      accessibilityRole="image"
+      accessibilityLabel={t('workout.muscleMap').replace(
+        '{side}',
+        side === 'front' ? t('muscles.front') : t('muscles.back'),
+      )}
     >
       <Defs>
         <LinearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">

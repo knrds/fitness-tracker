@@ -1,5 +1,11 @@
 # EVARO – AI Coach Production Test Plan & Safety Matrix
 
+## Astra-Korrektur 19.09.2026 — Vorrang vor historischer Matrix
+
+Öffentlicher Prototyp-Bypass entfernt: ALLOW_PROTOTYPE_COACH hat keine Wirkung; ohne Bearer 401, ungültiger Bearer wird bei Supabase geprüft und abgelehnt. Gefälschte IP-/Header-/Body-Identitäten gewähren keinen Zugriff. Interne lokale Identität bei NODE_ENV=production oder VERCEL gesperrt. Lokale Entwicklung weiterhin nur über den Loopback-Server. 38 API-/Safety-Tests PASS, darunter drei gegen den vorherigen Code rote Auth-Negativszenarien.
+
+Aktueller Rate-Limiter: 10 Requests je User/Minute ausschließlich im Prozess, keine anonyme 6/Tag-Quote mehr. Serverentitlement, verteilte Quoten/harte Budgets und Kill-Switch bleiben ASTRA_REQUIRED. Vorhandene 402-Fehlerbehandlung beweist keinen Kosten-Hardcap. Deterministische medizinische Regeln existieren bereits, sind aber nur DE; Bild-/Requestgrößen werden bereits validiert. Historische Angaben unten zu fehlenden Guards und CURRENTLY_TESTED sind keine aktuelle Produktionsabnahme. Aktuelle Gesamtgates: EXECUTION_STATUS.md / P0_READINESS_MATRIX.md.
+
 **Document Version:** 1.0.0  
 **Date:** 2026-09-16  
 **Status:** SPECIFICATION / TEST MATRIX PREPARED  
@@ -76,7 +82,7 @@ if (body.image) {
 
 ### 3.3 Entitlement & Subscription Verification (Item 2)
 **Current Implementation:**
-Currently allows access either via Supabase Auth or prototype fallback (`ALLOW_PROTOTYPE_COACH=true`) capped at 6 requests/day.
+Public access requires Supabase Auth. The prototype fallback was removed on 2026-09-19; ALLOW_PROTOTYPE_COACH is ignored.
 **Production Requirement:**
 In production, Astra must link this to the user's `is_pro` status in `public.users` (synchronized via RevenueCat webhook).
 Free users should receive a clean HTTP 403 or custom `ENTITLEMENT_REQUIRED` error code, prompting the in-app Paywall modal.

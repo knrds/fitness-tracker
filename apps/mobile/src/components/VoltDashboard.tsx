@@ -22,6 +22,7 @@ import voltEmblem from '../../assets/volt-emblem.png';
 import { MuscleHeatmap } from './MuscleHeatmap';
 import { AnimatedDisclosure } from '@fitness-tracker/ui';
 import { useI18n } from '../i18n';
+import { resolveAvatarUri } from '../services/avatarStorageService';
 
 export function VoltDashboard({
   template,
@@ -332,9 +333,9 @@ export function VoltDashboard({
         style={{ borderColor: c.borderActive }}
       >
         <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-          {profile.profileImageUri ? (
+          {resolveAvatarUri(profile.profileImageUri) ? (
             <Image
-              source={{ uri: profile.profileImageUri }}
+              source={{ uri: resolveAvatarUri(profile.profileImageUri) }}
               style={{
                 width: 52,
                 height: 52,

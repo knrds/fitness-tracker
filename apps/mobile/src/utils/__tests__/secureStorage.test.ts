@@ -1,317 +1,209 @@
 import * as SecureStore from 'expo-secure-store';
 import {
+  createMigratingAuthStorage,
   ExpoSecureStorageAdapter,
   migrateSessionFromLegacyStore,
   clearSessionFromAllStores,
   SecureStorageAdapter,
-  LegacyStorageLike,
 } from '../secureStorage';
-import { logger } from '../logger';
 
-jest.mock('../logger', () => ({
-  logger: {
-    warn: jest.fn(),
-    error: jest.fn(),
-    info: jest.fn(),
-  },
+jest.mock('expo-secure-store', () => ({
+  isAvailableAsync: jest.fn(async () => true),
+  getItemAsync: jest.fn(),
+  setItemAsync: jest.fn(),
+  deleteItemAsync: jest.fn(),
+  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: 'device-only',
 }));
 
-jest.mock('expo-secure-store', () => {
-  const memStore = new Map<string, string>();
-  let available = true;
-  return {
-    isAvailableAsync: jest.fn(async () => available),
-    getItemAsync: jest.fn(async (key: string) => memStore.get(key) ?? null),
-    setItemAsync: jest.fn(async (key: string, val: string) => {
-      memStore.set(key, val);
-    }),
-    deleteItemAsync: jest.fn(async (key: string) => {
-      memStore.delete(key);
-    }),
-    AFTER_FIRST_UNLOCK: 'AFTER_FIRST_UNLOCK',
-    __setAvailable: (v: boolean) => {
-      available = v;
-    },
-    __clear: () => {
-      memStore.clear();
-    },
-  };
+const KEY = 'sb-test-auth-token';
+const MARKER = `${KEY}.evaro-v1`;
+const SESSION = JSON.stringify({
+  access_token: 'access',
+  refresh_token: 'refresh',
+  expires_at: 1,
+  user: { id: '11111111-1111-4111-8111-111111111111' },
+});
+const NEW_SESSION = JSON.stringify({ ...JSON.parse(SESSION), access_token: 'new-access' });
+class Store implements SecureStorageAdapter {
+  values = new Map<string, string>();
+  getItem = jest.fn(async (key: string) => this.values.get(key) ?? null);
+  setItem = jest.fn(async (key: string, value: string) => {
+    this.values.set(key, value);
+  });
+  removeItem = jest.fn(async (key: string) => {
+    this.values.delete(key);
+  });
+  isAvailable = async () => true;
+}
+let secure: Store;
+let legacy: Store;
+const migrate = () =>
+  migrateSessionFromLegacyStore({ sessionKey: KEY, secureStore: secure, legacyStore: legacy });
+const adapter = () =>
+  createMigratingAuthStorage({ sessionKey: KEY, secureStore: secure, legacyStore: legacy });
+beforeEach(() => {
+  jest.clearAllMocks();
+  secure = new Store();
+  legacy = new Store();
 });
 
-class MockSecureAdapter implements SecureStorageAdapter {
-  store = new Map<string, string>();
-  failWrites = false;
-  failReads = false;
-
-  async getItem(key: string): Promise<string | null> {
-    if (this.failReads) {
-      throw new Error('Hardware keystore read failed');
-    }
-    return this.store.get(key) ?? null;
-  }
-  async setItem(key: string, value: string): Promise<void> {
-    if (this.failWrites) {
-      throw new Error('Hardware keystore write failed');
-    }
-    this.store.set(key, value);
-  }
-  async removeItem(key: string): Promise<void> {
-    this.store.delete(key);
-  }
-  async isAvailable(): Promise<boolean> {
-    return true;
-  }
-}
-
-class MockLegacyStorage implements LegacyStorageLike {
-  store = new Map<string, string>();
-
-  async getItem(key: string): Promise<string | null> {
-    return this.store.get(key) ?? null;
-  }
-  async setItem(key: string, value: string): Promise<void> {
-    this.store.set(key, value);
-  }
-  async removeItem(key: string): Promise<void> {
-    this.store.delete(key);
-  }
-}
-
-describe('Secure Storage & Dual-Read Migration Scaffolding', () => {
-  const SESSION_KEY = 'sb-test-project-auth-token';
-  const VALID_SESSION = JSON.stringify({
-    access_token: 'valid-jwt-token-123',
-    refresh_token: 'valid-refresh-token-456',
-    user: { id: 'user-uuid-1', email: 'test@evaro.app' },
+it('migrates an expired but refreshable legacy session byte-for-byte', async () => {
+  legacy.values.set(KEY, SESSION);
+  expect(await migrate()).toEqual({
+    status: 'migrated',
+    source: 'legacy_store',
+    sessionData: SESSION,
   });
-
-  let secureStore: MockSecureAdapter;
-  let legacyStore: MockLegacyStorage;
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    secureStore = new MockSecureAdapter();
-    legacyStore = new MockLegacyStorage();
-  });
-
-  test('Scenario 1: SecureStore already contains session (no migration needed)', async () => {
-    secureStore.store.set(SESSION_KEY, VALID_SESSION);
-
-    const result = await migrateSessionFromLegacyStore({
-      sessionKey: SESSION_KEY,
-      secureStore,
-      legacyStore,
-    });
-
-    expect(result.status).toBe('already_migrated');
-    expect(result.source).toBe('secure_store');
-    expect(result.sessionData).toBe(VALID_SESSION);
-    // Legacy store was untouched
-    expect(legacyStore.store.has(SESSION_KEY)).toBe(false);
-  });
-
-  test('Scenario 2: SecureStore empty + legacy store contains valid session (successful migration)', async () => {
-    legacyStore.store.set(SESSION_KEY, VALID_SESSION);
-
-    const result = await migrateSessionFromLegacyStore({
-      sessionKey: SESSION_KEY,
-      secureStore,
-      legacyStore,
-    });
-
-    expect(result.status).toBe('migrated');
-    expect(result.source).toBe('legacy_store');
-    expect(result.sessionData).toBe(VALID_SESSION);
-
-    // Written to secure storage
-    expect(secureStore.store.get(SESSION_KEY)).toBe(VALID_SESSION);
-    // Deleted from legacy store (Zero duplicate persistence)
-    expect(legacyStore.store.has(SESSION_KEY)).toBe(false);
-  });
-
-  test('Scenario 3: Both contain session (SecureStore takes precedence, already migrated)', async () => {
-    const legacySession = JSON.stringify({ access_token: 'old-token' });
-    secureStore.store.set(SESSION_KEY, VALID_SESSION);
-    legacyStore.store.set(SESSION_KEY, legacySession);
-
-    const result = await migrateSessionFromLegacyStore({
-      sessionKey: SESSION_KEY,
-      secureStore,
-      legacyStore,
-    });
-
-    expect(result.status).toBe('already_migrated');
-    expect(result.source).toBe('secure_store');
-    expect(result.sessionData).toBe(VALID_SESSION);
-  });
-
-  test('Scenario 4: Corrupted SecureStore payload is flagged without throwing', async () => {
-    secureStore.store.set(SESSION_KEY, 'not-valid-json{{[[');
-
-    const result = await migrateSessionFromLegacyStore({
-      sessionKey: SESSION_KEY,
-      secureStore,
-      legacyStore,
-    });
-
-    expect(result.status).toBe('corrupted_secure');
-    expect(result.source).toBe('secure_store');
-    expect(result.error).toBeDefined();
-  });
-
-  test('Scenario 5: Corrupted legacy store payload is flagged without writing to secure store', async () => {
-    legacyStore.store.set(SESSION_KEY, 'invalid-legacy-blob');
-
-    const result = await migrateSessionFromLegacyStore({
-      sessionKey: SESSION_KEY,
-      secureStore,
-      legacyStore,
-    });
-
-    expect(result.status).toBe('corrupted_legacy');
-    expect(result.source).toBe('legacy_store');
-    expect(secureStore.store.has(SESSION_KEY)).toBe(false);
-  });
-
-  test('Scenario 6: Both stores empty (Guest mode or logged out)', async () => {
-    const result = await migrateSessionFromLegacyStore({
-      sessionKey: SESSION_KEY,
-      secureStore,
-      legacyStore,
-    });
-
-    expect(result.status).toBe('no_session');
-    expect(result.source).toBe('none');
-    expect(result.sessionData).toBeUndefined();
-  });
-
-  test('Scenario 7: Migration write interrupted/failed preserves legacy data (Zero-Data-Loss)', async () => {
-    legacyStore.store.set(SESSION_KEY, VALID_SESSION);
-    secureStore.failWrites = true;
-
-    const result = await migrateSessionFromLegacyStore({
-      sessionKey: SESSION_KEY,
-      secureStore,
-      legacyStore,
-    });
-
-    expect(result.status).toBe('write_failed');
-    expect(result.source).toBe('legacy_store');
-    // Legacy store data MUST BE PRESERVED so the user is not locked out
-    expect(legacyStore.store.get(SESSION_KEY)).toBe(VALID_SESSION);
-  });
-
-  test('Scenario 8: Logout clears session keys across both storage tiers', async () => {
-    secureStore.store.set(SESSION_KEY, VALID_SESSION);
-    legacyStore.store.set(SESSION_KEY, VALID_SESSION);
-
-    await clearSessionFromAllStores(SESSION_KEY, secureStore, legacyStore);
-
-    expect(secureStore.store.has(SESSION_KEY)).toBe(false);
-    expect(legacyStore.store.has(SESSION_KEY)).toBe(false);
-  });
-
-  test('Scenario 9: New login writes directly to secure storage', async () => {
-    await secureStore.setItem(SESSION_KEY, VALID_SESSION);
-
-    const stored = await secureStore.getItem(SESSION_KEY);
-    expect(stored).toBe(VALID_SESSION);
-    expect(legacyStore.store.has(SESSION_KEY)).toBe(false);
-  });
-
-  test('Scenario 10: ExpoSecureStorageAdapter works when native available and falls back gracefully when unavailable', async () => {
-    const adapter = new ExpoSecureStorageAdapter();
-
-    // 10a: Native available (writes to mock SecureStore)
-    (SecureStore as unknown as { __setAvailable: (v: boolean) => void }).__setAvailable(true);
-    expect(await adapter.isAvailable()).toBe(true);
-    await adapter.setItem('native-key', 'secret-val-1');
-    expect(await adapter.getItem('native-key')).toBe('secret-val-1');
-    await adapter.removeItem('native-key');
-    expect(await adapter.getItem('native-key')).toBeNull();
-
-    // 10b: Native unavailable (falls back to memory store)
-    (SecureStore as unknown as { __setAvailable: (v: boolean) => void }).__setAvailable(false);
-    expect(await adapter.isAvailable()).toBe(false);
-    await adapter.setItem('fallback-key', 'fallback-val-2');
-    expect(await adapter.getItem('fallback-key')).toBe('fallback-val-2');
-    await adapter.removeItem('fallback-key');
-    expect(await adapter.getItem('fallback-key')).toBeNull();
-  });
-
-  test('Scenario 11: Error handling never leaks secret tokens into logger', async () => {
-    const adapter = new ExpoSecureStorageAdapter();
-    const sensitiveSecret = 'super-secret-jwt-token-do-not-log';
-
-    // Intentionally cause an error or test read failure logging
-    await adapter.getItem('any-key');
-
-    const warnCalls = (logger.warn as jest.Mock).mock.calls;
-    const errorCalls = (logger.error as jest.Mock).mock.calls;
-    const allLogged = [...warnCalls, ...errorCalls].flat().join(' ');
-
-    expect(allLogged).not.toContain(sensitiveSecret);
-  });
-
-  test('Scenario 12: Secure read failure falls back safely to legacy store inspection without throwing', async () => {
-    legacyStore.store.set(SESSION_KEY, VALID_SESSION);
-    secureStore.failReads = true;
-
-    // Even if reading secure store throws, migration catches it and migrates from legacy
-    const result = await migrateSessionFromLegacyStore({
-      sessionKey: SESSION_KEY,
-      secureStore,
-      legacyStore,
-    });
-
-    expect(result.status).toBe('migrated');
-    expect(result.source).toBe('legacy_store');
-    expect(result.sessionData).toBe(VALID_SESSION);
-    expect(secureStore.store.get(SESSION_KEY)).toBe(VALID_SESSION);
-  });
-
-  test('Scenario 13: Concurrent migration calls resolve idempotently and do not corrupt data', async () => {
-    legacyStore.store.set(SESSION_KEY, VALID_SESSION);
-
-    const [res1, res2] = await Promise.all([
-      migrateSessionFromLegacyStore({
-        sessionKey: SESSION_KEY,
-        secureStore,
-        legacyStore,
-      }),
-      migrateSessionFromLegacyStore({
-        sessionKey: SESSION_KEY,
-        secureStore,
-        legacyStore,
-      }),
-    ]);
-
-    // Both calls must succeed without error or corrupted session payload
-    expect(['migrated', 'already_migrated']).toContain(res1.status);
-    expect(['migrated', 'already_migrated']).toContain(res2.status);
-    expect(res1.sessionData).toBe(VALID_SESSION);
-    expect(res2.sessionData).toBe(VALID_SESSION);
-    expect(secureStore.store.get(SESSION_KEY)).toBe(VALID_SESSION);
-  });
-
-  test('Scenario 14: Expired session payload is handled safely without crashing', async () => {
-    const expiredSession = JSON.stringify({
-      access_token: 'expired-token-xyz',
-      expires_at: Math.floor(Date.now() / 1000) - 7200, // 2 hours ago
-      user: { id: 'user-expired' },
-    });
-    legacyStore.store.set(SESSION_KEY, expiredSession);
-
-    const result = await migrateSessionFromLegacyStore({
-      sessionKey: SESSION_KEY,
-      secureStore,
-      legacyStore,
-    });
-
-    // Valid JSON payload is migrated to secure store so Supabase auth client can refresh it
-    expect(result.status).toBe('migrated');
-    expect(result.sessionData).toBe(expiredSession);
-    expect(secureStore.store.get(SESSION_KEY)).toBe(expiredSession);
-  });
+  expect(secure.values.get(KEY)).toBe(SESSION);
+  expect(legacy.values.has(KEY)).toBe(false);
+  expect(secure.values.get(MARKER)).toBe('migrated');
 });
 
+it('prefers the secure session and cleans up stale legacy copies', async () => {
+  secure.values.set(KEY, NEW_SESSION);
+  legacy.values.set(KEY, SESSION);
+  expect((await migrate()).sessionData).toBe(NEW_SESSION);
+  expect(legacy.values.has(KEY)).toBe(false);
+});
+
+it('keeps guest installs empty', async () => {
+  expect(await migrate()).toEqual({ status: 'no_session', source: 'none' });
+  expect(secure.setItem).not.toHaveBeenCalled();
+});
+
+it.each(['invalid-json', '{}', '{"user":{}}', '{"access_token":"token"}', ''])(
+  'preserves corrupt legacy payload %p',
+  async (payload) => {
+    legacy.values.set(KEY, payload);
+    await expect(migrate()).rejects.toThrow('original data preserved');
+    expect(legacy.values.get(KEY)).toBe(payload);
+    expect(secure.setItem).not.toHaveBeenCalled();
+  },
+);
+
+it('preserves corrupted secure payload and does not replace it with stale legacy', async () => {
+  secure.values.set(KEY, 'broken');
+  legacy.values.set(KEY, SESSION);
+  await expect(migrate()).rejects.toThrow();
+  expect(secure.values.get(KEY)).toBe('broken');
+  expect(legacy.values.get(KEY)).toBe(SESSION);
+});
+
+it('does not confuse legacy IO failure with an absent session', async () => {
+  legacy.getItem.mockRejectedValueOnce(new Error('IO'));
+  await expect(migrate()).rejects.toThrow();
+  expect(secure.setItem).not.toHaveBeenCalled();
+});
+
+it('preserves a large original session when the OS rejects its size and supports retry', async () => {
+  const large = JSON.stringify({ ...JSON.parse(SESSION), metadata: 'x'.repeat(20000) });
+  legacy.values.set(KEY, large);
+  secure.setItem.mockRejectedValueOnce(new Error('size rejected'));
+  await expect(migrate()).rejects.toThrow();
+  expect(legacy.values.get(KEY)).toBe(large);
+  expect((await migrate()).sessionData).toBe(large);
+});
+
+it('retries legacy cleanup after process death between secure commit and deletion', async () => {
+  legacy.values.set(KEY, SESSION);
+  legacy.removeItem.mockRejectedValueOnce(new Error('interrupted'));
+  await expect(migrate()).rejects.toThrow();
+  expect(secure.values.get(KEY)).toBe(SESSION);
+  expect((await migrate()).status).toBe('already_migrated');
+  expect(legacy.values.has(KEY)).toBe(false);
+});
+
+it('does not fall back when a previously committed secure session disappears', async () => {
+  secure.values.set(MARKER, 'migrated');
+  legacy.values.set(KEY, SESSION);
+  await expect(migrate()).rejects.toThrow('fallback blocked');
+  expect(legacy.getItem).not.toHaveBeenCalled();
+});
+
+it('blocks unknown marker versions without changing either store', async () => {
+  secure.values.set(MARKER, 'v-next');
+  legacy.values.set(KEY, SESSION);
+  await expect(migrate()).rejects.toThrow('Unknown');
+  expect(legacy.removeItem).not.toHaveBeenCalled();
+});
+
+it('new login writes only securely and supports non-session PKCE keys', async () => {
+  await adapter().setItem(KEY, SESSION);
+  await adapter().setItem(`${KEY}-code-verifier`, '"pkce-string"');
+  expect(await adapter().getItem(`${KEY}-code-verifier`)).toBe('"pkce-string"');
+  expect(legacy.setItem).not.toHaveBeenCalled();
+});
+
+it('logout clears both copies and retains only a non-secret resurrection guard', async () => {
+  secure.values.set(KEY, SESSION);
+  legacy.values.set(KEY, SESSION);
+  await clearSessionFromAllStores(KEY, secure, legacy);
+  expect(secure.values.get(KEY)).toBeUndefined();
+  expect(legacy.values.get(KEY)).toBeUndefined();
+  expect(await adapter().getItem(KEY)).toBeNull();
+});
+
+it('logout failure blocks stale resurrection after adapter recreation, and retry cleans up', async () => {
+  secure.values.set(KEY, SESSION);
+  legacy.values.set(KEY, SESSION);
+  legacy.removeItem.mockRejectedValueOnce(new Error('disk failure'));
+  await expect(adapter().removeItem(KEY)).rejects.toThrow('cleanup incomplete');
+  expect(await adapter().getItem(KEY)).toBeNull();
+  await adapter().removeItem(KEY);
+  expect(legacy.values.has(KEY)).toBe(false);
+  await adapter().setItem(KEY, NEW_SESSION);
+  expect(await adapter().getItem(KEY)).toBe(NEW_SESSION);
+});
+
+it('failure to persist logout intent preserves the current session and reports failure', async () => {
+  secure.values.set(KEY, SESSION);
+  legacy.values.set(KEY, SESSION);
+  secure.setItem.mockRejectedValueOnce(new Error('locked'));
+  await expect(adapter().removeItem(KEY)).rejects.toThrow();
+  expect(secure.values.get(KEY)).toBe(SESSION);
+  expect(legacy.values.get(KEY)).toBe(SESSION);
+});
+
+it.each(['logout', 'refresh'] as const)(
+  'serializes an in-flight migration before %s across adapter instances',
+  async (operation) => {
+    legacy.values.set(KEY, SESSION);
+    let release!: () => void;
+    const pause = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let entered!: () => void;
+    const started = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    legacy.getItem.mockImplementationOnce(async () => {
+      entered();
+      await pause;
+      return SESSION;
+    });
+    const reading = adapter().getItem(KEY);
+    await started;
+    const mutation =
+      operation === 'logout' ? adapter().removeItem(KEY) : adapter().setItem(KEY, NEW_SESSION);
+    release();
+    await Promise.all([reading, mutation]);
+    expect(await adapter().getItem(KEY)).toBe(operation === 'logout' ? null : NEW_SESSION);
+  },
+);
+
+it('concurrent migration copies the session only once', async () => {
+  legacy.values.set(KEY, SESSION);
+  const results = await Promise.all([migrate(), migrate()]);
+  expect(results.map((r) => r.status)).toEqual(['migrated', 'already_migrated']);
+  expect(secure.setItem.mock.calls.filter(([key]) => key === KEY)).toHaveLength(1);
+});
+
+it('uses device-only Keychain accessibility and propagates native removal failure', async () => {
+  const hardware = new ExpoSecureStorageAdapter();
+  await hardware.setItem(KEY, SESSION);
+  expect(SecureStore.setItemAsync).toHaveBeenCalledWith(KEY, SESSION, {
+    keychainAccessible: 'device-only',
+  });
+  jest.mocked(SecureStore.deleteItemAsync).mockRejectedValueOnce(new Error('native secret'));
+  await expect(hardware.removeItem(KEY)).rejects.toThrow('Secure storage removal failed');
+});

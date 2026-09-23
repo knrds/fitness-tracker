@@ -24,13 +24,19 @@ import { useTheme, useDialog, withAlpha } from '@fitness-tracker/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { hapticFeedback } from '../../src/utils/haptics';
 import * as Crypto from 'expo-crypto';
-import { useProgramStore } from '../../src/stores/programStore';
+import { useProgramStore, isDefaultTemplateId, isTemplateEditable } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { WorkoutTemplate } from '@fitness-tracker/domain';
 import ProgramListScreen from './programs';
 import { useI18n } from '../../src/i18n';
+import { entitlementService } from '../../src/services/entitlementService';
+import { usePaywallStore } from '../../src/stores/paywallStore';
+import {
+  WorkoutPreviewModal,
+  templateToPreviewModel,
+} from '../../src/components/workout/WorkoutPreviewModal';
 
 export default function WorkoutsScreen() {
   const router = useRouter();
@@ -372,6 +378,12 @@ export default function WorkoutsScreen() {
   }, [tab]);
 
   const handleCreateProgramFromWorkouts = () => {
+    if (!entitlementService.canCreateProgram()) {
+      setCreateProgramModalVisible(false);
+      usePaywallStore.getState().openPaywall('pro', 'program');
+      return;
+    }
+
     if (!newProgramName.trim()) {
       const msg =
         language === 'de'
@@ -549,6 +561,11 @@ export default function WorkoutsScreen() {
               ]}
               onPress={() => {
                 void hapticFeedback.selection();
+                const customCount = templates.filter((t) => !isDefaultTemplateId(t.id)).length;
+                if (!entitlementService.canCreateTemplate(customCount)) {
+                  usePaywallStore.getState().openPaywall('pro', 'template_limit');
+                  return;
+                }
                 router.push('/programs/template-builder');
               }}
             >
@@ -929,12 +946,17 @@ export default function WorkoutsScreen() {
               onPress={() => {
                 const id = menuTemplate?.id;
                 setMenuTemplateId(null);
-                if (id)
+                if (id) {
+                  if (!isTemplateEditable(id, templates)) {
+                    usePaywallStore.getState().openPaywall('pro', 'template_limit');
+                    return;
+                  }
                   router.push(
                     `/programs/template-builder?templateId=${id}` as unknown as Parameters<
                       typeof router.push
                     >[0],
                   );
+                }
               }}
             >
               <Ionicons name="create-outline" size={20} color={theme.colors.text} />
@@ -1243,108 +1265,17 @@ export default function WorkoutsScreen() {
       </Modal>
 
       {/* Template Summary Modal */}
-      {summaryTemplate && (
-        <Modal
-          visible={summaryTemplateId !== null}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setSummaryTemplateId(null)}
-        >
-          <Pressable style={styles.modalOverlay} onPress={() => setSummaryTemplateId(null)}>
-            <Pressable
-              style={[
-                styles.modalCard,
-                { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
-              ]}
-              onPress={(e) => e.stopPropagation()}
-            >
-              <View style={styles.modalHeaderRow}>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={[
-                      styles.modalTitle,
-                      { color: theme.colors.text, ...theme.typography.heading },
-                    ]}
-                  >
-                    {summaryTemplate.name}
-                  </Text>
-                  {summaryTemplate.folder && (
-                    <Text style={{ color: theme.colors.primary, fontSize: 12, marginTop: 2 }}>
-                      📁 {summaryTemplate.folder}
-                    </Text>
-                  )}
-                </View>
-                <Pressable onPress={() => setSummaryTemplateId(null)} hitSlop={10}>
-                  <Ionicons name="close" size={24} color={theme.colors.muted} />
-                </Pressable>
-              </View>
+      <WorkoutPreviewModal
+        visible={summaryTemplateId !== null}
+        model={summaryTemplate ? templateToPreviewModel(summaryTemplate, exercises) : null}
+        onClose={() => setSummaryTemplateId(null)}
+        onStart={(model) => {
+          const tmpl = summaryTemplate || model.templateRef;
+          setSummaryTemplateId(null);
+          if (tmpl) handleStartTemplate(tmpl);
+        }}
+      />
 
-              <View style={styles.modalSummaryStatsRow}>
-                <View style={styles.modalStatItem}>
-                  <Ionicons name="barbell-outline" size={16} color={theme.colors.primary} />
-                  <Text style={[styles.modalStatText, { color: theme.colors.muted }]}>
-                    {summaryTemplate.exercises.length}{' '}
-                    {summaryTemplate.exercises.length === 1
-                      ? language === 'de'
-                        ? 'Übung'
-                        : 'Exercise'
-                      : language === 'de'
-                      ? 'Übungen'
-                      : 'Exercises'}
-                  </Text>
-                </View>
-                <View style={styles.modalStatItem}>
-                  <Ionicons name="repeat-outline" size={16} color={theme.colors.primary} />
-                  <Text style={[styles.modalStatText, { color: theme.colors.muted }]}>
-                    {summaryTemplate.exercises.reduce((acc, curr) => acc + curr.targetSets, 0)}{' '}
-                    {language === 'de' ? 'Sätze gesamt' : 'Total Sets'}
-                  </Text>
-                </View>
-              </View>
-
-              <ScrollView style={styles.summaryExerciseList} showsVerticalScrollIndicator={false}>
-                {summaryTemplate.exercises.map((te, idx) => {
-                  const ex = exercises.find((e) => e.id === te.exerciseId);
-                  return (
-                    <View
-                      key={te.id || idx}
-                      style={[styles.summaryExRow, { borderColor: theme.colors.border }]}
-                    >
-                      <Text style={[styles.summaryExName, { color: theme.colors.text }]}>
-                        {ex?.name || (language === 'de' ? 'Unbekannte Übung' : 'Unknown Exercise')}
-                      </Text>
-                      <Text style={[styles.summaryExDetails, { color: theme.colors.primary }]}>
-                        {te.targetSets}s × {te.targetReps ?? '8-10'}r
-                      </Text>
-                    </View>
-                  );
-                })}
-              </ScrollView>
-
-              <Pressable
-                style={[
-                  styles.modalStartBtn,
-                  { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md },
-                ]}
-                onPress={() => {
-                  const tmpl = summaryTemplate;
-                  setSummaryTemplateId(null);
-                  handleStartTemplate(tmpl);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.modalStartBtnText,
-                    { color: theme.colors.background, ...theme.typography.button },
-                  ]}
-                >
-                  {t('workout.startWorkout')}
-                </Text>
-              </Pressable>
-            </Pressable>
-          </Pressable>
-        </Modal>
-      )}
 
       {/* Create Choice Menu Modal */}
       <Modal
@@ -1391,6 +1322,12 @@ export default function WorkoutsScreen() {
               ]}
               onPress={() => {
                 void hapticFeedback.selection();
+                const customCount = templates.filter((t) => !isDefaultTemplateId(t.id)).length;
+                if (!entitlementService.canCreateTemplate(customCount)) {
+                  setCreateMenuVisible(false);
+                  usePaywallStore.getState().openPaywall('pro', 'template_limit');
+                  return;
+                }
                 setCreateMenuVisible(false);
                 router.push('/programs/template-builder');
               }}
@@ -1429,6 +1366,10 @@ export default function WorkoutsScreen() {
               onPress={() => {
                 void hapticFeedback.selection();
                 setCreateMenuVisible(false);
+                if (!entitlementService.canCreateProgram()) {
+                  usePaywallStore.getState().openPaywall('pro', 'program');
+                  return;
+                }
                 setCreateProgramModalVisible(true);
               }}
               accessibilityLabel={t('plans.createPlan')}

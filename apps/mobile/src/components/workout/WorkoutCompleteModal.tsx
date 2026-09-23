@@ -1,13 +1,6 @@
 import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import React from 'react';
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { summarizeSessionExercise, summarizeWorkout } from '@fitness-tracker/domain';
@@ -28,6 +21,7 @@ export const WorkoutCompleteModal = () => {
   const caffeineEnabled = useCaffeineStore((state) => state.isEnabled);
   const lastWorkoutCaffeineMg = useCaffeineStore((state) => state.lastWorkoutMg);
   const isImperial = profile.preferredUnits === 'imperial';
+  const text = (de: string, en: string) => (profile.language === 'en' ? en : de);
 
   if (!lastFinishedSession) return null;
 
@@ -46,37 +40,65 @@ export const WorkoutCompleteModal = () => {
     const displayVol = isImperial ? Math.round(volumeKg * 2.20462) : Math.round(volumeKg);
     const unit = isImperial ? 'lbs' : 'kg';
 
-    if (volumeKg <= 0) return 'You completed a session. The logbook still respects the ritual.';
+    if (volumeKg <= 0)
+      return text(
+        'Training abgeschlossen. Jede dokumentierte Einheit zählt.',
+        'You completed a session. The logbook still respects the ritual.',
+      );
     if (volumeKg < 100) {
       const plates = (displayVol / (isImperial ? 5.5 : 2.5)).toFixed(0);
-      return `You lifted ${displayVol} ${unit}. That is like quietly moving ${plates} tiny change plates while pretending it was just a warmup.`;
+      return text(
+        `Du hast ${displayVol} ${unit} bewegt. Das entspricht ungefähr ${plates} kleinen Gewichtsscheiben à 2,5 kg.`,
+        `You lifted ${displayVol} ${unit}. That is like quietly moving ${plates} tiny change plates while pretending it was just a warmup.`,
+      );
     }
     if (volumeKg < 300) {
       const crates = (displayVol / (isImperial ? 44 : 20)).toFixed(1).replace(/\.0$/, '');
-      return `You moved ${displayVol} ${unit}. Gym folklore translation: about ${crates} loaded water crates, but with better form.`;
+      return text(
+        `Du hast ${displayVol} ${unit} bewegt. Das entspricht ungefähr ${crates} vollen Wasserkisten.`,
+        `You moved ${displayVol} ${unit}. Gym folklore translation: about ${crates} loaded water crates, but with better form.`,
+      );
     }
     if (volumeKg < 800) {
       const benches = (displayVol / (isImperial ? 100 : 45)).toFixed(1).replace(/\.0$/, '');
-      return `${displayVol} ${unit} of work. That is roughly ${benches} adjustable benches worth of iron traffic.`;
+      return text(
+        `${displayVol} ${unit} Trainingsvolumen – ungefähr das Gewicht von ${benches} verstellbaren Hantelbänken.`,
+        `${displayVol} ${unit} of work. That is roughly ${benches} adjustable benches worth of iron traffic.`,
+      );
     }
     if (volumeKg < 1500) {
       const plates = (displayVol / (isImperial ? 44 : 20)).toFixed(0);
-      return `${displayVol} ${unit} today. Your workout basically negotiated with ${plates} full-size 20 kg plates.`;
+      return text(
+        `${displayVol} ${unit} heute. Das entspricht ungefähr ${plates} Gewichtsscheiben à 20 kg.`,
+        `${displayVol} ${unit} today. Your workout basically negotiated with ${plates} full-size 20 kg plates.`,
+      );
     }
     if (volumeKg < 3000) {
       const machines = (displayVol / (isImperial ? 440 : 200)).toFixed(1).replace(/\.0$/, '');
-      return `${displayVol} ${unit} moved. That is about ${machines} cable stacks being politely bullied by your logbook.`;
+      return text(
+        `${displayVol} ${unit} bewegt – ungefähr ${machines} volle Gewichtsblöcke eines Kabelzugs.`,
+        `${displayVol} ${unit} moved. That is about ${machines} cable stacks being politely bullied by your logbook.`,
+      );
     }
     if (volumeKg < 6000) {
       const racks = (displayVol / (isImperial ? 990 : 450)).toFixed(1).replace(/\.0$/, '');
-      return `${displayVol} ${unit}. That is ${racks} fully loaded squat racks of cumulative chaos.`;
+      return text(
+        `${displayVol} ${unit}. Zusammengerechnet ungefähr das Gewicht von ${racks} voll beladenen Kniebeugenständern.`,
+        `${displayVol} ${unit}. That is ${racks} fully loaded squat racks of cumulative chaos.`,
+      );
     }
     if (volumeKg < 12000) {
       const cars = (displayVol / (isImperial ? 3300 : 1500)).toFixed(1).replace(/\.0$/, '');
-      return `${displayVol} ${unit}. Your session volume could move ${cars} compact cars one disciplined rep at a time.`;
+      return text(
+        `${displayVol} ${unit}. Dein Trainingsvolumen entspricht ungefähr dem Gewicht von ${cars} Kleinwagen.`,
+        `${displayVol} ${unit}. Your session volume could move ${cars} compact cars one disciplined rep at a time.`,
+      );
     }
     const trucks = (displayVol / (isImperial ? 22000 : 10000)).toFixed(1).replace(/\.0$/, '');
-    return `${displayVol} ${unit}. That is ${trucks} small moving trucks of work. Your spreadsheet is probably standing up to applaud.`;
+    return text(
+      `${displayVol} ${unit}. Zusammengerechnet ungefähr das Gewicht von ${trucks} kleinen Lastwagen.`,
+      `${displayVol} ${unit}. That is ${trucks} small moving trucks of work. Your spreadsheet is probably standing up to applaud.`,
+    );
   };
 
   const getDeterministicIndex = (values: string[], modulo: number) => {
@@ -135,12 +157,18 @@ export const WorkoutCompleteModal = () => {
     const facts = [
       getVolumeFunFact(summary.totalVolume),
       getVolumeFunFact(summary.totalVolume),
-      `Performance note: ${workingSetCount} working sets averaged ${displayVolumePerSet} ${unit} each. Same set count plus a little more load or reps is the cleanest progress signal.`,
+      text(
+        `Leistungshinweis: ${workingSetCount} Arbeitssätze mit durchschnittlich ${displayVolumePerSet} ${unit} Volumen pro Satz. Etwas mehr Gewicht oder Wiederholungen bei gleicher Satzanzahl können Fortschritt zeigen.`,
+        `Performance note: ${workingSetCount} working sets averaged ${displayVolumePerSet} ${unit} each. Same set count plus a little more load or reps is the cleanest progress signal.`,
+      ),
     ];
 
     if (topExercise) {
       facts.push(
-        `Session signal: ${topExercise.definition?.name ?? 'one exercise'} carried ${displayTopExerciseVolume} ${unit} of working volume today.`,
+        text(
+          `Trainingshinweis: ${topExercise.definition?.name ?? 'Eine Übung'} hat heute ${displayTopExerciseVolume} ${unit} Arbeitsvolumen beigetragen.`,
+          `Session signal: ${topExercise.definition?.name ?? 'one exercise'} carried ${displayTopExerciseVolume} ${unit} of working volume today.`,
+        ),
       );
     }
 
@@ -148,38 +176,62 @@ export const WorkoutCompleteModal = () => {
       const volumePerHour = Math.round((summary.totalVolume / summary.durationSeconds) * 3600);
       const displayVolumePerHour = isImperial ? Math.round(volumePerHour * 2.20462) : volumePerHour;
       facts.push(
-        `Density check: this session moved about ${displayVolumePerHour} ${unit} per hour. Useful when comparing similar workouts later.`,
+        text(
+          `Trainingsdichte: Diese Einheit entspricht etwa ${displayVolumePerHour} ${unit} pro Stunde. Hilfreich für den Vergleich ähnlicher Einheiten.`,
+          `Density check: this session moved about ${displayVolumePerHour} ${unit} per hour. Useful when comparing similar workouts later.`,
+        ),
       );
     }
 
     if (hasCardio) {
       facts.push(
-        'Cardio note: easy aerobic work is not just calorie math; it also builds the engine that helps you recover between hard sets.',
-        'Cardio fact: a stronger aerobic base can make heavy sessions feel less like a software update at 1%.',
+        text(
+          'Ausdauerhinweis: Lockeres Ausdauertraining unterstützt auch die Erholung zwischen anstrengenden Sätzen.',
+          'Cardio note: easy aerobic work is not just calorie math; it also builds the engine that helps you recover between hard sets.',
+        ),
+        text(
+          'Ausdauerwissen: Eine bessere Grundlagenausdauer kann anstrengende Trainingseinheiten leichter machen.',
+          'Cardio fact: a stronger aerobic base can make heavy sessions feel less like a software update at 1%.',
+        ),
       );
     }
 
     if (hasWarmups) {
       facts.push(
-        'Warmup fact: ramping sets are rehearsal reps. The goal is better bar speed and cleaner positions, not sneaky fatigue.',
+        text(
+          'Aufwärmhinweis: Steigerungssätze bereiten die Bewegung vor. Ziel sind saubere Positionen und gute Bewegungsgeschwindigkeit, nicht zusätzliche Ermüdung.',
+          'Warmup fact: ramping sets are rehearsal reps. The goal is better bar speed and cleaner positions, not sneaky fatigue.',
+        ),
       );
     }
 
     if (summary.durationSeconds && summary.durationSeconds >= 2700) {
       facts.push(
-        'Science tip: longer rests can preserve rep quality. If performance drops fast, two to three calm minutes may beat rushing.',
+        text(
+          'Trainingstipp: Längere Pausen können die Qualität der Wiederholungen erhalten. Bei schnellem Leistungsabfall können zwei bis drei ruhige Minuten helfen.',
+          'Science tip: longer rests can preserve rep quality. If performance drops fast, two to three calm minutes may beat rushing.',
+        ),
       );
     }
 
     if (summary.setCount >= 12) {
       facts.push(
-        'Programming tip: productive volume is the volume you can recover from. Repeatable progress beats random heroic set archaeology.',
+        text(
+          'Planungstipp: Produktiv ist das Trainingsvolumen, von dem du dich erholen kannst. Regelmäßiger Fortschritt zählt mehr als einzelne überladene Einheiten.',
+          'Programming tip: productive volume is the volume you can recover from. Repeatable progress beats random heroic set archaeology.',
+        ),
       );
     }
 
     facts.push(
-      'Technique tip: the most underrated PR is making the same weight look smoother than last time.',
-      'Science tip: muscle growth is less about one magical rep range and more about hard, trackable sets with enough recovery.',
+      text(
+        'Techniktipp: Dasselbe Gewicht sauberer als beim letzten Mal zu bewegen, ist ebenfalls ein Fortschritt.',
+        'Technique tip: the most underrated PR is making the same weight look smoother than last time.',
+      ),
+      text(
+        'Trainingstipp: Für Muskelaufbau zählen anstrengende, nachvollziehbare Sätze und ausreichend Erholung mehr als ein einzelner besonderer Wiederholungsbereich.',
+        'Science tip: muscle growth is less about one magical rep range and more about hard, trackable sets with enough recovery.',
+      ),
     );
 
     return facts[
@@ -193,15 +245,27 @@ export const WorkoutCompleteModal = () => {
     const warningLevel = getCaffeineWarningLevel(caffeineMg);
     const espressoEquivalent = (caffeineMg / 63).toFixed(1).replace(/\.0$/, '');
     if (warningLevel === 'extreme') {
-      return `Caffeine fact: ${caffeineMg} mg is roughly ${espressoEquivalent} espressos. That is well beyond the usual daily guideline territory, so treat recovery and sleep seriously.`;
+      return text(
+        `Koffeinhinweis: ${caffeineMg} mg entsprechen ungefähr ${espressoEquivalent} Espressos. Das liegt deutlich über üblichen Tagesrichtwerten. Nimm Erholung und Schlaf ernst.`,
+        `Caffeine fact: ${caffeineMg} mg is roughly ${espressoEquivalent} espressos. That is well beyond the usual daily guideline territory, so treat recovery and sleep seriously.`,
+      );
     }
     if (warningLevel === 'high') {
-      return `Caffeine fact: ${caffeineMg} mg is around ${espressoEquivalent} espressos. Useful as a log entry, but tomorrow's sleep score may want a lawyer.`;
+      return text(
+        `Koffeinhinweis: ${caffeineMg} mg entsprechen ungefähr ${espressoEquivalent} Espressos. Eine hohe Menge kann deinen Schlaf beeinträchtigen.`,
+        `Caffeine fact: ${caffeineMg} mg is around ${espressoEquivalent} espressos. Useful as a log entry, but tomorrow's sleep score may want a lawyer.`,
+      );
     }
     if (caffeineMg >= 200) {
-      return `Caffeine fact: ${caffeineMg} mg is about ${espressoEquivalent} espressos. A noticeable pre-session push for many people.`;
+      return text(
+        `Koffeinhinweis: ${caffeineMg} mg entsprechen ungefähr ${espressoEquivalent} Espressos. Viele Menschen spüren diese Menge deutlich.`,
+        `Caffeine fact: ${caffeineMg} mg is about ${espressoEquivalent} espressos. A noticeable pre-session push for many people.`,
+      );
     }
-    return `Caffeine fact: ${caffeineMg} mg is about ${espressoEquivalent} espresso shots. Small enough to track, big enough to explain suspiciously enthusiastic warmups.`;
+    return text(
+      `Koffeinhinweis: ${caffeineMg} mg entsprechen ungefähr ${espressoEquivalent} Espressos. Auch kleine Mengen können spürbar sein.`,
+      `Caffeine fact: ${caffeineMg} mg is about ${espressoEquivalent} espresso shots. Small enough to track, big enough to explain suspiciously enthusiastic warmups.`,
+    );
   };
 
   const workoutFact = getWorkoutFunFact();
@@ -212,7 +276,12 @@ export const WorkoutCompleteModal = () => {
 
   return (
     <Modal visible animationType="slide" transparent onRequestClose={clearLastFinishedSession}>
-      <Pressable style={styles.overlay} onPress={clearLastFinishedSession}>
+      <Pressable
+        style={styles.overlay}
+        onPress={clearLastFinishedSession}
+        accessibilityRole="button"
+        accessibilityLabel={text('Zusammenfassung schließen', 'Close summary')}
+      >
         <WorkoutCelebrationOverlay />
         <Pressable
           style={[
@@ -238,7 +307,8 @@ export const WorkoutCompleteModal = () => {
               {lastFinishedSession.name}
             </Text>
             <Text style={[styles.subtitle, { color: theme.colors.muted }]}>
-              Workout completed · {lastFinishedSession.exercises.length} exercises
+              {text('Training abgeschlossen', 'Workout completed')} ·{' '}
+              {lastFinishedSession.exercises.length} {text('Übungen', 'exercises')}
             </Text>
 
             <View style={styles.statsRow}>
@@ -251,7 +321,9 @@ export const WorkoutCompleteModal = () => {
                 >
                   {formatDuration(summary.durationSeconds)}
                 </Text>
-                <Text style={[styles.statLabel, { color: theme.colors.muted }]}>TIME</Text>
+                <Text style={[styles.statLabel, { color: theme.colors.muted }]}>
+                  {text('ZEIT', 'TIME')}
+                </Text>
               </View>
               <View style={styles.statBox}>
                 <Text
@@ -262,7 +334,9 @@ export const WorkoutCompleteModal = () => {
                 >
                   {summary.setCount}
                 </Text>
-                <Text style={[styles.statLabel, { color: theme.colors.muted }]}>SETS</Text>
+                <Text style={[styles.statLabel, { color: theme.colors.muted }]}>
+                  {text('SÄTZE', 'SETS')}
+                </Text>
               </View>
               <View style={styles.statBox}>
                 <Text
@@ -301,12 +375,12 @@ export const WorkoutCompleteModal = () => {
                         fontFamily: 'SpaceGrotesk_600SemiBold',
                       }}
                     >
-                      {definition?.name ?? 'Exercise'}
+                      {definition?.name ?? text('Übung', 'Exercise')}
                     </Text>
                     <Text style={{ color: theme.colors.muted, fontSize: 12, marginTop: 5 }}>
-                      {result.workingSetCount} working sets ·{' '}
+                      {result.workingSetCount} {text('Arbeitssätze', 'working sets')} ·{' '}
                       {Math.round(result.totalVolume * (isImperial ? 2.20462 : 1))}{' '}
-                      {isImperial ? 'lbs' : 'kg'} volume
+                      {isImperial ? 'lbs' : 'kg'} {text('Volumen', 'volume')}
                     </Text>
                     <Text
                       style={{
@@ -320,7 +394,7 @@ export const WorkoutCompleteModal = () => {
                         .filter((set) => set.completed)
                         .map((set) =>
                           [
-                            set.type === 'warmup' ? 'Warm-up' : '',
+                            set.type === 'warmup' ? text('Aufwärmen', 'Warm-up') : '',
                             set.weight !== undefined
                               ? `${Number((set.weight * (isImperial ? 2.20462 : 1)).toFixed(1))} ${isImperial ? 'lbs' : 'kg'}`
                               : '',
@@ -330,7 +404,7 @@ export const WorkoutCompleteModal = () => {
                             .filter(Boolean)
                             .join(' '),
                         )
-                        .join('  ·  ') || 'No completed sets'}
+                        .join('  ·  ') || text('Keine abgeschlossenen Sätze', 'No completed sets')}
                     </Text>
                   </View>
                 );
@@ -345,7 +419,7 @@ export const WorkoutCompleteModal = () => {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                 <Ionicons name="analytics-outline" size={14} color={theme.colors.primary} />
                 <Text style={[styles.factTitle, { color: theme.colors.primary, marginBottom: 0 }]}>
-                  SESSION TELEMETRY
+                  {text('TRAININGSAUSWERTUNG', 'SESSION TELEMETRY')}
                 </Text>
               </View>
               <Text style={[styles.factText, { color: theme.colors.text }]}>{workoutFact}</Text>
@@ -365,6 +439,8 @@ export const WorkoutCompleteModal = () => {
               { backgroundColor: theme.colors.primary, borderRadius: theme.radius.md },
             ]}
             onPress={clearLastFinishedSession}
+            accessibilityRole="button"
+            accessibilityLabel={text('Zusammenfassung bestätigen', 'Acknowledge summary')}
           >
             <Text
               style={[
@@ -372,7 +448,7 @@ export const WorkoutCompleteModal = () => {
                 { color: theme.colors.background, ...theme.typography.button },
               ]}
             >
-              AWESOME
+              {text('SUPER', 'AWESOME')}
             </Text>
           </Pressable>
         </Pressable>

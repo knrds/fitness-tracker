@@ -3,6 +3,10 @@ const assert = require('node:assert/strict');
 const handler = require('./coach-chat');
 const originalFetch = global.fetch;
 const originalEnv = { ...process.env };
+// Loopback fixtures must not inherit the build host's deployment identity.
+// Dedicated tests below explicitly restore production/VERCEL to test rejection.
+process.env.NODE_ENV = 'test';
+delete process.env.VERCEL;
 after(() => {
   global.fetch = originalFetch;
   process.env = originalEnv;
@@ -317,7 +321,7 @@ test('local server can use a provider key without Supabase but a client header c
   assert.equal(denied.code, 401);
   assert.equal(calls, 1);
 });
-test('allows prototype access without Supabase when ALLOW_PROTOTYPE_COACH is true', async () => {
+test('prototype environment flag never authorizes a public request', async () => {
   delete process.env.SUPABASE_URL;
   delete process.env.SUPABASE_ANON_KEY;
   process.env.ALLOW_PROTOTYPE_COACH = 'true';
@@ -331,13 +335,26 @@ test('allows prototype access without Supabase when ALLOW_PROTOTYPE_COACH is tru
       json: async () => ({ choices: [{ message: { content: 'Prototype response' } }] }),
     };
   };
-  const protoReq = { ...request(), headers: {} };
-  const r = res();
-  await handler(protoReq, r);
-  assert.equal(r.code, 200);
-  assert.equal(r.body.reply, 'Prototype response');
-  assert.equal(calls, 1);
-  delete process.env.ALLOW_PROTOTYPE_COACH;
+  const previousNodeEnv = process.env.NODE_ENV;
+  try {
+    for (const environment of [undefined, 'development', 'production']) {
+      if (environment === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = environment;
+      const protoReq = {
+        ...request(),
+        headers: { 'x-forwarded-for': '127.0.0.1', localCoachUser: 'loopback-development' },
+        body: { ...request().body, localCoachUser: 'loopback-development' },
+      };
+      const r = res();
+      await handler(protoReq, r);
+      assert.equal(r.code, 401, String(environment));
+      assert.equal(calls, 0);
+    }
+  } finally {
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+    delete process.env.ALLOW_PROTOTYPE_COACH;
+  }
 });
 
 test('preserves multi-turn conversation memory and clean message order', async () => {
@@ -390,33 +407,52 @@ test('uses configured or default fast model in fast mode', async () => {
   assert.equal(passedModel, 'openai/gpt-4o-mini');
 });
 
-test('enforces 6 requests per day limit for prototype coach access', async () => {
+test('prototype flag cannot bypass verification of an invalid bearer session', async () => {
   process.env.OPENROUTER_API_KEY = 'test-key';
   process.env.OPENROUTER_MODEL = 'test-model';
   process.env.ALLOW_PROTOTYPE_COACH = 'true';
-  global.fetch = async () => ({
-    ok: true,
-    json: async () => ({ choices: [{ message: { content: 'Answer' } }] }),
-  });
-  const protoReq = {
-    ...request(),
-    headers: { 'x-forwarded-for': '192.168.1.99' },
+  process.env.SUPABASE_URL = 'https://auth.example.test';
+  process.env.SUPABASE_ANON_KEY = 'test-anon';
+  const urls = [];
+  global.fetch = async (url) => {
+    urls.push(url);
+    return { ok: false, status: 401 };
   };
-
-  // First 6 requests should succeed
-  for (let i = 1; i <= 6; i++) {
-    const response = res();
-    await handler(protoReq, response);
-    assert.equal(response.code, 200, `Request ${i} should succeed`);
+  try {
+    const denied = res();
+    await handler(request(), denied);
+    assert.equal(denied.code, 401);
+    assert.deepEqual(urls, ['https://auth.example.test/auth/v1/user']);
+  } finally {
+    delete process.env.ALLOW_PROTOTYPE_COACH;
   }
-
-  // 7th request should be rate-limited with 429 and DAILY_LIMIT_REACHED
-  const blockedResponse = res();
-  await handler(protoReq, blockedResponse);
-  assert.equal(blockedResponse.code, 429);
-  assert.equal(blockedResponse.body.code, 'DAILY_LIMIT_REACHED');
-  delete process.env.ALLOW_PROTOTYPE_COACH;
 });
 
-
-
+test('production and hosted deployments reject the local development identity', async () => {
+  const previousNodeEnv = process.env.NODE_ENV;
+  const previousVercel = process.env.VERCEL;
+  let calls = 0;
+  global.fetch = async () => {
+    calls++;
+    throw new Error('provider must not be called');
+  };
+  try {
+    for (const [environment, vercel] of [
+      ['production', undefined],
+      ['development', '1'],
+    ]) {
+      process.env.NODE_ENV = environment;
+      if (vercel === undefined) delete process.env.VERCEL;
+      else process.env.VERCEL = vercel;
+      const denied = res();
+      await handler({ ...request(), headers: {}, localCoachUser: 'loopback-development' }, denied);
+      assert.equal(denied.code, 401);
+      assert.equal(calls, 0);
+    }
+  } finally {
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+    if (previousVercel === undefined) delete process.env.VERCEL;
+    else process.env.VERCEL = previousVercel;
+  }
+});

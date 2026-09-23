@@ -8,3 +8,8 @@ c22bbebd02e987368110ed0d65c78322cf0cc41b:apps/mobile/src/services/__tests__/diag
 38f8820e32ffc395cb50d030245d65245e4d1097:apps/mobile/src/utils/__tests__/logger.test.ts:generic-api-key:79
 38f8820e32ffc395cb50d030245d65245e4d1097:apps/mobile/src/utils/__tests__/logger.test.ts:jwt:14
 6b70c336cde44c2aa61ede960ebfd93d02fa862a:apps/mobile/src/services/__tests__/observabilitySanitization.test.ts:jwt:22
+# Reviewed synthetic test secret fixtures in commit d66d2a3
+d66d2a3ff716766cd007189fa2adbff7c5307ec0:apps/mobile/src/services/__tests__/betaAccessAndCoachAuth.test.ts:generic-api-key:148
+d66d2a3ff716766cd007189fa2adbff7c5307ec0:apps/mobile/src/services/__tests__/betaAccessAndCoachAuth.test.ts:generic-api-key:161
+d66d2a3ff716766cd007189fa2adbff7c5307ec0:apps/mobile/src/services/__tests__/betaAccessAndCoachAuth.test.ts:generic-api-key:176
+d66d2a3ff716766cd007189fa2adbff7c5307ec0:apps/mobile/src/services/__tests__/betaAccessAndCoachAuth.test.ts:generic-api-key:189

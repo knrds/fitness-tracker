@@ -145,7 +145,7 @@ describe('Beta Full Access and Coach Auth Integration', () => {
   describe('4. Server-Side Scoped Beta Token Auth (beta-auth.cjs)', () => {
     it('issues a well-formed signed beta token', () => {
       process.env.APP_ENV = 'beta';
-      process.env.BETA_SESSION_SECRET = 'test-secret-1234567890';
+      delete process.env.BETA_SESSION_SECRET;
 
       const token = issueBetaToken('test-installation-device-abc');
       expect(token).toMatch(/^beta_[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
@@ -158,7 +158,7 @@ describe('Beta Full Access and Coach Auth Integration', () => {
 
     it('pseudonymizes installationId to avoid leaking device fingerprints', () => {
       process.env.APP_ENV = 'beta';
-      process.env.BETA_SESSION_SECRET = 'test-secret-1234567890';
+      delete process.env.BETA_SESSION_SECRET;
 
       const token1 = issueBetaToken('user-phone-serial-1234');
       const token2 = issueBetaToken('user-phone-serial-1234');
@@ -173,7 +173,7 @@ describe('Beta Full Access and Coach Auth Integration', () => {
 
     it('rejects tampered or forged tokens', () => {
       process.env.APP_ENV = 'beta';
-      process.env.BETA_SESSION_SECRET = 'test-secret-1234567890';
+      delete process.env.BETA_SESSION_SECRET;
 
       const validToken = issueBetaToken('test-device');
       const forgedToken = validToken + 'invalid_signature_suffix';
@@ -186,7 +186,7 @@ describe('Beta Full Access and Coach Auth Integration', () => {
 
     it('fails closed in production: refuses token generation and verification', () => {
       process.env.APP_ENV = 'production';
-      process.env.BETA_SESSION_SECRET = 'test-secret-1234567890';
+      delete process.env.BETA_SESSION_SECRET;
 
       expect(isBetaAllowed()).toBe(false);
       expect(() => issueBetaToken('device-in-prod')).toThrow(/BETA_ACCESS_DISABLED/);

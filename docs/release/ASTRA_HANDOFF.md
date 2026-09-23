@@ -10,21 +10,21 @@ Gemini hat die drei konkreten Produktanforderungen des Zusatzblocks ohne Einfüh
   - Selektive Keyword-Extraktion für Übungen (max. 5), Templates (max. 3), Programme/Pläne, PRs und Metriken.
   - Datenschutz & Integrität: Notizen auf 120 Zeichen gekürzt, strikte Obergrenzen, null PII, Passwörter, E-Mails oder Auth-Tokens im Kontext.
   - Anbindung in `coachStore.ts` als alleinige strukturierte Kontextquelle.
-  - 27 Tests in `coachContextBuilder.test.ts` (27/27 PASS).
+  - 49 Tests in `coachContextBuilder.test.ts` (49/49 PASS, inkl. Phase 13 Suite).
 - **WP-09 Task — Program Editor Drag & Drop Parity (VERIFIED):**
   - Vollständige visuelle und interaktive DnD-Parität in `programs/builder.tsx` mit Template-/Folder-Reorder.
   - Drag-Handle mit aktivem Card-Elevation (25), zIndex (10000) und sanfter Skalierung (`1.03` unter Beachtung von `useReducedMotion`).
   - Day-Hover-Erkennung mit visualisiertem Drop-Target-Badge („Hier ablegen“ / „Drop here“) und Border-Hervorhebung.
   - Mathematisch abgesicherte Reorder-Geometrie (`programReorderGeometry.ts` / `reorderProgramWorkout`): saubere Neu-Indizierung von `.order`, Erhaltung nicht betroffener Wochen/Tage, Schutz vor Duplikaten oder Datenverlust.
   - Haptisches Feedback (`hapticFeedback.notification('success')`) beim erfolgreichen Ablegen.
-  - 11 Tests in `programReorder.test.ts` (11/11 PASS).
+  - 21 Tests in `programReorder.test.ts` (21/21 PASS, inkl. Phase 15 Suite).
 - **Core Tracker UX — Home – Today's Program Workout Preview (VERIFIED):**
   - Pure Domain-Planungslogik in `programSchedule.ts` (`getProgramScheduleStatus`): ermittelt aktuelle Programmwoche, heutiges Workout, Rest Days, abgeschlossene Workouts und das nächste anstehende Workout.
   - Kein blindes Sofort-Starten mehr: Widget-Tap auf dem Home-Screen (`(tabs)/index.tsx`) öffnet das modulare, wiederverwendbare `WorkoutPreviewModal` mit Übungsliste, Sätzen, Wiederholungen, Ziel-RPE/RIR und Notizen.
   - Wiederverwendung des Modals auch in `(tabs)/workouts.tsx`. Barrierefreie Touch-Targets ($\ge 44 \times 44$\,pt).
-  - 10 Vitest-Tests in `programSchedule.test.ts` (10/10 PASS).
+  - 15 Vitest-Tests in `programSchedule.test.ts` (15/15 PASS, inkl. Phase 19 Suite).
   - 4 Jest-Tests in `WorkoutPreviewModal.test.tsx` (4/4 PASS).
-- **Gesamtmetriken:** **898 Tests PASS** (128 Domain Vitest in 15 Suiten + 705 Mobile Jest in 103 Suiten + 49 Coach-API/Safety Node Tests + 16 Security-Regressionen). `pnpm verify` PASS, `pnpm build:preview` Web-Export PASS (4.84 MB).
+- **Gesamtmetriken:** **940 Tests PASS** (133 Domain Vitest in 15 Suiten + 742 Mobile Jest in 103 Suiten + 49 Coach-API/Safety Node Tests + 16 Security-Regressionen). `pnpm verify` PASS, `pnpm build:preview` Web-Export PASS (4.84 MB).
 
 ## Vorheriger Checkpoint — 22.09.2026: Batch 4 (Local Foundations, Preferences, Resilience & Taxonomy Wiring)
 

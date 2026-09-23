@@ -182,4 +182,66 @@ describe('programSchedule', () => {
     // 2026-09-13 was Sunday
     expect(getDayOfWeek(new Date('2026-09-13'))).toBe(7);
   });
+
+  describe('Phase 19 – Program Home Edge Cases', () => {
+    it('Program Day mit geändertem Template reflects updated template metadata', () => {
+      const modifiedTemplate: WorkoutTemplate = {
+        ...mockTemplateB,
+        name: 'Pull A (Modified)',
+      };
+      const testDate = new Date('2026-09-02T10:00:00.000Z');
+      const status = getProgramScheduleStatus(mockProgram, [mockTemplateA, modifiedTemplate], [], testDate);
+
+      expect(status.todayTemplate?.name).toBe('Pull A (Modified)');
+    });
+
+    it('gelöschte Exercise Reference in template does not crash schedule computation', () => {
+      const brokenTemplate: WorkoutTemplate = {
+        ...mockTemplateA,
+        exercises: [],
+      };
+      const testDate = new Date('2026-09-04T10:00:00.000Z'); // Friday
+      const status = getProgramScheduleStatus(mockProgram, [brokenTemplate, mockTemplateB], [], testDate);
+
+      expect(status.todayTemplate).toBeDefined();
+      expect(status.todayTemplate?.exercises).toHaveLength(0);
+    });
+
+    it('offline / restored program progress: survives serialization roundtrip deterministically', () => {
+      const serializedProgram = JSON.stringify(mockProgram);
+      const restoredProgram: Program = JSON.parse(serializedProgram, (key, value) => {
+        if (key === 'startedAt' || key === 'createdAt' || key === 'updatedAt') {
+          return new Date(value);
+        }
+        return value;
+      });
+
+      const testDate = new Date('2026-09-02T10:00:00.000Z');
+      const status = getProgramScheduleStatus(restoredProgram, [mockTemplateA, mockTemplateB], [], testDate);
+
+      expect(status.hasActiveProgram).toBe(true);
+      expect(status.todayWorkout?.id).toBe('pw-1-3');
+    });
+
+    it('next workout remains deterministic across multiple invocations', () => {
+      const testDate = new Date('2026-09-03T10:00:00.000Z');
+      const status1 = getProgramScheduleStatus(mockProgram, [mockTemplateA, mockTemplateB], [], testDate);
+      const status2 = getProgramScheduleStatus(mockProgram, [mockTemplateA, mockTemplateB], [], testDate);
+
+      expect(status1.nextWorkout?.id).toBe(status2.nextWorkout?.id);
+      expect(status1.nextWorkoutWeek).toBe(status2.nextWorkoutWeek);
+      expect(status1.nextWorkoutDayOfWeek).toBe(status2.nextWorkoutDayOfWeek);
+    });
+
+    it('handles rest days cleanly with todayWorkout null and explicit nextWorkout', () => {
+      const restDayDate = new Date('2026-09-03T10:00:00.000Z');
+      const status = getProgramScheduleStatus(mockProgram, [mockTemplateA, mockTemplateB], [], restDayDate);
+
+      expect(status.isRestDay).toBe(true);
+      expect(status.todayWorkout).toBeNull();
+      expect(status.todayTemplate).toBeNull();
+      expect(status.nextWorkout).not.toBeNull();
+      expect(status.nextTemplate).not.toBeNull();
+    });
+  });
 });

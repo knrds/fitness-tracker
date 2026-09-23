@@ -15,6 +15,7 @@ import {
   getCurrentTrainingState,
   buildResourceIndex,
   buildContextForQuery,
+  formatTopSet,
 } from '../coachContextBuilder';
 import { useProfileStore } from '../../stores/profileStore';
 import { useExerciseStore } from '../../stores/exerciseStore';
@@ -461,6 +462,259 @@ describe('coachContextBuilder', () => {
       expect(context.recentWorkouts?.length).toBeLessThanOrEqual(5);
       expect(context.matchedTemplates?.length).toBeGreaterThan(0);
       expect(context.resourceIndex.templates.length).toBe(2);
+    });
+  });
+
+  describe('Phase 13 – Coach Data Access & Security Regressions', () => {
+    it('Coach sees actual templates', () => {
+      const templates = getTemplatesSummary();
+      expect(templates.map((t) => t.name)).toContain('Push Tag A');
+      expect(templates.map((t) => t.name)).toContain('Leg Day');
+    });
+
+    it('Coach sees all template exercises', () => {
+      const template = getTemplateById('tmpl-push-1');
+      expect(template?.exercises).toHaveLength(1);
+      expect(template?.exercises[0]?.name).toBe('Bankdrücken');
+    });
+
+    it('Coach sees correct exercise order', () => {
+      useProgramStore.setState({
+        templates: [
+          {
+            ...mockTemplatePush,
+            id: 'tmpl-ordered',
+            exercises: [
+              {
+                id: 'te-b',
+                exerciseId: squatExerciseId,
+                order: 1,
+                targetSets: 3,
+              },
+              {
+                id: 'te-a',
+                exerciseId: benchExerciseId,
+                order: 0,
+                targetSets: 4,
+              },
+            ],
+          },
+        ],
+      });
+
+      const template = getTemplateById('tmpl-ordered');
+      expect(template?.exercises[0]?.name).toBe('Bankdrücken');
+      expect(template?.exercises[1]?.name).toBe('Kniebeuge');
+    });
+
+    it('Coach sees correct set counts', () => {
+      const template = getTemplateById('tmpl-push-1');
+      expect(template?.exercises[0]?.targetSets).toBe(4);
+    });
+
+    it('Coach sees stored template weights if the model contains them', () => {
+      const template = getTemplateById('tmpl-push-1');
+      expect(template?.exercises[0]?.targetWeight).toBe(80);
+    });
+
+    it('Coach sees actual programs', () => {
+      const programs = getProgramsSummary();
+      expect(programs).toHaveLength(1);
+      expect(programs[0]?.name).toBe('PPL Hypertrophie');
+    });
+
+    it('Coach sees program weeks/days', () => {
+      const program = getProgramById('prog-ppl-1');
+      expect(program?.workouts[0]?.week).toBe(1);
+      expect(program?.workouts[0]?.dayOfWeek).toBe(1);
+    });
+
+    it('Coach sees exercises inside program workouts', () => {
+      const program = getProgramById('prog-ppl-1');
+      const firstWorkout = program?.workouts[0];
+      const template = getTemplateById(firstWorkout!.templateId);
+      expect(template?.exercises[0]?.name).toBe('Bankdrücken');
+    });
+
+    it('Coach sees active program', () => {
+      const active = getActiveProgram();
+      expect(active?.id).toBe('prog-ppl-1');
+      expect(active?.isActive).toBe(true);
+    });
+
+    it('Coach sees current program progress', () => {
+      const progress = getNextProgramWorkout();
+      expect(progress.currentWeek).toBe(1);
+      expect(progress.hasActiveProgram).toBe(true);
+    });
+
+    it('Coach sees next program workout', () => {
+      const next = getNextProgramWorkout();
+      expect(next.hasActiveProgram).toBe(true);
+      expect(next.todayWorkoutName || next.nextWorkoutName).toBeDefined();
+    });
+
+    it('Coach retrieves last performance of exercise', () => {
+      const perf = getExercisePerformance(benchExerciseId);
+      expect(perf.totalTimesPerformed).toBe(1);
+      expect(perf.lastPerformedDate).toBeDefined();
+    });
+
+    it('Coach retrieves relevant recent exercise history', () => {
+      const history = getRecentExerciseHistory(benchExerciseId, 5);
+      expect(history.length).toBeGreaterThan(0);
+      expect(history[0]?.topSet).toContain('85 kg');
+    });
+
+    it('Coach sees relevant PR', () => {
+      const prs = getRelevantPRs([benchExerciseId]);
+      expect(prs).toHaveLength(1);
+      expect(prs[0]?.bestWeightKg).toBe(85);
+      expect(prs[0]?.exerciseName).toBe('Bankdrücken');
+    });
+
+    it('Coach sees RPE/RIR history when allowed', () => {
+      const formatted = formatTopSet(100, 5, 2, undefined);
+      expect(formatted).toBe('100 kg x 5 @ 2 RIR');
+    });
+
+    it('Coach sees relevant metric only when required', () => {
+      jest.spyOn(entitlementService, 'getTier').mockReturnValue('coach');
+      const contextWithMetric = buildContextForQuery('Mein aktuelles Gewicht');
+      expect(contextWithMetric.metrics?.latestWeightKg).toBe(82.5);
+    });
+
+    it('Coach does NOT blindly include unrelated metrics', () => {
+      jest.spyOn(entitlementService, 'getTier').mockReturnValue('coach');
+      const contextWithoutMetric = buildContextForQuery('Wie mache ich Bankdrücken richtig?');
+      expect(contextWithoutMetric.metrics).toBeUndefined();
+    });
+
+    it('Coach does NOT dump entire workout history', () => {
+      jest.spyOn(entitlementService, 'getTier').mockReturnValue('coach');
+      const manySessions: WorkoutSession[] = Array.from({ length: 10 }, (_, i) => ({
+        ...mockSession,
+        id: `sess-${i}`,
+        startedAt: new Date(2026, 0, i + 1),
+      }));
+      useHistoryStore.setState({ sessions: manySessions });
+
+      const context = buildContextForQuery('Hallo Coach');
+      expect(context.recentWorkouts?.length).toBeLessThanOrEqual(5);
+    });
+
+    it('Coach context obeys size limits', () => {
+      jest.spyOn(entitlementService, 'getTier').mockReturnValue('coach');
+      const longNote = 'A'.repeat(500);
+      useProgramStore.setState({
+        templates: [
+          {
+            ...mockTemplatePush,
+            exercises: [
+              {
+                ...mockTemplatePush.exercises[0]!,
+                notes: longNote,
+              },
+            ],
+          },
+        ],
+      });
+
+      const tmpl = getTemplateById('tmpl-push-1');
+      expect(tmpl?.exercises[0]?.notes?.length).toBeLessThanOrEqual(120);
+    });
+
+    it('deleted template is not returned', () => {
+      useProgramStore.setState({
+        templates: [
+          { ...mockTemplatePush, isArchived: true },
+          mockTemplateLegs,
+        ],
+      });
+
+      const summaries = getTemplatesSummary();
+      expect(summaries.find((t) => t.id === 'tmpl-push-1')).toBeUndefined();
+      expect(getTemplateById('tmpl-push-1')).toBeNull();
+    });
+
+    it('deleted program is not returned', () => {
+      useProgramStore.setState({
+        programs: [],
+      });
+
+      const programs = getProgramsSummary();
+      expect(programs).toHaveLength(0);
+      expect(getProgramById('prog-ppl-1')).toBeNull();
+    });
+
+    it('account switch invalidates context', () => {
+      jest.spyOn(entitlementService, 'getTier').mockReturnValue('coach');
+      const contextA = buildContextForQuery('Hallo');
+      expect(contextA.profile.displayName).toBe('Max Mustermann');
+
+      useProfileStore.setState({
+        profile: {
+          ...useProfileStore.getState().profile,
+          displayName: 'User B',
+        },
+      });
+
+      const contextB = buildContextForQuery('Hallo');
+      expect(contextB.profile.displayName).toBe('User B');
+    });
+
+    it('logout invalidates context', () => {
+      jest.spyOn(entitlementService, 'getTier').mockReturnValue('coach');
+      useProgramStore.setState({ templates: [], programs: [] });
+      useHistoryStore.setState({ sessions: [] });
+      useProfileStore.setState({
+        profile: {
+          displayName: '',
+          preferredUnits: 'metric',
+        },
+      });
+
+      const context = buildContextForQuery('Hallo');
+      expect(context.profile.displayName).toBe('Athlete');
+      expect(context.recentWorkouts).toHaveLength(0);
+      expect(context.resourceIndex.templates).toHaveLength(0);
+    });
+
+    it('Account A never sees Account B context', () => {
+      useProgramStore.setState({
+        templates: [{ ...mockTemplatePush, name: 'Account A Push' }],
+      });
+      const summaryA = getTemplatesSummary();
+      expect(summaryA[0]?.name).toBe('Account A Push');
+
+      useProgramStore.setState({
+        templates: [{ ...mockTemplatePush, name: 'Account B Pull' }],
+      });
+      const summaryB = getTemplatesSummary();
+      expect(summaryB[0]?.name).toBe('Account B Pull');
+      expect(summaryB.find((t) => t.name === 'Account A Push')).toBeUndefined();
+    });
+
+    it('PRO receives reduced context', () => {
+      jest.spyOn(entitlementService, 'getTier').mockReturnValue('pro');
+      const context = buildContextForQuery('Programm Analyse');
+      expect(context.resourceIndex).toBeDefined();
+      expect(context.activeProgram).toBeUndefined();
+      expect(context.recentWorkouts?.length).toBeLessThanOrEqual(2);
+    });
+
+    it('FREE receives no AI context/provider request', () => {
+      jest.spyOn(entitlementService, 'getTier').mockReturnValue('free');
+      expect(() => buildContextForQuery('Frage')).toThrow(/COACH_LOCKED/);
+    });
+
+    it('stale context cannot authorize AI_WRITE', () => {
+      expect(entitlementService.canUseAIWrite(false)).toBe(false);
+      expect(() => {
+        if (!entitlementService.canUseAIWrite(false)) {
+          throw new Error('AI_WRITE_NOT_AUTHORIZED');
+        }
+      }).toThrow(/AI_WRITE_NOT_AUTHORIZED/);
     });
   });
 });

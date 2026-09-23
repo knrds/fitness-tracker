@@ -238,21 +238,24 @@ export function getUserTrainingProfile(): UserTrainingProfileSummary {
 }
 
 export function getTemplatesSummary(): TemplateSummaryItem[] {
-  const templates = useProgramStore.getState().templates;
+  const templates = useProgramStore.getState().templates.filter((t) => !t.isArchived);
   const exerciseMap = new Map(useExerciseStore.getState().exercises.map((e) => [e.id, e.name]));
 
-  return templates.map((tmpl) => ({
-    id: tmpl.id,
-    name: tmpl.name,
-    ...(tmpl.folder ? { folder: tmpl.folder } : {}),
-    exerciseCount: tmpl.exercises.length,
-    exerciseNames: tmpl.exercises.map((e) => exerciseMap.get(e.exerciseId) || 'Unknown'),
-    totalTargetSets: tmpl.exercises.reduce((sum, e) => sum + (e.targetSets || 0), 0),
-  }));
+  return templates.map((tmpl) => {
+    const sortedExercises = [...tmpl.exercises].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    return {
+      id: tmpl.id,
+      name: tmpl.name,
+      ...(tmpl.folder ? { folder: tmpl.folder } : {}),
+      exerciseCount: tmpl.exercises.length,
+      exerciseNames: sortedExercises.map((e) => exerciseMap.get(e.exerciseId) || 'Unknown'),
+      totalTargetSets: tmpl.exercises.reduce((sum, e) => sum + (e.targetSets || 0), 0),
+    };
+  });
 }
 
 export function getTemplateById(id: string): DetailedTemplateView | null {
-  const tmpl = useProgramStore.getState().templates.find((t) => t.id === id);
+  const tmpl = useProgramStore.getState().templates.find((t) => t.id === id && !t.isArchived);
   if (!tmpl) return null;
   const exerciseMap = new Map(useExerciseStore.getState().exercises.map((e) => [e.id, e.name]));
 
@@ -260,19 +263,21 @@ export function getTemplateById(id: string): DetailedTemplateView | null {
     id: tmpl.id,
     name: tmpl.name,
     ...(tmpl.folder ? { folder: tmpl.folder } : {}),
-    exercises: tmpl.exercises.map((e) => ({
-      id: e.id,
-      exerciseId: e.exerciseId,
-      name: exerciseMap.get(e.exerciseId) || 'Unknown',
-      targetSets: e.targetSets,
-      ...(e.targetReps !== undefined ? { targetReps: e.targetReps } : {}),
-      ...(e.targetRepsMax !== undefined ? { targetRepsMax: e.targetRepsMax } : {}),
-      ...(e.targetWeight !== undefined ? { targetWeight: e.targetWeight } : {}),
-      ...(e.targetRpe !== undefined ? { targetRpe: e.targetRpe } : {}),
-      ...(e.targetRir !== undefined ? { targetRir: e.targetRir } : {}),
-      ...(e.targetRestSeconds !== undefined ? { targetRestSeconds: e.targetRestSeconds } : {}),
-      ...(e.notes ? { notes: e.notes.slice(0, 120) } : {}),
-    })),
+    exercises: [...tmpl.exercises]
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((e) => ({
+        id: e.id,
+        exerciseId: e.exerciseId,
+        name: exerciseMap.get(e.exerciseId) || 'Unknown exercise',
+        targetSets: e.targetSets || 0,
+        ...(e.targetReps !== undefined ? { targetReps: e.targetReps } : {}),
+        ...(e.targetRepsMax !== undefined ? { targetRepsMax: e.targetRepsMax } : {}),
+        ...(e.targetWeight !== undefined ? { targetWeight: e.targetWeight } : {}),
+        ...(e.targetRpe !== undefined ? { targetRpe: e.targetRpe } : {}),
+        ...(e.targetRir !== undefined ? { targetRir: e.targetRir } : {}),
+        ...(e.targetRestSeconds !== undefined ? { targetRestSeconds: e.targetRestSeconds } : {}),
+        ...(e.notes ? { notes: e.notes.slice(0, 120) } : {}),
+      })),
   };
 }
 
@@ -291,7 +296,12 @@ export function getProgramsSummary(): ProgramSummaryItem[] {
 export function getProgramById(id: string): DetailedProgramView | null {
   const program = useProgramStore.getState().programs.find((p) => p.id === id);
   if (!program) return null;
-  const templateMap = new Map(useProgramStore.getState().templates.map((t) => [t.id, t.name]));
+  const templateMap = new Map(
+    useProgramStore
+      .getState()
+      .templates.filter((t) => !t.isArchived)
+      .map((t) => [t.id, t.name]),
+  );
 
   return {
     id: program.id,
@@ -299,7 +309,7 @@ export function getProgramById(id: string): DetailedProgramView | null {
     ...(program.description ? { description: program.description.slice(0, 120) } : {}),
     durationWeeks: program.durationWeeks,
     isActive: Boolean(program.isActive),
-    workouts: program.workouts
+    workouts: [...program.workouts]
       .sort((a, b) => a.week - b.week || a.dayOfWeek - b.dayOfWeek || a.order - b.order)
       .map((w) => ({
         id: w.id,
@@ -564,12 +574,14 @@ export function buildResourceIndex(): ResourceIndex {
   }
 
   return {
-    templates: templates.map((t) => ({
-      id: t.id,
-      name: t.name,
-      exerciseCount: t.exercises.length,
-      ...(t.folder ? { folder: t.folder } : {}),
-    })),
+    templates: templates
+      .filter((t) => !t.isArchived)
+      .map((t) => ({
+        id: t.id,
+        name: t.name,
+        exerciseCount: t.exercises.length,
+        ...(t.folder ? { folder: t.folder } : {}),
+      })),
     programs: programs.map((p) => ({
       id: p.id,
       name: p.name,
@@ -621,7 +633,7 @@ export function buildContextForQuery(
   // COACH tier: full selective retrieval
   const q = query.toLowerCase();
   const allExercises = useExerciseStore.getState().exercises;
-  const allTemplates = useProgramStore.getState().templates;
+  const allTemplates = useProgramStore.getState().templates.filter((t) => !t.isArchived);
 
   // 1. Keyword extraction: Exercises
   const matchedExerciseIds: string[] = [];

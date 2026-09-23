@@ -21,7 +21,7 @@ export function reorderProgramWorkout({
   targetDay,
   targetIndex,
 }: ReorderProgramWorkoutParams): ProgramWorkout[] {
-  if (targetDay < 1 || targetDay > 7) {
+  if (targetWeek < 1 || targetDay < 1 || targetDay > 7) {
     return workouts;
   }
 

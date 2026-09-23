@@ -236,8 +236,8 @@ export class EntitlementService {
   }
 
   canUseAIWrite(hasConfirmation = false): boolean {
-    if (this.betaBypass) return true;
-    return Capabilities.canUseAIWrite(this.currentState.tier, hasConfirmation);
+    const effectiveTier = this.betaBypass ? 'coach' : this.currentState.tier;
+    return Capabilities.canUseAIWrite(effectiveTier, hasConfirmation);
   }
 
   /**

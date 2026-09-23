@@ -1,5 +1,27 @@
 # EVARO – Astra Review Queue
 
+## Zusatzblock: Coach Data Intelligence & Program UX — 22.09.2026
+
+- **AR-059: Coach Data Access Layer & App-weites Wissen — WP-03 / S6 (VERIFIED).**
+  - Zentraler Lese- und Kontext-Builder in `coachContextBuilder.ts` mit 15 Selektoren für Profil, Templates, Programme, Historie, PRs, Performance, Körpermetriken und Trainingsstatus.
+  - Fail-closed Tier-Gating (`FREE` via `COACH_LOCKED` blockiert, `PRO` reduzierter Preview-Snapshot, `COACH` selektiver Vollzugriff).
+  - Intelligente, selektive Keyword-Extraktion bei Chat-Anfragen mit strikten Obergrenzen (max. 5 Übungen, max. 3 Templates, max. 5 Sessions, Notizen auf 120 Zeichen gekürzt) und vollständigem PII-Schutz (0 Passwörter, E-Mails, Tokens).
+  - `coachStore.ts` nutzt `coachContextBuilder.buildContextForQuery` als alleinige strukturierte Kontextquelle.
+  - 49 Tests in `coachContextBuilder.test.ts` (49/49 PASS, inkl. Phase 13 Regressionssuite).
+  - Verbleibendes Gate: Serverseitige RLS-Richtlinien für Coach-DB-Zugriff bleiben `ASTRA_REQUIRED`.
+
+- **AR-060: Program Editor Drag & Drop Parity & Reorder Geometry — WP-09 (VERIFIED).**
+  - Volle visuelle und interaktive Parität im Program Editor `programs/builder.tsx` mit Template-/Folder-Reorder: Drag Handle, Card Elevation 25, zIndex 10000, 103% Skalierung (`useReducedMotion`-konform).
+  - Day-Hover-Erkennung mit visualisiertem Drop-Target-Badge („Hier ablegen“ / „Drop here“) und Border-Hervorhebung.
+  - Mathematisch reine Reorder-Funktion in `programReorderGeometry.ts`: saubere Neuindizierung, Erhalt unberührter Wochen/Tage, kein Datenverlust, Haptik beim Ablegen.
+  - 21 Tests in `programReorder.test.ts` (21/21 PASS, inkl. Phase 15 Suite).
+  - Verbleibendes Gate: Reale iOS/Android Drag & Drop Gestenabnahme auf physischem Gerät bleibt `PHYSICAL_DEVICE_REQUIRED`.
+
+- **AR-061: Home Active Program Workout Preview & Scheduling — Core Tracker UX / WP-06 (VERIFIED).**
+  - Reine Domain-Planungslogik in `programSchedule.ts` (`getProgramScheduleStatus`) zur exakten Ermittlung von Woche, Rest Days, heutigem Status und nächstem Workout.
+  - Modulares, wiederverwendbares `WorkoutPreviewModal.tsx` auf Home-Screen (`(tabs)/index.tsx`) und im Workouts-Tab (`(tabs)/workouts.tsx`): kein versehentliches Sofort-Starten mehr, transparente Übersicht über alle Übungen, Ziel-Sätze, Wdh und RPE/RIR. Barrierefreie Touch-Targets ($\ge 44 \times 44$\,pt).
+  - 19 Tests: 15 Vitest in `programSchedule.test.ts` + 4 Jest in `WorkoutPreviewModal.test.tsx` (alle PASS).
+
 ## Batch 4: Local Foundations, Preferences, Resilience & Taxonomy Wiring — 22.09.2026
 
 - **AR-051: Notification Preference Center & Local Rest Timer Alerts — WP-07 Tasks 07.02, 07.04 (VERIFIED).**

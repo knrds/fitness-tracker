@@ -209,4 +209,129 @@ describe('programReorderGeometry', () => {
     });
     expect(result).toEqual(sampleWorkouts);
   });
+
+  describe('Phase 15 – Program DnD Persistence & Edge Cases', () => {
+    it('first -> last: correctly shifts first item to the last position and re-indexes', () => {
+      const result = reorderProgramWorkout({
+        workouts: sampleWorkouts,
+        workoutId: 'pw-4',
+        targetWeek: 1,
+        targetDay: 3,
+        targetIndex: 2,
+      });
+      const day3 = result
+        .filter((w) => w.week === 1 && w.dayOfWeek === 3)
+        .sort((a, b) => a.order - b.order);
+      expect(day3.map((w) => w.id)).toEqual(['pw-5', 'pw-6', 'pw-4']);
+      expect(day3.map((w) => w.order)).toEqual([0, 1, 2]);
+    });
+
+    it('last -> first: correctly shifts last item to the first position and re-indexes', () => {
+      const result = reorderProgramWorkout({
+        workouts: sampleWorkouts,
+        workoutId: 'pw-6',
+        targetWeek: 1,
+        targetDay: 3,
+        targetIndex: 0,
+      });
+      const day3 = result
+        .filter((w) => w.week === 1 && w.dayOfWeek === 3)
+        .sort((a, b) => a.order - b.order);
+      expect(day3.map((w) => w.id)).toEqual(['pw-6', 'pw-4', 'pw-5']);
+      expect(day3.map((w) => w.order)).toEqual([0, 1, 2]);
+    });
+
+    it('adjacent: swaps adjacent items correctly without affecting others', () => {
+      const result = reorderProgramWorkout({
+        workouts: sampleWorkouts,
+        workoutId: 'pw-4',
+        targetWeek: 1,
+        targetDay: 3,
+        targetIndex: 1,
+      });
+      const day3 = result
+        .filter((w) => w.week === 1 && w.dayOfWeek === 3)
+        .sort((a, b) => a.order - b.order);
+      expect(day3.map((w) => w.id)).toEqual(['pw-5', 'pw-4', 'pw-6']);
+    });
+
+    it('multiple reorders: maintains deterministic order through chain of reorder steps', () => {
+      let state = sampleWorkouts;
+      state = reorderProgramWorkout({ workouts: state, workoutId: 'pw-1', targetWeek: 1, targetDay: 2 });
+      state = reorderProgramWorkout({ workouts: state, workoutId: 'pw-3', targetWeek: 1, targetDay: 1 });
+      expect(state).toHaveLength(sampleWorkouts.length);
+      const day1 = state.filter((w) => w.week === 1 && w.dayOfWeek === 1);
+      expect(day1.map((w) => w.id)).toEqual(['pw-2', 'pw-3']);
+    });
+
+    it('cancel drag: retains original order when action is aborted or identity unchanged', () => {
+      const result = reorderProgramWorkout({
+        workouts: sampleWorkouts,
+        workoutId: 'pw-4',
+        targetWeek: 1,
+        targetDay: 3,
+        targetIndex: 0,
+      });
+      const day3 = result.filter((w) => w.week === 1 && w.dayOfWeek === 3).sort((a, b) => a.order - b.order);
+      expect(day3.map((w) => w.id)).toEqual(['pw-4', 'pw-5', 'pw-6']);
+    });
+
+    it('invalid destination: safely ignores out-of-bounds days and weeks', () => {
+      const invalidWeek = reorderProgramWorkout({ workouts: sampleWorkouts, workoutId: 'pw-1', targetWeek: 0, targetDay: 1 });
+      expect(invalidWeek).toEqual(sampleWorkouts);
+
+      const invalidDayHigh = reorderProgramWorkout({ workouts: sampleWorkouts, workoutId: 'pw-1', targetWeek: 1, targetDay: 99 });
+      expect(invalidDayHigh).toEqual(sampleWorkouts);
+    });
+
+    it('reopen / persistence: reordered state survives serialization and deserialization roundtrip', () => {
+      const reordered = reorderProgramWorkout({
+        workouts: sampleWorkouts,
+        workoutId: 'pw-1',
+        targetWeek: 1,
+        targetDay: 2,
+        targetIndex: 0,
+      });
+      // Simulate storage JSON roundtrip
+      const serialized = JSON.stringify(reordered);
+      const deserialized: typeof sampleWorkouts = JSON.parse(serialized);
+
+      const day2 = deserialized.filter((w) => w.week === 1 && w.dayOfWeek === 2).sort((a, b) => a.order - b.order);
+      expect(day2[0]?.id).toBe('pw-1');
+      expect(day2[1]?.id).toBe('pw-3');
+    });
+
+    it('no duplicates: all workout IDs remain unique', () => {
+      const reordered = reorderProgramWorkout({
+        workouts: sampleWorkouts,
+        workoutId: 'pw-2',
+        targetWeek: 1,
+        targetDay: 3,
+      });
+      const ids = reordered.map((w) => w.id);
+      expect(new Set(ids).size).toBe(sampleWorkouts.length);
+    });
+
+    it('no deletion: total workout count is strictly preserved', () => {
+      const reordered = reorderProgramWorkout({
+        workouts: sampleWorkouts,
+        workoutId: 'pw-6',
+        targetWeek: 2,
+        targetDay: 1,
+      });
+      expect(reordered).toHaveLength(sampleWorkouts.length);
+    });
+
+    it('stable IDs: item properties and IDs are not regenerated', () => {
+      const reordered = reorderProgramWorkout({
+        workouts: sampleWorkouts,
+        workoutId: 'pw-5',
+        targetWeek: 1,
+        targetDay: 1,
+      });
+      const item = reordered.find((w) => w.id === 'pw-5');
+      expect(item?.templateId).toBe('tmpl-e');
+      expect(item?.id).toBe('pw-5');
+    });
+  });
 });

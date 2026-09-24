@@ -12,6 +12,8 @@ import WorkoutTemplateBuilderScreen from '../template-builder';
 import { useProgramStore } from '../../../src/stores/programStore';
 import { useExerciseStore } from '../../../src/stores/exerciseStore';
 
+jest.mock('expo-crypto', () => { let id = 0; return { randomUUID: () => `set-${++id}` }; });
+
 jest.mock('expo-router', () => ({
   useRouter: () => ({
     push: jest.fn(),
@@ -140,4 +142,20 @@ describe('WorkoutTemplateBuilderScreen - Reorder Mode & Collapsible Cards', () =
     const collapseBtns = getAllByLabelText('Übung einklappen');
     expect(collapseBtns.length).toBe(2);
   });
+});
+
+it('edits independent set values, saves and reopens without completion controls', () => {
+  useProgramStore.setState({ templates: [mockTemplate], programs: [] });
+  useExerciseStore.setState({ exercises: [mockExercise1, mockExercise2] });
+  const screen = render(<ThemeProvider><DialogProvider><WorkoutTemplateBuilderScreen /></DialogProvider></ThemeProvider>);
+  expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+  fireEvent.changeText(screen.getAllByLabelText('Satz 2 Gewicht')[0]!, '75');
+  fireEvent.changeText(screen.getAllByLabelText('Satz 3 Wiederholungen')[0]!, '6');
+  fireEvent.press(screen.getByLabelText('Speichern'));
+  const saved = useProgramStore.getState().templates.find(t => t.id === 'tmpl-1')!;
+  expect(saved.exercises[0]!.sets!.map(s => s.weight)).toEqual([80,75,80]);
+  expect(saved.exercises[0]!.sets!.map(s => s.reps)).toEqual([10,10,6]);
+  screen.unmount();
+  const reopened = render(<ThemeProvider><DialogProvider><WorkoutTemplateBuilderScreen /></DialogProvider></ThemeProvider>);
+  expect(reopened.getAllByLabelText('Satz 2 Gewicht')[0]!.props.value).toBe('75');
 });

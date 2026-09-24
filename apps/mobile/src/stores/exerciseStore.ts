@@ -26,7 +26,7 @@ function filterExercises(
     const matchesMuscle = muscleGroup
       ? ex.primaryMuscles.includes(muscleGroup) || ex.secondaryMuscles.includes(muscleGroup)
       : true;
-    const matchesEq = equipment ? ex.equipment === equipment : true;
+    const matchesEq = equipment ? (ex.equipmentOptions ?? [ex.equipment]).includes(equipment) : true;
     return matchesQuery && matchesMuscle && matchesEq;
   });
 }

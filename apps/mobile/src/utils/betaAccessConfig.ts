@@ -10,6 +10,11 @@ export interface BetaAccessConfig {
 
 // Runtime kill-switch override (defaults to true for beta builds, false in production)
 let runtimeBetaOverride: boolean | null = null;
+let testerPreference: () => boolean = () => true;
+export function registerBetaTesterPreference(read: () => boolean): void { testerPreference = read; }
+export function isBetaEnvironmentAllowed(): boolean {
+  return !isFailClosedProduction() && process.env.EXPO_PUBLIC_BETA_FULL_ACCESS !== 'false';
+}
 
 export function getAppEnvironment(): 'development' | 'beta' | 'production' | 'test' {
   const explicit = process.env.EXPO_PUBLIC_APP_ENV || process.env.APP_ENV;
@@ -36,7 +41,7 @@ export function isFailClosedProduction(): boolean {
  * Fail-closed: unconditionally false if running in production.
  */
 export function isBetaFullAccess(): boolean {
-  if (isFailClosedProduction()) {
+  if (!isBetaEnvironmentAllowed() || !testerPreference()) {
     return false;
   }
 

@@ -37,6 +37,48 @@ const request = () => ({
   headers: { authorization: 'Bearer test-token' },
   body: { messages: [{ role: 'user', content: 'Review my training' }], context: {} },
 });
+test('server kill switch blocks requests before any provider access', async () => {
+  const previous = process.env.COACH_ENABLED;
+  process.env.COACH_ENABLED = 'false';
+  let called = false;
+  global.fetch = async () => { called = true; throw new Error('must not run'); };
+  try {
+    const r = res();
+    await handler(request(), r);
+    assert.equal(r.code, 503);
+    assert.equal(r.body.code, 'COACH_DISABLED');
+    assert.equal(called, false);
+  } finally {
+    if (previous === undefined) delete process.env.COACH_ENABLED;
+    else process.env.COACH_ENABLED = previous;
+  }
+});
+test('one identity cannot run parallel provider requests and admission is released afterwards', async () => {
+  process.env.OPENROUTER_API_KEY = 'test-key';
+  process.env.OPENROUTER_MODEL = 'test-model';
+  let release;
+  const pending = new Promise(resolve => { release = resolve; });
+  let calls = 0;
+  global.fetch = async () => {
+    calls++;
+    await pending;
+    return { ok: true, json: async () => ({ choices: [{ finish_reason: 'stop', message: { content: 'Training response' } }] }) };
+  };
+  const req = { ...request(), localCoachUser: 'loopback-concurrency-regression' };
+  const first = res();
+  const running = handler(req, first);
+  const second = res();
+  await handler(req, second);
+  assert.equal(second.code, 429);
+  assert.equal(second.body.code, 'CONCURRENCY_LIMIT');
+  assert.equal(calls, 1);
+  release();
+  await running;
+  const third = res();
+  await handler(req, third);
+  assert.equal(third.code, 200);
+  assert.equal(calls, 2);
+});
 test('recognizes German weekly programs and split creation as structured actions', () => {
   const { wantsStructuredPlan } = require('./coach-plans.cjs');
   for (const prompt of [

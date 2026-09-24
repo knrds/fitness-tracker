@@ -1,5 +1,21 @@
 # EVARO Astra Takeover — Execution Status
 
+## Checkpoint 24.09.2026 — Beta finalization (PARTIAL, not a release)
+
+Branch `astra/beta-finalization`, recovered from actual remote main `5184a77`; latest existing tag remains `v0.1.0-beta.8`. No reset, data wipe, production database migration or release tag.
+
+- Architecture verified: Expo Router routes → shared React Native editors → Zustand/account-scoped validated storage → SQLite/outbox; domain schemas/calculations remain React-free. Coach uses the Vercel server proxy and OpenRouter; beta client preference is never server authority.
+- Shared `SetRow` now serves live, template and history editing. Additive `TemplateExercise.sets` preserves individual values; legacy target fields still load. Explicit zero and empty effort values are distinct. Exercise details return to the existing picker selection. Custom exercises store multiple muscles/equipment with legacy scalar equipment compatibility.
+- Missing root paywall host restored. Beta Tester preference defaults on only in allowed environments; off returns normal gating. Cosmetic preview is hosted in the viewport; linen/sage/slate added; strongest heat bucket uses the strongest theme token.
+- Coach clear aborts pending requests and rejects stale responses. Server beta sessions require explicit `APP_ENV=beta` and a separate >=32-byte signing secret; hosting/client flags and static fallback keys cannot authorize. Request validation, Unicode-signature regression, server `COACH_ENABLED=false` switch and per-instance concurrency guard added.
+- User-approved economics: future session rewards ×9; reference 16 completed sets / 10,000 kg / 2h = 1,314 XP. Existing XP and thresholds unchanged. Level 30 about 225 reference workouts, level 50 about 1,000 (achievement bonuses separate); forecast uses current awards.
+- Validation checkpoint: consolidated full verify passed (136 domain, 845 mobile, 55 API, 20 security). Web export passed; real browser created a template with 80/75/80 kg independent sets. Gitleaks history (242 commits), diff and client export passed. Dependency gate passed with existing reviewed Metro/image-size build-only exceptions. Explicit beta export rerun before push.
+- Risk MEDIUM for local editor/persistence changes, HIGH for hosted guest AI admission. No existing user awards or workouts migrated. Historical sessions retain IDs; editing does not award XP. Deployed auth/Coach smoke, new CI/Vercel checks, final device QA and complete master acceptance remain open.
+- User confirmed Vercel beta variables and OpenRouter budget setup. Distributed quota ledger remains a follow-up, explicitly not supplied by the in-memory guard. Proposed reuse: server-only atomic Supabase quota RPC with pseudonymous beta subjects and expiring leases; no client authority or health data required. No production migration authorized.
+- New user scope 24.09: protect/limit bundled defaults to GK/PPL, Free 3 templates/1 program, reversible hiding, folder picker, left back controls, cosmetic ordering/Pro vs level locks/new light theme/2 distinct effects, permanent-notes default, date-wheel and metrics-modal polish. These remain pending after this checkpoint.
+
+Beta gate: **NO-GO** until full product/deployed acceptance is complete. Existing WP/S production/legal/device gates below are not superseded by passing local tests.
+
 Stand: 22.09.2026. Maßgeblicher aktueller Bericht; ältere Gemini-Berichte bleiben historische Evidenz, keine aktuelle Releasefreigabe.
 
 ## Checkpoint 22.09.2026 — Zusatzblock: Coach App-weites Wissen, Program Drag & Drop Parity & Home Program Preview (WP-03, WP-09, S6, Core Tracker UX)

@@ -1,3 +1,4 @@
+import { isBetaEnvironmentAllowed } from '../src/utils/betaAccessConfig';
 import { Theme, useThemeStyles, useTheme, withAlpha, Card } from '@fitness-tracker/ui';
 import { parseDecimalInput } from '../src/utils/decimalInput';
 import { LevelProgress } from '../src/components/LevelProgress';
@@ -1367,6 +1368,14 @@ export default function ProfileScreen() {
           </View>
 
           {/* Haptics Toggle */}
+          {isBetaEnvironmentAllowed() && (
+            <Pressable style={styles.settingsRow} accessibilityRole="switch"
+              accessibilityLabel="Beta Tester" accessibilityState={{ checked: profile.betaTesterEnabled !== false }}
+              onPress={() => updateProfile({ betaTesterEnabled: profile.betaTesterEnabled === false })}>
+              <Text style={styles.settingsLabel}>Beta Tester</Text>
+              <Text style={styles.settingsValue}>{profile.betaTesterEnabled !== false ? t('settings.on') : t('settings.off')}</Text>
+            </Pressable>
+          )}
           <Pressable
             style={styles.settingsRow}
             accessibilityRole="switch"

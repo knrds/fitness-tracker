@@ -220,6 +220,9 @@ export class EntitlementService {
       };
     }
 
+    if (this.betaBypass) {
+      return { ...this.currentState, tier: 'free', status: 'free', isPro: false, isCoach: false, activeEntitlements: [] };
+    }
     return { ...this.currentState };
   }
 

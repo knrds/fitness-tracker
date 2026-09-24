@@ -90,6 +90,7 @@ export const ExerciseSchema = z
     primaryMuscles: z.array(MuscleGroupSchema).min(1),
     secondaryMuscles: z.array(MuscleGroupSchema),
     equipment: EquipmentSchema,
+    equipmentOptions: z.array(EquipmentSchema).min(1).optional(),
     movementPattern: MovementPatternSchema,
     isCustom: z.boolean(),
     ownerId: UUIDSchema.optional(),
@@ -159,6 +160,7 @@ export const WorkoutSessionSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const TemplateExerciseSchema = z.object({
+  sets: z.array(ExerciseSetSchema).min(1).optional(),
   id: UUIDSchema,
   exerciseId: UUIDSchema,
   order: z.number().int().nonnegative(),

@@ -519,10 +519,8 @@ export default function WorkoutsScreen() {
           }}
           style={[styles.createHeaderBtn, { backgroundColor: theme.colors.primary }]}
         >
-          <Ionicons name="add" size={18} color={theme.colors.background} />
-          <Text style={[styles.createHeaderBtnText, { color: theme.colors.background }]}>
-            {language === 'de' ? 'Erstellen' : 'Create'}
-          </Text>
+          <Ionicons name="add" size={24} color={theme.colors.onPrimary} />
+
         </Pressable>
       </View>
       <SegmentedControl

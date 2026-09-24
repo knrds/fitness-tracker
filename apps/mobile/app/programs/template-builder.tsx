@@ -1,3 +1,6 @@
+import { useProfileStore } from '../../src/stores/profileStore';
+import { SetRow } from '../../src/components/workout/SessionExerciseCard';
+import { materializeTemplateSets, updateIndependentSet } from '@fitness-tracker/domain';
 import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
 import React, { useState } from 'react';
@@ -24,7 +27,7 @@ import { usePaywallStore } from '../../src/stores/paywallStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { ExercisePickerModal } from '../../src/components/workout/ExercisePickerModal';
 import { useI18n } from '../../src/i18n';
-import { useTheme, Card } from '@fitness-tracker/ui';
+import { useTheme, useDialog, Card } from '@fitness-tracker/ui';
 import { TemplateExercise } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
 import { hapticFeedback } from '../../src/utils/haptics';
@@ -37,6 +40,8 @@ export default function WorkoutTemplateBuilderScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const { showAlert } = useDialog();
+  const isImperial = useProfileStore(state => state.profile.preferredUnits === 'imperial');
   const styles = useThemeStyles(createStyles);
   const { language } = useI18n();
   const { programId, templateId, dayOfWeek, week } = useLocalSearchParams<{
@@ -56,7 +61,7 @@ export default function WorkoutTemplateBuilderScreen() {
   const [description, setDescription] = useState(existingTemplate?.description || '');
   const [folder, setFolder] = useState(existingTemplate?.folder || '');
   const [templateExercises, setTemplateExercises] = useState<TemplateExercise[]>(
-    existingTemplate?.exercises || [],
+    (existingTemplate?.exercises || []).map(ex => ({ ...ex, sets: materializeTemplateSets(ex, Crypto.randomUUID) })),
   );
 
   const [isExerciseModalVisible, setExerciseModalVisible] = useState(false);
@@ -97,8 +102,13 @@ export default function WorkoutTemplateBuilderScreen() {
           folder: trimmedFolder,
           exercises: templateExercises,
         });
-      } catch {
-        usePaywallStore.getState().openPaywall('pro', 'template_limit');
+      } catch (error) {
+        if (error instanceof Error && error.message.startsWith('TEMPLATE_LOCKED:')) {
+          usePaywallStore.getState().openPaywall('pro', 'template_limit');
+        } else {
+          void showAlert({ title: language === 'de' ? 'Speichern fehlgeschlagen' : 'Could not save',
+            message: language === 'de' ? 'Deine Eingaben bleiben erhalten. Bitte erneut versuchen.' : 'Your changes are kept. Please try again.' });
+        }
         return;
       }
     } else {
@@ -116,8 +126,13 @@ export default function WorkoutTemplateBuilderScreen() {
           folder: trimmedFolder,
           exercises: templateExercises,
         });
-      } catch {
-        usePaywallStore.getState().openPaywall('pro', 'template_limit');
+      } catch (error) {
+        if (error instanceof Error && error.message.startsWith('TEMPLATE_LIMIT_REACHED:')) {
+          usePaywallStore.getState().openPaywall('pro', 'template_limit');
+        } else {
+          void showAlert({ title: language === 'de' ? 'Speichern fehlgeschlagen' : 'Could not save',
+            message: language === 'de' ? 'Deine Eingaben bleiben erhalten. Bitte erneut versuchen.' : 'Your changes are kept. Please try again.' });
+        }
         return;
       }
 
@@ -146,13 +161,19 @@ export default function WorkoutTemplateBuilderScreen() {
     setTemplateExercises(templateExercises.filter((e) => e.id !== id));
   };
 
-  const updateTemplateExercise = (id: string, updates: Partial<TemplateExercise>) => {
-    setTemplateExercises(templateExercises.map((e) => (e.id === id ? { ...e, ...updates } : e)));
-  };
-
-  const adjustSets = (id: string, currentSets: number, amount: number) => {
-    const nextSets = Math.max(1, currentSets + amount);
-    updateTemplateExercise(id, { targetSets: nextSets });
+  const changeSets = (id: string, sets: import('@fitness-tracker/domain').ExerciseSet[]) => {
+    if (!sets.length) return;
+    const first = sets[0]!;
+    setTemplateExercises(prev => prev.map(ex => {
+      if (ex.id !== id) return ex;
+      const next = { ...ex, sets, targetSets: sets.length };
+      for (const [source, target] of [['weight', 'targetWeight'], ['reps', 'targetReps'], ['rpe', 'targetRpe'], ['rir', 'targetRir']] as const) {
+        const value = first[source];
+        if (value === undefined || (target === 'targetReps' && value === 0)) delete next[target];
+        else next[target] = value;
+      }
+      return next;
+    }));
   };
 
   const screenTitle = existingTemplate
@@ -229,6 +250,7 @@ export default function WorkoutTemplateBuilderScreen() {
           },
         ]}
         scrollEnabled={sorter.scrollEnabled}
+        keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         automaticallyAdjustKeyboardInsets={true}
       >
@@ -529,7 +551,7 @@ export default function WorkoutTemplateBuilderScreen() {
                           { color: theme.colors.muted },
                         ]}
                       >
-                        kg
+                        {isImperial ? 'lbs' : 'kg'}
                       </Text>
                       <Text
                         style={[
@@ -540,134 +562,22 @@ export default function WorkoutTemplateBuilderScreen() {
                       >
                         {language === 'de' ? 'Wdh.' : 'Reps'}
                       </Text>
-                      <Text
-                        style={[
-                          styles.tableColHeader,
-                          styles.inputCol,
-                          { color: theme.colors.muted },
-                        ]}
-                      >
-                        RPE
-                      </Text>
                       <View style={styles.actionColHeader} />
                     </View>
 
-                    {/* Redesigned Template Set Rows (Visual Match to Active Workout SetRow) */}
-                    {Array.from({ length: te.targetSets }).map((_, setIdx) => {
-                      const setNum = setIdx + 1;
-                      return (
-                        <View key={setIdx} style={styles.tableRowContainer}>
-                          <View style={styles.tableRow}>
-                            <Text style={[styles.setColText, { color: theme.colors.text }]}>
-                              {setNum}
-                            </Text>
-
-                            {/* Target Weight input */}
-                            <TextInput
-                              style={[
-                                styles.inputField,
-                                styles.inputCol,
-                                {
-                                  color: theme.colors.text,
-                                  backgroundColor: theme.colors.background,
-                                  borderColor: 'transparent',
-                                },
-                              ]}
-                              accessibilityLabel={`${ex?.name} Zielgewicht Satz ${setNum}`}
-                              value={te.targetWeight ? te.targetWeight.toString() : ''}
-                              onChangeText={(t) => {
-                                let val = parseFloat(t.replace(',', '.')) || 0;
-                                if (val > 9999) val = 9999;
-                                updateTemplateExercise(te.id, { targetWeight: val });
-                              }}
-                              keyboardType="numeric"
-                              placeholder="-"
-                              placeholderTextColor={theme.colors.muted}
-                              selectTextOnFocus={true}
-                              inputAccessoryViewID={KEYBOARD_DONE_ID}
-                              onSubmitEditing={() => Keyboard.dismiss()}
-                            />
-
-                            {/* Target Reps input */}
-                            <TextInput
-                              style={[
-                                styles.inputField,
-                                styles.inputCol,
-                                {
-                                  color: theme.colors.text,
-                                  backgroundColor: theme.colors.background,
-                                  borderColor: 'transparent',
-                                },
-                              ]}
-                              accessibilityLabel={`${ex?.name} Wiederholungen Satz ${setNum}`}
-                              value={te.targetReps ? te.targetReps.toString() : ''}
-                              onChangeText={(t) => {
-                                let val = parseInt(t, 10) || 0;
-                                if (val > 999) val = 999;
-                                updateTemplateExercise(te.id, { targetReps: val });
-                              }}
-                              keyboardType="numeric"
-                              placeholder="-"
-                              placeholderTextColor={theme.colors.muted}
-                              selectTextOnFocus={true}
-                              inputAccessoryViewID={KEYBOARD_DONE_ID}
-                              onSubmitEditing={() => Keyboard.dismiss()}
-                            />
-
-                            {/* Target RPE input */}
-                            <TextInput
-                              style={[
-                                styles.inputField,
-                                styles.inputCol,
-                                {
-                                  color: theme.colors.text,
-                                  backgroundColor: theme.colors.background,
-                                  borderColor: 'transparent',
-                                },
-                              ]}
-                              accessibilityLabel={`${ex?.name} RPE Satz ${setNum}`}
-                              value={te.targetRpe ? te.targetRpe.toString() : ''}
-                              onChangeText={(t) => {
-                                let val = parseFloat(t.replace(',', '.')) || 0;
-                                if (val > 10) val = 10;
-                                updateTemplateExercise(te.id, { targetRpe: val });
-                              }}
-                              keyboardType="numeric"
-                              placeholder="-"
-                              placeholderTextColor={theme.colors.muted}
-                              selectTextOnFocus={true}
-                              inputAccessoryViewID={KEYBOARD_DONE_ID}
-                              onSubmitEditing={() => Keyboard.dismiss()}
-                            />
-
-                            {/* Delete button to decrement set count */}
-                            <Pressable
-                              onPress={() => adjustSets(te.id, te.targetSets, -1)}
-                              style={[
-                                styles.deleteSetBtn,
-                                {
-                                  borderColor: theme.colors.border,
-                                  backgroundColor: theme.colors.background,
-                                },
-                              ]}
-                              hitSlop={5}
-                            >
-                              <Ionicons name="trash-outline" size={16} color={theme.colors.error} />
-                            </Pressable>
-                          </View>
-                        </View>
-                      );
-                    })}
-
-                    {/* Full Width Add Set Button */}
-                    <Pressable
-                      style={[styles.addSetRow, { borderTopColor: theme.colors.border }]}
-                      onPress={() => adjustSets(te.id, te.targetSets, 1)}
-                    >
-                      <Ionicons name="add" size={18} color={theme.colors.primary} />
-                      <Text style={[styles.addSetRowText, { color: theme.colors.primary }]}>
-                        {language === 'de' ? 'SATZ HINZUFÜGEN' : 'ADD SET'}
-                      </Text>
+                    {materializeTemplateSets(te, Crypto.randomUUID).map((set, setIdx) => (
+                      <SetRow key={set.id} mode="template" compact set={set} isCurrent={false}
+                        workingSetNumber={setIdx + 1} sessionExerciseId={te.id} isImperial={isImperial}
+                        isCardio={ex?.movementPattern === 'cardio'} showRpe showRir onComplete={() => {}}
+                        onUpdate={updates => changeSets(te.id, updateIndependentSet(te.sets ?? materializeTemplateSets(te, Crypto.randomUUID), set.id, updates))}
+                        onDelete={() => changeSets(te.id, (te.sets ?? []).filter(s => s.id !== set.id).map((s, i) => ({ ...s, setNumber: i + 1 })))} />
+                    ))}
+                    <Pressable accessibilityRole="button" style={styles.addSetRow}
+                      onPress={() => {
+                        const sets = materializeTemplateSets(te, Crypto.randomUUID);
+                        changeSets(te.id, [...sets, { ...sets[sets.length - 1]!, id: Crypto.randomUUID(), setNumber: sets.length + 1 }]);
+                      }}>
+                      <Text style={styles.addSetRowText}>{language === 'de' ? 'SATZ HINZUFÜGEN' : 'ADD SET'}</Text>
                     </Pressable>
                   </>
                 )}
@@ -697,7 +607,7 @@ export default function WorkoutTemplateBuilderScreen() {
             targetSets: 3,
             targetReps: 10,
           }));
-          setTemplateExercises([...templateExercises, ...newExercises]);
+          setTemplateExercises([...templateExercises, ...newExercises.map(ex => ({ ...ex, sets: materializeTemplateSets(ex, Crypto.randomUUID) }))]);
           setExerciseModalVisible(false);
         }}
       />

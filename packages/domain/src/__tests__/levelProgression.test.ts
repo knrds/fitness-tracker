@@ -5,10 +5,35 @@ import {
   calculateLevelFromXp,
   getLevelProgress,
   calculateSessionXp,
+  estimateWorkoutsToLevel,
+  REPRESENTATIVE_WORKOUT_XP,
 } from '../logic/levelProgression';
 import type { WorkoutSession } from '../types';
 
 describe('levelProgression domain logic', () => {
+  it('calibrates the reference workout without migrating existing XP or rewarding idle time', () => {
+    const date = new Date('2026-09-24T10:00:00Z');
+    const session: WorkoutSession = {
+      id: 'reference', userId: 'u', name: 'Reference', startedAt: date,
+      createdAt: date, updatedAt: date, durationSeconds: 7200,
+      exercises: [{ id: 'e', exerciseId: 'squat', order: 0,
+        sets: Array.from({ length: 16 }, (_, i) => ({
+          id: `s-${i}`, setNumber: i + 1, weight: 62.5, reps: 10,
+          completed: true, type: 'working' as const,
+        })),
+      }],
+    };
+    expect(calculateSessionXp(session).totalSessionXp).toBe(1314);
+    expect(REPRESENTATIVE_WORKOUT_XP).toBe(1314);
+    expect(calculateSessionXp({ ...session, durationSeconds: 14400 })).toEqual(calculateSessionXp(session));
+    expect(estimateWorkoutsToLevel(0, 50)).toBe(1000);
+    expect(estimateWorkoutsToLevel(0, 30)).toBeGreaterThanOrEqual(200);
+    expect(estimateWorkoutsToLevel(0, 30)).toBeLessThanOrEqual(300);
+    expect(estimateWorkoutsToLevel(0, 5)).toBe(3);
+    expect(estimateWorkoutsToLevel(getXpRequiredForLevel(50), 50)).toBe(0);
+    expect(calculateLevelFromXp(600)).toBe(2);
+    expect(estimateWorkoutsToLevel(0, 50, Array(5).fill(session))).toBe(1000);
+  });
   describe('getXpRequiredForLevel & getDeltaXpForLevel', () => {
     it('returns 0 for Level 1 or below', () => {
       expect(getXpRequiredForLevel(1)).toBe(0);
@@ -198,29 +223,29 @@ describe('levelProgression domain logic', () => {
       // PR bonus = 1 PR * 25 = 25 XP
       // Total = 50 + 18 + 39 + 25 = 132 XP
       const xp = calculateSessionXp(normalSession, 1);
-      expect(xp.baseXp).toBe(50);
-      expect(xp.setBonus).toBe(18);
-      expect(xp.volumeBonus).toBe(39);
-      expect(xp.prBonus).toBe(25);
-      expect(xp.totalSessionXp).toBe(132);
+      expect(xp.baseXp).toBe(450);
+      expect(xp.setBonus).toBe(162);
+      expect(xp.volumeBonus).toBe(351);
+      expect(xp.prBonus).toBe(225);
+      expect(xp.totalSessionXp).toBe(1188);
 
-      // Normal workout does NOT level up user from level 1 (132 < 410 XP)
-      expect(calculateLevelFromXp(xp.totalSessionXp)).toBe(1);
+      // Early levels arrive quickly under the current award policy.
+      expect(calculateLevelFromXp(xp.totalSessionXp)).toBeGreaterThan(1);
     });
 
-    it('caps extreme workouts so no single workout causes multi-level jumps', () => {
+    it('caps extreme workout awards while allowing fast early progression', () => {
       const massiveSession = createMassiveSession();
 
       // 50 sets completed! 100,000 kg volume! 10 PRs claimed!
       const xp = calculateSessionXp(massiveSession, 10);
-      expect(xp.baseXp).toBe(50);
-      expect(xp.setBonus).toBe(30); // Capped at 30
-      expect(xp.volumeBonus).toBe(110); // Capped at 110
-      expect(xp.prBonus).toBe(75); // Capped at 75 (max 3 PRs)
-      expect(xp.totalSessionXp).toBe(265); // Strictly capped at 265 XP!
+      expect(xp.baseXp).toBe(450);
+      expect(xp.setBonus).toBe(270); // Capped at 30
+      expect(xp.volumeBonus).toBe(990); // Capped at 110
+      expect(xp.prBonus).toBe(675); // Capped at 75 (max 3 PRs)
+      expect(xp.totalSessionXp).toBe(2385); // Base cap 265, scaled by 9.
 
-      // Even this extreme workout CANNOT jump past Level 1 (265 < 410 XP)
-      expect(calculateLevelFromXp(xp.totalSessionXp)).toBe(1);
+      // The unchanged curve yields level 4 for this capped award.
+      expect(calculateLevelFromXp(xp.totalSessionXp)).toBeGreaterThan(1);
     });
 
     it('simulates the 5 archetype workouts cleanly and deterministically', () => {
@@ -255,8 +280,8 @@ describe('levelProgression domain logic', () => {
         updatedAt: new Date(),
       };
       const smallXp = calculateSessionXp(smallSession, 0);
-      expect(smallXp.totalSessionXp).toBe(75); // 50 base + 10 sets + 15 vol = 75
-      expect(calculateLevelFromXp(smallXp.totalSessionXp)).toBe(1);
+      expect(smallXp.totalSessionXp).toBe(675); // 50 base + 10 sets + 15 vol = 75
+      expect(calculateLevelFromXp(smallXp.totalSessionXp)).toBe(2);
 
       // 2. Normal workout (3 exercises, 10 sets, 4000 kg volume, 1 PR)
       const normalSession: WorkoutSession = {
@@ -302,14 +327,14 @@ describe('levelProgression domain logic', () => {
       };
       const normalXp = calculateSessionXp(normalSession, 1);
       // 10 sets (20 XP) + 3200 + 480 + 324 = 4004 kg (40 XP) + 50 base + 25 PR = 135 XP
-      expect(normalXp.totalSessionXp).toBe(135);
-      expect(calculateLevelFromXp(normalXp.totalSessionXp)).toBe(1);
+      expect(normalXp.totalSessionXp).toBe(1215);
+      expect(calculateLevelFromXp(normalXp.totalSessionXp)).toBe(3);
 
       // Level 1 user with 300 XP completes normal workout:
       // 300 + 135 = 435 XP -> advances to Level 2 (435 >= 410 and < 980)
-      expect(calculateLevelFromXp(300 + normalXp.totalSessionXp)).toBe(2);
+      expect(calculateLevelFromXp(300 + normalXp.totalSessionXp)).toBe(3);
       // Does NOT jump to Level 3
-      expect(calculateLevelFromXp(300 + normalXp.totalSessionXp)).toBeLessThan(3);
+      expect(calculateLevelFromXp(300 + normalXp.totalSessionXp)).toBeLessThan(4);
 
       // 3. Large workout (5 exercises, 18 sets, 9000 kg volume, 1 PR)
       const largeSession: WorkoutSession = {
@@ -335,8 +360,8 @@ describe('levelProgression domain logic', () => {
       };
       const largeXp = calculateSessionXp(largeSession, 1);
       // Base: 50, Sets: 10*2 + 8*1 = 28, Vol: 50 + Math.floor(4000/250) = 66, PR: 25 -> 169 XP
-      expect(largeXp.totalSessionXp).toBe(169);
-      expect(calculateLevelFromXp(largeXp.totalSessionXp)).toBe(1);
+      expect(largeXp.totalSessionXp).toBe(1521);
+      expect(calculateLevelFromXp(largeXp.totalSessionXp)).toBe(3);
 
       // 4. PR-heavy workout (4 exercises, 12 sets, 6000 kg volume, 3 PRs)
       const prHeavySession: WorkoutSession = {
@@ -362,13 +387,13 @@ describe('levelProgression domain logic', () => {
       };
       const prHeavyXp = calculateSessionXp(prHeavySession, 3);
       // Base: 50, Sets: 10*2 + 2*1 = 22, Vol: 50 + Math.floor(1000/250) = 54, PR: 3*25 = 75 -> 201 XP
-      expect(prHeavyXp.totalSessionXp).toBe(201);
-      expect(calculateLevelFromXp(prHeavyXp.totalSessionXp)).toBe(1);
+      expect(prHeavyXp.totalSessionXp).toBe(1809);
+      expect(calculateLevelFromXp(prHeavyXp.totalSessionXp)).toBe(4);
 
       // 5. Max-Cap workout (50 sets, 100k kg volume, 10 PRs)
       const maxCapXp = calculateSessionXp(createMassiveSession(), 10);
-      expect(maxCapXp.totalSessionXp).toBe(265);
-      expect(calculateLevelFromXp(maxCapXp.totalSessionXp)).toBe(1);
+      expect(maxCapXp.totalSessionXp).toBe(2385);
+      expect(calculateLevelFromXp(maxCapXp.totalSessionXp)).toBe(4);
     });
 
     it('confirms templates and plans generate zero session XP', () => {

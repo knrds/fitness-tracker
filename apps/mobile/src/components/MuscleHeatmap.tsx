@@ -69,8 +69,8 @@ export function MuscleHeatmap({
       : count / maximum < 0.35
         ? theme.anatomy.heat[1]!
         : count / maximum < 0.7
-          ? theme.colors.secondary
-          : theme.colors.tertiary;
+          ? theme.anatomy.heat[2]!
+          : theme.anatomy.heat[3]!;
   };
   const wide = width > 560;
   return (
@@ -148,8 +148,8 @@ export function MuscleHeatmap({
         {[
           theme.anatomy.base,
           theme.anatomy.heat[1]!,
-          theme.colors.secondary,
-          theme.colors.tertiary,
+          theme.anatomy.heat[2]!,
+          theme.anatomy.heat[3]!,
         ].map((fill) => (
           <View
             key={fill}

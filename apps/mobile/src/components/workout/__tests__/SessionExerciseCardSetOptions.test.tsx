@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { ThemeProvider, DialogProvider } from '@fitness-tracker/ui';
 import {
   Equipment,
@@ -8,7 +8,7 @@ import {
   MuscleGroup,
   SessionExercise,
 } from '@fitness-tracker/domain';
-import { SessionExerciseCard } from '../SessionExerciseCard';
+import { SessionExerciseCard, SetRow } from '../SessionExerciseCard';
 import { useExerciseStore } from '../../../stores/exerciseStore';
 import { useWorkoutStore } from '../../../stores/workoutStore';
 import { useProfileStore } from '../../../stores/profileStore';
@@ -75,6 +75,24 @@ const renderWithProviders = (ui: React.ReactElement) =>
   );
 
 describe('SessionExerciseCard - Set Options Three-Dot Menu Visibility', () => {
+  it('preserves explicit zero and clears optional effort values in the shared editor', () => {
+    const onUpdate = jest.fn();
+    const screen = renderWithProviders(<SetRow mode="template" compact={false}
+      set={{ ...mockSessionExercise.sets[0]!, weight: 0, rir: 0 }}
+      isCurrent={false} workingSetNumber={1} sessionExerciseId="se-1"
+      isImperial={false} isCardio={false} showRpe showRir
+      onUpdate={onUpdate} onComplete={jest.fn()} onDelete={jest.fn()} />);
+    expect(screen.getByLabelText('Satz 1 Gewicht').props.value).toBe('0');
+    fireEvent.changeText(screen.getByLabelText('Satz 1 Gewicht'), '');
+    expect(onUpdate).toHaveBeenLastCalledWith({ weight: undefined });
+    fireEvent.changeText(screen.getByLabelText('Satz 1 RPE'), '');
+    expect(onUpdate).toHaveBeenLastCalledWith({ rpe: undefined });
+    fireEvent.changeText(screen.getByLabelText('Satz 1 RIR'), '');
+    expect(onUpdate).toHaveBeenLastCalledWith({ rir: undefined });
+    fireEvent.changeText(screen.getByLabelText('Satz 1 RIR'), '9');
+    expect(onUpdate).toHaveBeenLastCalledWith({ rir: 5 });
+    expect(screen.queryByLabelText('Satz 1 abschließen')).toBeNull();
+  });
   beforeEach(() => {
     useExerciseStore.setState({
       exercises: [mockExercise, mockCardioExercise],

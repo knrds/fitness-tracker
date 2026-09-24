@@ -115,3 +115,24 @@ describe('coachStore', () => {
     expect(useCoachStore.getState().error).toBeNull();
   });
 });
+
+it('new chat cancels local pending state and ignores the previous response', async () => {
+  useProfileStore.getState().setAiConsent();
+  useCoachStore.getState().clearChatHistory();
+  let release!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  let signal: AbortSignal | undefined;
+  mockStreamCoachResponse.mockImplementation(async function* (_history, _context, options) {
+    signal = options.signal;
+    await pending; yield 'stale';
+  });
+  const sending = useCoachStore.getState().sendMessage('Training?');
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(useCoachStore.getState().isSending).toBe(true);
+  useCoachStore.getState().clearChatHistory();
+  expect(useCoachStore.getState().isSending).toBe(false);
+  expect(signal?.aborted).toBe(true);
+  release(); await sending;
+  expect(useCoachStore.getState().messages).toEqual([]);
+});

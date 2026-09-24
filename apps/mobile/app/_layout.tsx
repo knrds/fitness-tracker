@@ -1,3 +1,5 @@
+import { CelebrationPreviewHost } from '../src/components/workout/CelebrationPreview';
+import { PaywallHost } from '../src/components/paywall/PaywallHost';
 import React, { useEffect, useState } from 'react';
 import { Platform, View, StyleSheet, Keyboard } from 'react-native';
 import { Stack, usePathname, useRouter } from 'expo-router';
@@ -175,6 +177,8 @@ export default function RootLayout() {
                 <RootNavigator />
               </ErrorBoundary>
             </PersistenceGate>
+            <PaywallHost />
+          <CelebrationPreviewHost />
           </DialogProvider>
         </AppTheme>
       </SafeAreaProvider>

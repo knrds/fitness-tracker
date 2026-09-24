@@ -1,3 +1,4 @@
+import { isBetaFullAccess } from '../utils/betaAccessConfig';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { createTheme, useTheme, withAlpha } from '@fitness-tracker/ui';
@@ -18,7 +19,7 @@ import {
 } from '../utils/rewards';
 import { useI18n } from '../i18n';
 import { BattlePassModal } from './BattlePassModal';
-import { WorkoutCelebrationOverlay } from './workout/WorkoutCelebrationOverlay';
+import { CelebrationPreview } from './workout/CelebrationPreview';
 import { entitlementService } from '../services/entitlementService';
 import { usePaywallStore } from '../stores/paywallStore';
 import { monetizationAnalytics } from '../services/monetizationAnalytics';
@@ -83,7 +84,7 @@ export function AppearanceSettings() {
       return;
     }
 
-    const unlocked = isColorwayUnlocked(item.id, level);
+    const unlocked = isBetaFullAccess() || isColorwayUnlocked(item.id, level);
     if (!unlocked) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       Alert.alert(
@@ -108,7 +109,7 @@ export function AppearanceSettings() {
   };
 
   const handleSelectCelebration = (item: RewardCelebrationConfig) => {
-    const unlocked = isCelebrationUnlocked(item.id, level);
+    const unlocked = isBetaFullAccess() || isCelebrationUnlocked(item.id, level);
     const locItem = getLocalizedCelebrationConfig(item, language);
     if (!unlocked) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -143,7 +144,7 @@ export function AppearanceSettings() {
   const renderColorwayCard = (option: RewardColorwayConfig) => {
     const preview = createTheme(option.id);
     const isSelected = option.id === activeColorway;
-    const isUnlocked = isColorwayUnlocked(option.id, level);
+    const isUnlocked = isBetaFullAccess() || isColorwayUnlocked(option.id, level);
 
     return (
       <Pressable
@@ -631,7 +632,7 @@ export function AppearanceSettings() {
           {CELEBRATION_REWARDS.map((rawEff) => {
             const eff = getLocalizedCelebrationConfig(rawEff, language);
             const isSelected = eff.id === activeCelebration;
-            const isUnlocked = isCelebrationUnlocked(eff.id, level);
+            const isUnlocked = isBetaFullAccess() || isCelebrationUnlocked(eff.id, level);
 
             return (
               <Pressable
@@ -712,7 +713,7 @@ export function AppearanceSettings() {
       </View>
 
       {/* Live Preview Overlay when tapping a celebration effect */}
-      {previewEffect && <WorkoutCelebrationOverlay effect={previewEffect} />}
+      {previewEffect && <CelebrationPreview effect={previewEffect} />}
 
       {/* Battle Pass Popup */}
       <BattlePassModal

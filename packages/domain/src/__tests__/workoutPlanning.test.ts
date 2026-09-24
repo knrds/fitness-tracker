@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   createPlannedSet,
+  materializeTemplateSets,
+  updateIndependentSet,
   hasTemplateChanges,
   repeatSessionExercises,
   startTemplateExercises,
@@ -182,5 +184,27 @@ describe('workout prescription parity', () => {
     expect(created.targetWeight).toBe(0);
     expect(created).not.toHaveProperty('targetReps');
     expect(live.sets[0]?.reps).toBe(0);
+  });
+});
+
+
+describe('independent template prescriptions', () => {
+  it('fills only unset later values and preserves zero and customized rows', () => {
+    const empty = materializeTemplateSets({ id: 'empty', exerciseId: 'ex', order: 0, targetSets: 2, targetReps: 8 }, createId);
+    const filled = updateIndependentSet(empty, empty[0]!.id, { weight: 80 });
+    const customized = updateIndependentSet(filled, filled[1]!.id, { weight: 0, reps: 6 });
+    const edited = updateIndependentSet(customized, customized[0]!.id, { weight: 90 });
+    expect(edited.map(s => s.weight)).toEqual([90, 0]);
+    expect(edited.map(s => s.reps)).toEqual([8, 6]);
+    expect(empty[1]!.weight).toBeUndefined();
+  });
+  it('round trips each prescription through template save and workout start without completion', () => {
+    const sessions = [{ ...exercise, sets: [exercise.sets[0]!, { ...exercise.sets[0]!, id: 'second', weight: 75, reps: 6 }] }];
+    const saved = templateExercisesFromSession(sessions, createId);
+    const restored = startTemplateExercises(JSON.parse(JSON.stringify(saved)), createId);
+    expect(restored[0]!.sets.map(s => s.weight)).toEqual([80,75]);
+    expect(restored[0]!.sets.map(s => s.reps)).toEqual([8,6]);
+    expect(restored[0]!.sets.every(s => !s.completed && !s.completedAt)).toBe(true);
+    expect(new Set(restored[0]!.sets.map(s => s.id)).size).toBe(2);
   });
 });

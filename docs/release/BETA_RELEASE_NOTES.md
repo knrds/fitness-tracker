@@ -1,5 +1,14 @@
 # EVARO Beta Release Notes
 
+## Unreleased — beta finalization candidate
+
+- Independent template set prescriptions and shared live/template/history controls; zero and empty optional values remain distinct.
+- Custom exercises can target multiple muscles and equipment. Returning from exercise details preserves selection.
+- Central Beta Tester preference, visible capability dialogs, viewport cosmetic previews and consistent heat intensity colors.
+- Coach new-chat cancels stale responses; scoped guest signing fails closed outside explicit beta configuration. Added server kill switch and per-instance concurrency protection; distributed quotas remain pending.
+- Future workout XP calibrated to 1,314 XP for the representative 16-set/10,000-kg workout. Approximately 225 such workouts to level 30 and 1,000 to level 50, before achievement bonuses. Existing XP/levels unchanged.
+- This is not a tagged release or commercial readiness claim. Follow EXECUTION_STATUS.md for current checks and remaining gates.
+
 ## EVARO Beta 0.1.0-beta.8 (DateWheel Unification, Workout History Management & Beta Full-Access)
 
 **Release-Datum:** 23. September 2026  

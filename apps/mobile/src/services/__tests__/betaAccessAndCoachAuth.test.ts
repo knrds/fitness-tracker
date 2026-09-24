@@ -1,3 +1,5 @@
+import { randomBytes } from 'crypto';
+import { useProfileStore } from '../../stores/profileStore';
 import {
   isBetaFullAccess,
   isFailClosedProduction,
@@ -53,6 +55,15 @@ describe('Beta Full Access and Coach Auth Integration', () => {
   });
 
   describe('1. Central Beta Access Configuration & Fail-Closed Guard', () => {
+    it('honors the persisted tester preference without retaining synthetic entitlements', () => {
+      process.env.EXPO_PUBLIC_APP_ENV = 'beta';
+      useProfileStore.getState().updateProfile({ betaTesterEnabled: true });
+      expect(entitlementService.getTier()).toBe('coach');
+      useProfileStore.getState().updateProfile({ betaTesterEnabled: false });
+      expect(isBetaFullAccess()).toBe(false);
+      expect(entitlementService.getTier()).toBe('free');
+      useProfileStore.getState().updateProfile({ betaTesterEnabled: true });
+    });
     it('enables beta access in development, beta, and test environments', () => {
       delete process.env.APP_ENV;
       process.env.EXPO_PUBLIC_APP_ENV = 'beta';
@@ -145,7 +156,7 @@ describe('Beta Full Access and Coach Auth Integration', () => {
   describe('4. Server-Side Scoped Beta Token Auth (beta-auth.cjs)', () => {
     it('issues a well-formed signed beta token', () => {
       process.env.APP_ENV = 'beta';
-      delete process.env.BETA_SESSION_SECRET;
+      process.env.BETA_SESSION_SECRET = randomBytes(32).toString('hex');
 
       const token = issueBetaToken('test-installation-device-abc');
       expect(token).toMatch(/^beta_[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
@@ -158,7 +169,7 @@ describe('Beta Full Access and Coach Auth Integration', () => {
 
     it('pseudonymizes installationId to avoid leaking device fingerprints', () => {
       process.env.APP_ENV = 'beta';
-      delete process.env.BETA_SESSION_SECRET;
+      process.env.BETA_SESSION_SECRET = randomBytes(32).toString('hex');
 
       const token1 = issueBetaToken('user-phone-serial-1234');
       const token2 = issueBetaToken('user-phone-serial-1234');
@@ -173,7 +184,7 @@ describe('Beta Full Access and Coach Auth Integration', () => {
 
     it('rejects tampered or forged tokens', () => {
       process.env.APP_ENV = 'beta';
-      delete process.env.BETA_SESSION_SECRET;
+      process.env.BETA_SESSION_SECRET = randomBytes(32).toString('hex');
 
       const validToken = issueBetaToken('test-device');
       const forgedToken = validToken + 'invalid_signature_suffix';
@@ -186,12 +197,22 @@ describe('Beta Full Access and Coach Auth Integration', () => {
 
     it('fails closed in production: refuses token generation and verification', () => {
       process.env.APP_ENV = 'production';
-      delete process.env.BETA_SESSION_SECRET;
+      process.env.BETA_SESSION_SECRET = randomBytes(32).toString('hex');
 
       expect(isBetaAllowed()).toBe(false);
       expect(() => issueBetaToken('device-in-prod')).toThrow(/BETA_ACCESS_DISABLED/);
       expect(verifyBetaToken('beta_somepayload.somesig')).toBeNull();
     });
+  });
+
+  it('refuses hosted beta authentication without an explicit server environment and secret', () => {
+    process.env.VERCEL = '1';
+    delete process.env.APP_ENV;
+    expect(isBetaAllowed()).toBe(false);
+    process.env.APP_ENV = 'beta';
+    delete process.env.BETA_SESSION_SECRET;
+    expect(() => issueBetaToken('test-device')).toThrow('BETA_SESSION_NOT_CONFIGURED');
+    expect(verifyBetaToken('beta_a.b')).toBeNull();
   });
 
   describe('5. Coach Circuit Breaker Auth & Validation Exclusion', () => {
@@ -312,5 +333,20 @@ describe('Beta Full Access and Coach Auth Integration', () => {
       expect(defaultCoachCircuitBreaker.getConsecutiveFailures()).toBe(0);
       expect(defaultCoachCircuitBreaker.canExecute().allowed).toBe(true);
     });
+  });
+});
+
+describe('persisted tester preference', () => {
+  afterEach(() => { useProfileStore.getState().updateProfile({ betaTesterEnabled: true }); setBetaFullAccessKillSwitch(null); });
+  it('toggles every capability without granting a real purchase', () => {
+    process.env.EXPO_PUBLIC_APP_ENV = 'beta';
+    entitlementService.setBetaBypass(true);
+    useProfileStore.getState().updateProfile({ betaTesterEnabled: false });
+    expect(isBetaFullAccess()).toBe(false);
+    expect(entitlementService.canCreateProgram()).toBe(false);
+    useProfileStore.getState().updateProfile({ betaTesterEnabled: true });
+    expect(entitlementService.canCreateProgram()).toBe(true);
+    process.env.EXPO_PUBLIC_APP_ENV = 'production';
+    expect(entitlementService.canCreateProgram()).toBe(false);
   });
 });

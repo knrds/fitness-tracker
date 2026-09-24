@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 
-import { EXERCISES, MovementPattern } from '@fitness-tracker/domain';
+import { EXERCISES, MovementPattern, MuscleGroup, Equipment } from '@fitness-tracker/domain';
 import { DialogProvider, ThemeProvider } from '@fitness-tracker/ui';
 
 import { useExerciseStore } from '../../../stores/exerciseStore';
@@ -57,5 +57,22 @@ describe('CustomExerciseModal', () => {
     expect(customExercise?.name).toBe('Sled Push');
     expect(customExercise?.movementPattern).toBe(MovementPattern.Cardio);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('persists multiple muscle groups and equipment and filters by either equipment', () => {
+    const screen = render(<ThemeProvider><DialogProvider>
+      <CustomExerciseModal visible onClose={jest.fn()} />
+    </DialogProvider></ThemeProvider>);
+    fireEvent.changeText(screen.getByPlaceholderText(/e\.g\. My Custom Lift|z\. B\. Meine eigene Übung/i), 'Multi press');
+    fireEvent.press(screen.getByText(/^(Chest|Brust)$/i));
+    fireEvent.press(screen.getByText(/^(Triceps|Trizeps)$/i));
+    fireEvent.press(screen.getByText(/^(Barbell|Langhantel)$/i));
+    fireEvent.press(screen.getByText(/^(Dumbbell|Kurzhantel)$/i));
+    fireEvent.press(screen.getByText(/Create Exercise|Übung erstellen/i));
+    const exercise = useExerciseStore.getState().customExercises[0]!;
+    expect(exercise.primaryMuscles).toEqual([MuscleGroup.Chest, MuscleGroup.Triceps]);
+    expect(exercise.equipmentOptions).toEqual([Equipment.Barbell, Equipment.Dumbbell]);
+    useExerciseStore.getState().setFilter(null, Equipment.Dumbbell);
+    expect(useExerciseStore.getState().filteredExercises.some(item => item.id === exercise.id)).toBe(true);
   });
 });

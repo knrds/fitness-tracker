@@ -1,3 +1,5 @@
+import { estimateWorkoutsToLevel } from '@fitness-tracker/domain';
+import { useHistoryStore } from '../stores/historyStore';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -96,6 +98,7 @@ const RANK_REWARDS: Record<
 };
 
 export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModalProps) {
+  const sessions = useHistoryStore(state => state.sessions);
   const theme = useTheme();
   const { t, language } = useI18n();
   const insets = useSafeAreaInsets();
@@ -673,7 +676,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                             <Text style={[styles.detailMissingWorkouts, { color: c.muted }]}>
                               {t('rank.approxWorkouts').replace(
                                 '{count}',
-                                String(Math.ceil(missingXp / 150)),
+                                String(estimateWorkoutsToLevel(xp, inspectedLevel, sessions)),
                               )}
                             </Text>
                           </View>

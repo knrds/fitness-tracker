@@ -29,16 +29,16 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
   const { addCustomExercise } = useExerciseStore();
   const [name, setName] = useState('');
   const [instructions, setInstructions] = useState('');
-  const [muscle, setMuscle] = useState<MuscleGroup | ''>('');
-  const [equipment, setEq] = useState<Equipment | ''>('');
+  const [muscle, setMuscle] = useState<MuscleGroup[]>([]);
+  const [equipment, setEq] = useState<Equipment[]>([]);
   const [trackMode, setTrackMode] = useState<'reps' | 'duration'>('reps');
 
   useEffect(() => {
     if (visible) {
       setName('');
       setInstructions('');
-      setMuscle('');
-      setEq('');
+      setMuscle([]);
+      setEq([]);
       setTrackMode('reps');
     }
   }, [visible]);
@@ -50,12 +50,12 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
         errTitle,
         language === 'de' ? 'Name ist erforderlich' : 'Name is required',
       );
-    if (!muscle)
+    if (!muscle.length)
       return Alert.alert(
         errTitle,
         language === 'de' ? 'Muskelgruppe ist erforderlich' : 'Muscle group is required',
       );
-    if (!equipment)
+    if (!equipment.length)
       return Alert.alert(
         errTitle,
         language === 'de' ? 'Equipment ist erforderlich' : 'Equipment is required',
@@ -65,16 +65,17 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
       addCustomExercise({
         name: name.trim(),
         instructions: instructions.trim(),
-        primaryMuscles: [muscle as MuscleGroup],
+        primaryMuscles: muscle,
         secondaryMuscles: [],
-        equipment: equipment as Equipment,
+        equipment: equipment[0]!,
+        equipmentOptions: equipment,
         movementPattern:
           trackMode === 'duration' ? MovementPattern.Cardio : MovementPattern.Isolation,
       });
       setName('');
       setInstructions('');
-      setMuscle('');
-      setEq('');
+      setMuscle([]);
+      setEq([]);
       setTrackMode('reps');
       onClose();
     } catch {
@@ -171,7 +172,7 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
           </Text>
           <View style={styles.chipContainer}>
             {Object.values(MuscleGroup).map((m) =>
-              renderChip(muscle === m, formatMuscle(m), () => setMuscle(m), m),
+              renderChip(muscle.includes(m), formatMuscle(m), () => setMuscle(prev => prev.includes(m) ? prev.filter(item => item !== m) : [...prev, m]), m),
             )}
           </View>
 
@@ -180,7 +181,7 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
           </Text>
           <View style={styles.chipContainer}>
             {Object.values(Equipment).map((e) =>
-              renderChip(equipment === e, formatEquipment(e), () => setEq(e), e),
+              renderChip(equipment.includes(e), formatEquipment(e), () => setEq(prev => prev.includes(e) ? prev.filter(item => item !== e) : [...prev, e]), e),
             )}
           </View>
 

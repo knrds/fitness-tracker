@@ -11,15 +11,16 @@ import {
 } from '../rewards';
 
 describe('rewards utility', () => {
-  it('contains 11 configured colorways with 4 light modes and 7 dark modes', () => {
-    expect(COLORWAY_REWARDS).toHaveLength(11);
+  it('contains 14 configured colorways with 6 light modes and 8 dark modes', () => {
+    expect(COLORWAY_REWARDS).toHaveLength(14);
     const lightModes = COLORWAY_REWARDS.filter((c) => c.isLight);
     const darkModes = COLORWAY_REWARDS.filter((c) => !c.isLight);
-    expect(lightModes).toHaveLength(4);
-    expect(darkModes).toHaveLength(7);
+    expect(lightModes).toHaveLength(6);
+    expect(darkModes).toHaveLength(8);
 
-    expect(lightModes.map((c) => c.id)).toEqual(['arctic', 'solar', 'rose', 'alpine']);
+    expect(lightModes.map((c) => c.id)).toEqual(['linen', 'sage', 'arctic', 'solar', 'rose', 'alpine']);
     expect(darkModes.map((c) => c.id)).toEqual([
+      'slate',
       'glacier',
       'crimson',
       'verde',

@@ -1,3 +1,4 @@
+import { registerBetaTesterPreference } from '../utils/betaAccessConfig';
 import { getStorageScope, isScopeCurrent } from '../data/storageScope';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
@@ -57,6 +58,7 @@ export type CelebrationEffect =
   | 'cosmic';
 
 export interface Profile {
+  betaTesterEnabled?: boolean;
   displayName: string;
   language?: 'de' | 'en';
   colorway?: Colorway | undefined;
@@ -123,6 +125,7 @@ const defaultProfile: Profile = {
 };
 
 const profileStateSchema = z.object({
+  betaTesterEnabled: z.boolean().optional(),
   displayName: z.string(),
   language: z.enum(['de', 'en']).optional(),
   colorway: z
@@ -139,6 +142,9 @@ const profileStateSchema = z.object({
       'rose',
       'crimson',
       'amber',
+      'linen',
+      'sage',
+      'slate',
     ])
     .optional(),
   savedPremiumColorway: z
@@ -155,6 +161,9 @@ const profileStateSchema = z.object({
       'rose',
       'crimson',
       'amber',
+      'linen',
+      'sage',
+      'slate',
     ])
     .optional(),
   celebrationEffect: z
@@ -415,7 +424,7 @@ export const useProfileStore = create<ProfileState>()(
   ),
 );
 
-const LIGHT_COLORWAYS: Colorway[] = ['arctic', 'solar', 'rose', 'alpine'];
+const LIGHT_COLORWAYS: Colorway[] = ['linen', 'sage', 'arctic', 'solar', 'rose', 'alpine'];
 
 export function syncAppearanceForTier(tier: SubscriptionTier) {
   const state = useProfileStore.getState();
@@ -457,3 +466,5 @@ export function syncAppearanceForTier(tier: SubscriptionTier) {
 entitlementService.onTierChange((tier) => {
   syncAppearanceForTier(tier);
 });
+
+registerBetaTesterPreference(() => useProfileStore.getState().profile.betaTesterEnabled !== false);

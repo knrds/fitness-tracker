@@ -258,9 +258,9 @@ export default function ExercisesScreen({ embedded = false }: ExercisesScreenPro
         >
           {language === 'de' ? 'ÜBUNGSBIBLIOTHEK' : 'EXERCISE LIBRARY'}
         </Text>
-        <Pressable style={styles.createBtn} onPress={() => setShowCustomModal(true)}>
+        {!embedded && <Pressable accessibilityRole="button" accessibilityLabel={language === 'de' ? 'Übung hinzufügen' : 'Add exercise'} style={styles.createBtn} onPress={() => setShowCustomModal(true)}>
           <Ionicons name="add" size={24} color={theme.colors.primary} />
-        </Pressable>
+        </Pressable>}
       </View>
 
       <View style={[styles.searchContainer, { zIndex: 100 }]}>

@@ -6,20 +6,16 @@ const crypto = require('crypto');
  */
 
 function getBetaSecret() {
-  return (
-    process.env.BETA_SESSION_SECRET ||
-    process.env.OPENROUTER_API_KEY ||
-    'evaro-beta-session-default-guard-key-2026'
-  );
+  const secret = process.env.BETA_SESSION_SECRET;
+  if (typeof secret !== 'string' || Buffer.byteLength(secret) < 32) {
+    throw new Error('BETA_SESSION_NOT_CONFIGURED');
+  }
+  return secret;
 }
 
 function isBetaAllowed() {
-  // Fail-closed guard: NEVER active in production!
-  if (process.env.APP_ENV === 'production') return false;
-  if (process.env.NODE_ENV === 'production' && process.env.APP_ENV !== 'beta' && !process.env.VERCEL) return false;
-  // Kill switch check
-  if (process.env.BETA_FULL_ACCESS === 'false') return false;
-  return true;
+  // Hosting provider and public/client flags are never authorization.
+  return process.env.APP_ENV === 'beta' && process.env.BETA_FULL_ACCESS !== 'false';
 }
 
 function base64UrlEncode(str) {
@@ -85,6 +81,9 @@ function verifyBetaToken(token) {
     return null;
   }
 
+  if (token.length > 2048) return null;
+  let secret;
+  try { secret = getBetaSecret(); } catch { return null; }
   const raw = token.slice(5); // strip 'beta_'
   const dotIdx = raw.lastIndexOf('.');
   if (dotIdx === -1) return null;
@@ -94,11 +93,11 @@ function verifyBetaToken(token) {
 
   // Timing safe HMAC comparison
   const expectedSignature = crypto
-    .createHmac('sha256', getBetaSecret())
+    .createHmac('sha256', secret)
     .update(payloadEncoded)
     .digest('base64url');
 
-  if (signature.length !== expectedSignature.length) return null;
+  if (!/^[A-Za-z0-9_-]+$/.test(signature) || Buffer.byteLength(signature) !== Buffer.byteLength(expectedSignature)) return null;
   const isMatch = crypto.timingSafeEqual(
     Buffer.from(signature),
     Buffer.from(expectedSignature),

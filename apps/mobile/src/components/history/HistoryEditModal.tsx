@@ -1,3 +1,9 @@
+import { getStorageScope, isScopeCurrent } from '../../data/storageScope';
+import { scopedAlert as Alert } from '../../utils/scopedAlert';
+import { SetRow } from '../workout/SessionExerciseCard';
+import { ExercisePickerModal } from '../workout/ExercisePickerModal';
+import { KeyboardDoneAccessory } from '../workout/KeyboardDoneAccessory';
+import * as Crypto from 'expo-crypto';
 import React, { useState, useEffect } from 'react';
 import {
   Modal,
@@ -7,10 +13,9 @@ import {
   Pressable,
   TextInput,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, withAlpha } from '@fitness-tracker/ui';
+import { useTheme } from '@fitness-tracker/ui';
 import {
   WorkoutSession,
   SessionExercise,
@@ -39,6 +44,7 @@ export const HistoryEditModal: React.FC<HistoryEditModalProps> = ({
   onSaved,
 }) => {
   const theme = useTheme();
+  const editScope = React.useRef(getStorageScope());
   const { language } = useI18n();
   const { exercises: catalogExercises } = useExerciseStore();
   const { profile } = useProfileStore();
@@ -49,10 +55,12 @@ export const HistoryEditModal: React.FC<HistoryEditModalProps> = ({
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [durationMinutes, setDurationMinutes] = useState('0');
   const [notes, setNotes] = useState('');
+  const [pickerVisible, setPickerVisible] = useState(false);
   const [sessionExercises, setSessionExercises] = useState<SessionExercise[]>([]);
 
   useEffect(() => {
     if (session && visible) {
+      editScope.current = getStorageScope();
       setName(session.name);
       setDateStr(toIsoDateString(new Date(session.startedAt)));
       setDurationMinutes(String(Math.round((session.durationSeconds ?? 0) / 60)));
@@ -72,25 +80,6 @@ export const HistoryEditModal: React.FC<HistoryEditModalProps> = ({
   const getExerciseName = (exerciseId: string) => {
     const found = catalogExercises.find((e) => e.id === exerciseId);
     return found ? found.name : 'Exercise';
-  };
-
-  const handleUpdateSet = (
-    exIdx: number,
-    setIdx: number,
-    field: keyof ExerciseSet,
-    val: unknown,
-  ) => {
-    setSessionExercises((prev) => {
-      const copy = [...prev];
-      const target = copy[exIdx];
-      if (!target) return prev;
-      const setsCopy = [...target.sets];
-      const currentSet = setsCopy[setIdx];
-      if (!currentSet) return prev;
-      setsCopy[setIdx] = { ...currentSet, [field]: val } as ExerciseSet;
-      copy[exIdx] = { ...target, sets: setsCopy };
-      return copy;
-    });
   };
 
   const handleAddSet = (exIdx: number) => {
@@ -135,6 +124,7 @@ export const HistoryEditModal: React.FC<HistoryEditModalProps> = ({
   };
 
   const handleSave = () => {
+    if (!isScopeCurrent(editScope.current)) { onClose(); return; }
     if (!name.trim()) {
       Alert.alert(
         language === 'de' ? 'Fehler' : 'Error',
@@ -342,183 +332,35 @@ export const HistoryEditModal: React.FC<HistoryEditModalProps> = ({
                   {getExerciseName(ex.exerciseId)}
                 </Text>
 
-                {/* Table Header */}
-                <View style={styles.tableHeader}>
-                  <Text style={[styles.colHeader, { flex: 0.8, color: theme.colors.muted }]}>
-                    {language === 'de' ? 'Satz' : 'Set'}
-                  </Text>
-                  <Text style={[styles.colHeader, { flex: 1.2, color: theme.colors.muted }]}>
-                    {language === 'de' ? 'Typ' : 'Type'}
-                  </Text>
-                  <Text style={[styles.colHeader, { flex: 1.5, color: theme.colors.muted }]}>
-                    {isImperial ? 'lbs' : 'kg'}
-                  </Text>
-                  <Text style={[styles.colHeader, { flex: 1.2, color: theme.colors.muted }]}>
-                    {language === 'de' ? 'Wdh' : 'Reps'}
-                  </Text>
-                  <Text style={[styles.colHeader, { flex: 1.2, color: theme.colors.muted }]}>
-                    RPE
-                  </Text>
-                  <View style={{ width: 36 }} />
-                </View>
-
-                {/* Sets */}
                 {ex.sets.map((set, setIdx) => (
-                  <View key={set.id || `set_${setIdx}`} style={styles.setRow}>
-                    <Text style={[styles.setText, { flex: 0.8, color: theme.colors.muted }]}>
-                      {set.setNumber}
-                    </Text>
-
-                    {/* Set Type toggle */}
-                    <Pressable
-                      style={[
-                        styles.typeBadge,
-                        {
-                          flex: 1.2,
-                          backgroundColor:
-                            set.type === 'warmup'
-                              ? withAlpha(theme.colors.warning, 0.15)
-                              : withAlpha(theme.colors.primary, 0.15),
-                        },
-                      ]}
-                      onPress={() =>
-                        handleUpdateSet(
-                          exIdx,
-                          setIdx,
-                          'type',
-                          set.type === 'warmup' ? 'working' : 'warmup',
-                        )
-                      }
-                    >
-                      <Text
-                        style={[
-                          styles.typeBadgeText,
-                          {
-                            color:
-                              set.type === 'warmup'
-                                ? theme.colors.warning
-                                : theme.colors.primary,
-                          },
-                        ]}
-                      >
-                        {set.type === 'warmup'
-                          ? language === 'de'
-                            ? 'W'
-                            : 'W'
-                          : language === 'de'
-                            ? 'A'
-                            : 'Wk'}
-                      </Text>
-                    </Pressable>
-
-                    {/* Weight */}
-                    <TextInput
-                      style={[
-                        styles.cellInput,
-                        {
-                          flex: 1.5,
-                          color: theme.colors.text,
-                          borderColor: theme.colors.border,
-                          backgroundColor: theme.colors.background,
-                        },
-                      ]}
-                      value={String(set.weight ?? 0)}
-                      onChangeText={(val) => {
-                        const parsed = parseFloat(val.replace(',', '.'));
-                        handleUpdateSet(
-                          exIdx,
-                          setIdx,
-                          'weight',
-                          isNaN(parsed) ? 0 : parsed,
-                        );
-                      }}
-                      keyboardType="numeric"
-                    />
-
-                    {/* Reps */}
-                    <TextInput
-                      style={[
-                        styles.cellInput,
-                        {
-                          flex: 1.2,
-                          color: theme.colors.text,
-                          borderColor: theme.colors.border,
-                          backgroundColor: theme.colors.background,
-                        },
-                      ]}
-                      value={String(set.reps ?? 0)}
-                      onChangeText={(val) => {
-                        const parsed = parseInt(val, 10);
-                        handleUpdateSet(
-                          exIdx,
-                          setIdx,
-                          'reps',
-                          isNaN(parsed) ? 0 : parsed,
-                        );
-                      }}
-                      keyboardType="numeric"
-                    />
-
-                    {/* RPE */}
-                    <TextInput
-                      style={[
-                        styles.cellInput,
-                        {
-                          flex: 1.2,
-                          color: theme.colors.text,
-                          borderColor: theme.colors.border,
-                          backgroundColor: theme.colors.background,
-                        },
-                      ]}
-                      value={set.rpe !== undefined ? String(set.rpe) : ''}
-                      onChangeText={(val) => {
-                        const parsed = parseFloat(val.replace(',', '.'));
-                        handleUpdateSet(
-                          exIdx,
-                          setIdx,
-                          'rpe',
-                          isNaN(parsed) ? undefined : parsed,
-                        );
-                      }}
-                      keyboardType="numeric"
-                      placeholder="-"
-                      placeholderTextColor={theme.colors.muted}
-                    />
-
-                    {/* Delete Set */}
-                    <Pressable
-                      style={styles.deleteSetBtn}
-                      hitSlop={8}
-                      onPress={() => handleRemoveSet(exIdx, setIdx)}
-                      accessibilityRole="button"
-                      accessibilityLabel={language === 'de' ? 'Satz löschen' : 'Delete set'}
-                    >
-                      <Ionicons name="trash-outline" size={16} color={theme.colors.error} />
-                    </Pressable>
-                  </View>
+                  <SetRow key={set.id} mode="history" compact set={set} isCurrent={false}
+                    workingSetNumber={setIdx + 1} sessionExerciseId={ex.id} isImperial={isImperial}
+                    isCardio={catalogExercises.find(e => e.id === ex.exerciseId)?.movementPattern === 'cardio'}
+                    showRpe showRir onComplete={() => {}}
+                    onUpdate={updates => setSessionExercises(prev => prev.map(item => item.id === ex.id
+                      ? { ...item, sets: item.sets.map(row => row.id === set.id ? { ...row, ...updates } : row) } : item))}
+                    onDelete={() => handleRemoveSet(exIdx, setIdx)} />
                 ))}
-
-                {/* Add Set Button */}
-                <Pressable
-                  style={[
-                    styles.addSetBtn,
-                    {
-                      borderColor: withAlpha(theme.colors.primary, 0.4),
-                      backgroundColor: withAlpha(theme.colors.primary, 0.06),
-                    },
-                  ]}
-                  onPress={() => handleAddSet(exIdx)}
-                >
-                  <Ionicons name="add" size={16} color={theme.colors.primary} />
-                  <Text style={[styles.addSetText, { color: theme.colors.primary }]}>
-                    {language === 'de' ? 'Satz hinzufügen' : 'Add Set'}
-                  </Text>
+                <Pressable accessibilityRole="button" style={styles.addSetBtn} onPress={() => handleAddSet(exIdx)}>
+                  <Text style={{ color: theme.colors.primary }}>{language === 'de' ? '+ Satz' : '+ Set'}</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" style={styles.addSetBtn} onPress={() => setSessionExercises(prev => prev.filter(item => item.id !== ex.id))}>
+                  <Text style={{ color: theme.colors.error }}>{language === 'de' ? 'Übung entfernen' : 'Remove exercise'}</Text>
                 </Pressable>
               </View>
             ))}
+            <Pressable accessibilityRole="button" style={styles.addSetBtn} onPress={() => setPickerVisible(true)}>
+              <Text style={{ color: theme.colors.primary }}>{language === 'de' ? '+ Übung' : '+ Exercise'}</Text>
+            </Pressable>
           </ScrollView>
 
           {/* Date Picker Modal */}
+          <ExercisePickerModal visible={pickerVisible} onClose={() => setPickerVisible(false)}
+            onSelect={ids => setSessionExercises(prev => [...prev, ...ids.map((exerciseId, index) => ({
+              id: Crypto.randomUUID(), exerciseId, order: prev.length + index,
+              sets: [{ id: Crypto.randomUUID(), setNumber: 1, type: 'working' as const, completed: true }],
+            }))])} />
+          <KeyboardDoneAccessory />
           <DatePickerModal
             visible={datePickerVisible}
             value={dateStr}

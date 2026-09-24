@@ -140,7 +140,7 @@ describe('achievementStore', () => {
     });
     useHistoryStore.setState({ sessions: [current] });
     useAchievementStore.getState().awardXpAndCheckAchievements(current);
-    expect(useAchievementStore.getState().xp).toBe(264);
+    expect(useAchievementStore.getState().xp).toBe(89 * 9 + 175);
     expect(useAchievementStore.getState().repeatCounts['rep_session_pr']).toBe(1);
   });
 
@@ -189,9 +189,9 @@ describe('achievementStore', () => {
     // One-time achievements: first_workout (50) + first_pr (50) = 100 XP
     // Repeatable achievements earned this session:
     //   - rep_workout_complete (+25), rep_session_pr (+50) = 75 XP
-    // Total XP = 50 + 2 + 10 + 25 + 100 + 75 = 262 XP
-    expect(state.xp).toBe(262);
-    expect(state.level).toBe(1);
+    // Session awards scale by 9; achievement awards remain unchanged.
+    expect(state.xp).toBe(87 * 9 + 175);
+    expect(state.level).toBe(2);
     expect(state.unlockedAchievements['first_workout']).toBeDefined();
     expect(state.unlockedAchievements['first_pr']).toBeDefined(); // First PR unlocked as well
     expect(state.newlyUnlocked).toContain('first_workout');
@@ -200,10 +200,10 @@ describe('achievementStore', () => {
     expect(state.repeatCounts['rep_workout_complete']).toBe(1);
     expect(state.repeatCounts['rep_session_pr']).toBe(1);
     expect(state.newlyUnlocked).not.toContain('rep_workout_complete');
-    expect(state.levelUpTo).toBeNull();
+    expect(state.levelUpTo).toBe(2);
   });
 
-  it('should handle level up when XP crosses 410 XP boundary (Level 2)', () => {
+  it('awards the new session XP once while preserving existing XP', () => {
     // Manually set state near level up boundary (Level 2 is 410 XP)
     useAchievementStore.setState({ xp: 350, level: 1 });
 
@@ -243,10 +243,9 @@ describe('achievementStore', () => {
 
     const state = useAchievementStore.getState();
 
-    // XP crossed 410 threshold -> Level 2
-    expect(state.xp).toBeGreaterThanOrEqual(410);
-    expect(state.level).toBe(2);
-    expect(state.levelUpTo).toBe(2);
+    expect(state.xp).toBe(350 + 87 * 9 + 175);
+    expect(state.level).toBe(3);
+    expect(state.levelUpTo).toBe(3);
 
     // Duplicate call with the same session does not award duplicate XP
     const xpAfterFirst = state.xp;

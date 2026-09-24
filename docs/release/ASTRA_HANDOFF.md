@@ -1,5 +1,11 @@
 # ASTRA START HERE — aktueller Handoff 2026-09-22
 
+## Current override — 24.09.2026
+
+Continue `astra/beta-finalization`; do not restart from the older Gemini summaries below. Read the 24.09 checkpoint in EXECUTION_STATUS.md. Current master is `EVARO_ASTRA_BETA_FINALIZATION_MASTER.md` supplied by user. Existing tag beta.8 is not proof of a completed beta gate. Shared set editors, scoped beta auth, beta preference, Coach cancellation, multi-select exercises and future XP calibration are implemented; final consolidated checks and remote acceptance remain required. No main merge/new tag yet.
+
+Latest scope adds immutable GK/PPL defaults, reversible hiding, Free 3 templates/1 program, consistent back headers, folder selection, new/ordered cosmetics with separate Pro and level gating, distinct effect previews, permanent-notes default and date/metrics layout polish. Preserve user data while retiring old seeded defaults; do not delete historical references. Supabase plugin installed per user, but project tools were not yet exposed in this runtime; verify connection before claiming backend access.
+
 ## Aktueller Checkpoint — 22.09.2026: Zusatzblock (Coach App-weites Wissen, Program DnD Parity & Home Program Preview)
 
 Gemini hat die drei konkreten Produktanforderungen des Zusatzblocks ohne Einführung neuer Domänen vollständig und sicher implementiert, typgeprüft und automatisiert abgesichert:

@@ -31,23 +31,39 @@ export function startTemplateExercises(
     order: index,
     ...(exercise.notes !== undefined ? { notes: exercise.notes } : {}),
     ...(exercise.supersetGroup !== undefined ? { supersetGroup: exercise.supersetGroup } : {}),
-    sets: Array.from({ length: exercise.targetSets }, (_, setIndex) => ({
-      id: createId(),
-      setNumber: setIndex + 1,
-      type: 'working',
-      completed: false,
-      ...(exercise.targetWeight !== undefined ? { weight: exercise.targetWeight } : {}),
-      ...(exercise.targetReps !== undefined ? { reps: exercise.targetReps } : {}),
-      ...(exercise.targetRpe !== undefined ? { rpe: exercise.targetRpe } : {}),
-      ...(exercise.targetRir !== undefined ? { rir: exercise.targetRir } : {}),
-      ...(exercise.targetRestSeconds !== undefined
-        ? { restSeconds: exercise.targetRestSeconds }
-        : {}),
-    })),
+    sets: materializeTemplateSets(exercise, createId).map((set, setIndex) => createPlannedSet(set, setIndex, createId)),
   }));
 }
 
-/** The current template contract prescribes uniform working sets from the first working set. */
+/** Materialize legacy uniform prescriptions without modifying the source. */
+export function materializeTemplateSets(exercise: TemplateExercise, createId: CreateId): ExerciseSet[] {
+  if (exercise.sets?.length) return exercise.sets.map(set => ({ ...set }));
+  return Array.from({ length: exercise.targetSets }, (_, index) => ({
+    id: createId(), setNumber: index + 1, type: 'working', completed: false,
+    ...(exercise.targetWeight !== undefined ? { weight: exercise.targetWeight } : {}),
+    ...(exercise.targetReps !== undefined ? { reps: exercise.targetReps } : {}),
+    ...(exercise.targetRpe !== undefined ? { rpe: exercise.targetRpe } : {}),
+    ...(exercise.targetRir !== undefined ? { rir: exercise.targetRir } : {}),
+    ...(exercise.targetRestSeconds !== undefined ? { restSeconds: exercise.targetRestSeconds } : {}),
+  }));
+}
+
+/** Only the edited row changes; first-row values fill truly unset later values. */
+export function updateIndependentSet(sets: readonly ExerciseSet[], id: UUID, updates: Partial<ExerciseSet>): ExerciseSet[] {
+  const first = sets[0]?.id === id;
+  return sets.map(set => {
+    if (set.id === id) return { ...set, ...updates };
+    if (!first || set.completed) return set;
+    const next = { ...set };
+    for (const key of ['weight', 'reps', 'rpe', 'rir'] as const) {
+      const value = updates[key];
+      if (next[key] === undefined && value !== undefined) next[key] = value;
+    }
+    return next;
+  });
+}
+
+/** Preserve independent prescriptions as well as legacy summary fields. */
 export function templateExercisesFromSession(
   exercises: readonly SessionExercise[],
   createId: CreateId,
@@ -76,6 +92,7 @@ export function templateExercisesFromSession(
       exerciseId: exercise.exerciseId,
       order: index,
       targetSets: working.length || 1,
+      sets: (working.length ? working : exercise.sets).map((set, i) => createPlannedSet(set, i, createId)),
       ...(reps !== undefined ? { targetReps: reps } : {}),
       ...(preserveRange && original.targetRepsMax !== undefined
         ? { targetRepsMax: original.targetRepsMax }
@@ -110,6 +127,8 @@ export function hasTemplateChanges(
   if (originals.length !== exercises.length) return true;
   const projected = templateExercisesFromSession(exercises, () => '', originals);
   return projected.some((exercise, index) =>
-    prescriptionKeys.some((key) => exercise[key] !== originals[index]?.[key]),
+    prescriptionKeys.some((key) => exercise[key] !== originals[index]?.[key]) ||
+    (originals[index]?.sets === undefined && exercise.sets?.some(set => ['weight', 'reps', 'rpe', 'rir'].some(key => set[key as keyof ExerciseSet] !== exercise.sets?.[0]?.[key as keyof ExerciseSet]))) ||
+    (originals[index]?.sets !== undefined && JSON.stringify(exercise.sets?.map(({ id: _id, ...set }) => set)) !== JSON.stringify(originals[index]?.sets?.map(({ id: _id, ...set }) => set))),
   );
 }

@@ -32,17 +32,18 @@ const MAX_PRECOMPUTED_LEVEL = 100;
  * Progression phases:
  * - Early Game (L1–5):
  *   Level 1: 0 XP
- *   Level 2: 410 XP (Delta: 410, ~3 normal workouts)
- *   Level 3: 980 XP (Delta: 570, ~7 cumulative workouts)
- *   Level 4: 1,770 XP (Delta: 790, ~13 cumulative workouts)
- *   Level 5: 2,840 XP (Delta: 1,070, ~20 cumulative workouts)
+ *   Level 2: 410 XP (reached within the first representative workout)
+ *   Level 3: 980 XP (reached within the first representative workout)
+ *   Level 4: 1,770 XP (~2 cumulative representative workouts)
+ *   Level 5: 2,840 XP (~3 cumulative representative workouts)
  * - Mid Game (L6–15):
  *   Level 6: 4,250 XP (Delta: 1,410)
- *   Level 10: 14,490 XP (Delta: 3,370, ~103 cumulative workouts)
- *   Level 15: 42,140 XP (Delta: 7,170, ~301 cumulative workouts)
+ *   Level 10: 14,490 XP (~12 cumulative representative workouts)
+ *   Level 15: 42,140 XP (~33 cumulative representative workouts)
  * - Late Game (L16+):
- *   Level 20: 93,290 XP (Delta: 12,470, ~666 cumulative workouts)
- *   Level 50: 1,313,690 XP (Delta: 76,490)
+ *   Level 20: 93,290 XP (~71 cumulative representative workouts)
+ *   Level 30: ~225 cumulative representative workouts
+ *   Level 50: 1,313,690 XP (~1,000 cumulative representative workouts)
  */
 const LEVEL_XP_THRESHOLDS: number[] = Array.from(
   { length: MAX_PRECOMPUTED_LEVEL + 1 },
@@ -133,12 +134,13 @@ export function getLevelProgress(totalXp: number): LevelProgressInfo {
  *
  * Guarantees:
  * - Empty / uncompleted workout: 0 XP
+ * Components below describe the base economy; all awards are scaled by WORKOUT_XP_SCALE.
  * - Base completion: 50 XP
  * - Set bonus: up to 30 XP (diminishing: 2 XP/set for sets 1-10, 1 XP/set for sets 11-20)
  * - Volume bonus: up to 110 XP (first 5k kg at 1 XP/100kg, next 10k kg at 1 XP/250kg, rest at 1 XP/500kg capped)
  * - PR bonus: 25 XP per PR, capped at 75 XP (max 3 PRs)
- * - Total session XP max cap: 265 XP
- * - Typical normal workout: ~120 - 160 XP
+ * - Scaled total session XP cap: 2,385 XP
+ * - Reference workout: 1,314 XP, excluding separate achievement awards
  */
 export function calculateSessionXp(
   session: WorkoutSession,
@@ -188,13 +190,26 @@ export function calculateSessionXp(
   // PR bonus: 25 XP per PR, capped at 75 XP (max 3 PRs)
   const prBonus = Math.min(75, Math.max(0, sessionPrCount) * 25);
 
-  const totalSessionXp = baseXp + setBonus + volumeBonus + prBonus;
+  const totalSessionXp = (baseXp + setBonus + volumeBonus + prBonus) * WORKOUT_XP_SCALE;
 
   return {
-    baseXp,
-    volumeBonus,
-    prBonus,
-    setBonus,
+    baseXp: baseXp * WORKOUT_XP_SCALE,
+    volumeBonus: volumeBonus * WORKOUT_XP_SCALE,
+    prBonus: prBonus * WORKOUT_XP_SCALE,
+    setBonus: setBonus * WORKOUT_XP_SCALE,
     totalSessionXp,
   };
+}
+
+
+/** Beta economics: 16 completed sets and 10,000 kg = 1,314 XP, ~1,000 sessions to L50.
+ * No retroactive awards or threshold migration. Duration does not reward idle time.
+ */
+export const WORKOUT_XP_SCALE = 9;
+export const REPRESENTATIVE_WORKOUT_XP = (50 + 26 + 70) * WORKOUT_XP_SCALE;
+export function estimateWorkoutsToLevel(currentXp: number, targetLevel: number, sessions: readonly WorkoutSession[] = []): number {
+  const samples = sessions.map(session => calculateSessionXp(session).totalSessionXp).filter(xp => xp > 0).sort((a, b) => a - b);
+  const median = samples.length >= 5 ? samples[Math.floor(samples.length / 2)]! : REPRESENTATIVE_WORKOUT_XP;
+  const expected = Math.max(REPRESENTATIVE_WORKOUT_XP / 2, Math.min(REPRESENTATIVE_WORKOUT_XP * 2, median));
+  return Math.ceil(Math.max(0, getXpRequiredForLevel(targetLevel) - (Number.isFinite(currentXp) ? Math.max(0, currentXp) : 0)) / expected);
 }

@@ -1,3 +1,4 @@
+import { CustomExerciseModal } from '../../src/components/exercises/CustomExerciseModal';
 import { SegmentedControl, AnimatedDisclosure } from '@fitness-tracker/ui';
 import { useReducedMotion } from 'react-native-reanimated';
 import { MeasurementMap } from '../../src/components/MeasurementMap';
@@ -136,6 +137,7 @@ export default function BodyTrackingScreen() {
 
   const [activeChartTab, setActiveChartTab] = useState<'weight' | 'fat'>('weight');
   const [modalVisible, setModalVisible] = useState(false);
+  const [customExerciseVisible, setCustomExerciseVisible] = useState(false);
   const [hydrationSettingsExpanded, setHydrationSettingsExpanded] = useState(false);
   const [activeBodyTab, setActiveBodyTab] = useState<BodyTab>(
     params.tab === 'exercises' ? 'exercises' : 'metrics',
@@ -634,19 +636,19 @@ export default function BodyTrackingScreen() {
         >
           {t('nav.body')}
         </Text>
-        {activeBodyTab === 'metrics' ? (
+        {(
           <Pressable
             style={[styles.addBtn, { backgroundColor: theme.colors.primary }]}
-            onPress={() => setModalVisible(true)}
+            onPress={() => activeBodyTab === 'metrics' ? setModalVisible(true) : setCustomExerciseVisible(true)}
+            accessibilityRole="button" accessibilityLabel={language === 'de' ? 'Hinzufügen' : 'Add'}
             testID="add-metric-btn"
           >
             <Ionicons name="add" size={24} color={theme.colors.background} />
           </Pressable>
-        ) : (
-          <View style={styles.addBtnPlaceholder} />
         )}
       </View>
 
+      <CustomExerciseModal visible={customExerciseVisible} onClose={() => setCustomExerciseVisible(false)} />
       <SegmentedControl
         label={language === 'en' ? 'Body views' : 'Körperansichten'}
         value={activeBodyTab}
@@ -1328,6 +1330,7 @@ export default function BodyTrackingScreen() {
         </ScrollView>
       ) : (
         <ExercisesScreen embedded />
+
       )}
 
       {/* Input Modal */}

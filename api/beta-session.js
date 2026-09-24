@@ -21,12 +21,16 @@ module.exports = async function handler(req, res) {
     return res.status(403).json({ error: 'Beta sessions are not available in this environment' });
   }
 
-  let body = {};
-  if (req.body) {
-    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  let body;
+  try {
+    const raw = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    if (!raw || Buffer.byteLength(raw) > 1024) return res.status(413).json({ error: 'Request too large' });
+    body = JSON.parse(raw);
+  } catch { return res.status(400).json({ error: 'Invalid JSON' }); }
+  if (!body || typeof body.installationId !== 'string' || !/^[A-Za-z0-9_-]{8,64}$/.test(body.installationId)) {
+    return res.status(400).json({ error: 'Invalid installation identity' });
   }
-
-  const installationId = body.installationId || req.headers['x-installation-id'];
+  const installationId = body.installationId;
 
   try {
     const token = issueBetaToken(installationId);

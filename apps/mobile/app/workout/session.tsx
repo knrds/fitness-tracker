@@ -202,6 +202,8 @@ export default function WorkoutSessionScreen() {
     } catch (err) {
       if (err instanceof Error && err.message === 'TEMPLATE_LOCKED') {
         usePaywallStore.getState().openPaywall('pro', 'template_limit');
+      } else {
+        Alert.alert(language === 'de' ? 'Speichern fehlgeschlagen' : 'Saving failed', language === 'de' ? 'Dein Training bleibt erhalten. Bitte erneut versuchen.' : 'Your workout is preserved. Please try again.');
       }
     }
   };
@@ -218,6 +220,8 @@ export default function WorkoutSessionScreen() {
     } catch (err) {
       if (err instanceof Error && err.message === 'TEMPLATE_LIMIT_REACHED') {
         usePaywallStore.getState().openPaywall('pro', 'template_limit');
+      } else {
+        Alert.alert(language === 'de' ? 'Speichern fehlgeschlagen' : 'Saving failed', language === 'de' ? 'Dein Training bleibt erhalten. Bitte erneut versuchen.' : 'Your workout is preserved. Please try again.');
       }
     }
   };

@@ -30,6 +30,10 @@ export interface RewardCelebrationConfig {
 }
 
 export const COLORWAY_REWARDS: RewardColorwayConfig[] = [
+  { id: 'linen', name: 'Linen', subtitle: 'Linen · Terracotta', requiredLevel: 6, requiredRank: 2, isLight: true },
+  { id: 'sage', name: 'Sage', subtitle: 'Sage · Forest', requiredLevel: 11, requiredRank: 3, isLight: true },
+  { id: 'slate', name: 'Soft Slate', subtitle: 'Slate · Sky', requiredLevel: 16, requiredRank: 4, isLight: false },
+
   // Dark Themes
   {
     id: 'glacier',

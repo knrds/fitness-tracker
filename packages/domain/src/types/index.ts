@@ -185,6 +185,8 @@ export interface Exercise {
   secondaryMuscles: MuscleGroup[];
   /** Equipment needed to perform it. */
   equipment: Equipment;
+  /** All required equipment; legacy scalar remains the primary item. */
+  equipmentOptions?: Equipment[];
   /** Fundamental movement pattern. */
   movementPattern: MovementPattern;
   /**
@@ -221,17 +223,17 @@ export interface ExerciseSet {
   setNumber: number;
   /** Classification used by analytics (warm-ups excluded from working volume). */
   type: SetType;
-  /** Load lifted, in the user's `preferredUnits` weight unit. */
-  weight?: number;
+  /** Load lifted in canonical kg; undefined clears an optional editor value. */
+  weight?: number | undefined;
   /** Repetitions completed. */
   reps?: number;
   /**
    * Rate of Perceived Exertion on the 1–10 RPE scale (10 = no reps in reserve).
    * Mutually informative with {@link rir}.
    */
-  rpe?: number;
+  rpe?: number | undefined;
   /** Reps In Reserve, 0–5 (0 = to failure). */
-  rir?: number;
+  rir?: number | undefined;
   /** Rest taken after this set, in seconds. */
   restSeconds?: number;
   /** Duration for timed work (planks, cardio intervals), in seconds. */
@@ -310,6 +312,8 @@ export interface WorkoutSession {
  * logged results. Drives the initial set list when a session is started.
  */
 export interface TemplateExercise {
+  /** Optional independent prescriptions; absent in legacy templates. */
+  sets?: ExerciseSet[];
   id: UUID;
   exerciseId: UUID;
   /** Position within the template. */

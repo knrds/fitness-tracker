@@ -206,7 +206,6 @@ export default function CoachScreen() {
               { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
             ]}
             onPress={clearChatHistory}
-            disabled={isSending}
             accessibilityRole="button"
             accessibilityLabel={language === 'de' ? 'Chat-Verlauf leeren' : 'Clear coach chat'}
             testID="reset-chat-btn"

@@ -12,6 +12,9 @@ export type Colorway =
   | 'alpine'
   | 'rose'
   | 'crimson'
+  | 'linen'
+  | 'sage'
+  | 'slate'
   | 'amber'; // retained for backwards-compatibility
 
 export const colorways: {
@@ -28,6 +31,9 @@ export const colorways: {
   { id: 'ember', name: 'EVARO Ember', description: 'Ember Orange · Deep Carbon' },
   { id: 'avionics', name: 'Avionics Stealth', description: 'Zinc Matrix · Acid Lime' },
   { id: 'titanium', name: 'Royal Titanium', description: 'Champagne Gold · Luxury' },
+  { id: 'slate', name: 'Soft Slate', description: 'Slate · Sky' },
+  { id: 'linen', name: 'Linen (Light)', description: 'Linen · Terracotta', isLight: true },
+  { id: 'sage', name: 'Sage (Light)', description: 'Sage · Forest', isLight: true },
   // Light Themes
   { id: 'arctic', name: 'Arctic Lab (Light)', description: 'Clean White · Ocean Cyan', isLight: true },
   { id: 'solar', name: 'Solar Dune (Light)', description: 'Warm Sand · Amber Gold', isLight: true },
@@ -61,6 +67,9 @@ const palettes: Record<
     border: string;
   }
 > = {
+  linen: { background: '#F4EFE7', surface: '#FFFAF3', surfaceElevated: '#EAE1D6', primary: '#974326', secondary: '#A05235', tertiary: '#BC6B4A', text: '#30251F', muted: '#69564A', border: '#D6C8BA' },
+  sage: { background: '#EAF1E9', surface: '#F6FAF3', surfaceElevated: '#DBE6D9', primary: '#286447', secondary: '#38775A', tertiary: '#508A68', text: '#203328', muted: '#4F6656', border: '#BED1BE' },
+  slate: { background: '#1C2735', surface: '#253345', surfaceElevated: '#304158', primary: '#87D2FA', secondary: '#83BBDD', tertiary: '#B9DEEF', text: '#F2F7FC', muted: '#B2C5D9', border: '#52657A' },
   glacier: {
     background: '#080B11',
     surface: '#0F141D',
@@ -220,7 +229,7 @@ export function createTheme(colorway: Colorway) {
     colorway === 'arctic' ||
     colorway === 'solar' ||
     colorway === 'alpine' ||
-    colorway === 'rose';
+    colorway === 'rose' || colorway === 'linen' || colorway === 'sage';
   const isDark = !isLight;
   const colors = {
     ...palette,
@@ -288,9 +297,9 @@ export function createTheme(colorway: Colorway) {
       light: palette.muted,
       heat: [
         palette.surfaceElevated,
-        withAlpha(palette.secondary, 0.45),
-        palette.secondary,
-        palette.tertiary,
+        withAlpha(palette.primary, 0.3),
+        withAlpha(palette.primary, 0.65),
+        palette.primary,
       ],
     },
     hydration: {

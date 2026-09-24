@@ -1210,6 +1210,7 @@ export const SessionExerciseCard = ({
 };
 
 interface SetRowProps {
+  mode?: 'live' | 'template' | 'history';
   compact: boolean;
   set: ExerciseSet;
   isCurrent: boolean;
@@ -1229,7 +1230,8 @@ interface SetRowProps {
   onSwipeEnd?: (() => void) | undefined;
 }
 
-const SetRow = ({
+export const SetRow = ({
+  mode = 'live',
   compact,
   set,
   isCurrent,
@@ -1249,7 +1251,7 @@ const SetRow = ({
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
   const { t, language } = useI18n();
-  const isDone = set.completed;
+  const isDone = mode === 'live' && set.completed;
   const reducedMotion = useReducedMotion();
   const showSetOptions = showRpe || showRir;
   const [detailsVisible, setDetailsVisible] = useState(false);
@@ -1359,7 +1361,7 @@ const SetRow = ({
 
   // Format Level (unconverted weight for cardio) or normal weight
   const getDisplayWeight = () => {
-    if (!set.weight) return '';
+    if (set.weight === undefined) return '';
     if (isCardio) return set.weight.toString();
     if (isImperial) {
       const lbs = set.weight * 2.20462;
@@ -1383,6 +1385,10 @@ const SetRow = ({
     const normalized = text.replace(',', '.');
     if (!/^\d*(\.\d*)?$/.test(normalized)) return;
     setWeightText(text);
+    if (!normalized || normalized === '.') {
+      onUpdate({ weight: undefined });
+      return;
+    }
     let val = parseFloat(normalized) || 0;
     if (val > 9999) val = 9999;
     if (isCardio) {
@@ -1396,9 +1402,9 @@ const SetRow = ({
   const [editingWeight, setEditingWeight] = useState(false);
   useEffect(() => {
     if (!editingWeight) {
-      const weight = set.weight || 0;
+      const weight = set.weight;
       setWeightText(
-        weight === 0
+        weight === undefined
           ? ''
           : isImperial && !isCardio
             ? (weight * 2.20462).toFixed(1).replace(/\.0$/, '')
@@ -1506,8 +1512,10 @@ const SetRow = ({
             inputMode="decimal"
             value={set.rpe ? set.rpe.toString() : ''}
             onChangeText={(text) => {
-              let rpe = parseFloat(text.replace(',', '.')) || 0;
-              if (rpe > 10) rpe = 10;
+              const normalized = text.replace(',', '.');
+              if (!/^\d*(\.\d*)?$/.test(normalized)) return;
+              const value = parseFloat(normalized);
+              const rpe = Number.isFinite(value) ? Math.max(1, Math.min(10, value)) : undefined;
               if (!entitlementService.canUseRPE()) {
                 usePaywallStore.getState().openPaywall('pro', 'rpe');
                 return;
@@ -1541,8 +1549,8 @@ const SetRow = ({
             inputMode="numeric"
             value={set.rir !== undefined ? set.rir.toString() : ''}
             onChangeText={(text) => {
-              let rir = parseInt(text, 10) || 0;
-              if (rir > 10) rir = 10;
+              if (!/^\d*$/.test(text)) return;
+              const rir = text === '' ? undefined : Math.min(5, parseInt(text, 10));
               if (!entitlementService.canUseRIR()) {
                 usePaywallStore.getState().openPaywall('pro', 'rir');
                 return;
@@ -1703,7 +1711,7 @@ const SetRow = ({
                 keyboardType="number-pad"
                 inputMode="numeric"
                 accessibilityLabel={`Satz ${workingSetNumber} Wiederholungen`}
-                value={set.reps ? set.reps.toString() : ''}
+                value={set.reps !== undefined ? set.reps.toString() : ''}
                 onChangeText={(text) => {
                   let reps = parseInt(text, 10) || 0;
                   if (reps > 999) reps = 999;
@@ -1716,6 +1724,7 @@ const SetRow = ({
               />
             )}
             {!compact && effortInputs}
+            {mode === 'live' && (
             <Pressable
               style={[
                 styles.doneBtn,
@@ -1752,6 +1761,7 @@ const SetRow = ({
                 }
               />
             </Pressable>
+            )}
             {showSetOptions && (
               <Pressable
                 testID={`set-options-btn-${set.id}`}

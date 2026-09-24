@@ -27,7 +27,7 @@ export function matchesExerciseSearch(exercise: Exercise, query: string): boolea
   if (!normalized) return true;
   const name = normalizeExerciseSearch(exercise.name);
   const tokens = normalized.split(' ').map((token) => aliases[token] ?? token);
-  const searchable = [name, ...exercise.primaryMuscles, ...exercise.secondaryMuscles]
+  const searchable = [name, ...exercise.primaryMuscles, ...exercise.secondaryMuscles, ...(exercise.equipmentOptions ?? [exercise.equipment])]
     .map(normalizeExerciseSearch)
     .join(' ');
   return (

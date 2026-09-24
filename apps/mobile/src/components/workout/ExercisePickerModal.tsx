@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { UUID, Exercise } from '@fitness-tracker/domain';
 import { useTheme } from '@fitness-tracker/ui';
-import { useRouter } from 'expo-router';
+import ExerciseDetailScreen from '../exercises/ExerciseDetailScreen';
 import { Image } from 'expo-image';
 
 import { useExerciseStore } from '../../stores/exerciseStore';
@@ -59,7 +59,7 @@ const POPULAR_EXERCISE_NAMES = [
 export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
   const theme = useTheme();
   const styles = useThemeStyles(createStyles);
-  const router = useRouter();
+  const [detailId, setDetailId] = useState<string | null>(null);
   const { language, formatMuscle, formatEquipment } = useI18n();
   const { exercises } = useExerciseStore();
   const { sessions } = useHistoryStore();
@@ -82,6 +82,7 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
 
   useEffect(() => {
     if (!visible) {
+      setDetailId(null);
       setSearch('');
       setSelectedCategory('All');
       setSelectedIds(new Set());
@@ -215,17 +216,18 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
             {ex.name}
           </Text>
           <Text style={[styles.exerciseMeta, { color: theme.colors.muted }]} numberOfLines={1}>
-            {ex.primaryMuscles.map((m) => formatMuscle(m)).join(', ')} • {formatEquipment(ex.equipment)}
+            {ex.primaryMuscles.map((m) => formatMuscle(m)).join(', ')} • {(ex.equipmentOptions ?? [ex.equipment]).map(formatEquipment).join(', ')}
           </Text>
         </View>
 
         <View style={styles.actionContainer}>
           <Pressable
             style={styles.infoBtn}
+            accessibilityRole="button"
+            accessibilityLabel={`${ex.name}: ${language === 'de' ? 'Details' : 'Details'}`}
             hitSlop={8}
             onPress={() => {
-              onClose();
-              router.push(`/exercise/${ex.id}`);
+              setDetailId(ex.id);
             }}
           >
             <Ionicons name="information-circle-outline" size={22} color={theme.colors.primary} />
@@ -246,8 +248,9 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
   };
 
   return (
+    <>
     <Modal
-      visible={visible}
+      visible={visible && !detailId}
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={onClose}
@@ -366,6 +369,12 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
       <CustomExerciseModal visible={customExVisible} onClose={() => setCustomExVisible(false)} />
       <KeyboardDoneAccessory />
     </Modal>
+      <Modal visible={visible && !!detailId} onRequestClose={() => setDetailId(null)} animationType="slide">
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+          {detailId && <ExerciseDetailScreen exerciseId={detailId} onBack={() => setDetailId(null)} />}
+        </SafeAreaView>
+    </Modal>
+    </>
   );
 };
 

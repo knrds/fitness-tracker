@@ -44,6 +44,9 @@ const defaultPersistedState: CoachPersistState = {
 
 
 
+let conversationGeneration = 0;
+let activeRequest: AbortController | undefined;
+
 export const useCoachStore = create<CoachState>()(
   persist(
     (set, get) => ({
@@ -55,7 +58,9 @@ export const useCoachStore = create<CoachState>()(
 
       sendMessage: async (content: string, retryId?: string, options: CoachOptions = {}) => {
         const scope = getStorageScope();
-        if (!content.trim() || get().isSending || !isScopeCurrent(scope)) return;
+        const generation = conversationGeneration;
+        const requestIsCurrent = () => isScopeCurrent(scope) && generation === conversationGeneration;
+        if (!content.trim() || get().isSending || !requestIsCurrent()) return;
 
         const aiConsent = useProfileStore.getState().profile.aiConsent;
         if (!hasValidAiConsent(aiConsent, CURRENT_AI_CONSENT_VERSION)) {
@@ -103,11 +108,16 @@ export const useCoachStore = create<CoachState>()(
             ? lastMessage
             : undefined;
         if (retryId && !retryMessage) return;
+        const request = new AbortController();
+        activeRequest = request;
+        if (options.signal?.aborted) request.abort();
+        const abortRequest = () => request.abort();
+        options.signal?.addEventListener('abort', abortRequest, { once: true });
         set({ isSending: true, pendingImage: retryId ? get().pendingImage : options.image });
 
         // Check connection
         const online = await checkConnectivity().catch(() => false);
-        if (!isScopeCurrent(scope)) return;
+        if (!requestIsCurrent()) return;
         set({ isOnline: online, error: null });
 
         // 1. Construct and append user message
@@ -141,9 +151,10 @@ export const useCoachStore = create<CoachState>()(
           const currentHistory = get().messages.slice(0, -1);
           const responseStream = streamCoachResponse(currentHistory, context, {
             ...options,
+            signal: request.signal,
             image: get().pendingImage,
             onResult: (result) => {
-              if (!isScopeCurrent(scope)) return;
+              if (!requestIsCurrent()) return;
               set((state) => ({
                 messages: state.messages.map((message) =>
                   message.id === assistantMsgId ? { ...message, ...result } : message,
@@ -153,7 +164,7 @@ export const useCoachStore = create<CoachState>()(
           });
 
           for await (const chunk of responseStream) {
-            if (!isScopeCurrent(scope)) return;
+            if (!requestIsCurrent()) return;
             set((state) => {
               const updatedMessages = state.messages.map((msg) => {
                 if (msg.id === assistantMsgId && msg.role === 'assistant') {
@@ -166,7 +177,7 @@ export const useCoachStore = create<CoachState>()(
           }
           set({ pendingImage: undefined });
         } catch (err: unknown) {
-          if (!isScopeCurrent(scope)) return;
+          if (!requestIsCurrent()) return;
           const errMsg = err instanceof Error ? err.message : 'Failed to get a coach response.';
           set({ error: errMsg });
 
@@ -177,7 +188,9 @@ export const useCoachStore = create<CoachState>()(
             ),
           }));
         } finally {
-          if (isScopeCurrent(scope)) set({ isSending: false });
+          options.signal?.removeEventListener('abort', abortRequest);
+          if (activeRequest === request) activeRequest = undefined;
+          if (requestIsCurrent()) set({ isSending: false });
         }
       },
 
@@ -186,8 +199,10 @@ export const useCoachStore = create<CoachState>()(
         if (get().error && last?.role === 'user') await get().sendMessage(last.content, last.id);
       },
       clearChatHistory: () => {
-        if (get().isSending) return;
-        set({ messages: [], error: null });
+        conversationGeneration++;
+        activeRequest?.abort();
+        activeRequest = undefined;
+        set({ messages: [], error: null, isSending: false, pendingImage: undefined });
       },
 
       updateOnlineStatus: async () => {

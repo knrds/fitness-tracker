@@ -343,10 +343,10 @@ describe('persisted tester preference', () => {
     entitlementService.setBetaBypass(true);
     useProfileStore.getState().updateProfile({ betaTesterEnabled: false });
     expect(isBetaFullAccess()).toBe(false);
-    expect(entitlementService.canCreateProgram()).toBe(false);
+    expect(entitlementService.canCreateProgram(1)).toBe(false);
     useProfileStore.getState().updateProfile({ betaTesterEnabled: true });
     expect(entitlementService.canCreateProgram()).toBe(true);
     process.env.EXPO_PUBLIC_APP_ENV = 'production';
-    expect(entitlementService.canCreateProgram()).toBe(false);
+    expect(entitlementService.canCreateProgram(1)).toBe(false);
   });
 });

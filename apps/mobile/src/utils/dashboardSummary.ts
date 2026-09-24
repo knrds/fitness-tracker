@@ -1,3 +1,4 @@
+import { isCompletedWorkingSet } from '@fitness-tracker/domain';
 import { WorkoutSession, summarizeSessionExercise } from '@fitness-tracker/domain';
 
 /** Calendar week in the device's timezone; never includes unfinished or warm-up sets. */
@@ -12,7 +13,7 @@ export function dashboardSummary(sessions: WorkoutSession[], now: Date) {
   );
   const sets = weekly
     .flatMap((s) => s.exercises.flatMap((e) => e.sets))
-    .filter((s) => s.completed && s.type !== 'warmup');
+    .filter(isCompletedWorkingSet);
   const volume = weekly.reduce(
     (n, s) => n + s.exercises.reduce((v, e) => v + summarizeSessionExercise(e).totalVolume, 0),
     0,

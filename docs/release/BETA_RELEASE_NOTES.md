@@ -2,6 +2,12 @@
 
 ## Unreleased — beta finalization candidate
 
+- Reversible plan hiding, protected GK/PPL defaults, Free 3-template/1-program limits, folder chooser and consistent exercise back controls.
+- Improved theme/effect previews, additional light colorway, clearer date picker and larger metrics sheet.
+- Fixed multi-digit template weight propagation, stale daily program selection and inconsistent working-set counts.
+- Four special Coach palettes with reduced-motion-aware decorative pulses: Pearl Halo/Nocturne Pulse immediately, Prism Studio at level 25, Eclipse Crown at level 50. All available to beta testers.
+- Samsung hydration report and remaining editor/transcription/device acceptance remain open; this is not a release-ready claim.
+
 - Independent template set prescriptions and shared live/template/history controls; zero and empty optional values remain distinct.
 - Custom exercises can target multiple muscles and equipment. Returning from exercise details preserves selection.
 - Central Beta Tester preference, visible capability dialogs, viewport cosmetic previews and consistent heat intensity colors.

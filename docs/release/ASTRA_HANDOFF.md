@@ -1,5 +1,7 @@
 # ASTRA START HERE — aktueller Handoff 2026-09-22
 
+Read the newest continued checkpoint in EXECUTION_STATUS.md first. Latest attachment: f68a965e-5bf1-46f6-a1b1-820a72314bbd/Eingefügter Text.txt. Preserve its unresolved scope listed there; Samsung failure is NOT yet diagnosed. Main b1dc169 already contains the preceding ebf376e checkpoint.
+
 ## Current override — 24.09.2026
 
 Continue `astra/beta-finalization`; do not restart from the older Gemini summaries below. Read the 24.09 checkpoint in EXECUTION_STATUS.md. Current master is `EVARO_ASTRA_BETA_FINALIZATION_MASTER.md` supplied by user. Existing tag beta.8 is not proof of a completed beta gate. Shared set editors, scoped beta auth, beta preference, Coach cancellation, multi-select exercises and future XP calibration are implemented; final consolidated checks and remote acceptance remain required. No main merge/new tag yet.

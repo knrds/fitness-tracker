@@ -1,3 +1,4 @@
+import { isCompletedWorkingSet } from './workingSets';
 import { Exercise, MuscleGroup, WorkoutSession } from '../types';
 
 const shoulders = [MuscleGroup.FrontDelts, MuscleGroup.SideDelts, MuscleGroup.RearDelts];
@@ -75,7 +76,7 @@ export function getMuscleActivity(
     for (const occurrence of session.exercises) {
       const definition = byId.get(occurrence.exerciseId);
       if (!definition) continue;
-      const count = occurrence.sets.filter((set) => set.completed && set.type !== 'warmup').length;
+      const count = occurrence.sets.filter(isCompletedWorkingSet).length;
       for (const region of Object.values(MuscleGroup)) {
         if (
           getHeatmapMuscles(region).some((m) => definition.primaryMuscles.includes(m)) ||

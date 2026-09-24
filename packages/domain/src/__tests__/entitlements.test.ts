@@ -48,7 +48,8 @@ describe('EVARO Tier Hierarchy & Capability Contracts (WP-05 / S7)', () => {
       expect(Capabilities.canCreateTemplate('free', 1)).toBe(true);
 
       // 2 existing templates: FREE is blocked (triggers PRO Paywall)
-      expect(Capabilities.canCreateTemplate('free', 2)).toBe(false);
+      expect(Capabilities.canCreateTemplate('free', 2)).toBe(true);
+      expect(Capabilities.canCreateTemplate('free', 3)).toBe(false);
       expect(Capabilities.canCreateTemplate('free', 5)).toBe(false);
 
       // PRO and COACH remain unlimited
@@ -64,7 +65,7 @@ describe('EVARO Tier Hierarchy & Capability Contracts (WP-05 / S7)', () => {
       expect(Capabilities.canEditTemplate('free', 1)).toBe(true);
 
       // Index 2, 3, 4 are locked read-only (zero data loss, but require Pro to edit)
-      expect(Capabilities.canEditTemplate('free', 2)).toBe(false);
+      expect(Capabilities.canEditTemplate('free', 2)).toBe(true);
       expect(Capabilities.canEditTemplate('free', 3)).toBe(false);
       expect(Capabilities.canEditTemplate('free', 4)).toBe(false);
 
@@ -76,7 +77,8 @@ describe('EVARO Tier Hierarchy & Capability Contracts (WP-05 / S7)', () => {
 
   describe('3. Core Tracker Gating (Programs, RPE, RIR, Metrics, Analytics, Appearance)', () => {
     it('Programs: FREE cannot create programs; PRO and COACH can', () => {
-      expect(Capabilities.canCreateProgram('free')).toBe(false);
+      expect(Capabilities.canCreateProgram('free', 0)).toBe(true);
+      expect(Capabilities.canCreateProgram('free', 1)).toBe(false);
       expect(Capabilities.canCreateProgram('pro')).toBe(true);
       expect(Capabilities.canCreateProgram('coach')).toBe(true);
     });
@@ -173,11 +175,11 @@ describe('EVARO Tier Hierarchy & Capability Contracts (WP-05 / S7)', () => {
 
       // Malformed / garbage data
       const safe = parseRemoteMonetizationConfig({ template_limit_free: 'invalid' });
-      expect(safe.template_limit_free).toBe(2);
+      expect(safe.template_limit_free).toBe(3);
 
       // Negative values
       const negativeLimit = parseRemoteMonetizationConfig({ template_limit_free: -5 });
-      expect(negativeLimit.template_limit_free).toBe(2);
+      expect(negativeLimit.template_limit_free).toBe(3);
 
       // Absurd values (e.g. threshold > 1.0 or < 0.5)
       const absurdThreshold = parseRemoteMonetizationConfig({ quota_warning_threshold_1: 1.5 });

@@ -1,3 +1,4 @@
+import { isDefaultProgramId } from '../../src/stores/programStore';
 import { SegmentedControl } from '@fitness-tracker/ui';
 import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { useFocusScroll } from '../../src/hooks/useFocusScroll';
@@ -48,7 +49,9 @@ export default function WorkoutsScreen() {
   const insets = useSafeAreaInsets();
 
   const {
-    templates,
+    templates: allTemplates,
+    hiddenTemplateIds = [],
+    setTemplateHidden,
     customFolders = [],
     deleteTemplate,
     updateTemplatesOrder,
@@ -59,6 +62,8 @@ export default function WorkoutsScreen() {
     updateFoldersOrder,
     createProgram,
   } = useProgramStore();
+  const [showHidden, setShowHidden] = useState(false);
+  const templates = useMemo(() => allTemplates.filter(template => showHidden || !hiddenTemplateIds.includes(template.id)), [allTemplates, hiddenTemplateIds, showHidden]);
 
   const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
   const { exercises } = useExerciseStore();
@@ -378,7 +383,7 @@ export default function WorkoutsScreen() {
   }, [tab]);
 
   const handleCreateProgramFromWorkouts = () => {
-    if (!entitlementService.canCreateProgram()) {
+    if (!entitlementService.canCreateProgram(useProgramStore.getState().programs.filter(program => !isDefaultProgramId(program.id)).length)) {
       setCreateProgramModalVisible(false);
       usePaywallStore.getState().openPaywall('pro', 'program');
       return;
@@ -546,6 +551,10 @@ export default function WorkoutsScreen() {
           scrollEventThrottle={16}
         >
           {/* Quick Actions Row: Direct Template Create Button */}
+          <Pressable accessibilityRole="switch" accessibilityState={{ checked: showHidden }}
+            onPress={() => setShowHidden(value => !value)} style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 20 }}>
+            <Text style={{ color: theme.colors.primary }}>{language === 'de' ? `Ausgeblendete anzeigen (${hiddenTemplateIds.length})` : `Show hidden (${hiddenTemplateIds.length})`}</Text>
+          </Pressable>
           <View style={styles.quickActionsSection}>
             <Pressable
               accessibilityRole="button"
@@ -559,7 +568,7 @@ export default function WorkoutsScreen() {
               ]}
               onPress={() => {
                 void hapticFeedback.selection();
-                const customCount = templates.filter((t) => !isDefaultTemplateId(t.id)).length;
+                const customCount = allTemplates.filter((t) => !isDefaultTemplateId(t.id)).length;
                 if (!entitlementService.canCreateTemplate(customCount)) {
                   usePaywallStore.getState().openPaywall('pro', 'template_limit');
                   return;
@@ -945,6 +954,7 @@ export default function WorkoutsScreen() {
                 const id = menuTemplate?.id;
                 setMenuTemplateId(null);
                 if (id) {
+                  if (isDefaultTemplateId(id)) return;
                   if (!isTemplateEditable(id, templates)) {
                     usePaywallStore.getState().openPaywall('pro', 'template_limit');
                     return;
@@ -958,7 +968,7 @@ export default function WorkoutsScreen() {
               }}
             >
               <Ionicons name="create-outline" size={20} color={theme.colors.text} />
-              <Text style={styles.menuItemText}>{language === 'de' ? 'Bearbeiten' : 'Edit'}</Text>
+              <Text style={styles.menuItemText}>{menuTemplate && isDefaultTemplateId(menuTemplate.id) ? (language === 'de' ? 'EVARO Standard · schreibgeschützt' : 'EVARO Default · read-only') : (language === 'de' ? 'Bearbeiten' : 'Edit')}</Text>
             </Pressable>
             <Pressable
               style={[
@@ -1008,19 +1018,25 @@ export default function WorkoutsScreen() {
               <Ionicons name="share-outline" size={20} color={theme.colors.text} />
               <Text style={styles.menuItemText}>{language === 'de' ? 'Teilen' : 'Share'}</Text>
             </Pressable>
-            <Pressable
+            <Pressable style={styles.menuItem} onPress={() => {
+              if (menuTemplate) setTemplateHidden(menuTemplate.id, !hiddenTemplateIds.includes(menuTemplate.id));
+              setMenuTemplateId(null);
+            }}>
+              <Ionicons name="eye-off-outline" size={20} color={theme.colors.text} />
+              <Text style={styles.menuItemText}>{menuTemplate && hiddenTemplateIds.includes(menuTemplate.id) ? (language === 'de' ? 'Einblenden' : 'Unhide') : (language === 'de' ? 'Ausblenden' : 'Hide')}</Text>
+            </Pressable>
+            {menuTemplate && !isDefaultTemplateId(menuTemplate.id) && <Pressable
               style={styles.menuItem}
               onPress={() => {
-                const id = menuTemplate?.id;
+                const id = menuTemplate.id;
                 setMenuTemplateId(null);
-                if (id) handleDeleteTemplate(id);
-              }}
-            >
+                handleDeleteTemplate(id);
+              }}>
               <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
               <Text style={[styles.menuItemText, { color: theme.colors.error }]}>
                 {language === 'de' ? 'Löschen' : 'Delete'}
               </Text>
-            </Pressable>
+            </Pressable>}
           </View>
         </Pressable>
       </Modal>
@@ -1320,7 +1336,7 @@ export default function WorkoutsScreen() {
               ]}
               onPress={() => {
                 void hapticFeedback.selection();
-                const customCount = templates.filter((t) => !isDefaultTemplateId(t.id)).length;
+                const customCount = allTemplates.filter((t) => !isDefaultTemplateId(t.id)).length;
                 if (!entitlementService.canCreateTemplate(customCount)) {
                   setCreateMenuVisible(false);
                   usePaywallStore.getState().openPaywall('pro', 'template_limit');
@@ -1364,7 +1380,7 @@ export default function WorkoutsScreen() {
               onPress={() => {
                 void hapticFeedback.selection();
                 setCreateMenuVisible(false);
-                if (!entitlementService.canCreateProgram()) {
+                if (!entitlementService.canCreateProgram(useProgramStore.getState().programs.filter(program => !isDefaultProgramId(program.id)).length)) {
                   usePaywallStore.getState().openPaywall('pro', 'program');
                   return;
                 }

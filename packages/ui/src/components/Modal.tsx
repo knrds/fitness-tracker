@@ -22,6 +22,7 @@ export interface ModalProps {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  size?: 'regular' | 'large';
   primaryActionTitle?: string;
   onPrimaryAction?: () => void;
   secondaryActionTitle?: string;
@@ -33,6 +34,7 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   onClose,
   children,
+  size = 'regular',
   primaryActionTitle,
   onPrimaryAction,
   secondaryActionTitle,
@@ -114,6 +116,7 @@ export const Modal: React.FC<ModalProps> = ({
           <Animated.View
             style={[
               styles.container,
+              size === 'large' && { maxWidth: 880 },
               {
                 backgroundColor: theme.colors.surfaceElevated,
                 borderColor: theme.colors.border,

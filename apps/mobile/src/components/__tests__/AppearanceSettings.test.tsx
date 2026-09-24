@@ -50,10 +50,10 @@ describe('AppearanceSettings', () => {
     // Colorway names
     expect(getByText('Glacier Core')).toBeTruthy();
     expect(getByText('Crimson Neon')).toBeTruthy();
-    expect(getByText('Arctic Lab (Light)')).toBeTruthy();
-    expect(getByText('Solar Dune (Light)')).toBeTruthy();
-    expect(getByText('Porcelain Rose (Light)')).toBeTruthy();
-    expect(getByText('Alpine Mist (Light)')).toBeTruthy();
+    expect(getByText('Arctic Lab')).toBeTruthy();
+    expect(getByText('Solar Dune')).toBeTruthy();
+    expect(getByText('Porcelain Rose')).toBeTruthy();
+    expect(getByText('Alpine Mist')).toBeTruthy();
 
     // Celebration names
     expect(getByText('Klassisches Konfetti')).toBeTruthy();
@@ -70,7 +70,7 @@ describe('AppearanceSettings', () => {
     );
 
     // Arctic Lab is available from Level 1!
-    const arcticTheme = getByText('Arctic Lab (Light)');
+    const arcticTheme = getByText('Arctic Lab');
     fireEvent.press(arcticTheme);
     expect(useProfileStore.getState().profile.colorway).toBe('arctic');
 
@@ -95,7 +95,7 @@ describe('AppearanceSettings', () => {
     expect(useProfileStore.getState().profile.colorway).toBe('crimson');
 
     // Porcelain Rose requires Level 16 - now unlocked!
-    const roseTheme = getByText('Porcelain Rose (Light)');
+    const roseTheme = getByText('Porcelain Rose');
     fireEvent.press(roseTheme);
     expect(useProfileStore.getState().profile.colorway).toBe('rose');
 
@@ -105,31 +105,9 @@ describe('AppearanceSettings', () => {
     expect(useProfileStore.getState().profile.celebrationEffect).toBe('inferno');
   });
 
-  it('allows beta testers to adjust level dynamically via stepper and milestone pills', () => {
-    const { getByText } = render(
-      <ThemeProvider>
-        <AppearanceSettings />
-      </ThemeProvider>,
-    );
-
-    // Initial state: Level 1
-    expect(getByText('LEVEL & RANG SIMULATOR')).toBeTruthy();
-    expect(getByText('LEVEL 1')).toBeTruthy();
-    expect(getByText('Rang 1: Novice Lifter')).toBeTruthy();
-
-    // Step +5
-    const plusFiveBtn = getByText('+5');
-    fireEvent.press(plusFiveBtn);
-    expect(useAchievementStore.getState().level).toBe(6);
-    expect(getByText('LEVEL 6')).toBeTruthy();
-    expect(getByText('Rang 2: Building Strength')).toBeTruthy();
-
-    // Quick Milestone jump to L13 (which unlocks Cyber Neon Rain)
-    const l13Pill = getByText('L13 Neon ⚡');
-    fireEvent.press(l13Pill);
-    expect(useAchievementStore.getState().level).toBe(13);
-    expect(getByText('LEVEL 13')).toBeTruthy();
-    expect(getByText('Rang 3: Consistent Lifter')).toBeTruthy();
+  it('does not show a level simulator when beta already unlocks all cosmetics', () => {
+    const screen = render(<ThemeProvider><AppearanceSettings /></ThemeProvider>);
+    expect(screen.queryByText('LEVEL & RANG SIMULATOR')).toBeNull();
   });
 
   it('renders English headings, celebration effects, and descriptions when language is EN', () => {

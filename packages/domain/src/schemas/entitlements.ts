@@ -49,7 +49,8 @@ export interface CapabilityCheckContext {
   freeTemplateLimit?: number;
 }
 
-export const DEFAULT_FREE_TEMPLATE_LIMIT = 2;
+export const DEFAULT_FREE_TEMPLATE_LIMIT = 3;
+export const DEFAULT_FREE_PROGRAM_LIMIT = 1;
 export const DEFAULT_PRO_FAST_WEEKLY_QUOTA = 5;
 export const DEFAULT_COACH_MONTHLY_CREDITS = 300;
 export const DEFAULT_FAST_REQUEST_COST = 1;
@@ -90,8 +91,8 @@ export const Capabilities = {
    * FREE: Cannot create or customize multi-week programs.
    * PRO / COACH: Full program system access.
    */
-  canCreateProgram(tier: SubscriptionTier): boolean {
-    return isTierAtLeast(tier, 'pro');
+  canCreateProgram(tier: SubscriptionTier, currentCount = 0): boolean {
+    return isTierAtLeast(tier, 'pro') || currentCount < DEFAULT_FREE_PROGRAM_LIMIT;
   },
 
   /**

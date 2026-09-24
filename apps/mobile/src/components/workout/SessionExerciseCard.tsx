@@ -227,12 +227,7 @@ export const SessionExerciseCard = ({
     return parts.length > 0 ? parts.join(' · ') : null;
   };
 
-  const [noteType, setNoteType] = useState<'one_time' | 'permanent'>(() => {
-    if (!sessionExercise.notes && persistentNotes[sessionExercise.exerciseId]) {
-      return 'permanent';
-    }
-    return 'one_time';
-  });
+  const [noteType, setNoteType] = useState<'one_time' | 'permanent'>('permanent');
 
   const rpeMode = profile.rpeMode || 'always_on';
   const rirMode = profile.rirMode || 'always_on';
@@ -1222,6 +1217,7 @@ interface SetRowProps {
   showRir: boolean;
   isPR?: boolean;
   onUpdate: (updates: Partial<ExerciseSet>) => void;
+  onCommit?: (updates: Partial<ExerciseSet>) => void;
   onComplete: () => void;
   onDelete: () => void;
   prevSet?: ExerciseSet | undefined;
@@ -1242,6 +1238,7 @@ export const SetRow = ({
   showRir,
   isPR = false,
   onUpdate,
+  onCommit,
   onComplete,
   onDelete,
   lastPerformanceSet,
@@ -1381,20 +1378,22 @@ export const SetRow = ({
       ? String(lastPerformanceSet.reps)
       : undefined;
 
-  const handleWeightChange = (text: string) => {
+  const handleWeightChange = (text: string, commit = false) => {
     const normalized = text.replace(',', '.');
     if (!/^\d*(\.\d*)?$/.test(normalized)) return;
     setWeightText(text);
+    // Keep the draft saved immediately; propagate only the completed input.
+    const update = commit ? (onCommit ?? onUpdate) : onUpdate;
     if (!normalized || normalized === '.') {
-      onUpdate({ weight: undefined });
+      update({ weight: undefined });
       return;
     }
     let val = parseFloat(normalized) || 0;
     if (val > 9999) val = 9999;
     if (isCardio) {
-      onUpdate({ weight: val });
+      update({ weight: val });
     } else {
-      onUpdate({ weight: isImperial ? val / 2.20462 : val });
+      update({ weight: isImperial ? val / 2.20462 : val });
     }
   };
 
@@ -1669,7 +1668,10 @@ export const SetRow = ({
               accessibilityLabel={`Satz ${workingSetNumber} Gewicht`}
               value={weightText}
               onFocus={() => setEditingWeight(true)}
-              onBlur={() => setEditingWeight(false)}
+              onBlur={() => {
+                if (mode === 'template') handleWeightChange(weightText, true);
+                setEditingWeight(false);
+              }}
               onChangeText={handleWeightChange}
               placeholder={ghostWeight ?? '-'}
               placeholderTextColor={theme.colors.muted}

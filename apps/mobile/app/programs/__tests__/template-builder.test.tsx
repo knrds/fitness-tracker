@@ -159,3 +159,29 @@ it('edits independent set values, saves and reopens without completion controls'
   const reopened = render(<ThemeProvider><DialogProvider><WorkoutTemplateBuilderScreen /></DialogProvider></ThemeProvider>);
   expect(reopened.getAllByLabelText('Satz 2 Gewicht')[0]!.props.value).toBe('75');
 });
+
+it('asks before leaving the editor and keeps the draft when cancelled', () => {
+  useProgramStore.setState({ templates: [mockTemplate], programs: [] });
+  const screen = render(<ThemeProvider><DialogProvider><WorkoutTemplateBuilderScreen /></DialogProvider></ThemeProvider>);
+  fireEvent.press(screen.getByLabelText('Zurück'));
+  expect(screen.getByText('Bearbeitung verwerfen?')).toBeTruthy();
+  fireEvent.press(screen.getByText('Weiter bearbeiten'));
+  expect(screen.getByLabelText('Speichern')).toBeTruthy();
+});
+
+it('propagates 200 kg after completing the first input, preserving an individually edited set', () => {
+  const exercise = { ...mockTemplate.exercises[0]! };
+  delete exercise.targetWeight;
+  useProgramStore.setState({ templates: [{ ...mockTemplate, exercises: [exercise] }], programs: [] });
+  const screen = render(<ThemeProvider><DialogProvider><WorkoutTemplateBuilderScreen /></DialogProvider></ThemeProvider>);
+  const first = screen.getByLabelText('Satz 1 Gewicht');
+  fireEvent.changeText(screen.getByLabelText('Satz 2 Gewicht'), '75');
+  fireEvent(screen.getByLabelText('Satz 2 Gewicht'), 'blur');
+  fireEvent(first, 'focus');
+  for (const value of ['2', '20', '200']) fireEvent.changeText(first, value);
+  fireEvent(first, 'blur');
+  expect(screen.getByLabelText('Satz 3 Gewicht').props.value).toBe('200');
+  expect(screen.getByLabelText('Satz 2 Gewicht').props.value).toBe('75');
+  fireEvent.press(screen.getByLabelText('Speichern'));
+  expect(useProgramStore.getState().templates[0]!.exercises[0]!.sets!.map(set => set.weight)).toEqual([200, 75, 200]);
+});

@@ -1,3 +1,4 @@
+import { isCompletedWorkingSet } from '@fitness-tracker/domain';
 import { SegmentedControl } from '@fitness-tracker/ui';
 import { Theme, useThemeStyles, withAlpha } from '@fitness-tracker/ui';
 import { useReducedMotion } from 'react-native-reanimated';
@@ -772,7 +773,7 @@ function HistoryView() {
                     const volumeUnit = isImperial ? 'lbs' : 'kg';
                     const exerciseCount = session.exercises.length;
                     const totalSets = session.exercises.reduce(
-                      (acc, ex) => acc + ex.sets.filter((st) => st.completed).length,
+                      (acc, ex) => acc + ex.sets.filter(isCompletedWorkingSet).length,
                       0,
                     );
 

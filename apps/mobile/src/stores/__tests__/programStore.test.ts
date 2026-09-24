@@ -1,6 +1,6 @@
 import { ProgramSchema, WorkoutTemplateSchema } from '@fitness-tracker/domain';
 
-import { getDefaultPrograms, getDefaultTemplates, useProgramStore } from '../programStore';
+import { getDefaultPrograms, getDefaultTemplates, useProgramStore, isDefaultProgramId } from '../programStore';
 
 let mockUuidCounter = 0;
 
@@ -22,6 +22,17 @@ jest.mock('expo-crypto', () => ({
 }));
 
 describe('programStore', () => {
+  it('retires legacy defaults without deleting them and preserves explicit visibility', () => {
+    const legacy = { ...getDefaultTemplates()[0]!, id: '10000000-0000-4000-8000-000000000002', name: 'Legacy upper' };
+    const merge = useProgramStore.persist.getOptions().merge!;
+    const saved = { templates: [legacy], programs: [], customFolders: [] };
+    const migrated = merge(saved, useProgramStore.getInitialState());
+    expect(migrated.templates).toContainEqual(legacy);
+    expect(migrated.hiddenTemplateIds).toContain(legacy.id);
+    const restored = merge({ ...saved, hiddenTemplateIds: [] }, useProgramStore.getInitialState());
+    expect(restored.hiddenTemplateIds).toEqual([]);
+  });
+
   beforeEach(() => {
     mockUuidCounter = 0;
     // reset state manually since we don't have a reset function
@@ -95,6 +106,27 @@ describe('programStore', () => {
     getDefaultPrograms().forEach((program) => {
       expect(ProgramSchema.safeParse(program).success).toBe(true);
     });
+  });
+  it('ships only GK/PPL families, protects their structure, and hides without deleting', () => {
+    const templates = getDefaultTemplates();
+    const programs = getDefaultPrograms();
+    expect(templates).toHaveLength(4); // GK plus Push, Pull and Legs
+    expect(programs).toHaveLength(2);
+    useProgramStore.setState({ templates, programs, hiddenTemplateIds: [], hiddenProgramIds: [] });
+    const store = useProgramStore.getState();
+    expect(() => store.deleteTemplate(templates[0]!.id)).toThrow('DEFAULT_TEMPLATE_READ_ONLY');
+    expect(() => store.updateTemplate(templates[0]!.id, { name: 'changed' })).toThrow('TEMPLATE_LOCKED');
+    expect(() => store.deleteProgram(programs[0]!.id)).toThrow('DEFAULT_PROGRAM_READ_ONLY');
+    expect(() => store.updateProgram(programs[0]!.id, { workouts: [] })).toThrow('PROGRAM_FEATURE_LOCKED');
+    store.setTemplateHidden(templates[0]!.id, true);
+    store.setProgramHidden(programs[0]!.id, true);
+    store.updateTemplatesOrder(templates.slice(1));
+    store.updateProgramsOrder(programs.slice(1));
+    expect(useProgramStore.getState().templates).toHaveLength(4);
+    expect(useProgramStore.getState().programs.filter(p => isDefaultProgramId(p.id))).toHaveLength(2);
+    expect(useProgramStore.getState().hiddenTemplateIds).toContain(templates[0]!.id);
+    store.setTemplateHidden(templates[0]!.id, false);
+    expect(useProgramStore.getState().hiddenTemplateIds).toEqual([]);
   });
 
   it('manages custom folders and template folder assignments', () => {

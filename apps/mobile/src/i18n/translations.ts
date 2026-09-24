@@ -481,6 +481,8 @@ export const translations = {
       localProfileNotice: 'Lokales Profil · Dein Training wird auf diesem Gerät gespeichert.',
     },
     celebrations: {
+      aurora: { name: 'Aurora-Bänder', subtitle: 'Sanft schwebende Lichtbänder', description: 'Pastellfarbene Bänder gleiten diagonal durch das Bild.' },
+      fireworks: { name: 'Siegesfeuerwerk', subtitle: 'Strahlender Sternenburst', description: 'Ein radiales Feuerwerk für deinen Trainingsabschluss.' },
       classic: {
         name: 'Klassisches Konfetti',
         subtitle: 'Klassische Farbpartikel',
@@ -1059,6 +1061,8 @@ export const translations = {
       localProfileNotice: 'Local profile · Your training is stored on this device.',
     },
     celebrations: {
+      aurora: { name: 'Aurora Ribbons', subtitle: 'Soft drifting ribbons', description: 'Pastel ribbons drift diagonally across the viewport.' },
+      fireworks: { name: 'Victory Fireworks', subtitle: 'Radial starburst', description: 'A bright radial finale for your completed workout.' },
       classic: {
         name: 'Classic Confetti',
         subtitle: 'Classic color particles',

@@ -1,5 +1,18 @@
 # EVARO Astra Takeover — Execution Status
 
+## Verified implementation checkpoint — 24.09.2026 (continued)
+
+Risk MEDIUM: local editor/state/cosmetic changes; no destructive migration or server auth relaxation.
+- Bundled GK/PPL templates and programs are immutable and nondeletable in the store; hide/unhide preserves their data and historical references. Legacy bundled offerings are hidden on hydration, not wiped. Free limits: 3 custom templates and 1 program, including hidden items.
+- Left back arrows in exercise selection/creation, permanent notes first, folder selection/create, larger body metrics modal, clearer date-wheel styling. Template add-set text follows the active theme; its back action asks before discarding.
+- Added Lavender Mist light palette, normalized ordinary palette names/order and Pro access, distinct Pro/level lock icons. Added Aurora and Fireworks; particles rebuild on rapid effect changes. Beta no longer shows the level simulator.
+- Multi-digit template weight propagates on input completion while the draft itself updates immediately; independent set values remain intact. Dashboard schedule refreshes after local midnight/background resume. Working-set counts in dashboard/heatmap/history/summary exclude warmup and failure and include drops.
+- Local verify PASS: 136 domain + 853 mobile + 55 API + 20 security tests. Web export and dependency gate PASS; secret scans of diff and browser export PASS. Node engine constrained to 24.x.
+- Additional cosmetic batch: Pearl Halo/Nocturne Pulse at Coach purchase; Prism Studio level 25, Eclipse Crown level 50, all available in beta. Clipped decorative pulses/patterns respect reduced motion. Free palettes have a dedicated first section. Tier downgrade preserves special palettes for restoration only on Coach. Full verify now passes 855 mobile tests (other suites unchanged), and web export passes.
+- Remote main was independently merged at b1dc169 (PR #19); finalization branch fast-forwarded safely before this checkpoint. No new release tag. db9f48f GitHub checks all green; Vercel deployment observed BUILDING, not yet accepted.
+
+Still open (not claimed complete): Samsung S25 browser hydration failure needs reproduction/diagnostic; user could not see a store-specific diagnostic. Visual/device acceptance of special Coach palettes; further fire effects; full historical editor redesign; desktop date-wheel dragging; remaining uniform header/bundled-card polish; mixed-language transcription verification; end-to-end first-tap editing/finish acceptance; deployed Coach/beta/device gates and master roadmap reconciliation. Existing local tests do not prove the Samsung issue resolved. Main merge/tag remains gated.
+
 ## Checkpoint 24.09.2026 — Beta finalization (PARTIAL, not a release)
 
 Branch `astra/beta-finalization`, recovered from actual remote main `5184a77`; latest existing tag remains `v0.1.0-beta.8`. No reset, data wipe, production database migration or release tag.

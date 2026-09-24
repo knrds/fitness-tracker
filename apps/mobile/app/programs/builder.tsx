@@ -195,7 +195,7 @@ export default function ProgramBuilderScreen() {
         );
         return;
       }
-      if (!isProgramEditable()) {
+      if (!isProgramEditable(program.id)) {
         usePaywallStore.getState().openPaywall('pro', 'program');
         return;
       }

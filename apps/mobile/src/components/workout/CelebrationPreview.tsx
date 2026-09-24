@@ -8,7 +8,7 @@ const preview = create<{ effect: CelebrationEffect | null }>(() => ({ effect: nu
 /** Render at the app root: independent of scroll position and never intercepting taps. */
 export function CelebrationPreviewHost() {
   const effect = preview(state => state.effect);
-  return effect ? <View testID="celebration-viewport" pointerEvents="none" style={[StyleSheet.absoluteFillObject, { zIndex: 10000 }]}><WorkoutCelebrationOverlay effect={effect} /></View> : null;
+  return effect ? <View testID="celebration-viewport" pointerEvents="none" style={[StyleSheet.absoluteFillObject, { zIndex: 10000 }]}><WorkoutCelebrationOverlay key={effect} effect={effect} /></View> : null;
 }
 export function CelebrationPreview({ effect }: { effect: CelebrationEffect }) {
   useEffect(() => {

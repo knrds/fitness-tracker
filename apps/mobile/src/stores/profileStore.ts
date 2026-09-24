@@ -1,3 +1,4 @@
+import { COACH_COLORWAYS } from '@fitness-tracker/ui';
 import { registerBetaTesterPreference } from '../utils/betaAccessConfig';
 import { getStorageScope, isScopeCurrent } from '../data/storageScope';
 import { create } from 'zustand';
@@ -55,7 +56,9 @@ export type CelebrationEffect =
   | 'inferno'
   | 'gold'
   | 'matrix'
-  | 'cosmic';
+  | 'cosmic'
+  | 'aurora'
+  | 'fireworks';
 
 export interface Profile {
   betaTesterEnabled?: boolean;
@@ -145,6 +148,7 @@ const profileStateSchema = z.object({
       'linen',
       'sage',
       'slate',
+      'lavender', 'pearl', 'nocturne', 'prism', 'eclipse',
     ])
     .optional(),
   savedPremiumColorway: z
@@ -164,10 +168,11 @@ const profileStateSchema = z.object({
       'linen',
       'sage',
       'slate',
+      'lavender', 'pearl', 'nocturne', 'prism', 'eclipse',
     ])
     .optional(),
   celebrationEffect: z
-    .enum(['classic', 'neon', 'inferno', 'gold', 'matrix', 'cosmic'])
+    .enum(['classic', 'neon', 'inferno', 'gold', 'matrix', 'cosmic', 'aurora', 'fireworks'])
     .optional(),
   fitnessGoal: FitnessGoalSchema.optional(),
   experienceLevel: ExperienceLevelSchema.optional(),
@@ -424,15 +429,14 @@ export const useProfileStore = create<ProfileState>()(
   ),
 );
 
-const LIGHT_COLORWAYS: Colorway[] = ['linen', 'sage', 'arctic', 'solar', 'rose', 'alpine'];
+const LIGHT_COLORWAYS: Colorway[] = ['pearl', 'prism', 'lavender', 'linen', 'sage', 'arctic', 'solar', 'rose', 'alpine'];
 
 export function syncAppearanceForTier(tier: SubscriptionTier) {
   const state = useProfileStore.getState();
   const activeColorway = state.profile.colorway ?? 'glacier';
   const isFreeColorway = activeColorway === 'glacier' || activeColorway === 'arctic';
-  const isCoachColorway = activeColorway === 'titanium';
 
-  if (tier === 'free') {
+  if (tier === 'free' || (tier === 'pro' && COACH_COLORWAYS.includes(activeColorway))) {
     if (!isFreeColorway) {
       const isLight = LIGHT_COLORWAYS.includes(activeColorway);
       state.updateProfile({
@@ -440,20 +444,8 @@ export function syncAppearanceForTier(tier: SubscriptionTier) {
         colorway: isLight ? 'arctic' : 'glacier',
       });
     }
-  } else if (tier === 'pro') {
-    if (isCoachColorway) {
-      state.updateProfile({
-        savedPremiumColorway: activeColorway,
-        colorway: 'glacier',
-      });
-    } else if (state.profile.savedPremiumColorway && state.profile.savedPremiumColorway !== 'titanium') {
-      state.updateProfile({
-        colorway: state.profile.savedPremiumColorway,
-        savedPremiumColorway: undefined,
-      });
-    }
-  } else if (tier === 'coach') {
-    if (state.profile.savedPremiumColorway) {
+  } else if (tier === 'pro' || tier === 'coach') {
+    if (state.profile.savedPremiumColorway && (tier === 'coach' || !COACH_COLORWAYS.includes(state.profile.savedPremiumColorway))) {
       state.updateProfile({
         colorway: state.profile.savedPremiumColorway,
         savedPremiumColorway: undefined,

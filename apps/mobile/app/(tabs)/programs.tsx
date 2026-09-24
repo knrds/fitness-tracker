@@ -26,7 +26,7 @@ import { VoltBackdrop } from '../../src/components/VoltBackdrop';
 
 import { Program, WorkoutTemplate } from '@fitness-tracker/domain';
 
-import { useProgramStore } from '../../src/stores/programStore';
+import { useProgramStore, isDefaultProgramId } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useI18n } from '../../src/i18n';
 import { entitlementService } from '../../src/services/entitlementService';
@@ -39,13 +39,17 @@ export default function ProgramListScreen() {
   const { showConfirm } = useDialog();
   const { t, language } = useI18n();
   const {
-    programs,
+    programs: allPrograms,
+    hiddenProgramIds = [],
+    setProgramHidden,
     templates,
     setActiveProgram,
     deleteProgram,
     createProgram,
     updateProgramsOrder,
   } = useProgramStore();
+  const [showHidden, setShowHidden] = useState(false);
+  const programs = React.useMemo(() => allPrograms.filter(program => showHidden || !hiddenProgramIds.includes(program.id)), [allPrograms, hiddenProgramIds, showHidden]);
 
   const [isCreateModalVisible, setCreateModalVisible] = useState(false);
   const [menuProgramId, setMenuProgramId] = useState<string | null>(null);
@@ -60,7 +64,7 @@ export default function ProgramListScreen() {
   };
 
   const handleCreateProgram = () => {
-    if (!entitlementService.canCreateProgram()) {
+    if (!entitlementService.canCreateProgram(allPrograms.filter(p => !isDefaultProgramId(p.id)).length)) {
       setCreateModalVisible(false);
       usePaywallStore.getState().openPaywall('pro', 'program');
       return;
@@ -372,7 +376,7 @@ export default function ProgramListScreen() {
           title={language === 'de' ? 'Programm erstellen' : 'Create program'}
           variant="secondary"
           onPress={() => {
-            if (!entitlementService.canCreateProgram()) {
+            if (!entitlementService.canCreateProgram(allPrograms.filter(p => !isDefaultProgramId(p.id)).length)) {
               usePaywallStore.getState().openPaywall('pro', 'program');
               return;
             }
@@ -381,6 +385,10 @@ export default function ProgramListScreen() {
           style={{ marginBottom: 16 }}
         />
         {renderHeader()}
+        <Pressable accessibilityRole="switch" accessibilityState={{ checked: showHidden }}
+          onPress={() => setShowHidden(value => !value)} style={{ minHeight: 44, justifyContent: 'center' }}>
+          <Text style={{ color: theme.colors.primary }}>{language === 'de' ? `Ausgeblendete anzeigen (${hiddenProgramIds.length})` : `Show hidden (${hiddenProgramIds.length})`}</Text>
+        </Pressable>
         {programs.map((item) => {
           return (
             <Animated.View
@@ -622,17 +630,23 @@ export default function ProgramListScreen() {
               <Ionicons name="share-outline" size={20} color={theme.colors.text} />
               <Text style={styles.menuItemText}>{t('common.share')}</Text>
             </Pressable>
-            <Pressable
+            <Pressable style={styles.menuItem} onPress={() => {
+              if (menuProgram) setProgramHidden(menuProgram.id, !hiddenProgramIds.includes(menuProgram.id));
+              setMenuProgramId(null);
+            }}>
+              <Ionicons name="eye-off-outline" size={20} color={theme.colors.text} />
+              <Text style={styles.menuItemText}>{menuProgram && hiddenProgramIds.includes(menuProgram.id) ? (language === 'de' ? 'Einblenden' : 'Unhide') : (language === 'de' ? 'Ausblenden' : 'Hide')}</Text>
+            </Pressable>
+            {menuProgram && !isDefaultProgramId(menuProgram.id) && <Pressable
               style={styles.menuItem}
               onPress={() => {
                 const p = menuProgram;
                 setMenuProgramId(null);
-                if (p) confirmDelete(p.id, p.name);
-              }}
-            >
+                confirmDelete(p.id, p.name);
+              }}>
               <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
               <Text style={[styles.menuItemText, { color: theme.colors.error }]}>{t('common.delete')}</Text>
-            </Pressable>
+            </Pressable>}
           </View>
         </Pressable>
         <KeyboardDoneAccessory />

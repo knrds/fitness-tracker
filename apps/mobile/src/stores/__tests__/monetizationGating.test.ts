@@ -60,7 +60,7 @@ describe('Monetization Capability Integration & Direct Bypass Protection', () =>
   });
 
   describe('Phase 2 & 11: Free Template Limit & Downgrade Preservation', () => {
-    it('FREE allows creating template #1 and #2, but blocks #3 fail-closed', () => {
+    it('FREE allows three templates, but blocks the fourth at store level', () => {
       entitlementService.setMockTier('free');
 
       // #1 - Allowed
@@ -81,16 +81,17 @@ describe('Monetization Capability Integration & Direct Bypass Protection', () =>
       });
       expect(useProgramStore.getState().templates.length).toBe(2);
 
-      // #3 - Blocked at store action level
+      useProgramStore.getState().createTemplate({ id: 'tmpl-3', name: 'Template 3', exercises: [] });
+      // #4 - Blocked at store action level
       expect(() => {
         useProgramStore.getState().createTemplate({
-          id: 'tmpl-3',
-          name: 'Template 3',
+          id: 'tmpl-4',
+          name: 'Template 4',
           createdAt: new Date('2026-01-03T10:00:00.000Z'),
           exercises: [],
         });
       }).toThrow('TEMPLATE_LIMIT_REACHED');
-      expect(useProgramStore.getState().templates.length).toBe(2);
+      expect(useProgramStore.getState().templates.length).toBe(3);
     });
 
     it('PRO allows unlimited templates, and downgrade preserves all templates with exactly 2 editable', () => {
@@ -125,7 +126,8 @@ describe('Monetization Capability Integration & Direct Bypass Protection', () =>
       expect(isTemplateEditable('tmpl-2', templatesAfterDowngrade)).toBe(true);
 
       // Templates #3 through #8 become read-only
-      for (let i = 3; i <= 8; i++) {
+      expect(isTemplateEditable('tmpl-3', templatesAfterDowngrade)).toBe(true);
+      for (let i = 4; i <= 8; i++) {
         expect(isTemplateEditable(`tmpl-${i}`, templatesAfterDowngrade)).toBe(false);
 
         // Attempting to update a locked template in the store throws TEMPLATE_LOCKED
@@ -181,9 +183,9 @@ describe('Monetization Capability Integration & Direct Bypass Protection', () =>
   });
 
   describe('Phase 3 & 11: Program Gating & Downgrade Preservation', () => {
-    it('FREE blocks createProgram and updateProgram fail-closed', () => {
+    it('FREE allows one program and blocks a second at store level', () => {
       entitlementService.setMockTier('free');
-
+      useProgramStore.getState().createProgram({ name: 'First free program' });
       expect(() => {
         useProgramStore.getState().createProgram({
           name: 'Hypertrophy Phase 1',
@@ -211,10 +213,9 @@ describe('Monetization Capability Integration & Direct Bypass Protection', () =>
       expect(useProgramStore.getState().programs.length).toBe(1);
 
       // Program becomes read-only
-      expect(isProgramEditable()).toBe(false);
-      expect(() => {
-        useProgramStore.getState().updateProgram('prog-1', { name: 'Attempted Update' });
-      }).toThrow('PROGRAM_FEATURE_LOCKED');
+      expect(isProgramEditable('prog-1')).toBe(true);
+      useProgramStore.getState().updateProgram('prog-1', { name: 'Free program update' });
+      expect(() => useProgramStore.getState().createProgram({ name: 'Second free program' })).toThrow('PROGRAM_FEATURE_LOCKED');
 
       // Re-upgrade restores editability
       entitlementService.setMockTier('pro');
@@ -354,13 +355,29 @@ describe('Monetization Capability Integration & Direct Bypass Protection', () =>
       expect(useProfileStore.getState().profile.savedPremiumColorway).toBeUndefined();
     });
 
-    it('Coach exclusive titanium colorway reverts to glacier on downgrade to PRO or FREE', () => {
+    it('preserves special Coach palettes on downgrade and restores them only for Coach', () => {
+      entitlementService.setMockTier('coach');
+      useProfileStore.getState().updateProfile({ colorway: 'pearl' });
+      entitlementService.setMockTier('pro');
+      expect(useProfileStore.getState().profile.colorway).toBe('arctic');
+      expect(useProfileStore.getState().profile.savedPremiumColorway).toBe('pearl');
+      entitlementService.setMockTier('free');
+      expect(useProfileStore.getState().profile.colorway).toBe('arctic');
+      entitlementService.setMockTier('pro');
+      expect(useProfileStore.getState().profile.colorway).toBe('arctic');
+      entitlementService.setMockTier('coach');
+      expect(useProfileStore.getState().profile.colorway).toBe('pearl');
+    });
+
+    it('Titanium remains available to PRO and is preserved on downgrade to FREE', () => {
       entitlementService.setMockTier('coach');
       useProfileStore.getState().updateProfile({ colorway: 'titanium' });
       expect(useProfileStore.getState().profile.colorway).toBe('titanium');
 
-      // Downgrade to PRO (titanium is coach-exclusive)
+      // Every ordinary premium colorway is included in PRO.
       entitlementService.setMockTier('pro');
+      expect(useProfileStore.getState().profile.colorway).toBe('titanium');
+      entitlementService.setMockTier('free');
       expect(useProfileStore.getState().profile.colorway).toBe('glacier');
       expect(useProfileStore.getState().profile.savedPremiumColorway).toBe('titanium');
 

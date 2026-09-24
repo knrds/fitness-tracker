@@ -40,7 +40,7 @@ export default function WorkoutTemplateBuilderScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const { showAlert } = useDialog();
+  const { showAlert, showActionSheet, showConfirm } = useDialog();
   const isImperial = useProfileStore(state => state.profile.preferredUnits === 'imperial');
   const styles = useThemeStyles(createStyles);
   const { language } = useI18n();
@@ -51,7 +51,7 @@ export default function WorkoutTemplateBuilderScreen() {
     week?: string;
   }>();
 
-  const { programs, templates, updateProgram, createTemplate, updateTemplate } = useProgramStore();
+  const { programs, templates, customFolders, updateProgram, createTemplate, updateTemplate } = useProgramStore();
   const { exercises } = useExerciseStore();
 
   const program = programId ? programs.find((p) => p.id === programId) : undefined;
@@ -60,9 +60,37 @@ export default function WorkoutTemplateBuilderScreen() {
   const [name, setName] = useState(existingTemplate?.name || '');
   const [description, setDescription] = useState(existingTemplate?.description || '');
   const [folder, setFolder] = useState(existingTemplate?.folder || '');
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const chooseFolder = async () => {
+    const choices = customFolders ?? [];
+    const selected = await showActionSheet({
+      title: language === 'de' ? 'Ordner wählen' : 'Choose folder',
+      cancelLabel: language === 'de' ? 'Abbrechen' : 'Cancel',
+      actions: [
+        { label: language === 'de' ? 'Kein Ordner' : 'No folder', value: 'none' },
+        ...choices.map((label, index) => ({ label, value: `folder-${index}` })),
+        { label: language === 'de' ? 'Neuer Ordner' : 'New folder', value: 'new' },
+      ],
+    });
+    if (!selected) return;
+    setCreatingFolder(selected === 'new');
+    setFolder(selected.startsWith('folder-') ? choices[Number(selected.slice(7))] ?? '' : '');
+  };
   const [templateExercises, setTemplateExercises] = useState<TemplateExercise[]>(
     (existingTemplate?.exercises || []).map(ex => ({ ...ex, sets: materializeTemplateSets(ex, Crypto.randomUUID) })),
   );
+
+  const handleBack = async () => {
+    Keyboard.dismiss();
+    const confirmed = await showConfirm({
+      title: language === 'de' ? 'Bearbeitung verwerfen?' : 'Discard changes?',
+      message: language === 'de' ? 'Nicht gespeicherte Änderungen gehen verloren.' : 'Unsaved changes will be lost.',
+      confirmLabel: language === 'de' ? 'Verwerfen' : 'Discard',
+      cancelLabel: language === 'de' ? 'Weiter bearbeiten' : 'Keep editing',
+      destructive: true,
+    });
+    if (confirmed) router.back();
+  };
 
   const [isExerciseModalVisible, setExerciseModalVisible] = useState(false);
   const [isReorderMode, setIsReorderMode] = useState(false);
@@ -199,7 +227,7 @@ export default function WorkoutTemplateBuilderScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={language === 'de' ? 'Zurück' : 'Back'}
-          onPress={() => router.back()}
+          onPress={() => void handleBack()}
           hitSlop={15}
           style={styles.backBtn}
         >
@@ -283,19 +311,17 @@ export default function WorkoutTemplateBuilderScreen() {
         <Text style={styles.label}>
           {language === 'de' ? 'Ordner (Optional)' : 'Folder (Optional)'}
         </Text>
-        <TextInput
-          style={styles.input}
-          value={folder}
-          onChangeText={setFolder}
-          placeholder={
-            language === 'de'
-              ? 'z. B. PPL ARNOLD, Urlaubs-Workouts, Home Gym'
-              : 'e.g. PPL ARNOLD, Vacation Workouts, Home Gym'
-          }
-          placeholderTextColor={theme.colors.muted}
-          inputAccessoryViewID={KEYBOARD_DONE_ID}
-          onSubmitEditing={() => Keyboard.dismiss()}
-        />
+        <Pressable accessibilityRole="button" accessibilityLabel={language === 'de' ? 'Ordner wählen' : 'Choose folder'}
+          onPress={() => void chooseFolder()} style={[styles.input, { flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+          <Ionicons name="folder-outline" size={20} color={theme.colors.primary} />
+          <Text style={{ color: theme.colors.text, flex: 1 }}>{folder || (language === 'de' ? 'Kein Ordner' : 'No folder')}</Text>
+          <Ionicons name="chevron-down" size={18} color={theme.colors.muted} />
+        </Pressable>
+        {creatingFolder && <TextInput style={[styles.input, { marginTop: 8 }]} value={folder} onChangeText={setFolder}
+          accessibilityLabel={language === 'de' ? 'Neuer Ordnername' : 'New folder name'}
+          placeholder={language === 'de' ? 'Neuer Ordnername' : 'New folder name'} maxLength={50}
+          placeholderTextColor={theme.colors.muted} inputAccessoryViewID={KEYBOARD_DONE_ID}
+          onSubmitEditing={() => Keyboard.dismiss()} />}
 
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>
@@ -569,7 +595,11 @@ export default function WorkoutTemplateBuilderScreen() {
                       <SetRow key={set.id} mode="template" compact set={set} isCurrent={false}
                         workingSetNumber={setIdx + 1} sessionExerciseId={te.id} isImperial={isImperial}
                         isCardio={ex?.movementPattern === 'cardio'} showRpe showRir onComplete={() => {}}
-                        onUpdate={updates => changeSets(te.id, updateIndependentSet(te.sets ?? materializeTemplateSets(te, Crypto.randomUUID), set.id, updates))}
+                        onUpdate={updates => changeSets(te.id,
+                          Object.prototype.hasOwnProperty.call(updates, 'weight')
+                            ? (te.sets ?? []).map(row => row.id === set.id ? { ...row, ...updates } : row)
+                            : updateIndependentSet(te.sets ?? materializeTemplateSets(te, Crypto.randomUUID), set.id, updates))}
+                        onCommit={updates => changeSets(te.id, updateIndependentSet(te.sets ?? materializeTemplateSets(te, Crypto.randomUUID), set.id, updates))}
                         onDelete={() => changeSets(te.id, (te.sets ?? []).filter(s => s.id !== set.id).map((s, i) => ({ ...s, setNumber: i + 1 })))} />
                     ))}
                     <Pressable accessibilityRole="button" style={styles.addSetRow}
@@ -577,7 +607,7 @@ export default function WorkoutTemplateBuilderScreen() {
                         const sets = materializeTemplateSets(te, Crypto.randomUUID);
                         changeSets(te.id, [...sets, { ...sets[sets.length - 1]!, id: Crypto.randomUUID(), setNumber: sets.length + 1 }]);
                       }}>
-                      <Text style={styles.addSetRowText}>{language === 'de' ? 'SATZ HINZUFÜGEN' : 'ADD SET'}</Text>
+                      <Text style={[styles.addSetRowText, { color: theme.colors.primary }]}>{language === 'de' ? 'SATZ HINZUFÜGEN' : 'ADD SET'}</Text>
                     </Pressable>
                   </>
                 )}

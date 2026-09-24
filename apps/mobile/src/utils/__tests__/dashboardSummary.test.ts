@@ -1,4 +1,4 @@
-import { WorkoutSession } from '@fitness-tracker/domain';
+import { WorkoutSession, summarizeWorkout } from '@fitness-tracker/domain';
 import { dashboardSummary } from '../dashboardSummary';
 
 const session = (date: Date): WorkoutSession => ({
@@ -50,4 +50,14 @@ it('does not invent effort or volume for an empty history', () => {
     setCount: 0,
     averageRpe: null,
   });
+});
+
+it('counts drops but excludes warmups and failure sets consistently with workout summaries', () => {
+  const workout = session(new Date(2026, 8, 13));
+  workout.exercises[0]!.sets.push(
+    { id: 'drop', type: 'drop', weight: 40, reps: 8, completed: true, setNumber: 4 },
+    { id: 'fail', type: 'failure', weight: 80, reps: 0, completed: true, setNumber: 5 },
+  );
+  expect(dashboardSummary([workout], new Date(2026, 8, 13)).setCount).toBe(2);
+  expect(summarizeWorkout(workout).setCount).toBe(2);
 });

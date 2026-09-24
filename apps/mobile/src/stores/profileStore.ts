@@ -55,7 +55,9 @@ export type CelebrationEffect =
   | 'inferno'
   | 'gold'
   | 'matrix'
-  | 'cosmic';
+  | 'cosmic'
+  | 'aurora'
+  | 'fireworks';
 
 export interface Profile {
   betaTesterEnabled?: boolean;
@@ -145,6 +147,7 @@ const profileStateSchema = z.object({
       'linen',
       'sage',
       'slate',
+      'lavender',
     ])
     .optional(),
   savedPremiumColorway: z
@@ -164,10 +167,11 @@ const profileStateSchema = z.object({
       'linen',
       'sage',
       'slate',
+      'lavender',
     ])
     .optional(),
   celebrationEffect: z
-    .enum(['classic', 'neon', 'inferno', 'gold', 'matrix', 'cosmic'])
+    .enum(['classic', 'neon', 'inferno', 'gold', 'matrix', 'cosmic', 'aurora', 'fireworks'])
     .optional(),
   fitnessGoal: FitnessGoalSchema.optional(),
   experienceLevel: ExperienceLevelSchema.optional(),
@@ -424,13 +428,12 @@ export const useProfileStore = create<ProfileState>()(
   ),
 );
 
-const LIGHT_COLORWAYS: Colorway[] = ['linen', 'sage', 'arctic', 'solar', 'rose', 'alpine'];
+const LIGHT_COLORWAYS: Colorway[] = ['lavender', 'linen', 'sage', 'arctic', 'solar', 'rose', 'alpine'];
 
 export function syncAppearanceForTier(tier: SubscriptionTier) {
   const state = useProfileStore.getState();
   const activeColorway = state.profile.colorway ?? 'glacier';
   const isFreeColorway = activeColorway === 'glacier' || activeColorway === 'arctic';
-  const isCoachColorway = activeColorway === 'titanium';
 
   if (tier === 'free') {
     if (!isFreeColorway) {
@@ -440,19 +443,7 @@ export function syncAppearanceForTier(tier: SubscriptionTier) {
         colorway: isLight ? 'arctic' : 'glacier',
       });
     }
-  } else if (tier === 'pro') {
-    if (isCoachColorway) {
-      state.updateProfile({
-        savedPremiumColorway: activeColorway,
-        colorway: 'glacier',
-      });
-    } else if (state.profile.savedPremiumColorway && state.profile.savedPremiumColorway !== 'titanium') {
-      state.updateProfile({
-        colorway: state.profile.savedPremiumColorway,
-        savedPremiumColorway: undefined,
-      });
-    }
-  } else if (tier === 'coach') {
+  } else if (tier === 'pro' || tier === 'coach') {
     if (state.profile.savedPremiumColorway) {
       state.updateProfile({
         colorway: state.profile.savedPremiumColorway,

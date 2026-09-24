@@ -75,6 +75,24 @@ const renderWithProviders = (ui: React.ReactElement) =>
   );
 
 describe('SessionExerciseCard - Set Options Three-Dot Menu Visibility', () => {
+  it('commits the complete multi-digit template weight instead of its first digit', () => {
+    const onUpdate = jest.fn();
+    const onCommit = jest.fn();
+    const screen = renderWithProviders(<SetRow mode="template" compact={false}
+      set={{ ...mockSessionExercise.sets[0]!, weight: undefined }}
+      isCurrent={false} workingSetNumber={1} sessionExerciseId="se-1"
+      isImperial={false} isCardio={false} showRpe showRir
+      onUpdate={onUpdate} onCommit={onCommit} onComplete={jest.fn()} onDelete={jest.fn()} />);
+    const input = screen.getByLabelText('Satz 1 Gewicht');
+    fireEvent(input, 'focus');
+    for (const value of ['2', '20', '200']) fireEvent.changeText(input, value);
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(onUpdate).toHaveBeenLastCalledWith({ weight: 200 });
+    fireEvent(input, 'blur');
+    expect(onCommit).toHaveBeenCalledTimes(1);
+    expect(onCommit).toHaveBeenCalledWith({ weight: 200 });
+  });
+
   it('preserves explicit zero and clears optional effort values in the shared editor', () => {
     const onUpdate = jest.fn();
     const screen = renderWithProviders(<SetRow mode="template" compact={false}
@@ -84,6 +102,7 @@ describe('SessionExerciseCard - Set Options Three-Dot Menu Visibility', () => {
       onUpdate={onUpdate} onComplete={jest.fn()} onDelete={jest.fn()} />);
     expect(screen.getByLabelText('Satz 1 Gewicht').props.value).toBe('0');
     fireEvent.changeText(screen.getByLabelText('Satz 1 Gewicht'), '');
+    fireEvent(screen.getByLabelText('Satz 1 Gewicht'), 'blur');
     expect(onUpdate).toHaveBeenLastCalledWith({ weight: undefined });
     fireEvent.changeText(screen.getByLabelText('Satz 1 RPE'), '');
     expect(onUpdate).toHaveBeenLastCalledWith({ rpe: undefined });

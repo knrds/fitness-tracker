@@ -1337,13 +1337,14 @@ export default function BodyTrackingScreen() {
       <Modal
         visible={modalVisible}
         title={t('body.addMetric')}
+        size="large"
         onClose={() => setModalVisible(false)}
         primaryActionTitle={t('common.save')}
         onPrimaryAction={handleSave}
         secondaryActionTitle={t('common.cancel')}
         onSecondaryAction={() => setModalVisible(false)}
       >
-        <ScrollView style={styles.modalForm} contentContainerStyle={styles.modalFormContent}>
+        <View>
           <View style={{ marginBottom: 16 }}>
             <Text style={[styles.modalLabel, { color: theme.colors.text }]}>
               {language === 'en' ? 'Date' : 'Datum'}
@@ -1458,7 +1459,7 @@ export default function BodyTrackingScreen() {
               },
             ]}
           />
-        </ScrollView>
+        </View>
       </Modal>
       <DatePickerModal
         visible={datePickerVisible}

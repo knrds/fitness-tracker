@@ -1,4 +1,4 @@
-import { Colorway } from '@fitness-tracker/ui';
+import { Colorway, colorways } from '@fitness-tracker/ui';
 import {
   getXpRequiredForLevel,
   calculateLevelFromXp,
@@ -29,105 +29,19 @@ export interface RewardCelebrationConfig {
   previewColors: string[];
 }
 
-export const COLORWAY_REWARDS: RewardColorwayConfig[] = [
-  { id: 'linen', name: 'Linen', subtitle: 'Linen · Terracotta', requiredLevel: 6, requiredRank: 2, isLight: true },
-  { id: 'sage', name: 'Sage', subtitle: 'Sage · Forest', requiredLevel: 11, requiredRank: 3, isLight: true },
-  { id: 'slate', name: 'Soft Slate', subtitle: 'Slate · Sky', requiredLevel: 16, requiredRank: 4, isLight: false },
-
-  // Dark Themes
-  {
-    id: 'glacier',
-    name: 'Glacier Core',
-    subtitle: 'Cyan · Kühles Graphit (Standard)',
-    isLight: false,
-    requiredLevel: 1,
-    requiredRank: 1,
-  },
-  {
-    id: 'crimson',
-    name: 'Crimson Neon',
-    subtitle: 'Neon Magenta · Velvet Obsidian',
-    isLight: false,
-    requiredLevel: 11,
-    requiredRank: 3,
-  },
-  {
-    id: 'verde',
-    name: 'EVARO Verde',
-    subtitle: 'Mint Bio-Signal · Obsidian',
-    isLight: false,
-    requiredLevel: 21,
-    requiredRank: 5,
-  },
-  {
-    id: 'telemetry',
-    name: 'Telemetry Cyber',
-    subtitle: 'Electric Lime · Midnight Navy',
-    isLight: false,
-    requiredLevel: 26,
-    requiredRank: 6,
-  },
-  {
-    id: 'ember',
-    name: 'EVARO Ember',
-    subtitle: 'Ember Orange · Deep Carbon',
-    isLight: false,
-    requiredLevel: 36,
-    requiredRank: 8,
-  },
-  {
-    id: 'avionics',
-    name: 'Avionics Stealth',
-    subtitle: 'Zinc Matrix · Acid Lime',
-    isLight: false,
-    requiredLevel: 41,
-    requiredRank: 9,
-  },
-  {
-    id: 'titanium',
-    name: 'Royal Titanium',
-    subtitle: 'Champagne Gold · Luxury',
-    isLight: false,
-    requiredLevel: 46,
-    requiredRank: 10,
-  },
-
-  // Light Themes
-  {
-    id: 'arctic',
-    name: 'Arctic Lab (Light)',
-    subtitle: 'Clean White · Ocean Cyan (Standard)',
-    isLight: true,
-    requiredLevel: 1,
-    requiredRank: 1,
-  },
-  {
-    id: 'solar',
-    name: 'Solar Dune (Light)',
-    subtitle: 'Warm Sand · Amber Gold',
-    isLight: true,
-    requiredLevel: 6,
-    requiredRank: 2,
-  },
-  {
-    id: 'rose',
-    name: 'Porcelain Rose (Light)',
-    subtitle: 'Porzellan · Korallen-Rose',
-    isLight: true,
-    requiredLevel: 16,
-    requiredRank: 4,
-  },
-  {
-    id: 'alpine',
-    name: 'Alpine Mist (Light)',
-    subtitle: 'Studio Snow · Electric Indigo',
-    isLight: true,
-    requiredLevel: 31,
-    requiredRank: 7,
-  },
-];
-
+const colorwayLevels: Partial<Record<Colorway, number>> = {
+  glacier: 1, arctic: 1, solar: 2, slate: 4, linen: 6, crimson: 10,
+  sage: 14, verde: 18, rose: 22, telemetry: 26, lavender: 30,
+  ember: 34, alpine: 38, avionics: 42, titanium: 46,
+};
+export const COLORWAY_REWARDS: RewardColorwayConfig[] = colorways.map(option => ({
+  id: option.id, name: option.name, subtitle: option.description, isLight: !!option.isLight,
+  requiredLevel: colorwayLevels[option.id] ?? 1,
+  requiredRank: Math.floor(((colorwayLevels[option.id] ?? 1) - 1) / 5) + 1,
+})).sort((a, b) => Number(a.isLight) - Number(b.isLight) || a.requiredLevel - b.requiredLevel);
 export const CELEBRATION_REWARDS: RewardCelebrationConfig[] = [
+  { id: 'aurora', name: 'Aurora Ribbons', subtitle: 'Flowing ribbons', description: 'Soft ribbons drift across the sky.', requiredLevel: 3, requiredRank: 1, previewColors: ['#5EEAD4', '#A78BFA', '#F9A8D4'] },
+  { id: 'fireworks', name: 'Victory Fireworks', subtitle: 'Radial bursts', description: 'A bright radial finale for your workout.', requiredLevel: 50, requiredRank: 10, previewColors: ['#FCD34D', '#FB7185', '#38BDF8'] },
   {
     id: 'classic',
     name: 'Klassisches Konfetti',
@@ -151,8 +65,8 @@ export const CELEBRATION_REWARDS: RewardCelebrationConfig[] = [
     name: 'Cyber Neon Rain',
     subtitle: 'Laser-Sparks & Neon-Streifen',
     description: 'Futuristische High-Speed Lichtstreifen in Cyan, Pink & Lime.',
-    requiredLevel: 13,
-    requiredRank: 3,
+    requiredLevel: 16,
+    requiredRank: 4,
     previewColors: ['#00F0FF', '#FF007F', '#39FF14', '#A855F7'],
   },
   {
@@ -160,8 +74,8 @@ export const CELEBRATION_REWARDS: RewardCelebrationConfig[] = [
     name: 'Champion Gold Shower',
     subtitle: 'Goldmünzen & Champagner-Glanz',
     description: 'Goldene Medaillon-Münzen, Sterne und schimmernder Goldstaub.',
-    requiredLevel: 29,
-    requiredRank: 6,
+    requiredLevel: 24,
+    requiredRank: 5,
     previewColors: ['#FFD700', '#F59E0B', '#D97706', '#FFFBEB'],
   },
   {
@@ -169,7 +83,7 @@ export const CELEBRATION_REWARDS: RewardCelebrationConfig[] = [
     name: 'Quantum Matrix Stream',
     subtitle: 'Binäre Lichtimpulse & Cyber-Prisma',
     description: 'Kaskadierende digitale Matrix-Codes und fluoreszierende Lichtimpulse.',
-    requiredLevel: 33,
+    requiredLevel: 32,
     requiredRank: 7,
     previewColors: ['#00FF66', '#00F0FF', '#10B981', '#E0F2FE'],
   },
@@ -178,11 +92,11 @@ export const CELEBRATION_REWARDS: RewardCelebrationConfig[] = [
     name: 'Supernova Starlight',
     subtitle: 'Diamant-Sterne & Kosmische Funken',
     description: 'Galaktische Diamant-Funken und rotierende Supernova-Sterne.',
-    requiredLevel: 43,
-    requiredRank: 9,
+    requiredLevel: 40,
+    requiredRank: 8,
     previewColors: ['#C084FC', '#38BDF8', '#F43F5E', '#FFFFFF'],
   },
-];
+].sort((a, b) => a.requiredLevel - b.requiredLevel) as RewardCelebrationConfig[];
 
 export function isColorwayUnlocked(colorwayId: Colorway, userLevel: number): boolean {
   const config = COLORWAY_REWARDS.find((c) => c.id === colorwayId);

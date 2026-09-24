@@ -9,6 +9,7 @@ import {
   WorkoutTemplateSchema,
   EXERCISES,
   TemplateExercise,
+  DEFAULT_FREE_TEMPLATE_LIMIT,
 } from '@fitness-tracker/domain';
 import * as Crypto from '../utils/uuid';
 import { z } from 'zod';
@@ -72,7 +73,7 @@ export function isTemplateEditable(templateId: string, templates: WorkoutTemplat
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
   const index = customTemplates.findIndex((t) => t.id === templateId);
-  return index >= 0 && index < 2;
+  return index >= 0 && index < DEFAULT_FREE_TEMPLATE_LIMIT;
 }
 
 /**
@@ -80,8 +81,12 @@ export function isTemplateEditable(templateId: string, templates: WorkoutTemplat
  * - PRO/COACH: Full edit access.
  * - FREE: Read-only on downgrade; no new creation or structural editing.
  */
-export function isProgramEditable(): boolean {
-  return entitlementService.canCreateProgram();
+export function isProgramEditable(programId?: string): boolean {
+  if (programId && isDefaultProgramId(programId)) return false;
+  if (entitlementService.getEntitlementState().isPro) return true;
+  const own = useProgramStore.getState().programs.filter(p => !isDefaultProgramId(p.id))
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  return programId ? own[0]?.id === programId : own.length <= 1;
 }
 
 function makeDefaultProgramWorkoutId(family: number, week: number, day: number, order = 0): string {
@@ -115,7 +120,7 @@ function buildTemplateExercise(
 export function getDefaultTemplates(): WorkoutTemplate[] {
   const now = new Date('2026-06-01T00:00:00.000Z');
 
-  return [
+  const defaults: WorkoutTemplate[] = [
     {
       id: DEFAULT_TEMPLATE_IDS.gk,
       userId: LOCAL_USER_ID,
@@ -283,6 +288,7 @@ export function getDefaultTemplates(): WorkoutTemplate[] {
       ].filter((e) => e.exerciseId !== ''),
     },
   ];
+  return defaults.filter(template => [DEFAULT_TEMPLATE_IDS.gk, DEFAULT_TEMPLATE_IDS.push, DEFAULT_TEMPLATE_IDS.pull, DEFAULT_TEMPLATE_IDS.legs].some(id => id === template.id));
 }
 
 export function getDefaultPrograms(): Program[] {
@@ -450,7 +456,7 @@ export function getDefaultPrograms(): Program[] {
     );
   }
 
-  return [
+  const defaults: Program[] = [
     {
       id: DEFAULT_PROGRAM_IDS.gk,
       userId: LOCAL_USER_ID,
@@ -512,12 +518,17 @@ export function getDefaultPrograms(): Program[] {
       updatedAt: now,
     },
   ];
+  return defaults.filter(program => program.id === DEFAULT_PROGRAM_IDS.gk || program.id === DEFAULT_PROGRAM_IDS.ppl);
 }
 
 export interface ProgramState {
   programs: Program[];
   templates: WorkoutTemplate[];
   customFolders: string[];
+  hiddenTemplateIds: string[];
+  hiddenProgramIds: string[];
+  setTemplateHidden: (id: UUID, hidden: boolean) => void;
+  setProgramHidden: (id: UUID, hidden: boolean) => void;
 
   createProgram: (program: Partial<Program>) => void;
   updateProgram: (id: UUID, updates: Partial<Program>) => void;
@@ -541,6 +552,8 @@ const programPersistedSchema = z.object({
   programs: z.array(ProgramSchema),
   templates: z.array(WorkoutTemplateSchema),
   customFolders: z.array(z.string().trim().min(1).max(50)).optional(),
+  hiddenTemplateIds: z.array(z.string()).optional(),
+  hiddenProgramIds: z.array(z.string()).optional(),
 });
 
 type ProgramPersistedState = z.infer<typeof programPersistedSchema>;
@@ -549,6 +562,8 @@ const defaultPersistedState: ProgramPersistedState = {
   programs: [],
   templates: [],
   customFolders: [],
+  hiddenTemplateIds: [],
+  hiddenProgramIds: [],
 };
 
 export const useProgramStore = create<ProgramState>()(
@@ -557,14 +572,22 @@ export const useProgramStore = create<ProgramState>()(
       programs: [],
       templates: [],
       customFolders: [],
+      hiddenTemplateIds: [],
+      hiddenProgramIds: [],
+      setTemplateHidden: (id, hidden) => set(state => ({
+        hiddenTemplateIds: hidden ? [...new Set([...state.hiddenTemplateIds, id])] : state.hiddenTemplateIds.filter(value => value !== id),
+      })),
+      setProgramHidden: (id, hidden) => set(state => ({
+        hiddenProgramIds: hidden ? [...new Set([...state.hiddenProgramIds, id])] : state.hiddenProgramIds.filter(value => value !== id),
+      })),
 
       createProgram: (programPartial) => {
-        if (!entitlementService.canCreateProgram()) {
+        if (!entitlementService.canCreateProgram(get().programs.filter(p => !isDefaultProgramId(p.id)).length)) {
           monetizationAnalytics.track('program_feature_clicked', {
             tier: entitlementService.getTier(),
             feature_source: 'create_program',
           });
-          throw new Error('PROGRAM_FEATURE_LOCKED: Program creation requires EVARO Pro or Coach subscription.');
+          throw new Error('PROGRAM_FEATURE_LOCKED: Free tier is limited to 1 custom program.');
         }
         return set((state) => {
           const now = new Date();
@@ -585,7 +608,7 @@ export const useProgramStore = create<ProgramState>()(
       },
 
       updateProgram: (id, updates) => {
-        if (!isProgramEditable()) {
+        if (!isProgramEditable(id)) {
           throw new Error('PROGRAM_FEATURE_LOCKED: Editing programs requires EVARO Pro or Coach subscription.');
         }
         return set((state) => {
@@ -603,6 +626,7 @@ export const useProgramStore = create<ProgramState>()(
 
       deleteProgram: (id) =>
         set((state) => {
+          if (isDefaultProgramId(id)) throw new Error('DEFAULT_PROGRAM_READ_ONLY');
           useSyncStore.getState().addToQueue('programs', 'DELETE', { id });
           return {
             programs: state.programs.filter((p) => p.id !== id),
@@ -633,9 +657,10 @@ export const useProgramStore = create<ProgramState>()(
         }),
 
       updateProgramsOrder: (programs) =>
-        set({
-          programs,
-        }),
+        set(state => ({ programs: [
+          ...programs.map(program => isDefaultProgramId(program.id) ? state.programs.find(p => p.id === program.id) ?? program : program),
+          ...state.programs.filter(program => !programs.some(p => p.id === program.id)),
+        ] })),
 
       createTemplate: (templatePartial) => {
         const state = get();
@@ -645,7 +670,7 @@ export const useProgramStore = create<ProgramState>()(
             tier: entitlementService.getTier(),
             paywall_source: 'template_limit',
           });
-          throw new Error('TEMPLATE_LIMIT_REACHED: Free tier is limited to 2 custom templates.');
+          throw new Error('TEMPLATE_LIMIT_REACHED: Free tier is limited to 3 custom templates.');
         }
         return set((currentState) => {
           const now = new Date();
@@ -697,6 +722,7 @@ export const useProgramStore = create<ProgramState>()(
 
       deleteTemplate: (id) =>
         set((state) => {
+          if (isDefaultTemplateId(id)) throw new Error('DEFAULT_TEMPLATE_READ_ONLY');
           useSyncStore.getState().addToQueue('workout_templates', 'DELETE', { id });
           return {
             templates: state.templates.filter((t) => t.id !== id),
@@ -704,9 +730,10 @@ export const useProgramStore = create<ProgramState>()(
         }),
 
       updateTemplatesOrder: (templates) =>
-        set({
-          templates,
-        }),
+        set(state => ({ templates: [
+          ...templates.map(template => isDefaultTemplateId(template.id) ? state.templates.find(t => t.id === template.id) ?? template : template),
+          ...state.templates.filter(template => !templates.some(t => t.id === template.id)),
+        ] })),
 
       createFolder: (name: string) =>
         set((state) => {
@@ -811,8 +838,25 @@ export const useProgramStore = create<ProgramState>()(
           ? { ...defaultPersistedState, ...parsed.data }
           : defaultPersistedState;
       },
+      merge: (persisted, current) => {
+        const saved = programPersistedSchema.parse(persisted ?? defaultPersistedState);
+        // Retire old bundled offerings without deleting data or breaking historical references.
+        // Persisted visibility always wins, including a deliberately empty hidden list.
+        return {
+          ...current, ...saved,
+          programs: saved.programs as Program[],
+          templates: saved.templates as WorkoutTemplate[],
+          customFolders: saved.customFolders ?? [],
+          hiddenTemplateIds: saved.hiddenTemplateIds ?? saved.templates.filter(t =>
+            isDefaultTemplateId(t.id) && !getDefaultTemplates().some(item => item.id === t.id)).map(t => t.id),
+          hiddenProgramIds: saved.hiddenProgramIds ?? saved.programs.filter(p =>
+            isDefaultProgramId(p.id) && !getDefaultPrograms().some(item => item.id === p.id)).map(p => p.id),
+        };
+      },
       onRehydrateStorage: () => (state) => {
         if (state) {
+          state.hiddenTemplateIds ??= state.templates.filter(template => isDefaultTemplateId(template.id) && !getDefaultTemplates().some(t => t.id === template.id)).map(t => t.id);
+          state.hiddenProgramIds ??= state.programs.filter(program => isDefaultProgramId(program.id) && !getDefaultPrograms().some(p => p.id === program.id)).map(p => p.id);
           if (!state.customFolders) {
             state.customFolders = [];
           } else {

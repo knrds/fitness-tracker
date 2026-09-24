@@ -30,6 +30,7 @@ export function AppearanceSettings() {
   const { profile, updateProfile } = useProfileStore();
   const { level, xp, setTestLevel } = useAchievementStore();
   const [battlePassVisible, setBattlePassVisible] = useState(false);
+  const [previewSequence, setPreviewSequence] = useState(0);
   const [previewEffect, setPreviewEffect] = useState<CelebrationEffect | null>(null);
   const [sliderWidth, setSliderWidth] = useState(300);
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -62,17 +63,6 @@ export function AppearanceSettings() {
   const handleSelectColorway = (item: RewardColorwayConfig) => {
     const tier = entitlementService.getTier();
     const isFreeColorway = item.id === 'glacier' || item.id === 'arctic';
-    const isCoachColorway = item.id === 'titanium';
-
-    if (isCoachColorway && tier !== 'coach') {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      monetizationAnalytics.track('locked_feature_clicked', {
-        tier,
-        feature_source: 'appearance',
-      });
-      usePaywallStore.getState().openPaywall('coach', 'appearance');
-      return;
-    }
 
     if (!isFreeColorway && !entitlementService.canUsePremiumAppearance()) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -135,6 +125,7 @@ export function AppearanceSettings() {
 
     // Trigger preview burst
     if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    setPreviewSequence(value => value + 1);
     setPreviewEffect(item.id);
     previewTimerRef.current = setTimeout(() => {
       setPreviewEffect(null);
@@ -144,7 +135,8 @@ export function AppearanceSettings() {
   const renderColorwayCard = (option: RewardColorwayConfig) => {
     const preview = createTheme(option.id);
     const isSelected = option.id === activeColorway;
-    const isUnlocked = isBetaFullAccess() || isColorwayUnlocked(option.id, level);
+    const proLocked = !isBetaFullAccess() && option.id !== 'glacier' && option.id !== 'arctic' && !entitlementService.canUsePremiumAppearance();
+    const isUnlocked = !proLocked && (isBetaFullAccess() || isColorwayUnlocked(option.id, level));
 
     return (
       <Pressable
@@ -221,9 +213,9 @@ export function AppearanceSettings() {
                 },
               ]}
             >
-              <Ionicons name="lock-closed" size={10} color={theme.colors.warning} />
+              <Ionicons name={proLocked ? 'shield-outline' : 'lock-closed'} size={10} color={theme.colors.warning} />
               <Text style={[styles.badgeText, { color: theme.colors.warning }]}>
-                LVL {option.requiredLevel}
+                {proLocked ? 'PRO' : `LVL ${option.requiredLevel}`}
               </Text>
             </View>
           )}
@@ -368,8 +360,8 @@ export function AppearanceSettings() {
         </Text>
       </View>
 
-      {/* Beta Level & Rang Simulator Card */}
-      <View
+      {/* The simulator is unnecessary when beta unlocks every reward. */}
+      {!isBetaFullAccess() && <View
         style={[
           styles.betaCard,
           {
@@ -592,7 +584,7 @@ export function AppearanceSettings() {
             );
           })}
         </ScrollView>
-      </View>
+      </View>}
 
       {/* Group 1: Light Themes (Helle Farbwelten) */}
       <View style={styles.subgroup}>
@@ -713,7 +705,7 @@ export function AppearanceSettings() {
       </View>
 
       {/* Live Preview Overlay when tapping a celebration effect */}
-      {previewEffect && <CelebrationPreview effect={previewEffect} />}
+      {previewEffect && <CelebrationPreview key={previewSequence} effect={previewEffect} />}
 
       {/* Battle Pass Popup */}
       <BattlePassModal

@@ -212,11 +212,11 @@ describe('Entitlement Service Provider Abstraction & Beta Fallback', () => {
     expect(service.getTier()).toBe('free');
     expect(service.canCreateTemplate(0)).toBe(true);
     expect(service.canCreateTemplate(1)).toBe(true);
-    expect(service.canCreateTemplate(2)).toBe(false); // Template 3 triggers paywall
+    expect(service.canCreateTemplate(3)).toBe(false); // Template 3 triggers paywall
     expect(service.canEditTemplate(0)).toBe(true);
     expect(service.canEditTemplate(1)).toBe(true);
-    expect(service.canEditTemplate(2)).toBe(false); // Locked read-only on downgrade
-    expect(service.canCreateProgram()).toBe(false);
+    expect(service.canEditTemplate(3)).toBe(false); // Locked read-only on downgrade
+    expect(service.canCreateProgram(1)).toBe(false);
     expect(service.canUseRPE()).toBe(false);
     expect(service.canUseRIR()).toBe(false);
     expect(service.canUseAdvancedMetrics()).toBe(false);

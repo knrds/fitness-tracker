@@ -175,6 +175,7 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
 
       if (newIndex !== selectedIndex) {
         e.preventDefault?.();
+        isScrollingRef.current = true;
         void hapticFeedback.selection();
         onSelect(newIndex);
         scrollViewRef.current?.scrollTo({
@@ -261,22 +262,25 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
         onMomentumScrollEnd={(e) =>
           handleScrollEnd(e.nativeEvent.contentOffset.y)
         }
-        onScrollEndDrag={(e) =>
-          handleScrollEnd(e.nativeEvent.contentOffset.y)
-        }
+        onScrollEndDrag={(e) => {
+          // Commit once momentum settles; updating during deceleration snaps the wheel.
+          if (Math.abs(e.nativeEvent.velocity?.y ?? 0) < 0.02)
+            handleScrollEnd(e.nativeEvent.contentOffset.y);
+        }}
         scrollEnabled={!disabled}
         style={webScrollStyle}
       >
         {items.map((item, index) => {
           const isSelected = index === selectedIndex;
           const distance = Math.abs(index - selectedIndex);
-          const opacity = isSelected ? 1 : distance === 1 ? 0.6 : 0.25;
+          const opacity = isSelected ? 1 : distance === 1 ? 0.85 : 0.55;
 
           return (
             <Pressable
               key={`${item}-${index}`}
               onPress={() => {
                 if (disabled || isSelected) return;
+                isScrollingRef.current = true;
                 void hapticFeedback.selection();
                 onSelect(index);
                 scrollViewRef.current?.scrollTo({
@@ -304,7 +308,8 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
                   {
                     color: isSelected ? theme.colors.text : theme.colors.muted,
                     fontWeight: isSelected ? '700' : '500',
-                    fontSize: isSelected ? 17 : 15,
+                    fontSize: isSelected ? 19 : 17,
+                    fontVariant: ['tabular-nums'],
                     opacity,
                   },
                 ]}
@@ -457,7 +462,7 @@ export const DateWheelPicker: React.FC<DateWheelPickerProps> = ({
           {
             height: CENTER_OFFSET,
             backgroundColor: theme.colors.surfaceElevated,
-            opacity: 0.82,
+            opacity: 0.22,
           },
         ]}
       />
@@ -468,7 +473,7 @@ export const DateWheelPicker: React.FC<DateWheelPickerProps> = ({
           {
             height: CENTER_OFFSET,
             backgroundColor: theme.colors.surfaceElevated,
-            opacity: 0.82,
+            opacity: 0.22,
           },
         ]}
       />
@@ -529,6 +534,8 @@ const styles = StyleSheet.create({
   },
   columnWrapper: {
     height: CONTAINER_HEIGHT,
+    flexShrink: 1,
+    minWidth: 0,
   },
   itemRow: {
     alignItems: 'center',

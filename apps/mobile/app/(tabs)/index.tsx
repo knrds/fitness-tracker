@@ -1,3 +1,4 @@
+import { useLocalToday } from '../../src/hooks/useLocalToday';
 import { VoltDashboard } from '../../src/components/VoltDashboard';
 import { Theme, useThemeStyles, useTheme, useDialog } from '@fitness-tracker/ui';
 import { useFocusScroll } from '../../src/hooks/useFocusScroll';
@@ -107,12 +108,12 @@ export default function HomeScreen() {
   }, [fadeAnim, shouldAnimateEntrance, slideAnim]);
 
   const activeProgram = programs.find((p) => p.isActive);
-  const today = new Date();
+  const today = useLocalToday();
 
   // Robust Program Schedule Status
   const scheduleStatus = React.useMemo(
     () => getProgramScheduleStatus(activeProgram, templates, sessions, today),
-    [activeProgram, templates, sessions],
+    [activeProgram, templates, sessions, today],
   );
 
   // Determine featured template to show on Home dashboard

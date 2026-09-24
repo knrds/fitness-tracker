@@ -257,19 +257,22 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
     >
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
-          <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={language === 'de' ? 'Zurück' : 'Back'}
+            onPress={onClose} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+          </Pressable>
+          <Text style={[styles.title, { flex: 1, marginHorizontal: 8, color: theme.colors.text, ...theme.typography.heading }]}>
             {language === 'de' ? 'Übungen hinzufügen' : 'Add Exercises'}
           </Text>
           <View style={styles.headerRight}>
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={language === 'de' ? 'Neue Übung' : 'New Exercise'}
               hitSlop={8}
               onPress={() => setCustomExVisible(true)}
-              style={{ marginRight: 16 }}
+              style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
             >
               <Ionicons name="add" size={28} color={theme.colors.primary} />
-            </Pressable>
-            <Pressable hitSlop={8} onPress={onClose}>
-              <Ionicons name="close" size={26} color={theme.colors.muted} />
             </Pressable>
           </View>
         </View>

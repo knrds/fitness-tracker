@@ -252,9 +252,9 @@ export class EntitlementService {
     return Capabilities.canEditTemplate(this.getTier(), templateIndex, limit);
   }
 
-  canCreateProgram(): boolean {
+  canCreateProgram(currentCount = 0): boolean {
     if (this.isBetaActive()) return true;
-    return Capabilities.canCreateProgram(this.getTier());
+    return Capabilities.canCreateProgram(this.getTier(), currentCount);
   }
 
   canUseRPE(): boolean {

@@ -1,6 +1,6 @@
+import { isCompletedWorkingSet } from './workingSets';
 import { WorkoutSession } from '../types';
 import { calculateVolume } from './calculateVolume';
-import { summarizeSessionExercise } from './summarizeSessionExercise';
 
 export interface WorkoutSummary {
   durationSeconds: number;
@@ -10,7 +10,7 @@ export interface WorkoutSummary {
 
 export function summarizeWorkout(session: WorkoutSession): WorkoutSummary {
   const setCount = session.exercises.reduce(
-    (sum, exercise) => sum + summarizeSessionExercise(exercise).completedSetCount,
+    (sum, exercise) => sum + exercise.sets.filter(isCompletedWorkingSet).length,
     0,
   );
 

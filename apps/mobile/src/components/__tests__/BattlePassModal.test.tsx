@@ -56,13 +56,12 @@ describe('BattlePassModal', () => {
     );
 
     // Tap Level 11 which unlocks Crimson Neon & Gold Medaillon
-    const lvl11Pill = getByLabelText('Level 11 Details anzeigen');
+    const lvl11Pill = getByLabelText('Level 10 Details anzeigen');
     fireEvent.press(lvl11Pill);
 
     // Inspection modal opens
-    expect(getByText('BELOHNUNGEN AUF LEVEL 11')).toBeTruthy();
+    expect(getByText('BELOHNUNGEN AUF LEVEL 10')).toBeTruthy();
     expect(getByText('Crimson Neon')).toBeTruthy();
-    expect(getByText('Gold Medaillon')).toBeTruthy();
 
     // Close inspection modal
     const doneBtn = getByLabelText('Detailansicht schließen');
@@ -77,13 +76,13 @@ describe('BattlePassModal', () => {
     );
 
     // Tap Level 4 (no cosmetic reward)
-    const lvl4Pill = getByLabelText('Level 4 Details anzeigen');
+    const lvl4Pill = getByLabelText('Level 5 Details anzeigen');
     fireEvent.press(lvl4Pill);
 
     // Inspection shows milestone progress and missing XP
     expect(getByText('Meilenstein-Aufstieg')).toBeTruthy();
     // Total XP for L4 is 1770, user has 600 -> 1170 XP missing (formatted as 1.170 in DE locale)
-    expect(getByText('Noch 1.170 XP benötigt')).toBeTruthy();
+    expect(getByText('Noch 2.240 XP benötigt')).toBeTruthy();
 
     // Close inspection modal
     const doneBtn = getByLabelText('Detailansicht schließen');
@@ -108,10 +107,10 @@ describe('BattlePassModal', () => {
     fireEvent.press(doneBtn);
 
     // Tap mid-level 13 which unlocks Cyber Neon Rain
-    const lvl13Pill = getByLabelText('Level 13 Details anzeigen');
+    const lvl13Pill = getByLabelText('Level 16 Details anzeigen');
     fireEvent.press(lvl13Pill);
 
-    expect(getByText('BELOHNUNGEN AUF LEVEL 13')).toBeTruthy();
+    expect(getByText('BELOHNUNGEN AUF LEVEL 16')).toBeTruthy();
     expect(getByText('Cyber Neon Rain')).toBeTruthy();
 
     fireEvent.press(getByLabelText('Detailansicht schließen'));

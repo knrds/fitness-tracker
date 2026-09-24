@@ -11,6 +11,7 @@ import {
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { MuscleGroup, Equipment, MovementPattern } from '@fitness-tracker/domain';
 import { useTheme } from '@fitness-tracker/ui';
 import { KEYBOARD_DONE_ID } from '../workout/KeyboardDoneAccessory';
@@ -111,14 +112,12 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
     >
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
-          <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
+          <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={language === 'de' ? 'Zurück' : 'Back'} style={styles.cancelBtn}>
+            <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+          </Pressable>
+          <Text style={[styles.title, { flex: 1, marginLeft: 8, color: theme.colors.text, ...theme.typography.heading }]}>
             {language === 'de' ? 'Neue Übung' : 'New Exercise'}
           </Text>
-          <Pressable onPress={onClose} hitSlop={15} style={styles.cancelBtn}>
-            <Text style={[styles.cancelText, { color: theme.colors.muted }]}>
-              {t('common.cancel')}
-            </Text>
-          </Pressable>
         </View>
 
         <ScrollView

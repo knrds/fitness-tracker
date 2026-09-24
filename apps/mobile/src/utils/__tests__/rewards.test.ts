@@ -11,17 +11,17 @@ import {
 } from '../rewards';
 
 describe('rewards utility', () => {
-  it('contains 14 configured colorways with 6 light modes and 8 dark modes', () => {
-    expect(COLORWAY_REWARDS).toHaveLength(14);
+  it('contains 15 configured colorways with 7 light modes and 8 dark modes', () => {
+    expect(COLORWAY_REWARDS).toHaveLength(15);
     const lightModes = COLORWAY_REWARDS.filter((c) => c.isLight);
     const darkModes = COLORWAY_REWARDS.filter((c) => !c.isLight);
-    expect(lightModes).toHaveLength(6);
+    expect(lightModes).toHaveLength(7);
     expect(darkModes).toHaveLength(8);
 
-    expect(lightModes.map((c) => c.id)).toEqual(['linen', 'sage', 'arctic', 'solar', 'rose', 'alpine']);
+    expect(lightModes.map((c) => c.id)).toEqual(['arctic', 'solar', 'linen', 'sage', 'rose', 'lavender', 'alpine']);
     expect(darkModes.map((c) => c.id)).toEqual([
-      'slate',
       'glacier',
+      'slate',
       'crimson',
       'verde',
       'telemetry',
@@ -51,11 +51,11 @@ describe('rewards utility', () => {
     expect(isColorwayUnlocked('rose', 11)).toBe(false);
 
     // Level 16 (Rank 4): Porcelain Rose unlocks
-    expect(isColorwayUnlocked('rose', 16)).toBe(true);
+    expect(isColorwayUnlocked('rose', 22)).toBe(true);
     expect(isColorwayUnlocked('alpine', 16)).toBe(false);
 
     // Level 31 (Rank 7): Alpine Mist unlocks
-    expect(isColorwayUnlocked('alpine', 31)).toBe(true);
+    expect(isColorwayUnlocked('alpine', 38)).toBe(true);
     expect(isColorwayUnlocked('titanium', 31)).toBe(false);
 
     // Level 46 (Rank 10): Titanium unlocks
@@ -63,7 +63,7 @@ describe('rewards utility', () => {
   });
 
   it('correctly evaluates celebration effect unlocks including mid-level rewards', () => {
-    expect(CELEBRATION_REWARDS).toHaveLength(6);
+    expect(CELEBRATION_REWARDS).toHaveLength(8);
 
     // Level 1: classic unlocked, others locked
     expect(isCelebrationUnlocked('classic', 1)).toBe(true);
@@ -78,7 +78,7 @@ describe('rewards utility', () => {
     expect(isCelebrationUnlocked('neon', 8)).toBe(false);
 
     // Level 13 (Rank 3 mid-level!): neon unlocks
-    expect(isCelebrationUnlocked('neon', 13)).toBe(true);
+    expect(isCelebrationUnlocked('neon', 16)).toBe(true);
     expect(isCelebrationUnlocked('gold', 13)).toBe(false);
 
     // Level 29 (Rank 6 mid-level!): gold unlocks
@@ -112,7 +112,7 @@ describe('rewards utility', () => {
     expect(lvl1.celebrations.map((c) => c.id)).toContain('classic');
 
     // Rank 3 theme Crimson Neon on Level 11 (no celebration collision!)
-    const lvl11 = getLevelRewards(11);
+    const lvl11 = getLevelRewards(10);
     expect(lvl11.hasRewards).toBe(true);
     expect(lvl11.colorways.map((c) => c.id)).toContain('crimson');
     expect(lvl11.celebrations).toHaveLength(0);
@@ -123,26 +123,26 @@ describe('rewards utility', () => {
     expect(lvl8.celebrations.map((c) => c.id)).toContain('inferno');
 
     // Mid-level 13 has neon!
-    const lvl13 = getLevelRewards(13);
+    const lvl13 = getLevelRewards(16);
     expect(lvl13.hasRewards).toBe(true);
     expect(lvl13.celebrations.map((c) => c.id)).toContain('neon');
 
     // Mid-level 29 has gold!
-    const lvl29 = getLevelRewards(29);
+    const lvl29 = getLevelRewards(24);
     expect(lvl29.hasRewards).toBe(true);
     expect(lvl29.celebrations.map((c) => c.id)).toContain('gold');
 
     // Mid-level 33 has matrix!
-    const lvl33 = getLevelRewards(33);
+    const lvl33 = getLevelRewards(32);
     expect(lvl33.hasRewards).toBe(true);
     expect(lvl33.celebrations.map((c) => c.id)).toContain('matrix');
 
     // Mid-level 43 has cosmic!
-    const lvl43 = getLevelRewards(43);
+    const lvl43 = getLevelRewards(40);
     expect(lvl43.hasRewards).toBe(true);
     expect(lvl43.celebrations.map((c) => c.id)).toContain('cosmic');
 
-    const lvl4 = getLevelRewards(4);
+    const lvl4 = getLevelRewards(5);
     expect(lvl4.hasRewards).toBe(false);
     expect(lvl4.colorways).toHaveLength(0);
     expect(lvl4.celebrations).toHaveLength(0);
@@ -151,14 +151,14 @@ describe('rewards utility', () => {
   it('provides reward config lookups', () => {
     const crimsonConfig = getColorwayRewardConfig('crimson');
     expect(crimsonConfig?.name).toBe('Crimson Neon');
-    expect(crimsonConfig?.requiredLevel).toBe(11);
+    expect(crimsonConfig?.requiredLevel).toBe(10);
 
     const roseConfig = getColorwayRewardConfig('rose');
-    expect(roseConfig?.name).toBe('Porcelain Rose (Light)');
-    expect(roseConfig?.requiredLevel).toBe(16);
+    expect(roseConfig?.name).toBe('Porcelain Rose');
+    expect(roseConfig?.requiredLevel).toBe(22);
 
     const cosmicConfig = getCelebrationRewardConfig('cosmic');
     expect(cosmicConfig?.name).toBe('Supernova Starlight');
-    expect(cosmicConfig?.requiredLevel).toBe(43);
+    expect(cosmicConfig?.requiredLevel).toBe(40);
   });
 });

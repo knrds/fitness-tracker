@@ -1,10 +1,9 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions, Platform, StyleSheet, View, ViewStyle } from 'react-native';
+import React, { useEffect, useMemo } from 'react';
+import { Animated, Platform, StyleSheet, View, ViewStyle, Text, useWindowDimensions, Easing } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import { useTheme } from '@fitness-tracker/ui';
 import { CelebrationEffect, useProfileStore } from '../../stores/profileStore';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface Particle {
   id: number;
@@ -19,6 +18,9 @@ interface Particle {
   animX: Animated.Value;
   animRotate: Animated.Value;
   animScale: Animated.Value;
+  startY: number;
+  endY: number;
+  endX: number;
 }
 
 export interface WorkoutCelebrationOverlayProps {
@@ -27,6 +29,7 @@ export interface WorkoutCelebrationOverlayProps {
 }
 
 export function WorkoutCelebrationOverlay({ effect: propEffect, style }: WorkoutCelebrationOverlayProps) {
+  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
   const theme = useTheme();
   const reducedMotion = useReducedMotion();
   const profileEffect = useProfileStore((s) => s.profile.celebrationEffect ?? 'classic');
@@ -34,6 +37,10 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
 
   const getColors = (effectType: CelebrationEffect) => {
     switch (effectType) {
+      case 'aurora':
+        return ['#5EEAD4', '#A78BFA', '#F9A8D4'];
+      case 'fireworks':
+        return ['#FCD34D', '#FB7185', '#38BDF8'];
       case 'neon':
         return ['#00F0FF', '#FF007F', '#39FF14', '#CCFF00', '#A855F7'];
       case 'inferno':
@@ -52,18 +59,22 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
 
   const colors = getColors(effect);
 
-  const particles = useRef<Particle[]>(
-    Array.from({ length: effect === 'neon' || effect === 'matrix' ? 24 : 20 }).map((_, i) => {
+  const particles = useMemo<Particle[]>(() =>
+    Array.from({ length: effect === 'fireworks' ? 36 : 24 }).map((_, i) => {
       const isNeon = effect === 'neon';
       const isInferno = effect === 'inferno';
       const isGold = effect === 'gold';
       const isMatrix = effect === 'matrix';
       const isCosmic = effect === 'cosmic';
+      const isAurora = effect === 'aurora';
+      const isFireworks = effect === 'fireworks';
+      const angle = (i / 36) * Math.PI * 2;
+      const radius = Math.min(SCREEN_WIDTH, SCREEN_HEIGHT) * (0.25 + Math.random() * 0.25);
 
       const size = isNeon
         ? Math.random() * 3 + 3
         : isMatrix
-        ? Math.random() * 2 + 3
+        ? 12
         : isInferno
         ? Math.random() * 6 + 5
         : isGold
@@ -71,10 +82,10 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
         : isCosmic
         ? Math.random() * 10 + 6
         : Math.random() * 8 + 6;
-      const heightRatio = isNeon
+      const heightRatio = isAurora ? 9 : isNeon
         ? Math.random() * 4 + 3
         : isMatrix
-        ? Math.random() * 6 + 4
+        ? 3.5
         : isInferno
         ? Math.random() * 1.6 + 1
         : isCosmic && i % 2 === 0
@@ -90,30 +101,28 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
 
       return {
         id: i,
-        x: Math.random() * SCREEN_WIDTH,
+        x: isFireworks ? SCREEN_WIDTH / 2 : Math.random() * SCREEN_WIDTH,
         size,
         heightRatio,
         borderRadius,
         color: colors[Math.floor(Math.random() * colors.length)] || theme.colors.primary,
-        delay: Math.random() * 900,
-        duration: isNeon || isMatrix
-          ? Math.random() * 1000 + 1300
-          : isInferno
-          ? Math.random() * 1200 + 1600
-          : Math.random() * 1400 + 1900,
+        delay: Math.random() * 180,
+        duration: isNeon ? 1100 : isMatrix ? 1600 : isGold ? 2100 : 1800,
+        startY: isFireworks ? SCREEN_HEIGHT * 0.4 : isInferno ? SCREEN_HEIGHT : -50,
+        endY: isFireworks ? SCREEN_HEIGHT * 0.4 + Math.sin(angle) * radius : isInferno ? SCREEN_HEIGHT * 0.1 : SCREEN_HEIGHT + 50,
+        endX: isFireworks ? Math.cos(angle) * radius : isAurora ? (i % 2 ? -1 : 1) * SCREEN_WIDTH * 0.6 : isNeon ? -SCREEN_WIDTH * 0.45 : isMatrix ? 0 : (Math.random() - 0.5) * 150,
         animY: new Animated.Value(-25),
         animX: new Animated.Value(0),
         animRotate: new Animated.Value(0),
         animScale: new Animated.Value(1),
       };
-    }),
-  ).current;
+    }), [effect, SCREEN_WIDTH, SCREEN_HEIGHT, theme.colors.primary]);
 
   useEffect(() => {
     if (reducedMotion) return;
 
     const anims = particles.map((p) => {
-      p.animY.setValue(-25);
+      p.animY.setValue(p.startY);
       p.animX.setValue(0);
       p.animRotate.setValue(0);
 
@@ -121,17 +130,18 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
         Animated.delay(p.delay),
         Animated.parallel([
           Animated.timing(p.animY, {
-            toValue: SCREEN_HEIGHT + 30,
+            toValue: p.endY,
+            easing: effect === 'fireworks' ? Easing.out(Easing.cubic) : Easing.linear,
             duration: p.duration,
             useNativeDriver: Platform.OS !== 'web',
           }),
           Animated.timing(p.animX, {
-            toValue: (Math.random() - 0.5) * (effect === 'neon' ? 60 : 150),
+            toValue: p.endX,
             duration: p.duration,
             useNativeDriver: Platform.OS !== 'web',
           }),
           Animated.timing(p.animRotate, {
-            toValue: Math.random() * (effect === 'neon' ? 90 : 720),
+            toValue: effect === 'matrix' ? 0 : effect === 'neon' ? -30 : Math.random() * 720,
             duration: p.duration,
             useNativeDriver: Platform.OS !== 'web',
           }),
@@ -149,10 +159,11 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
   if (reducedMotion) return null;
 
   return (
-    <View style={[StyleSheet.absoluteFill, style]} pointerEvents="none">
+    <View testID={`celebration-${effect}`} style={[StyleSheet.absoluteFill, { overflow: 'hidden' }, style]} pointerEvents="none">
       {particles.map((p) => (
         <Animated.View
-          key={p.id}
+          key={`${effect}-${p.id}`}
+          testID={`celebration-particle-${p.id}`}
           style={[
             styles.particle,
             {
@@ -160,7 +171,7 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
               width: p.size,
               height: p.size * p.heightRatio,
               borderRadius: p.borderRadius,
-              backgroundColor: p.color,
+              backgroundColor: effect === 'matrix' || effect === 'cosmic' ? 'transparent' : p.color,
               shadowColor: p.color,
               shadowOpacity:
                 effect === 'neon' || effect === 'cosmic' || effect === 'inferno' || effect === 'matrix'
@@ -184,7 +195,11 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
               ],
             },
           ]}
-        />
+        >
+          {(effect === 'matrix' || effect === 'cosmic') && <Text style={{ color: p.color, fontSize: effect === 'matrix' ? 12 : p.size, lineHeight: effect === 'matrix' ? 13 : p.size, fontWeight: '700' }}>
+            {effect === 'matrix' ? (p.id % 2 ? '1\n0\n1' : '0\n1\n0') : '✦'}
+          </Text>}
+        </Animated.View>
       ))}
     </View>
   );

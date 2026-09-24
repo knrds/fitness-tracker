@@ -1,3 +1,4 @@
+import { isCompletedWorkingSet } from '@fitness-tracker/domain';
 import { ActivityRing } from './ActivityRing';
 import { dashboardSummary } from '../utils/dashboardSummary';
 import React from 'react';
@@ -213,7 +214,7 @@ export function VoltDashboard({
                   </Text>
                   <Text style={{ color: c.muted, fontSize: 12, fontVariant: ['tabular-nums'] }}>
                     {s.durationSeconds ? `${Math.round(s.durationSeconds / 60)} Min · ` : ''}
-                    {s.exercises.reduce((acc, ex) => acc + ex.sets.filter((st) => st.completed).length, 0)} {t('workout.sets')}
+                    {s.exercises.reduce((acc, ex) => acc + ex.sets.filter(isCompletedWorkingSet).length, 0)} {t('workout.sets')}
                   </Text>
                 </View>
               ))

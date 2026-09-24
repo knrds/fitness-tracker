@@ -8,9 +8,10 @@ Risk MEDIUM: local editor/state/cosmetic changes; no destructive migration or se
 - Added Lavender Mist light palette, normalized ordinary palette names/order and Pro access, distinct Pro/level lock icons. Added Aurora and Fireworks; particles rebuild on rapid effect changes. Beta no longer shows the level simulator.
 - Multi-digit template weight propagates on input completion while the draft itself updates immediately; independent set values remain intact. Dashboard schedule refreshes after local midnight/background resume. Working-set counts in dashboard/heatmap/history/summary exclude warmup and failure and include drops.
 - Local verify PASS: 136 domain + 853 mobile + 55 API + 20 security tests. Web export and dependency gate PASS; secret scans of diff and browser export PASS. Node engine constrained to 24.x.
-- Remote main was independently merged at b1dc169 (PR #19); finalization branch fast-forwarded safely before this checkpoint. No new release tag.
+- Additional cosmetic batch: Pearl Halo/Nocturne Pulse at Coach purchase; Prism Studio level 25, Eclipse Crown level 50, all available in beta. Clipped decorative pulses/patterns respect reduced motion. Free palettes have a dedicated first section. Tier downgrade preserves special palettes for restoration only on Coach. Full verify now passes 855 mobile tests (other suites unchanged), and web export passes.
+- Remote main was independently merged at b1dc169 (PR #19); finalization branch fast-forwarded safely before this checkpoint. No new release tag. db9f48f GitHub checks all green; Vercel deployment observed BUILDING, not yet accepted.
 
-Still open (not claimed complete): Samsung S25 browser hydration failure needs reproduction/diagnostic; user could not see a store-specific diagnostic. Four requested special Coach colorways (2 light/2 dark), their purchase/level gating and special L50 reward; further fire effects; full historical editor redesign; desktop date-wheel dragging; remaining uniform header/bundled-card polish; mixed-language transcription verification; end-to-end first-tap editing/finish acceptance; deployed Coach/beta/device gates and master roadmap reconciliation. Existing local tests do not prove the Samsung issue resolved. Main merge/tag remains gated.
+Still open (not claimed complete): Samsung S25 browser hydration failure needs reproduction/diagnostic; user could not see a store-specific diagnostic. Visual/device acceptance of special Coach palettes; further fire effects; full historical editor redesign; desktop date-wheel dragging; remaining uniform header/bundled-card polish; mixed-language transcription verification; end-to-end first-tap editing/finish acceptance; deployed Coach/beta/device gates and master roadmap reconciliation. Existing local tests do not prove the Samsung issue resolved. Main merge/tag remains gated.
 
 ## Checkpoint 24.09.2026 — Beta finalization (PARTIAL, not a release)
 
@@ -719,4 +720,3 @@ Status: **PREPARED & VERIFIED**. Risiko: **MEDIUM**.
   - Native StoreKit 2 / Google Play Billing SDK Setup (`react-native-purchases`).
   - Echte App Store Connect / Google Play Console In-App-Abonnement-IDs & Pricing Source of Truth.
   - Serverseitiges Usage-Ledger für Quota-Reservierung / Verbuchung (`api/coach-chat.js`).
-

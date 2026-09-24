@@ -16,7 +16,13 @@ export type Colorway =
   | 'sage'
   | 'slate'
   | 'lavender'
+  | 'pearl'
+  | 'nocturne'
+  | 'prism'
+  | 'eclipse'
   | 'amber'; // retained for backwards-compatibility
+
+export const COACH_COLORWAYS: readonly Colorway[] = ['pearl', 'nocturne', 'prism', 'eclipse'];
 
 export const colorways: {
   id: Colorway;
@@ -24,6 +30,10 @@ export const colorways: {
   description: string;
   isLight?: boolean;
 }[] = [
+  { id: 'pearl', name: 'Pearl Halo', description: 'Pearl · Rosé Halo', isLight: true },
+  { id: 'nocturne', name: 'Nocturne Pulse', description: 'Midnight · Aurora Pulse' },
+  { id: 'prism', name: 'Prism Studio', description: 'Crystal · Spectral Lines', isLight: true },
+  { id: 'eclipse', name: 'Eclipse Crown', description: 'Obsidian · Platinum Orbit' },
   // Dark Themes
   { id: 'glacier', name: 'Glacier Core', description: 'Cyan · Kühles Graphit' },
   { id: 'crimson', name: 'Crimson Neon', description: 'Neon Magenta · Velvet Obsidian' },
@@ -69,6 +79,10 @@ const palettes: Record<
     border: string;
   }
 > = {
+  pearl: { background: '#F8F2EE', surface: '#FFFCFA', surfaceElevated: '#EEDDD6', primary: '#984962', secondary: '#9C7150', tertiary: '#BA8599', text: '#322530', muted: '#715864', border: '#D8BFC6' },
+  nocturne: { background: '#0D1023', surface: '#171C37', surfaceElevated: '#263252', primary: '#84F3D7', secondary: '#AD99FF', tertiary: '#75BFFF', text: '#F3F4FF', muted: '#B0B9D5', border: '#435273' },
+  prism: { background: '#EDF4F8', surface: '#FCFEFF', surfaceElevated: '#DCE7F2', primary: '#335FB5', secondary: '#8A4FAD', tertiary: '#367C87', text: '#1C304A', muted: '#536983', border: '#B6CBDF' },
+  eclipse: { background: '#101014', surface: '#1C1C25', surfaceElevated: '#30303E', primary: '#E8CFA2', secondary: '#C2BBFF', tertiary: '#F5E5C5', text: '#FAF6EE', muted: '#BBB5AC', border: '#625747' },
   lavender: { background: '#F3EFF8', surface: '#FDFBFF', surfaceElevated: '#E8E0F0', primary: '#71489B', secondary: '#8661AD', tertiary: '#9B76BD', text: '#2D2338', muted: '#675873', border: '#D4C6E1' },
   linen: { background: '#F4EFE7', surface: '#FFFAF3', surfaceElevated: '#EAE1D6', primary: '#974326', secondary: '#A05235', tertiary: '#BC6B4A', text: '#30251F', muted: '#69564A', border: '#D6C8BA' },
   sage: { background: '#EAF1E9', surface: '#F6FAF3', surfaceElevated: '#DBE6D9', primary: '#286447', secondary: '#38775A', tertiary: '#508A68', text: '#203328', muted: '#4F6656', border: '#BED1BE' },
@@ -232,7 +246,7 @@ export function createTheme(colorway: Colorway) {
     colorway === 'arctic' ||
     colorway === 'solar' ||
     colorway === 'alpine' ||
-    colorway === 'rose' || colorway === 'linen' || colorway === 'sage' || colorway === 'lavender';
+    colorway === 'rose' || colorway === 'linen' || colorway === 'sage' || colorway === 'lavender' || colorway === 'pearl' || colorway === 'prism';
   const isDark = !isLight;
   const colors = {
     ...palette,

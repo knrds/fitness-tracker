@@ -11,16 +11,17 @@ import {
 } from '../rewards';
 
 describe('rewards utility', () => {
-  it('contains 15 configured colorways with 7 light modes and 8 dark modes', () => {
-    expect(COLORWAY_REWARDS).toHaveLength(15);
+  it('contains 19 configured colorways with 9 light modes and 10 dark modes', () => {
+    expect(COLORWAY_REWARDS).toHaveLength(19);
     const lightModes = COLORWAY_REWARDS.filter((c) => c.isLight);
     const darkModes = COLORWAY_REWARDS.filter((c) => !c.isLight);
-    expect(lightModes).toHaveLength(7);
-    expect(darkModes).toHaveLength(8);
+    expect(lightModes).toHaveLength(9);
+    expect(darkModes).toHaveLength(10);
 
-    expect(lightModes.map((c) => c.id)).toEqual(['arctic', 'solar', 'linen', 'sage', 'rose', 'lavender', 'alpine']);
+    expect(lightModes.map((c) => c.id)).toEqual(['arctic', 'pearl', 'solar', 'linen', 'sage', 'rose', 'prism', 'lavender', 'alpine']);
     expect(darkModes.map((c) => c.id)).toEqual([
       'glacier',
+      'nocturne',
       'slate',
       'crimson',
       'verde',
@@ -28,7 +29,16 @@ describe('rewards utility', () => {
       'ember',
       'avionics',
       'titanium',
+      'eclipse',
     ]);
+  });
+
+  it('puts both free palettes first and distributes the special Coach rewards', () => {
+    expect(COLORWAY_REWARDS.slice(0, 2).map(c => c.id)).toEqual(['glacier', 'arctic']);
+    expect(getColorwayRewardConfig('pearl')?.requiredLevel).toBe(1);
+    expect(getColorwayRewardConfig('nocturne')?.requiredLevel).toBe(1);
+    expect(getColorwayRewardConfig('prism')?.requiredLevel).toBe(25);
+    expect(getColorwayRewardConfig('eclipse')?.requiredLevel).toBe(50);
   });
 
   it('provides both a Dark Mode and a Light Mode from Level 1', () => {

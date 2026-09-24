@@ -355,6 +355,20 @@ describe('Monetization Capability Integration & Direct Bypass Protection', () =>
       expect(useProfileStore.getState().profile.savedPremiumColorway).toBeUndefined();
     });
 
+    it('preserves special Coach palettes on downgrade and restores them only for Coach', () => {
+      entitlementService.setMockTier('coach');
+      useProfileStore.getState().updateProfile({ colorway: 'pearl' });
+      entitlementService.setMockTier('pro');
+      expect(useProfileStore.getState().profile.colorway).toBe('arctic');
+      expect(useProfileStore.getState().profile.savedPremiumColorway).toBe('pearl');
+      entitlementService.setMockTier('free');
+      expect(useProfileStore.getState().profile.colorway).toBe('arctic');
+      entitlementService.setMockTier('pro');
+      expect(useProfileStore.getState().profile.colorway).toBe('arctic');
+      entitlementService.setMockTier('coach');
+      expect(useProfileStore.getState().profile.colorway).toBe('pearl');
+    });
+
     it('Titanium remains available to PRO and is preserved on downgrade to FREE', () => {
       entitlementService.setMockTier('coach');
       useProfileStore.getState().updateProfile({ colorway: 'titanium' });

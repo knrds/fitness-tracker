@@ -1,3 +1,4 @@
+import { COACH_COLORWAYS } from '@fitness-tracker/ui';
 import { isBetaFullAccess } from '../utils/betaAccessConfig';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -57,13 +58,18 @@ export function AppearanceSettings() {
   const activeColorway = profile.colorway ?? 'glacier';
   const activeCelebration = profile.celebrationEffect ?? 'classic';
 
-  const lightThemes = COLORWAY_REWARDS.filter((c) => c.isLight);
-  const darkThemes = COLORWAY_REWARDS.filter((c) => !c.isLight);
+  const standardThemes = COLORWAY_REWARDS.filter(c => c.id === 'glacier' || c.id === 'arctic');
+  const lightThemes = COLORWAY_REWARDS.filter((c) => c.isLight && c.id !== 'arctic');
+  const darkThemes = COLORWAY_REWARDS.filter((c) => !c.isLight && c.id !== 'glacier');
 
   const handleSelectColorway = (item: RewardColorwayConfig) => {
     const tier = entitlementService.getTier();
     const isFreeColorway = item.id === 'glacier' || item.id === 'arctic';
 
+    if (!isBetaFullAccess() && COACH_COLORWAYS.includes(item.id) && tier !== 'coach') {
+      usePaywallStore.getState().openPaywall('coach', 'appearance');
+      return;
+    }
     if (!isFreeColorway && !entitlementService.canUsePremiumAppearance()) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       monetizationAnalytics.track('locked_feature_clicked', {
@@ -135,8 +141,9 @@ export function AppearanceSettings() {
   const renderColorwayCard = (option: RewardColorwayConfig) => {
     const preview = createTheme(option.id);
     const isSelected = option.id === activeColorway;
+    const coachLocked = !isBetaFullAccess() && COACH_COLORWAYS.includes(option.id) && entitlementService.getTier() !== 'coach';
     const proLocked = !isBetaFullAccess() && option.id !== 'glacier' && option.id !== 'arctic' && !entitlementService.canUsePremiumAppearance();
-    const isUnlocked = !proLocked && (isBetaFullAccess() || isColorwayUnlocked(option.id, level));
+    const isUnlocked = !coachLocked && !proLocked && (isBetaFullAccess() || isColorwayUnlocked(option.id, level));
 
     return (
       <Pressable
@@ -213,9 +220,9 @@ export function AppearanceSettings() {
                 },
               ]}
             >
-              <Ionicons name={proLocked ? 'shield-outline' : 'lock-closed'} size={10} color={theme.colors.warning} />
+              <Ionicons name={coachLocked ? 'diamond-outline' : proLocked ? 'shield-outline' : 'lock-closed'} size={10} color={theme.colors.warning} />
               <Text style={[styles.badgeText, { color: theme.colors.warning }]}>
-                {proLocked ? 'PRO' : `LVL ${option.requiredLevel}`}
+                {coachLocked ? 'COACH' : proLocked ? 'PRO' : `LVL ${option.requiredLevel}`}
               </Text>
             </View>
           )}
@@ -586,6 +593,10 @@ export function AppearanceSettings() {
         </ScrollView>
       </View>}
 
+      <View style={styles.subgroup}>
+        <Text style={[styles.subgroupTitle, { color: theme.colors.text }]}>STANDARD</Text>
+        <View style={styles.grid}>{standardThemes.map(renderColorwayCard)}</View>
+      </View>
       {/* Group 1: Light Themes (Helle Farbwelten) */}
       <View style={styles.subgroup}>
         <View style={styles.subgroupHeader}>

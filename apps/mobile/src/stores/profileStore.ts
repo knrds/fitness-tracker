@@ -1,3 +1,4 @@
+import { COACH_COLORWAYS } from '@fitness-tracker/ui';
 import { registerBetaTesterPreference } from '../utils/betaAccessConfig';
 import { getStorageScope, isScopeCurrent } from '../data/storageScope';
 import { create } from 'zustand';
@@ -147,7 +148,7 @@ const profileStateSchema = z.object({
       'linen',
       'sage',
       'slate',
-      'lavender',
+      'lavender', 'pearl', 'nocturne', 'prism', 'eclipse',
     ])
     .optional(),
   savedPremiumColorway: z
@@ -167,7 +168,7 @@ const profileStateSchema = z.object({
       'linen',
       'sage',
       'slate',
-      'lavender',
+      'lavender', 'pearl', 'nocturne', 'prism', 'eclipse',
     ])
     .optional(),
   celebrationEffect: z
@@ -428,14 +429,14 @@ export const useProfileStore = create<ProfileState>()(
   ),
 );
 
-const LIGHT_COLORWAYS: Colorway[] = ['lavender', 'linen', 'sage', 'arctic', 'solar', 'rose', 'alpine'];
+const LIGHT_COLORWAYS: Colorway[] = ['pearl', 'prism', 'lavender', 'linen', 'sage', 'arctic', 'solar', 'rose', 'alpine'];
 
 export function syncAppearanceForTier(tier: SubscriptionTier) {
   const state = useProfileStore.getState();
   const activeColorway = state.profile.colorway ?? 'glacier';
   const isFreeColorway = activeColorway === 'glacier' || activeColorway === 'arctic';
 
-  if (tier === 'free') {
+  if (tier === 'free' || (tier === 'pro' && COACH_COLORWAYS.includes(activeColorway))) {
     if (!isFreeColorway) {
       const isLight = LIGHT_COLORWAYS.includes(activeColorway);
       state.updateProfile({
@@ -444,7 +445,7 @@ export function syncAppearanceForTier(tier: SubscriptionTier) {
       });
     }
   } else if (tier === 'pro' || tier === 'coach') {
-    if (state.profile.savedPremiumColorway) {
+    if (state.profile.savedPremiumColorway && (tier === 'coach' || !COACH_COLORWAYS.includes(state.profile.savedPremiumColorway))) {
       state.updateProfile({
         colorway: state.profile.savedPremiumColorway,
         savedPremiumColorway: undefined,

@@ -1,3 +1,5 @@
+import { useUnsavedEditorGuard } from '../../src/hooks/useUnsavedEditorGuard';
+import { ProtectedPlanScreen } from '../../src/components/ProtectedPlanScreen';
 import { Theme, useThemeStyles, useTheme, withAlpha, useDialog } from '@fitness-tracker/ui';
 import { KeyboardDoneAccessory } from '../../src/components/workout/KeyboardDoneAccessory';
 import { templateExercisesFromSession } from '@fitness-tracker/domain';
@@ -21,7 +23,7 @@ import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
-import { useProgramStore, isProgramEditable } from '../../src/stores/programStore';
+import { useProgramStore, isProgramEditable, isDefaultProgramId } from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useHistoryStore } from '../../src/stores/historyStore';
 import { usePaywallStore } from '../../src/stores/paywallStore';
@@ -59,6 +61,8 @@ export default function ProgramBuilderScreen() {
   }, [program, localProgram]);
 
   const activeProgram = localProgram || program;
+  const dirty = !!localProgram && !!program && JSON.stringify(localProgram) !== JSON.stringify(program);
+  const { requestLeave, allowLeave } = useUnsavedEditorGuard(dirty, language);
 
   const { status: activeWorkoutStatus, startWorkoutFromTemplate } = useWorkoutStore();
   const [selectedWeek, setSelectedWeek] = useState(() => {
@@ -204,39 +208,11 @@ export default function ProgramBuilderScreen() {
         language === 'de' ? 'Erfolg' : 'Success',
         language === 'de' ? 'Plan erfolgreich gespeichert!' : 'Plan saved successfully!',
       );
-      router.back();
+      allowLeave(() => router.back());
     }
   };
 
-  const handleCancel = async () => {
-    if (localProgram && program) {
-      const isChanged =
-        localProgram.name !== program.name ||
-        localProgram.description !== program.description ||
-        localProgram.durationWeeks !== program.durationWeeks ||
-        JSON.stringify(localProgram.workouts) !== JSON.stringify(program.workouts);
-
-      if (isChanged) {
-        const shouldDiscard = await showConfirm({
-          title: language === 'de' ? 'Ungespeicherte Änderungen' : 'Unsaved Changes',
-          message:
-            language === 'de'
-              ? 'Möchtest du deine ungespeicherten Änderungen wirklich verwerfen?'
-              : 'Do you really want to discard your unsaved changes?',
-          confirmLabel: language === 'de' ? 'Verwerfen' : 'Discard',
-          cancelLabel: language === 'de' ? 'Weiter bearbeiten' : 'Keep Editing',
-          destructive: true,
-        });
-        if (shouldDiscard) {
-          router.back();
-        }
-      } else {
-        router.back();
-      }
-    } else {
-      router.back();
-    }
-  };
+  const handleCancel = () => requestLeave(() => router.back());
 
   const handleSelectTemplate = (templateId: string) => {
     if (!activeProgram || activeDay === null) return;
@@ -273,7 +249,7 @@ export default function ProgramBuilderScreen() {
   };
 
   if (!activeProgram) {
-    return (
+  return (
       <View style={styles.centered}>
         <Text style={{ color: theme.colors.text }}>
           {language === 'de' ? 'Programm nicht gefunden.' : 'Program not found.'}
@@ -381,6 +357,11 @@ export default function ProgramBuilderScreen() {
       workouts: activeProgram.workouts.filter((w: ProgramWorkout) => w.id !== workoutId),
     });
   };
+
+    if (program && isDefaultProgramId(program.id)) {
+    return <ProtectedPlanScreen name={program.name} onBack={() => router.back()}
+      items={[...new Set(program.workouts.map(item => templates.find(template => template.id === item.templateId)?.name ?? 'Workout'))]} />;
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>

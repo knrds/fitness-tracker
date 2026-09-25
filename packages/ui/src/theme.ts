@@ -16,13 +16,18 @@ export type Colorway =
   | 'sage'
   | 'slate'
   | 'lavender'
-  | 'pearl'
-  | 'nocturne'
-  | 'prism'
-  | 'eclipse'
+  | 'mocha'
+  | 'ultraviolet'
+  | 'cherry'
+  | 'bordeaux'
   | 'amber'; // retained for backwards-compatibility
 
-export const COACH_COLORWAYS: readonly Colorway[] = ['pearl', 'nocturne', 'prism', 'eclipse'];
+export function migrateColorway(value: string): Colorway {
+  const replacements: Record<string, Colorway> = { pearl: 'mocha', nocturne: 'ultraviolet', prism: 'cherry', eclipse: 'bordeaux' };
+  return replacements[value] ?? value as Colorway;
+}
+
+export const COACH_COLORWAYS: readonly Colorway[] = ['mocha', 'ultraviolet', 'cherry', 'bordeaux'];
 
 export const colorways: {
   id: Colorway;
@@ -30,10 +35,10 @@ export const colorways: {
   description: string;
   isLight?: boolean;
 }[] = [
-  { id: 'pearl', name: 'Pearl Halo', description: 'Pearl · Rosé Halo', isLight: true },
-  { id: 'nocturne', name: 'Nocturne Pulse', description: 'Midnight · Aurora Pulse' },
-  { id: 'prism', name: 'Prism Studio', description: 'Crystal · Spectral Lines', isLight: true },
-  { id: 'eclipse', name: 'Eclipse Crown', description: 'Obsidian · Platinum Orbit' },
+  { id: 'mocha', name: 'Mocha Cream', description: 'Cream · Espresso · Caramel', isLight: true },
+  { id: 'ultraviolet', name: 'Ultraviolet', description: 'Deep Violet · Electric Purple · Cyan' },
+  { id: 'cherry', name: 'Ink & Cherry', description: 'Soft White · Ink · Cherry', isLight: true },
+  { id: 'bordeaux', name: 'Bordeaux Noir', description: 'Wine Black · Burgundy · Blush' },
   // Dark Themes
   { id: 'glacier', name: 'Glacier Core', description: 'Cyan · Kühles Graphit' },
   { id: 'crimson', name: 'Crimson Neon', description: 'Neon Magenta · Velvet Obsidian' },
@@ -79,14 +84,14 @@ const palettes: Record<
     border: string;
   }
 > = {
-  pearl: { background: '#F8F2EE', surface: '#FFFCFA', surfaceElevated: '#EEDDD6', primary: '#984962', secondary: '#9C7150', tertiary: '#BA8599', text: '#322530', muted: '#715864', border: '#D8BFC6' },
-  nocturne: { background: '#0D1023', surface: '#171C37', surfaceElevated: '#263252', primary: '#84F3D7', secondary: '#AD99FF', tertiary: '#75BFFF', text: '#F3F4FF', muted: '#B0B9D5', border: '#435273' },
-  prism: { background: '#EDF4F8', surface: '#FCFEFF', surfaceElevated: '#DCE7F2', primary: '#335FB5', secondary: '#8A4FAD', tertiary: '#367C87', text: '#1C304A', muted: '#536983', border: '#B6CBDF' },
-  eclipse: { background: '#101014', surface: '#1C1C25', surfaceElevated: '#30303E', primary: '#E8CFA2', secondary: '#C2BBFF', tertiary: '#F5E5C5', text: '#FAF6EE', muted: '#BBB5AC', border: '#625747' },
+  mocha: { background: '#F7F0E8', surface: '#FFF8F1', surfaceElevated: '#E9D8C8', primary: '#8A5A3C', secondary: '#C98B68', tertiary: '#E9D8C8', text: '#5F4634', muted: '#92735B', border: '#DBC5AE' },
+  ultraviolet: { background: '#0D0818', surface: '#171128', surfaceElevated: '#31204F', primary: '#8B5CF6', secondary: '#22D3EE', tertiary: '#31204F', text: '#F5F3FF', muted: '#C4B5FD', border: '#2B2147' },
+  cherry: { background: '#FBF8FA', surface: '#FFFFFF', surfaceElevated: '#FCE7EF', primary: '#E11D48', secondary: '#FDA4AF', tertiary: '#FCE7EF', text: '#1F2937', muted: '#6B7280', border: '#E7D6DE' },
+  bordeaux: { background: '#14090F', surface: '#1C0E15', surfaceElevated: '#3A1423', primary: '#9F1239', secondary: '#FDA4AF', tertiary: '#3A1423', text: '#FBEFF3', muted: '#E7B8C7', border: '#3A1C29' },
   lavender: { background: '#F3EFF8', surface: '#FDFBFF', surfaceElevated: '#E8E0F0', primary: '#71489B', secondary: '#8661AD', tertiary: '#9B76BD', text: '#2D2338', muted: '#675873', border: '#D4C6E1' },
   linen: { background: '#F4EFE7', surface: '#FFFAF3', surfaceElevated: '#EAE1D6', primary: '#974326', secondary: '#A05235', tertiary: '#BC6B4A', text: '#30251F', muted: '#69564A', border: '#D6C8BA' },
   sage: { background: '#EAF1E9', surface: '#F6FAF3', surfaceElevated: '#DBE6D9', primary: '#286447', secondary: '#38775A', tertiary: '#508A68', text: '#203328', muted: '#4F6656', border: '#BED1BE' },
-  slate: { background: '#1C2735', surface: '#253345', surfaceElevated: '#304158', primary: '#87D2FA', secondary: '#83BBDD', tertiary: '#B9DEEF', text: '#F2F7FC', muted: '#B2C5D9', border: '#52657A' },
+  slate: { background: '#141D2B', surface: '#243247', surfaceElevated: '#344960', primary: '#ABD7F0', secondary: '#83BBDD', tertiary: '#B9DEEF', text: '#F2F7FC', muted: '#B2C5D9', border: '#52657A' },
   glacier: {
     background: '#080B11',
     surface: '#0F141D',
@@ -212,7 +217,7 @@ const palettes: Record<
     background: '#0D070B',
     surface: '#180D14',
     surfaceElevated: '#24141E',
-    primary: '#FF2A6D',
+    primary: '#FF70B8',
     secondary: '#FB7185',
     tertiary: '#E11D48',
     text: '#FDF2F4',
@@ -246,14 +251,14 @@ export function createTheme(colorway: Colorway) {
     colorway === 'arctic' ||
     colorway === 'solar' ||
     colorway === 'alpine' ||
-    colorway === 'rose' || colorway === 'linen' || colorway === 'sage' || colorway === 'lavender' || colorway === 'pearl' || colorway === 'prism';
+    colorway === 'rose' || colorway === 'linen' || colorway === 'sage' || colorway === 'lavender' || colorway === 'mocha' || colorway === 'cherry';
   const isDark = !isLight;
   const colors = {
     ...palette,
     textPrimary: palette.text,
     textSecondary: palette.muted,
     textMuted: withAlpha(palette.muted, 0.82),
-    onPrimary: isLight ? '#FFFFFF' : palette.background,
+    onPrimary: isLight || colorway === 'bordeaux' || colorway === 'ultraviolet' ? '#FFFFFF' : palette.background,
     borderActive: withAlpha(palette.primary, 0.5),
     primarySubtle: withAlpha(palette.primary, isLight ? 0.12 : 0.1),
     success: '#57DFAB',

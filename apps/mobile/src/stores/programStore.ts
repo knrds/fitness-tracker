@@ -525,6 +525,8 @@ export interface ProgramState {
   programs: Program[];
   templates: WorkoutTemplate[];
   customFolders: string[];
+  expandedFolders: Record<string, boolean>;
+  setExpandedFolders: (value: Record<string, boolean> | ((previous: Record<string, boolean>) => Record<string, boolean>)) => void;
   hiddenTemplateIds: string[];
   hiddenProgramIds: string[];
   setTemplateHidden: (id: UUID, hidden: boolean) => void;
@@ -552,6 +554,7 @@ const programPersistedSchema = z.object({
   programs: z.array(ProgramSchema),
   templates: z.array(WorkoutTemplateSchema),
   customFolders: z.array(z.string().trim().min(1).max(50)).optional(),
+  expandedFolders: z.record(z.boolean()).optional(),
   hiddenTemplateIds: z.array(z.string()).optional(),
   hiddenProgramIds: z.array(z.string()).optional(),
 });
@@ -562,6 +565,7 @@ const defaultPersistedState: ProgramPersistedState = {
   programs: [],
   templates: [],
   customFolders: [],
+  expandedFolders: {},
   hiddenTemplateIds: [],
   hiddenProgramIds: [],
 };
@@ -572,6 +576,8 @@ export const useProgramStore = create<ProgramState>()(
       programs: [],
       templates: [],
       customFolders: [],
+      expandedFolders: {},
+      setExpandedFolders: value => set(state => ({ expandedFolders: typeof value === 'function' ? value(state.expandedFolders) : value })),
       hiddenTemplateIds: [],
       hiddenProgramIds: [],
       setTemplateHidden: (id, hidden) => set(state => ({
@@ -847,6 +853,7 @@ export const useProgramStore = create<ProgramState>()(
           programs: saved.programs as Program[],
           templates: saved.templates as WorkoutTemplate[],
           customFolders: saved.customFolders ?? [],
+          expandedFolders: saved.expandedFolders ?? {},
           hiddenTemplateIds: saved.hiddenTemplateIds ?? saved.templates.filter(t =>
             isDefaultTemplateId(t.id) && !getDefaultTemplates().some(item => item.id === t.id)).map(t => t.id),
           hiddenProgramIds: saved.hiddenProgramIds ?? saved.programs.filter(p =>

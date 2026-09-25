@@ -642,8 +642,9 @@ export default function BodyTrackingScreen() {
             onPress={() => activeBodyTab === 'metrics' ? setModalVisible(true) : setCustomExerciseVisible(true)}
             accessibilityRole="button" accessibilityLabel={language === 'de' ? 'Hinzufügen' : 'Add'}
             testID="add-metric-btn"
+            hitSlop={5}
           >
-            <Ionicons name="add" size={24} color={theme.colors.background} />
+            <Ionicons name="add" size={24} color={theme.colors.onPrimary} />
           </Pressable>
         )}
       </View>

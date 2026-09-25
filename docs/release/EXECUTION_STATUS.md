@@ -1,5 +1,19 @@
 # EVARO Astra Takeover — Execution Status
 
+## Verified implementation checkpoint — 25.09.2026
+
+Risk MEDIUM: shared editor/navigation, additive persisted preferences and cosmetics. No destructive migration, account/auth relaxation or production database changes.
+- Replaced the four previous Coach palettes with Premium Mocha Cream, Ink & Cherry, Ultraviolet and Bordeaux Noir; old stored IDs migrate to replacements. Crimson is pinker and Soft Slate has stronger contrast. Removed full-card line patterns; decorative pulses are restricted to a clipped 72×12 corner and respect reduced motion.
+- History now opens the current template/workout editor; removed the legacy modal. Existing IDs, timestamps, completion flags and XP remain intact. Missing history records show a back action instead of an inert save form. Shared unsaved guard covers editor buttons and native navigation removals. Direct @react-navigation/native 7.2.5 dependency exposes the already installed navigation guard API without introducing a second navigator.
+- Weight and reps propagate on every keystroke to empty/inherited following sets of the same type, while explicit/prefilled values remain independent. Protected system routes do not mount editable forms; cards show readonly badges. Folder expansion persists across hydration. Header plus buttons aligned in Plans/Body.
+- Dashboard subscribes to history records, fixing stale summaries after completion/edit/delete. Date wheel adds bounded mouse dragging and snapping. Offline entitlement cache preserves original verification age, expires after 24h or entitlement expiry, and deduplicates network warnings until success; no server authority is derived from this cache.
+- Whisper Large V3 Turbo retained with automatic language detection (no fixed language), deterministic temperature and DE/EN training vocabulary prompt. No claim of measured device latency improvement.
+- Full local verify PASS: 137 domain + 863 mobile + 55 API + 20 security tests. Web export, dependency release gate and diff/client secret scans PASS. Two previously reviewed image-size build-only high exceptions remain; no new unreviewed high findings. Node 24.x plus .nvmrc 24.
+- Browser smoke at 390px: profile/theme selection and Body quick-entry have no horizontal document overflow. Mocha renders without intrusive patterns. Found stale Metro environment transforms during export; web build now clears the transform cache, and a fresh beta export exposes Beta Tester correctly. This does not substitute for native/device acceptance.
+- Recovered main cfce909 (PR #20) by fast-forward; its GitHub checks and Vercel deployment are green. Published main beta-session and Coach smoke both HTTP 200. New branch/main deployment acceptance must be checked for the new commit after push.
+
+Open gates: PHYSICAL_DEVICE_REQUIRED — Samsung S25 startup failure still lacks reproducible browser/device diagnostics; do not claim recovery solved or wipe local data. Native edge gesture/date-wheel acceptance remains outstanding. ASTRA_REQUIRED — complete all-surface set-count/header/unsaved-guard audit, remaining logger cleanup and full master/roadmap reconciliation; distributed Coach quotas remain unimplemented. Existing USER/LEGAL/PRODUCTION gates remain unchanged. This is an independently deliverable fix batch, not a new fully accepted beta release/tag.
+
 ## Verified implementation checkpoint — 24.09.2026 (continued)
 
 Risk MEDIUM: local editor/state/cosmetic changes; no destructive migration or server auth relaxation.

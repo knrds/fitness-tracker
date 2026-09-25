@@ -1,9 +1,15 @@
+import { useUnsavedEditorGuard } from '../../src/hooks/useUnsavedEditorGuard';
+import { useHistoryStore } from '../../src/stores/historyStore';
+import { getStorageScope, isScopeCurrent } from '../../src/data/storageScope';
+import { recalculateDerivedStatsAfterHistoryMutation } from '../../src/utils/historyRecalculation';
+import { DatePickerModal, toIsoDateString } from '../../src/components/DatePickerModal';
+import { ProtectedPlanScreen } from '../../src/components/ProtectedPlanScreen';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { SetRow } from '../../src/components/workout/SessionExerciseCard';
-import { materializeTemplateSets, updateIndependentSet } from '@fitness-tracker/domain';
+import { materializeTemplateSets, createSetDraftUpdater } from '@fitness-tracker/domain';
 import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -27,7 +33,7 @@ import { usePaywallStore } from '../../src/stores/paywallStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { ExercisePickerModal } from '../../src/components/workout/ExercisePickerModal';
 import { useI18n } from '../../src/i18n';
-import { useTheme, useDialog, Card } from '@fitness-tracker/ui';
+import { useTheme, useDialog, Card, Button } from '@fitness-tracker/ui';
 import { TemplateExercise } from '@fitness-tracker/domain';
 import * as Crypto from 'expo-crypto';
 import { hapticFeedback } from '../../src/utils/haptics';
@@ -38,13 +44,15 @@ import {
 
 export default function WorkoutTemplateBuilderScreen() {
   const router = useRouter();
+  const updateDraftSets = useRef(createSetDraftUpdater()).current;
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const { showAlert, showActionSheet, showConfirm } = useDialog();
+  const { showAlert, showActionSheet } = useDialog();
   const isImperial = useProfileStore(state => state.profile.preferredUnits === 'imperial');
   const styles = useThemeStyles(createStyles);
   const { language } = useI18n();
-  const { programId, templateId, dayOfWeek, week } = useLocalSearchParams<{
+  const { programId, templateId, dayOfWeek, week, historyId } = useLocalSearchParams<{
+    historyId?: string;
     programId?: string;
     templateId?: string;
     dayOfWeek?: string;
@@ -55,7 +63,17 @@ export default function WorkoutTemplateBuilderScreen() {
   const { exercises } = useExerciseStore();
 
   const program = programId ? programs.find((p) => p.id === programId) : undefined;
-  const existingTemplate = templates.find((t) => t.id === templateId);
+  const historySession = useHistoryStore(state => state.sessions.find(item => item.id === historyId));
+  const editScope = useRef(getStorageScope());
+  const existingTemplate: import('@fitness-tracker/domain').WorkoutTemplate | undefined = historySession ? {
+    id: historySession.id, userId: historySession.userId, name: historySession.name,
+    description: historySession.notes ?? '', isArchived: false,
+    createdAt: historySession.createdAt, updatedAt: historySession.updatedAt,
+    exercises: historySession.exercises.map(ex => ({ ...ex, targetSets: ex.sets.length })),
+  } : templates.find((t) => t.id === templateId);
+  const [historyDate, setHistoryDate] = useState(historySession ? toIsoDateString(historySession.startedAt) : '');
+  const [historyDuration, setHistoryDuration] = useState(String(Math.round((historySession?.durationSeconds ?? 0) / 60)));
+  const [historyDateOpen, setHistoryDateOpen] = useState(false);
 
   const [name, setName] = useState(existingTemplate?.name || '');
   const [description, setDescription] = useState(existingTemplate?.description || '');
@@ -80,17 +98,10 @@ export default function WorkoutTemplateBuilderScreen() {
     (existingTemplate?.exercises || []).map(ex => ({ ...ex, sets: materializeTemplateSets(ex, Crypto.randomUUID) })),
   );
 
-  const handleBack = async () => {
-    Keyboard.dismiss();
-    const confirmed = await showConfirm({
-      title: language === 'de' ? 'Bearbeitung verwerfen?' : 'Discard changes?',
-      message: language === 'de' ? 'Nicht gespeicherte Änderungen gehen verloren.' : 'Unsaved changes will be lost.',
-      confirmLabel: language === 'de' ? 'Verwerfen' : 'Discard',
-      cancelLabel: language === 'de' ? 'Weiter bearbeiten' : 'Keep editing',
-      destructive: true,
-    });
-    if (confirmed) router.back();
-  };
+  const draftKey = JSON.stringify({ name, description, folder, templateExercises, historyDate, historyDuration });
+  const initialDraft = useRef(draftKey);
+  const { requestLeave, allowLeave } = useUnsavedEditorGuard(draftKey !== initialDraft.current, language);
+  const handleBack = () => requestLeave(() => router.back());
 
   const [isExerciseModalVisible, setExerciseModalVisible] = useState(false);
   const [isReorderMode, setIsReorderMode] = useState(false);
@@ -115,7 +126,32 @@ export default function WorkoutTemplateBuilderScreen() {
   }
 
   const handleSave = () => {
-    if (!name.trim()) return;
+    if (!name.trim() || !isScopeCurrent(editScope.current)) return;
+    if (historyId) {
+      if (!historySession) return;
+      const date = new Date(`${historyDate}T12:00:00`);
+      const minutes = Number(historyDuration.replace(',', '.'));
+      if (!Number.isFinite(date.getTime()) || !Number.isFinite(minutes) || minutes < 0) {
+        void showAlert({ title: 'Ungültige Eingabe', message: 'Bitte Datum und Dauer prüfen.' });
+        return;
+      }
+      const updated = { ...historySession, name: name.trim(), notes: description.trim(),
+        startedAt: historyDate === toIsoDateString(historySession.startedAt) ? historySession.startedAt : date,
+        durationSeconds: historyDuration === String(Math.round((historySession.durationSeconds ?? 0) / 60)) ? historySession.durationSeconds ?? 0 : Math.round(minutes * 60), updatedAt: new Date(),
+        exercises: templateExercises.map((ex, index) => ({
+          ...historySession.exercises.find(original => original.id === ex.id),
+          id: ex.id, exerciseId: ex.exerciseId, order: index, sets: (ex.sets ?? []).map(set => historySession.exercises.some(original => original.sets.some(old => old.id === set.id)) ? set : { ...set, completed: true }),
+        })),
+      };
+      try {
+        useHistoryStore.getState().updateSession(updated);
+        recalculateDerivedStatsAfterHistoryMutation();
+        allowLeave(() => router.back());
+      } catch {
+        void showAlert({ title: 'Speichern fehlgeschlagen', message: 'Deine Eingaben bleiben im Editor erhalten.' });
+      }
+      return;
+    }
     const trimmedFolder = folder.trim() || undefined;
 
     if (existingTemplate) {
@@ -182,7 +218,7 @@ export default function WorkoutTemplateBuilderScreen() {
       }
     }
     void hapticFeedback.notification('success');
-    router.back();
+    allowLeave(() => router.back());
   };
 
   const removeExercise = (id: string) => {
@@ -204,13 +240,24 @@ export default function WorkoutTemplateBuilderScreen() {
     }));
   };
 
-  const screenTitle = existingTemplate
+  const screenTitle = historyId ? (language === 'de' ? 'Workout bearbeiten' : 'Edit workout') : existingTemplate
     ? program
       ? language === 'de' ? 'Workout bearbeiten' : 'Edit Workout'
       : language === 'de' ? 'Vorlage bearbeiten' : 'Edit Template'
     : program
       ? language === 'de' ? 'Neues Workout' : 'New Workout'
       : language === 'de' ? 'Neue Vorlage' : 'New Template';
+
+  if (historyId && !historySession) {
+    return <View style={[styles.container, { backgroundColor: theme.colors.background, padding: 24, justifyContent: 'center', gap: 16 }]}>
+      <Text style={{ color: theme.colors.text }}>{language === 'de' ? 'Dieses Workout ist nicht mehr verfügbar.' : 'This workout is no longer available.'}</Text>
+      <Button title={language === 'de' ? 'Zurück' : 'Back'} onPress={() => router.back()} />
+    </View>;
+  }
+  if (!historyId && existingTemplate && isDefaultTemplateId(existingTemplate.id)) {
+    return <ProtectedPlanScreen name={existingTemplate.name} onBack={() => router.back()}
+      items={existingTemplate.exercises.map(item => exercises.find(ex => ex.id === item.exerciseId)?.name ?? 'Übung')} />;
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -308,6 +355,14 @@ export default function WorkoutTemplateBuilderScreen() {
           onSubmitEditing={() => Keyboard.dismiss()}
         />
 
+        {historySession ? <View style={{ gap: 12, marginBottom: 16 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Trainingsdatum ändern" onPress={() => setHistoryDateOpen(true)} style={styles.input}>
+            <Text style={{ color: theme.colors.text }}>{historyDate}</Text>
+          </Pressable>
+          <Text style={styles.label}>Dauer (Minuten)</Text>
+          <TextInput style={styles.input} accessibilityLabel="Dauer in Minuten" value={historyDuration} onChangeText={setHistoryDuration} keyboardType="decimal-pad" inputAccessoryViewID={KEYBOARD_DONE_ID} />
+          <DatePickerModal visible={historyDateOpen} value={historyDate} onClose={() => setHistoryDateOpen(false)} onConfirm={setHistoryDate} language={language} allowClear={false} />
+        </View> : <>
         <Text style={styles.label}>
           {language === 'de' ? 'Ordner (Optional)' : 'Folder (Optional)'}
         </Text>
@@ -322,6 +377,8 @@ export default function WorkoutTemplateBuilderScreen() {
           placeholder={language === 'de' ? 'Neuer Ordnername' : 'New folder name'} maxLength={50}
           placeholderTextColor={theme.colors.muted} inputAccessoryViewID={KEYBOARD_DONE_ID}
           onSubmitEditing={() => Keyboard.dismiss()} />}
+
+        </>}
 
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>
@@ -592,14 +649,10 @@ export default function WorkoutTemplateBuilderScreen() {
                     </View>
 
                     {materializeTemplateSets(te, Crypto.randomUUID).map((set, setIdx) => (
-                      <SetRow key={set.id} mode="template" compact set={set} isCurrent={false}
+                      <SetRow key={set.id} mode={historyId ? "history" : "template"} compact set={set} isCurrent={false}
                         workingSetNumber={setIdx + 1} sessionExerciseId={te.id} isImperial={isImperial}
                         isCardio={ex?.movementPattern === 'cardio'} showRpe showRir onComplete={() => {}}
-                        onUpdate={updates => changeSets(te.id,
-                          Object.prototype.hasOwnProperty.call(updates, 'weight')
-                            ? (te.sets ?? []).map(row => row.id === set.id ? { ...row, ...updates } : row)
-                            : updateIndependentSet(te.sets ?? materializeTemplateSets(te, Crypto.randomUUID), set.id, updates))}
-                        onCommit={updates => changeSets(te.id, updateIndependentSet(te.sets ?? materializeTemplateSets(te, Crypto.randomUUID), set.id, updates))}
+                        onUpdate={updates => changeSets(te.id, updateDraftSets(te.sets ?? materializeTemplateSets(te, Crypto.randomUUID), set.id, updates))}
                         onDelete={() => changeSets(te.id, (te.sets ?? []).filter(s => s.id !== set.id).map((s, i) => ({ ...s, setNumber: i + 1 })))} />
                     ))}
                     <Pressable accessibilityRole="button" style={styles.addSetRow}

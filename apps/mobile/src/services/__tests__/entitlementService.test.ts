@@ -145,6 +145,22 @@ describe('Entitlement Service Provider Abstraction & Beta Fallback', () => {
     expect(service.getEntitlementState().userId).toBe('user-b');
   });
 
+  test('offline reads never renew verification time and expired cached access fails closed', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-09-24T10:00:00Z'));
+    try {
+      const service = new EntitlementService({ betaBypass: false, provider: mockProvider });
+      mockProvider.fetchCustomerEntitlements.mockResolvedValueOnce({
+        activeEntitlements: ['evaro_pro'], expirationDate: '2026-09-24T11:00:00Z', isInTrial: false, isInGracePeriod: false,
+      });
+      const verified = await service.refreshEntitlements('offline');
+      mockProvider.fetchCustomerEntitlements.mockRejectedValue(new Error('Network offline'));
+      jest.setSystemTime(new Date('2026-09-24T10:30:00Z'));
+      expect((await service.refreshEntitlements('offline')).lastVerifiedAt).toBe(verified.lastVerifiedAt);
+      jest.setSystemTime(new Date('2026-09-24T11:01:00Z'));
+      expect((await service.refreshEntitlements('offline')).isPro).toBe(false);
+    } finally { jest.useRealTimers(); }
+  });
+
   test('Test 9: Unknown status when no provider and no cache available', async () => {
     const service = new EntitlementService({ betaBypass: false });
     const state = await service.refreshEntitlements('unknown-user');

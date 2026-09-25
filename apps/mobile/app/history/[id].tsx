@@ -11,7 +11,6 @@ import { useProgramStore } from '../../src/stores/programStore';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { usePaywallStore } from '../../src/stores/paywallStore';
 import { SaveTemplateModal } from '../../src/components/workout/SaveTemplateModal';
-import { HistoryEditModal } from '../../src/components/history/HistoryEditModal';
 import { recalculateDerivedStatsAfterHistoryMutation } from '../../src/utils/historyRecalculation';
 import { useI18n } from '../../src/i18n';
 import {
@@ -39,7 +38,6 @@ export default function WorkoutDetailScreen() {
 
   const theme = useTheme();
   const [saveModalVisible, setSaveModalVisible] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
 
   const session = sessions.find((s) => s.id === id);
@@ -300,7 +298,7 @@ export default function WorkoutDetailScreen() {
               style={styles.sheetItem}
               onPress={() => {
                 setActionSheetVisible(false);
-                setEditModalVisible(true);
+                router.push(`/programs/template-builder?historyId=${session.id}`);
               }}
               accessibilityRole="button"
               accessibilityLabel={language === 'de' ? 'Workout bearbeiten' : 'Edit workout'}
@@ -341,11 +339,7 @@ export default function WorkoutDetailScreen() {
         </Pressable>
       </Modal>
 
-      <HistoryEditModal
-        visible={editModalVisible}
-        session={session}
-        onClose={() => setEditModalVisible(false)}
-      />
+
     </View>
   );
 }

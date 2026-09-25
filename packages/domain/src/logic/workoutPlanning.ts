@@ -132,3 +132,35 @@ export function hasTemplateChanges(
     (originals[index]?.sets !== undefined && JSON.stringify(exercise.sets?.map(({ id: _id, ...set }) => set)) !== JSON.stringify(originals[index]?.sets?.map(({ id: _id, ...set }) => set))),
   );
 }
+
+/** Track only values inherited during this editing session; prefilled rows remain independent. */
+export function createSetDraftUpdater() {
+  type Field = 'weight' | 'reps';
+  const inherited = new WeakMap<readonly ExerciseSet[], Map<string, UUID>>();
+  return (sets: readonly ExerciseSet[], id: UUID, updates: Partial<ExerciseSet>): ExerciseSet[] => {
+    const sourceIndex = sets.findIndex(set => set.id === id);
+    if (sourceIndex < 0) return [...sets];
+    const provenance = new Map(inherited.get(sets));
+    for (const field of ['weight', 'reps'] as const) {
+      if (Object.prototype.hasOwnProperty.call(updates, field)) provenance.delete(`${id}:${field}`);
+    }
+    const next = sets.map((set, index) => {
+      if (set.id === id) return { ...set, ...updates };
+      if (index <= sourceIndex || set.completed || set.type !== sets[sourceIndex]!.type) return set;
+      const row = { ...set };
+      for (const field of ['weight', 'reps'] as Field[]) {
+        if (!Object.prototype.hasOwnProperty.call(updates, field)) continue;
+        const key = `${set.id}:${field}`;
+        if (set[field] === undefined || provenance.get(key) === id) {
+          const value = updates[field];
+          if (value === undefined) delete row[field];
+          else row[field] = value;
+          provenance.set(key, id);
+        }
+      }
+      return row;
+    });
+    inherited.set(next, provenance);
+    return next;
+  };
+}

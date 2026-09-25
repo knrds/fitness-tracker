@@ -1,3 +1,6 @@
+jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ dispatch: jest.fn() }), usePreventRemove: jest.fn() }));
+import { useHistoryStore } from '../../../src/stores/historyStore';
+import { useAchievementStore } from '../../../src/stores/achievementStore';
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import { ThemeProvider, DialogProvider } from '@fitness-tracker/ui';
@@ -9,18 +12,21 @@ import {
   WorkoutTemplate,
 } from '@fitness-tracker/domain';
 import WorkoutTemplateBuilderScreen from '../template-builder';
-import { useProgramStore } from '../../../src/stores/programStore';
+import { useProgramStore, getDefaultTemplates } from '../../../src/stores/programStore';
 import { useExerciseStore } from '../../../src/stores/exerciseStore';
 
 jest.mock('expo-crypto', () => { let id = 0; return { randomUUID: () => `set-${++id}` }; });
 
+let mockTemplateId = 'tmpl-1';
+let mockHistoryId: string | undefined;
 jest.mock('expo-router', () => ({
   useRouter: () => ({
     push: jest.fn(),
     back: jest.fn(),
   }),
   useLocalSearchParams: () => ({
-    templateId: 'tmpl-1',
+    templateId: mockTemplateId,
+    historyId: mockHistoryId,
   }),
 }));
 
@@ -163,25 +169,89 @@ it('edits independent set values, saves and reopens without completion controls'
 it('asks before leaving the editor and keeps the draft when cancelled', () => {
   useProgramStore.setState({ templates: [mockTemplate], programs: [] });
   const screen = render(<ThemeProvider><DialogProvider><WorkoutTemplateBuilderScreen /></DialogProvider></ThemeProvider>);
+  fireEvent.changeText(screen.getByDisplayValue('Chest Day'), 'Edited chest day');
   fireEvent.press(screen.getByLabelText('Zurück'));
   expect(screen.getByText('Bearbeitung verwerfen?')).toBeTruthy();
   fireEvent.press(screen.getByText('Weiter bearbeiten'));
   expect(screen.getByLabelText('Speichern')).toBeTruthy();
 });
 
-it('propagates 200 kg after completing the first input, preserving an individually edited set', () => {
+it('propagates complete weights live while preserving a prefilled individual set', () => {
   const exercise = { ...mockTemplate.exercises[0]! };
   delete exercise.targetWeight;
+  exercise.sets = [
+    { id: 'live-a', setNumber: 1, type: 'working', completed: false },
+    { id: 'live-b', setNumber: 2, type: 'working', completed: false, weight: 75 },
+    { id: 'live-c', setNumber: 3, type: 'working', completed: false },
+  ];
   useProgramStore.setState({ templates: [{ ...mockTemplate, exercises: [exercise] }], programs: [] });
   const screen = render(<ThemeProvider><DialogProvider><WorkoutTemplateBuilderScreen /></DialogProvider></ThemeProvider>);
   const first = screen.getByLabelText('Satz 1 Gewicht');
-  fireEvent.changeText(screen.getByLabelText('Satz 2 Gewicht'), '75');
-  fireEvent(screen.getByLabelText('Satz 2 Gewicht'), 'blur');
   fireEvent(first, 'focus');
-  for (const value of ['2', '20', '200']) fireEvent.changeText(first, value);
+  for (const value of ['2', '20', '200']) {
+    fireEvent.changeText(first, value);
+    expect(screen.getByLabelText('Satz 3 Gewicht').props.value).toBe(value);
+  }
   fireEvent(first, 'blur');
   expect(screen.getByLabelText('Satz 3 Gewicht').props.value).toBe('200');
   expect(screen.getByLabelText('Satz 2 Gewicht').props.value).toBe('75');
   fireEvent.press(screen.getByLabelText('Speichern'));
   expect(useProgramStore.getState().templates[0]!.exercises[0]!.sets!.map(set => set.weight)).toEqual([200, 75, 200]);
+});
+
+it('never mounts an editable form for a protected template, including repeated entry', () => {
+  const template = getDefaultTemplates()[0]!;
+  mockTemplateId = template.id;
+  useProgramStore.setState({ templates: [template], programs: [] });
+  try {
+    const screen = render(<ThemeProvider><DialogProvider><WorkoutTemplateBuilderScreen /></DialogProvider></ThemeProvider>);
+    expect(screen.getByText('EVARO · Standard · Geschützt')).toBeTruthy();
+    expect(screen.queryByLabelText('Speichern')).toBeNull();
+    expect(screen.queryAllByLabelText(/Gewicht/)).toHaveLength(0);
+    screen.rerender(<ThemeProvider><DialogProvider><WorkoutTemplateBuilderScreen /></DialogProvider></ThemeProvider>);
+    expect(screen.queryByLabelText('Speichern')).toBeNull();
+    screen.unmount();
+  } finally { mockTemplateId = 'tmpl-1'; }
+});
+
+it('shows a recovery path instead of an inert editor for a missing history record', () => {
+  mockHistoryId = 'missing-record';
+  try {
+    const screen = render(<ThemeProvider><DialogProvider><WorkoutTemplateBuilderScreen /></DialogProvider></ThemeProvider>);
+    expect(screen.getByText('Dieses Workout ist nicht mehr verfügbar.')).toBeTruthy();
+    expect(screen.queryByLabelText('Speichern')).toBeNull();
+    expect(screen.getByText('Zurück')).toBeTruthy();
+    screen.unmount();
+  } finally { mockHistoryId = undefined; }
+});
+
+it('edits history through the shared editor without duplicate records or XP', () => {
+  const original = {
+    id: 'shared-history', userId: 'local', name: 'Past workout',
+    startedAt: new Date(2026, 8, 20, 15, 30), createdAt: new Date(), updatedAt: new Date(), durationSeconds: 3600,
+    exercises: [{ id: 'history-ex', exerciseId: 'ex-1', order: 0, sets: [
+      { id: 'history-set', setNumber: 1, type: 'working' as const, completed: true, weight: 100, reps: 8 },
+    ] }],
+  };
+  useHistoryStore.setState({ sessions: [original] });
+  useExerciseStore.setState({ exercises: [mockExercise1] });
+  const xp = useAchievementStore.getState().xp;
+  mockHistoryId = original.id;
+  try {
+    const screen = render(<ThemeProvider><DialogProvider><WorkoutTemplateBuilderScreen /></DialogProvider></ThemeProvider>);
+    expect(screen.getByText('Workout bearbeiten')).toBeTruthy();
+    fireEvent.changeText(screen.getByDisplayValue('Past workout'), 'Updated workout');
+    fireEvent.changeText(screen.getByLabelText('Satz 1 Gewicht'), '110');
+    fireEvent.press(screen.getByLabelText('Zurück'));
+    fireEvent.press(screen.getByText('Weiter bearbeiten'));
+    expect(useHistoryStore.getState().sessions[0]!.name).toBe('Past workout');
+    fireEvent.press(screen.getByLabelText('Speichern'));
+    const sessions = useHistoryStore.getState().sessions;
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]!.name).toBe('Updated workout');
+    expect(sessions[0]!.startedAt).toEqual(original.startedAt);
+    expect(sessions[0]!.exercises[0]!.sets[0]).toMatchObject({ id: 'history-set', weight: 110, completed: true });
+    expect(useAchievementStore.getState().xp).toBe(xp);
+    screen.unmount();
+  } finally { mockHistoryId = undefined; }
 });

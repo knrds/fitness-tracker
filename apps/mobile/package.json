@@ -13,7 +13,7 @@
     "android": "node ./scripts/expo-start.cjs --android",
     "ios": "node ./scripts/expo-start.cjs --ios",
     "web": "node ./scripts/web-dev-preview.cjs",
-    "build": "expo export --platform web",
+    "build": "expo export --platform web --clear",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "test": "jest"
@@ -28,6 +28,7 @@
     "@fitness-tracker/ui": "workspace:*",
     "@hookform/resolvers": "^3.9.1",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-navigation/native": "7.2.5",
     "@supabase/supabase-js": "^2.107.0",
     "babel-preset-expo": "^54.0.11",
     "expo": "~54.0.37",

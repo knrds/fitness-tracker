@@ -63,11 +63,13 @@ export interface EntitlementServiceConfig {
   };
 }
 
+const MAX_OFFLINE_CACHE_AGE_MS = 24 * 60 * 60 * 1000;
 const CACHE_KEY_PREFIX = 'evaro_entitlement_cache_';
 
 export class EntitlementService {
   private betaBypass: boolean;
   private provider: EntitlementProvider | null = null;
+  private offlineWarningReported = false;
   private memoryCache = new Map<string, string>();
   private currentState: EntitlementState;
 
@@ -335,6 +337,7 @@ export class EntitlementService {
 
     try {
       const data = await this.provider.fetchCustomerEntitlements(userId);
+      this.offlineWarningReported = false;
       const isCoach = data.activeEntitlements.includes(EVARO_COACH_ENTITLEMENT_ID);
       const isPro = isCoach || data.activeEntitlements.includes(EVARO_PRO_ENTITLEMENT_ID);
       const tier: SubscriptionTier = isCoach ? 'coach' : isPro ? 'pro' : 'free';
@@ -368,17 +371,22 @@ export class EntitlementService {
 
       return this.getEntitlementState();
     } catch (networkError) {
-      logger.warn('[EntitlementService] Network error fetching entitlements. Checking cache.', networkError);
+      if (!this.offlineWarningReported) {
+        logger.warn('[EntitlementService] Network error fetching entitlements. Checking cache.', networkError);
+        this.offlineWarningReported = true;
+      }
 
       // Check offline cache
       if (userId && this.memoryCache.has(CACHE_KEY_PREFIX + userId)) {
         try {
           const cached: EntitlementState = JSON.parse(this.memoryCache.get(CACHE_KEY_PREFIX + userId)!);
-          this.currentState = {
-            ...cached,
-            status: 'offline_cached',
-            lastVerifiedAt: new Date().toISOString(),
-          };
+          const age = Date.now() - Date.parse(cached.lastVerifiedAt);
+          const expires = cached.expirationDate === null ? Infinity : Date.parse(cached.expirationDate);
+          if (cached.userId !== userId || !Number.isFinite(age) || age < 0 || age > MAX_OFFLINE_CACHE_AGE_MS || !(expires > Date.now())) {
+            this.memoryCache.delete(CACHE_KEY_PREFIX + userId);
+            throw new Error('Entitlement cache expired');
+          }
+          this.currentState = { ...cached, status: 'offline_cached' };
           return this.getEntitlementState();
         } catch {
           // invalid cache

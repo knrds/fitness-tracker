@@ -18,10 +18,10 @@ describe('rewards utility', () => {
     expect(lightModes).toHaveLength(9);
     expect(darkModes).toHaveLength(10);
 
-    expect(lightModes.map((c) => c.id)).toEqual(['arctic', 'pearl', 'solar', 'linen', 'sage', 'rose', 'prism', 'lavender', 'alpine']);
+    expect(lightModes.map((c) => c.id)).toEqual(['arctic', 'mocha', 'solar', 'linen', 'sage', 'rose', 'cherry', 'lavender', 'alpine']);
     expect(darkModes.map((c) => c.id)).toEqual([
       'glacier',
-      'nocturne',
+      'ultraviolet',
       'slate',
       'crimson',
       'verde',
@@ -29,16 +29,16 @@ describe('rewards utility', () => {
       'ember',
       'avionics',
       'titanium',
-      'eclipse',
+      'bordeaux',
     ]);
   });
 
   it('puts both free palettes first and distributes the special Coach rewards', () => {
     expect(COLORWAY_REWARDS.slice(0, 2).map(c => c.id)).toEqual(['glacier', 'arctic']);
-    expect(getColorwayRewardConfig('pearl')?.requiredLevel).toBe(1);
-    expect(getColorwayRewardConfig('nocturne')?.requiredLevel).toBe(1);
-    expect(getColorwayRewardConfig('prism')?.requiredLevel).toBe(25);
-    expect(getColorwayRewardConfig('eclipse')?.requiredLevel).toBe(50);
+    expect(getColorwayRewardConfig('mocha')?.requiredLevel).toBe(1);
+    expect(getColorwayRewardConfig('ultraviolet')?.requiredLevel).toBe(1);
+    expect(getColorwayRewardConfig('cherry')?.requiredLevel).toBe(25);
+    expect(getColorwayRewardConfig('bordeaux')?.requiredLevel).toBe(50);
   });
 
   it('provides both a Dark Mode and a Light Mode from Level 1', () => {

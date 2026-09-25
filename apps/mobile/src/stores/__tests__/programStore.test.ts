@@ -22,6 +22,14 @@ jest.mock('expo-crypto', () => ({
 }));
 
 describe('programStore', () => {
+  it('rehydrates closed folders and accepts functional visibility updates', () => {
+    useProgramStore.getState().setExpandedFolders({ Upper: false });
+    useProgramStore.getState().setExpandedFolders(previous => ({ ...previous, Lower: true }));
+    const saved = useProgramStore.getState();
+    const reloaded = useProgramStore.persist.getOptions().merge!(saved, useProgramStore.getInitialState());
+    expect(reloaded.expandedFolders).toEqual({ Upper: false, Lower: true });
+  });
+
   it('retires legacy defaults without deleting them and preserves explicit visibility', () => {
     const legacy = { ...getDefaultTemplates()[0]!, id: '10000000-0000-4000-8000-000000000002', name: 'Legacy upper' };
     const merge = useProgramStore.persist.getOptions().merge!;

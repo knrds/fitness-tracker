@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import { getTranslation } from '../../i18n';
@@ -237,4 +238,23 @@ describe('Profile Header Translation & DateWheelPicker', () => {
       expect(onClose).toHaveBeenCalled();
     });
   });
+});
+
+it('supports desktop mouse dragging and suppresses the click after a drag', () => {
+  const os = jest.replaceProperty(Platform, 'OS', 'web');
+  try {
+    const onChange = jest.fn();
+    const screen = render(<DateWheelPicker value={new Date(2026, 8, 10)} onChange={onChange} />);
+    const day = screen.getByLabelText('Tag auswählen');
+    const event = { pointerId: 1, pointerType: 'mouse', button: 0, clientY: 100,
+      currentTarget: { setPointerCapture: jest.fn(), releasePointerCapture: jest.fn() }, preventDefault: jest.fn() };
+    fireEvent(day, 'pointerDown', event);
+    fireEvent(day, 'pointerMove', { ...event, clientY: 12 });
+    fireEvent(day, 'pointerUp', { ...event, clientY: 12 });
+    expect(onChange.mock.calls.at(-1)?.[0].getDate()).toBe(12);
+    const click = { preventDefault: jest.fn(), stopPropagation: jest.fn() };
+    fireEvent(day, 'clickCapture', click);
+    expect(click.stopPropagation).toHaveBeenCalled();
+    screen.unmount();
+  } finally { os.restore(); }
 });

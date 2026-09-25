@@ -69,6 +69,9 @@ function RootNavigator() {
           headerTintColor: theme.colors.primary,
           headerTitleStyle: { fontFamily: 'SpaceGrotesk_700Bold', color: theme.colors.text },
           headerShadowVisible: false,
+          gestureEnabled: true,
+          fullScreenGestureEnabled: false,
+          gestureDirection: 'horizontal',
           headerBackTitle: '',
           contentStyle: { backgroundColor: theme.colors.background },
         }}

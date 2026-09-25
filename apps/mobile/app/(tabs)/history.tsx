@@ -44,7 +44,6 @@ import { useProfileStore } from '../../src/stores/profileStore';
 import { useTheme, Card, EmptyState, useDialog } from '@fitness-tracker/ui';
 import { LevelProgress } from '../../src/components/LevelProgress';
 import { BattlePassModal } from '../../src/components/BattlePassModal';
-import { HistoryEditModal } from '../../src/components/history/HistoryEditModal';
 import { recalculateDerivedStatsAfterHistoryMutation } from '../../src/utils/historyRecalculation';
 import { HorizontalFadeScroll } from '../../src/components/HorizontalFadeScroll';
 import { VerticalFadeScroll } from '../../src/components/VerticalFadeScroll';
@@ -112,7 +111,6 @@ function HistoryView() {
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
   const [overflowSession, setOverflowSession] = useState<WorkoutSession | null>(null);
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
 
   const handleDeleteWorkout = async (sessionToDelete: WorkoutSession) => {
     setActionMenuVisible(false);
@@ -1042,7 +1040,10 @@ function HistoryView() {
               style={styles.sheetItem}
               onPress={() => {
                 setActionMenuVisible(false);
-                setEditModalVisible(true);
+                if (overflowSession) {
+                  setSelectedSession(null);
+                  router.push(`/programs/template-builder?historyId=${overflowSession.id}`);
+                }
               }}
               accessibilityRole="button"
               accessibilityLabel={language === 'de' ? 'Workout bearbeiten' : 'Edit workout'}
@@ -1083,16 +1084,7 @@ function HistoryView() {
         </Pressable>
       </Modal>
 
-      <HistoryEditModal
-        visible={editModalVisible}
-        session={overflowSession}
-        onClose={() => setEditModalVisible(false)}
-        onSaved={(updated) => {
-          if (selectedSession?.id === updated.id) {
-            setSelectedSession(updated);
-          }
-        }}
-      />
+
     </>
   );
 }

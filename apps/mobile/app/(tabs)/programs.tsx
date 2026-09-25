@@ -421,6 +421,7 @@ export default function ProgramListScreen() {
                   onPress={() => router.push(`/programs/builder?id=${item.id}`)}
                 >
                   <Text style={styles.cardTitle}>{item.name}</Text>
+                  {isDefaultProgramId(item.id) && <Text style={{ color: theme.colors.primary, fontSize: 11, marginTop: 4 }}>🔒 EVARO · STANDARD</Text>}
                   <Text style={styles.cardSubtitle}>
                     {item.durationWeeks} {language === 'de' ? 'Wochen' : 'Weeks'}
                   </Text>

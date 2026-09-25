@@ -77,9 +77,19 @@ type ExtendedViewStyle = ViewStyle & {
   msOverflowStyle?: string;
 };
 
+interface PointerCaptureTarget extends HTMLElement {
+  setPointerCapture?: (id: number) => void;
+  releasePointerCapture?: (id: number) => void;
+}
+
 interface WebDomEventProps {
   tabIndex?: number;
   onKeyDown?: (e: React.KeyboardEvent) => void;
+  onPointerDown?: (e: React.PointerEvent<PointerCaptureTarget>) => void;
+  onPointerMove?: (e: React.PointerEvent<PointerCaptureTarget>) => void;
+  onPointerUp?: (e: React.PointerEvent<PointerCaptureTarget>) => void;
+  onPointerCancel?: (e: React.PointerEvent<PointerCaptureTarget>) => void;
+  onClickCapture?: (e: React.MouseEvent) => void;
 }
 
 const WheelColumn: React.FC<WheelColumnProps> = ({
@@ -94,11 +104,15 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
   const theme = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
   const isScrollingRef = useRef(false);
+  const offsetRef = useRef(selectedIndex * ITEM_HEIGHT);
+  const mouseDrag = useRef<{ pointerId: number; startY: number; offset: number; moved: boolean } | null>(null);
+  const suppressClick = useRef(false);
   const webScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync scroll position whenever selectedIndex changes
   useEffect(() => {
     if (!isScrollingRef.current && scrollViewRef.current) {
+      offsetRef.current = selectedIndex * ITEM_HEIGHT;
       scrollViewRef.current.scrollTo({
         y: selectedIndex * ITEM_HEIGHT,
         animated: false,
@@ -132,7 +146,9 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
 
   const handleScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      offsetRef.current = e.nativeEvent.contentOffset.y;
       if (Platform.OS === 'web') {
+        if (mouseDrag.current) return;
         if (webScrollTimeoutRef.current) {
           clearTimeout(webScrollTimeoutRef.current);
         }
@@ -195,11 +211,46 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
       ? { scrollbarWidth: 'none', msOverflowStyle: 'none' }
       : undefined;
 
+  const finishMouseDrag = (event: React.PointerEvent<PointerCaptureTarget>) => {
+    const drag = mouseDrag.current;
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    mouseDrag.current = null;
+    suppressClick.current = drag.moved;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    if (drag.moved) {
+      const target = Math.max(0, Math.min(items.length - 1, Math.round(offsetRef.current / ITEM_HEIGHT)));
+      handleScrollEnd(target * ITEM_HEIGHT);
+      scrollViewRef.current?.scrollTo({ y: target * ITEM_HEIGHT, animated: true });
+    } else isScrollingRef.current = false;
+  };
   const webEventProps: WebDomEventProps =
     Platform.OS === 'web'
       ? {
           tabIndex: disabled ? -1 : 0,
           onKeyDown: handleKeyDown,
+          onPointerDown: event => {
+            if (disabled || event.pointerType !== 'mouse' || event.button !== 0) return;
+            if (webScrollTimeoutRef.current) clearTimeout(webScrollTimeoutRef.current);
+            mouseDrag.current = { pointerId: event.pointerId, startY: event.clientY, offset: offsetRef.current, moved: false };
+            suppressClick.current = false;
+          },
+          onPointerMove: event => {
+            const drag = mouseDrag.current;
+            if (!drag || drag.pointerId !== event.pointerId) return;
+            const distance = drag.startY - event.clientY;
+            if (!drag.moved && Math.abs(distance) < 4) return;
+            drag.moved = true;
+            event.preventDefault();
+            event.currentTarget.setPointerCapture?.(event.pointerId);
+            isScrollingRef.current = true;
+            offsetRef.current = Math.max(0, Math.min((items.length - 1) * ITEM_HEIGHT, drag.offset + distance));
+            scrollViewRef.current?.scrollTo({ y: offsetRef.current, animated: false });
+          },
+          onPointerUp: finishMouseDrag,
+          onPointerCancel: finishMouseDrag,
+          onClickCapture: event => {
+            if (suppressClick.current) { event.preventDefault(); event.stopPropagation(); suppressClick.current = false; }
+          },
         }
       : {};
 

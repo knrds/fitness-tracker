@@ -350,3 +350,8 @@ Alte Gemini-Berichte dokumentieren frühere Absichten und Testläufe; sie übers
 - Webhook Ingestion & Supabase Migration (`public.subscriptions` & `public.users.tier`).
 - Distributed / Serverseitiges AI Usage Ledger in `api/coach-chat.js`.
 - Native iOS / Android In-App Purchase Sandbox Verification.
+# Continuation checkpoint 25.09.2026
+
+Read the newest EXECUTION_STATUS checkpoint first. Latest batch replaces Premium themes, removes the old history editor, adds shared unsaved navigation guards, real-time weight/reps inheritance, persisted folders, protected routes, mouse date-wheel dragging and bounded offline entitlements. Full verify: 137 domain / 863 mobile / 55 API / 20 security PASS; build/dependency/secret gates PASS. Main cfce909 was fast-forwarded safely; existing deployed beta-session and Coach both return HTTP 200.
+
+Do not mark the master complete: S25 startup failure remains unconfirmed on hardware, native gestures need device QA, and remaining all-surface consistency/logger/roadmap work is open. Do not silently reset blocked stores. No beta.9 tag has been authorized by a green gate. See EXECUTION_STATUS for risks and the pending new-commit remote acceptance.

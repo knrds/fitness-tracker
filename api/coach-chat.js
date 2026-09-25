@@ -241,7 +241,11 @@ module.exports = async function handler(req, res) {
           },
           body: JSON.stringify(
             audio
-              ? { model, input_audio: audio }
+              ? {
+                  model, input_audio: audio, temperature: 0,
+                  // Omit language: retain automatic detection for German/English dictation.
+                  provider: { options: { groq: { prompt: 'Training, Workout, Sätze, Wiederholungen, RPE, RIR, Push, Pull, Legs, Kniebeuge, Bench Press, Deadlift.' } } },
+                }
               : {
                   model,
                   temperature: 0.35,

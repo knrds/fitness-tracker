@@ -23,7 +23,7 @@ import {
   templateToPreviewModel,
 } from '../../src/components/workout/WorkoutPreviewModal';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
-import { useHistoryStore } from '../../src/stores/historyStore';
+import { useSortedHistory } from '../../src/hooks/useSortedHistory';
 import { useProgramStore } from '../../src/stores/programStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { useI18n } from '../../src/i18n';
@@ -38,7 +38,6 @@ export default function HomeScreen() {
   const { language } = useI18n();
 
   const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
-  const { getSessionsByDateDesc } = useHistoryStore();
   const { programs, templates } = useProgramStore();
   const { exercises } = useExerciseStore();
 
@@ -48,7 +47,7 @@ export default function HomeScreen() {
   const slideAnim = React.useRef(new Animated.Value(shouldAnimateEntrance ? 15 : 0)).current;
   const [previewModel, setPreviewModel] = React.useState<WorkoutPreviewModel | null>(null);
 
-  const sessions = React.useMemo(() => getSessionsByDateDesc(), [getSessionsByDateDesc]);
+  const sessions = useSortedHistory();
 
   const sortedTemplates = React.useMemo(
     () =>

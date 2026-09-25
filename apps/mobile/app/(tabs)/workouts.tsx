@@ -87,7 +87,8 @@ export default function WorkoutsScreen() {
   const [assignFolderTemplateId, setAssignFolderTemplateId] = useState<string | null>(null);
 
   // Track expanded/collapsed folders (default to all expanded)
-  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
+  const expandedFolders = useProgramStore(state => state.expandedFolders);
+  const setExpandedFolders = useProgramStore(state => state.setExpandedFolders);
 
   const sharedScrollViewRef = useRef<ScrollView>(null);
   useFocusScroll(sharedScrollViewRef);
@@ -474,6 +475,7 @@ export default function WorkoutsScreen() {
           onPress={() => setSummaryTemplateId(item.id)}
         >
           <Text style={styles.cardTitle}>{item.name}</Text>
+          {isDefaultTemplateId(item.id) && <Text style={{ color: theme.colors.primary, fontSize: 11, marginTop: 4 }}>🔒 EVARO · STANDARD</Text>}
           <Text style={styles.cardSubtitle} numberOfLines={2} ellipsizeMode="tail">
             {exerciseNames ||
               `${item.exercises.length} ${
@@ -522,6 +524,7 @@ export default function WorkoutsScreen() {
             void hapticFeedback.selection();
             setCreateMenuVisible(true);
           }}
+          hitSlop={5}
           style={[styles.createHeaderBtn, { backgroundColor: theme.colors.primary }]}
         >
           <Ionicons name="add" size={24} color={theme.colors.onPrimary} />
@@ -1999,11 +2002,10 @@ const createStyles = (theme: Theme) =>
     createHeaderBtn: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
-      paddingVertical: 8,
-      paddingHorizontal: 14,
-      borderRadius: 20,
-      minHeight: 38,
+      justifyContent: 'center',
+      width: 38,
+      height: 38,
+      borderRadius: 19,
     },
     createHeaderBtnText: {
       fontFamily: 'SpaceGrotesk_700Bold',

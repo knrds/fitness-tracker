@@ -313,3 +313,12 @@
 3. **P0-03 (Store-Compliance):** Kaskadierende Cloud-Account-Löschung gemäß Apple Guideline 5.1.1(v) fehlt serverseitig (`READY_FOR_ASTRA`).
 4. **P0-04 (Monetarisierung):** RevenueCat SDK und Store-Produkte (Monat/Jahr) müssen integriert werden (`READY_FOR_ASTRA`).
 5. **P0-05 (Native Rest-Timer Audio):** Web Audio API synthese in `timerAudio.ts` schlägt auf nativen Geräten fehl; Umstellung auf `expo-av` vorbereitet (`READY_FOR_ASTRA`).
+# Unreleased fixes — 25.09.2026
+
+- Four replacement Premium palettes with unobtrusive corner effects; existing palette choices migrate safely.
+- One shared editor for templates and past workouts, guarded unsaved navigation and clearly protected standard plans.
+- Live weight/repetition inheritance without overwriting independent values; persistent folder expansion.
+- Dashboard updates immediately after history changes; date-wheel mouse drag; bounded offline entitlement cache and quieter expected network warnings.
+- Multilingual transcription retains Whisper Large V3 Turbo with automatic language detection.
+
+Validated locally with 1,075 tests, web export, dependency and secret gates. Samsung S25 startup and native gesture acceptance remain open; these notes are not a new prerelease declaration.

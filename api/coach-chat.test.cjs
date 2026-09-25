@@ -146,7 +146,11 @@ test('routes voice transcription through the configured server model', async () 
   process.env.OPENROUTER_TRANSCRIPTION_MODEL = 'test-transcriber';
   global.fetch = async (url, init) => {
     assert.equal(url, 'https://openrouter.ai/api/v1/audio/transcriptions');
-    assert.equal(JSON.parse(init.body).model, 'test-transcriber');
+    const payload = JSON.parse(init.body);
+    assert.equal(payload.model, 'test-transcriber');
+    assert.equal(Object.hasOwn(payload, 'language'), false);
+    assert.equal(payload.temperature, 0);
+    assert.match(payload.provider.options.groq.prompt, /Wiederholungen.*Bench Press/);
     return { ok: true, json: async () => ({ text: 'Vier Trainingstage bitte.' }) };
   };
   const req = request();

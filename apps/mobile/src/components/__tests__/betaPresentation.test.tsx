@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, act, fireEvent } from '@testing-library/react-native';
-import { createTheme, colorways } from '@fitness-tracker/ui';
+import { createTheme, colorways, migrateColorway } from '@fitness-tracker/ui';
 import { CelebrationPreview, CelebrationPreviewHost } from '../workout/CelebrationPreview';
 import { PaywallHost } from '../paywall/PaywallHost';
 import { usePaywallStore } from '../../stores/paywallStore';
@@ -36,4 +36,14 @@ it('turns a store capability denial into a visible, dismissible paywall', () => 
   fireEvent.press(screen.getByText('Visible paywall'));
   expect(usePaywallStore.getState().source).toBeNull();
   expect(screen.queryByText('Visible paywall')).toBeNull();
+});
+
+it('replaces retired Coach palettes without blocking existing saved preferences', () => {
+  expect(colorways.map(c => c.name)).toEqual(expect.arrayContaining(['Mocha Cream', 'Ink & Cherry', 'Ultraviolet', 'Bordeaux Noir']));
+  for (const retired of ['pearl', 'nocturne', 'prism', 'eclipse']) {
+    expect(colorways.some(c => c.id === retired)).toBe(false);
+    expect(createTheme(migrateColorway(retired))).toBeDefined();
+  }
+  expect(createTheme('mocha').colors.background).toBe('#F7F0E8');
+  expect(createTheme('bordeaux').colors.onPrimary).toBe('#FFFFFF');
 });

@@ -1,10 +1,7 @@
-import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
 import { useHistoryStore } from '../../stores/historyStore';
 import { useExerciseStore } from '../../stores/exerciseStore';
 import { useProfileStore } from '../../stores/profileStore';
 import { useAchievementStore } from '../../stores/achievementStore';
-import { HistoryEditModal } from '../history/HistoryEditModal';
 import { recalculateDerivedStatsAfterHistoryMutation } from '../../utils/historyRecalculation';
 import { coachContextBuilder } from '../../services/coachContextBuilder';
 import { WorkoutSession, MuscleGroup, Equipment, MovementPattern } from '@fitness-tracker/domain';
@@ -209,49 +206,4 @@ describe('History Workout Edit & Delete Suite', () => {
     });
   });
 
-  describe('5. HistoryEditModal Component', () => {
-    test('renders workout details and dispatches save', () => {
-      const session = createSampleSession('session-edit-1', 'Leg Day Heavy', 120);
-      useHistoryStore.getState().addSession(session);
-      const onClose = jest.fn();
-      const onSaved = jest.fn();
-
-      const { getByText, getByDisplayValue } = render(
-        <HistoryEditModal
-          visible={true}
-          session={session}
-          onClose={onClose}
-          onSaved={onSaved}
-        />,
-      );
-
-      // Assert modal elements
-      expect(getByText('Workout bearbeiten')).toBeTruthy();
-      expect(getByDisplayValue('Leg Day Heavy')).toBeTruthy();
-      expect(getByText('Übungen & Sätze')).toBeTruthy();
-
-      // Trigger Save
-      fireEvent.press(getByText('Speichern'));
-      expect(onSaved).toHaveBeenCalled();
-      expect(onClose).toHaveBeenCalled();
-    });
-
-    test('cancel closes modal without updating store', () => {
-      const session = createSampleSession('session-edit-2', 'Arm Day', 30);
-      useHistoryStore.getState().addSession(session);
-      const onClose = jest.fn();
-
-      const { getByText } = render(
-        <HistoryEditModal
-          visible={true}
-          session={session}
-          onClose={onClose}
-        />,
-      );
-
-      fireEvent.press(getByText('Abbrechen'));
-      expect(onClose).toHaveBeenCalled();
-      expect(useHistoryStore.getState().sessions[0]?.name).toBe('Arm Day');
-    });
-  });
 });

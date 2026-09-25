@@ -59,8 +59,8 @@ export function AppearanceSettings() {
   const activeCelebration = profile.celebrationEffect ?? 'classic';
 
   const standardThemes = COLORWAY_REWARDS.filter(c => c.id === 'glacier' || c.id === 'arctic');
-  const lightThemes = COLORWAY_REWARDS.filter((c) => c.isLight && c.id !== 'arctic');
-  const darkThemes = COLORWAY_REWARDS.filter((c) => !c.isLight && c.id !== 'glacier');
+  const lightThemes = COLORWAY_REWARDS.filter((c) => c.isLight && c.id !== 'arctic' && !COACH_COLORWAYS.includes(c.id));
+  const darkThemes = COLORWAY_REWARDS.filter((c) => !c.isLight && c.id !== 'glacier' && !COACH_COLORWAYS.includes(c.id));
 
   const handleSelectColorway = (item: RewardColorwayConfig) => {
     const tier = entitlementService.getTier();
@@ -596,6 +596,10 @@ export function AppearanceSettings() {
       <View style={styles.subgroup}>
         <Text style={[styles.subgroupTitle, { color: theme.colors.text }]}>STANDARD</Text>
         <View style={styles.grid}>{standardThemes.map(renderColorwayCard)}</View>
+      </View>
+      <View style={styles.subgroup}>
+        <Text style={[styles.subgroupTitle, { color: theme.colors.text }]}>PREMIUM</Text>
+        <View style={styles.grid}>{COLORWAY_REWARDS.filter(c => COACH_COLORWAYS.includes(c.id)).map(renderColorwayCard)}</View>
       </View>
       {/* Group 1: Light Themes (Helle Farbwelten) */}
       <View style={styles.subgroup}>

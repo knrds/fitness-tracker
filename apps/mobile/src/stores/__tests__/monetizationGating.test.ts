@@ -357,16 +357,16 @@ describe('Monetization Capability Integration & Direct Bypass Protection', () =>
 
     it('preserves special Coach palettes on downgrade and restores them only for Coach', () => {
       entitlementService.setMockTier('coach');
-      useProfileStore.getState().updateProfile({ colorway: 'pearl' });
+      useProfileStore.getState().updateProfile({ colorway: 'mocha' });
       entitlementService.setMockTier('pro');
       expect(useProfileStore.getState().profile.colorway).toBe('arctic');
-      expect(useProfileStore.getState().profile.savedPremiumColorway).toBe('pearl');
+      expect(useProfileStore.getState().profile.savedPremiumColorway).toBe('mocha');
       entitlementService.setMockTier('free');
       expect(useProfileStore.getState().profile.colorway).toBe('arctic');
       entitlementService.setMockTier('pro');
       expect(useProfileStore.getState().profile.colorway).toBe('arctic');
       entitlementService.setMockTier('coach');
-      expect(useProfileStore.getState().profile.colorway).toBe('pearl');
+      expect(useProfileStore.getState().profile.colorway).toBe('mocha');
     });
 
     it('Titanium remains available to PRO and is preserved on downgrade to FREE', () => {

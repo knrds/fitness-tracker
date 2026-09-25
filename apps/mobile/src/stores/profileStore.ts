@@ -1,4 +1,4 @@
-import { COACH_COLORWAYS } from '@fitness-tracker/ui';
+import { COACH_COLORWAYS, migrateColorway } from '@fitness-tracker/ui';
 import { registerBetaTesterPreference } from '../utils/betaAccessConfig';
 import { getStorageScope, isScopeCurrent } from '../data/storageScope';
 import { create } from 'zustand';
@@ -148,8 +148,10 @@ const profileStateSchema = z.object({
       'linen',
       'sage',
       'slate',
-      'lavender', 'pearl', 'nocturne', 'prism', 'eclipse',
+      'lavender', 'mocha', 'ultraviolet', 'cherry', 'bordeaux',
+      'pearl', 'nocturne', 'prism', 'eclipse',
     ])
+    .transform(migrateColorway)
     .optional(),
   savedPremiumColorway: z
     .enum([
@@ -168,8 +170,10 @@ const profileStateSchema = z.object({
       'linen',
       'sage',
       'slate',
-      'lavender', 'pearl', 'nocturne', 'prism', 'eclipse',
+      'lavender', 'mocha', 'ultraviolet', 'cherry', 'bordeaux',
+      'pearl', 'nocturne', 'prism', 'eclipse',
     ])
+    .transform(migrateColorway)
     .optional(),
   celebrationEffect: z
     .enum(['classic', 'neon', 'inferno', 'gold', 'matrix', 'cosmic', 'aurora', 'fireworks'])
@@ -429,7 +433,7 @@ export const useProfileStore = create<ProfileState>()(
   ),
 );
 
-const LIGHT_COLORWAYS: Colorway[] = ['pearl', 'prism', 'lavender', 'linen', 'sage', 'arctic', 'solar', 'rose', 'alpine'];
+const LIGHT_COLORWAYS: Colorway[] = ['mocha', 'cherry', 'lavender', 'linen', 'sage', 'arctic', 'solar', 'rose', 'alpine'];
 
 export function syncAppearanceForTier(tier: SubscriptionTier) {
   const state = useProfileStore.getState();

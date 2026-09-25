@@ -30,7 +30,7 @@ export interface RewardCelebrationConfig {
 }
 
 const colorwayLevels: Partial<Record<Colorway, number>> = {
-  pearl: 1, nocturne: 1, prism: 25, eclipse: 50,
+  mocha: 1, ultraviolet: 1, cherry: 25, bordeaux: 50,
   glacier: 1, arctic: 1, solar: 2, slate: 4, linen: 6, crimson: 10,
   sage: 14, verde: 18, rose: 22, telemetry: 26, lavender: 30,
   ember: 34, alpine: 38, avionics: 42, titanium: 46,

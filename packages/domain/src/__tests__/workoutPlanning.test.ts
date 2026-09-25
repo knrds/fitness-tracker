@@ -1,3 +1,4 @@
+import { createSetDraftUpdater } from '../logic/workoutPlanning';
 import { describe, expect, it } from 'vitest';
 import {
   createPlannedSet,
@@ -207,4 +208,24 @@ describe('independent template prescriptions', () => {
     expect(restored[0]!.sets.every(s => !s.completed && !s.completedAt)).toBe(true);
     expect(new Set(restored[0]!.sets.map(s => s.id)).size).toBe(2);
   });
+});
+
+it('propagates complete live drafts and stops following independently edited values', () => {
+  const update = createSetDraftUpdater();
+  let sets: import('../types').ExerciseSet[] = [
+    { id: 'a', setNumber: 1, type: 'working', completed: false },
+    { id: 'b', setNumber: 2, type: 'working', completed: false },
+    { id: 'c', setNumber: 3, type: 'working', completed: false, weight: 75, reps: 8 },
+  ];
+  for (const weight of [2, 20, 200]) {
+    sets = update(sets, 'a', { weight });
+    expect(sets.map(s => s.weight)).toEqual([weight, weight, 75]);
+  }
+  for (const reps of [1, 12]) {
+    sets = update(sets, 'a', { reps });
+    expect(sets.map(s => s.reps)).toEqual([reps, reps, 8]);
+  }
+  sets = update(sets, 'b', { weight: 0 });
+  sets = update(sets, 'a', { weight: 210 });
+  expect(sets.map(s => s.weight)).toEqual([210, 0, 75]);
 });

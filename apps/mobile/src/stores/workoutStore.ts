@@ -9,6 +9,7 @@ import {
   WorkoutTemplate,
   UnitSystem,
   createPlannedSet,
+  createSetDraftUpdater,
   repeatSessionExercises,
   startTemplateExercises,
 } from '@fitness-tracker/domain';
@@ -122,6 +123,7 @@ export type WorkoutStore = Omit<
 export const useWorkoutStore = create<WorkoutStore>()(
   persist(
     (persistSet, get, api) => {
+      const updateDraftSets = createSetDraftUpdater();
       const set = (
         partial: Partial<WorkoutStore> | ((state: WorkoutStore) => Partial<WorkoutStore>),
       ) => {
@@ -433,7 +435,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
 
             const exercises = state.exercises.map((ex) => {
               if (ex.id !== sessionExerciseId) return ex;
-              const sets = ex.sets.map((s) => (s.id === setId ? { ...s, ...sanitizedUpdates } : s));
+              const sets = updateDraftSets(ex.sets, setId, sanitizedUpdates);
               return { ...ex, sets };
             });
             return { exercises, lastUpdatedAt: new Date() };

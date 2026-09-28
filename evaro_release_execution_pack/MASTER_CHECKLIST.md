@@ -8,13 +8,13 @@ Diese Datei ist die kompakte Sicht auf alle Release-Gates. Die ausführliche Ums
 | 02 | P0 | Native | Echter Android-Build auf physischem Gerät | NOT_STARTED | `docs/release/EXECUTION_STATUS.md#3-master_checklist--status-aller-p0-gates` |
 | 03 | P0 | Identity | Bundle ID / Package / Scheme / Brand final | PARTIAL | `docs/release/ASTRA_HANDOFF.md#branding--identifier-migration` |
 | 04 | P0 | Security | Keine Provider-/Service-Secrets im Client oder Git | DONE | Keine Secrets in `apps/mobile`, `.env.coach.local` in `.gitignore` |
-| 05 | P0 | Security | Secure token storage | PARTIAL | `supabase-auth-storage` in Plain MMKV; Keychain/Keystore ausstehend |
-| 06 | P0 | Security | RLS Cross-Account Tests | PARTIAL | RLS-Policies in `docs/schema.sql`; Cross-Account-Negativtests ausstehend |
+| 05 | P0 | Security | Secure token storage | PARTIAL | Native secure-storage adapter integriert; reale Migration/Reboot-Abnahme ausstehend |
+| 06 | P0 | Security | RLS Cross-Account Tests | PARTIAL | Versionierte Policies + 304 echte PostgreSQL-Assertions in CI; Remote-Supabase-Abnahme ausstehend |
 | 07 | P0 | Data | Offline/Online ohne Datenverlust | PARTIAL | SQLite Schema 2 mit Outbox offline grün (240 Tests PASS); Cloud-Sync ungetestet |
 | 08 | P0 | Data | Zwei-Geräte-Konflikte ohne stillen Datenverlust | NOT_STARTED | `docs/release/EXECUTION_STATUS.md#3-master_checklist--status-aller-p0-gates` |
 | 09 | P0 | Data | Account löschen löscht Cloud + Auth + lokale Daten | PARTIAL | Lokaler Reset vorhanden; Cloud Delete gemappt in `docs/release/ACCOUNT_DATA_MAP.md` |
 | 10 | P0 | Data | Vollständiger Datenexport | DONE | `apps/mobile/src/stores/profileStore.ts:exportData` (JSON maschinenlesbar) |
-| 11 | P0 | Backend | Production HTTPS Coach endpoint | NOT_STARTED | Coach aktuell nur Loopback `127.0.0.1:8096` |
+| 11 | P0 | Backend | Production HTTPS Coach endpoint | PARTIAL | Reales HTTPS-Beta-Deployment auf vorherigem main geprüft; neuer SHA/Production-Quoten separat abnehmen |
 | 12 | P0 | Backend | Distributed AI rate limits | NOT_STARTED | Nur In-Memory Limiter in `api/coach-chat.js` |
 | 13 | P0 | Backend | Global + per-user cost guard | PARTIAL | 6 Req/Tag Prototype-Limit vorhanden, Provider-Hard-Cap ausstehend |
 | 14 | P0 | Backend | Premium entitlement serverseitig | NOT_STARTED | Gemappt in `docs/release/SUBSCRIPTION_INTEGRATION_MAP.md` |
@@ -29,7 +29,7 @@ Diese Datei ist die kompakte Sicht auf alle Release-Gates. Die ausführliche Ums
 | 23 | P0 | Monetization | StoreKit purchase/restore | NOT_STARTED | Gemappt in `docs/release/SUBSCRIPTION_INTEGRATION_MAP.md` |
 | 24 | P0 | Monetization | Google Billing purchase/restore | NOT_STARTED | Gemappt in `docs/release/SUBSCRIPTION_INTEGRATION_MAP.md` |
 | 25 | P0 | Monetization | Renewal/cancel/expiry/refund getestet | NOT_STARTED | `docs/release/SUBSCRIPTION_INTEGRATION_MAP.md` |
-| 26 | P0 | Monitoring | Crash/Error/Sync/AI spend Monitoring | PREPARED | `observabilityService.ts` (sanitized local buffer + ErrorBoundary; 9 Tests PASS) |
+| 26 | P0 | Monitoring | Crash/Error/Sync/AI spend Monitoring | PREPARED | `observabilityService.ts` (sanitized local buffer + ErrorBoundary + sanitisierte Adapter-Übergabe; keine echte Remote-Alarmierung) |
 | 27 | P0 | Store | Apple Privacy Details / Manifest geprüft | PREPARED | `PrivacyInfo.xcprivacy` & `app.json` ios.privacyManifests (3 Tests PASS) |
 | 28 | P0 | Store | Google Data Safety + Health Declaration | NOT_STARTED | Deklaration ausstehend |
 | 29 | P0 | Store | Reviewer Demo Account | NOT_STARTED | Demo-Zugang mit Daten ausstehend |

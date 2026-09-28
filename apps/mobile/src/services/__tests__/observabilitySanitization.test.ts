@@ -11,6 +11,55 @@ describe('Observability & Crash Monitoring Sanitization (WP-08 Task 08.01)', () 
     observabilityService.clearBreadcrumbs();
   });
 
+  it('never sends original error objects or raw breadcrumb strings across the adapter boundary', () => {
+    const adapter = {
+      captureException: jest.fn(),
+      captureBreadcrumb: jest.fn(),
+      setUser: jest.fn(),
+    };
+    observabilityService.setAdapter(adapter);
+    const original = new Error('Request failed for private@example.com api_key=test-only-secret', {
+      cause: { prompt: 'private training details' },
+    });
+    original.stack = 'Error at private@example.com password=test-only-password';
+    Object.assign(original, { rawBody: 'private training payload' });
+    observabilityService.captureException(original, {
+      access_token: 'private token',
+      bodyMeasurements: { waist: 85 },
+    });
+    const [sent, context] = adapter.captureException.mock.calls[0]!;
+    expect(sent).not.toBe(original);
+    expect(sent.cause).toBeUndefined();
+    expect(sent.rawBody).toBeUndefined();
+    expect(sent.message + sent.stack + JSON.stringify(context)).not.toMatch(
+      /private@example|test-only-secret|test-only-password|private token|85/,
+    );
+    expect(original.message).toContain('private@example.com');
+    observabilityService.captureBreadcrumb('user private@example.com', 'api_key=test-only-secret', {
+      audio_url: 'private audio',
+    });
+    expect(JSON.stringify(adapter.captureBreadcrumb.mock.calls)).not.toMatch(
+      /private@example|test-only-secret|private audio/,
+    );
+  });
+
+  it('bounds recursive contexts and never invokes getters while handling a crash', () => {
+    const cyclic: Record<string, unknown> = { code: 'OFFLINE' };
+    cyclic.self = cyclic;
+    cyclic.children = [cyclic];
+    const getter = jest.fn(() => {
+      throw new Error('must not run');
+    });
+    Object.defineProperty(cyclic, 'danger', { enumerable: true, get: getter });
+    const result = sanitizeContext(cyclic);
+    expect(result.code).toBe('OFFLINE');
+    expect(result.self).toEqual({ circular: true });
+    expect(getter).not.toHaveBeenCalled();
+    const deep = { next: { next: { next: { next: { next: { secret: 'hidden' } } } } } };
+    expect(JSON.stringify(sanitizeContext(deep))).toContain('truncated');
+    expect(JSON.stringify(sanitizeContext(deep))).not.toContain('hidden');
+  });
+
   describe('String PII Scrubbing', () => {
     it('redacts email addresses from messages', () => {
       const msg = 'User athlete.test@example.com reported failure at checkout.';
@@ -106,9 +155,9 @@ describe('Observability & Crash Monitoring Sanitization (WP-08 Task 08.01)', () 
       });
 
       expect(payload.name).toBe('Error');
-      expect(payload.message).toBe('Network error connecting to [REDACTED_EMAIL]');
+      expect(payload.message).toBe('Application error');
       expect(payload.context.route).toBe('/history');
-      expect(payload.context.weight).toBe('[REDACTED_SENSITIVE_KEY]');
+      expect(payload.context.weight).toBeUndefined();
     });
 
     it('forwards sanitized context to pluggable adapter', () => {
@@ -130,7 +179,7 @@ describe('Observability & Crash Monitoring Sanitization (WP-08 Task 08.01)', () 
       expect(mockAdapter.captureException).toHaveBeenCalledTimes(1);
       const passedContext = (mockAdapter.captureException as jest.Mock).mock.calls[0][1];
       expect(passedContext.component).toBe('RestTimer');
-      expect(passedContext.waist).toBe('[REDACTED_SENSITIVE_KEY]');
+      expect(passedContext.waist).toBeUndefined();
     });
 
     it('swallows adapter exceptions to never crash the host application', () => {
@@ -159,7 +208,45 @@ describe('Observability & Crash Monitoring Sanitization (WP-08 Task 08.01)', () 
 
       const breadcrumbs = observabilityService.getRecentBreadcrumbs();
       expect(breadcrumbs.length).toBe(20);
-      expect(breadcrumbs[breadcrumbs.length - 1]?.message).toBe('Step 24');
+      expect(breadcrumbs[breadcrumbs.length - 1]?.message).toBe('Operational event');
     });
   });
+});
+
+it('never forwards freeform health, chat, stack or custom context through telemetry', () => {
+  const adapter = { captureException: jest.fn(), captureBreadcrumb: jest.fn(), setUser: jest.fn() };
+  observabilityService.setAdapter(adapter);
+  try {
+    const raw = new Error('I weigh 82 kg and my private training plan is heavy');
+    const context = {
+      custom: 'personal conversation',
+      component: 'RestTimer',
+      route: '/profile?email=private',
+      errorId: 'ERR-ABC123',
+    };
+    const result = observabilityService.captureException(raw, context);
+    expect(result.message).toBe('Application error');
+    expect(result.stack).toBeUndefined();
+    const [reported, metadata] = adapter.captureException.mock.calls[0]!;
+    expect(reported.message).toBe('Application error');
+    expect(reported.stack).toBeUndefined();
+    expect(metadata).toEqual({ component: 'RestTimer', errorId: 'ERR-ABC123' });
+    observabilityService.captureBreadcrumb('my health', 'private training plan', context);
+    expect(adapter.captureBreadcrumb).toHaveBeenCalledWith('action', 'Operational event', metadata);
+    const getter = jest.fn(() => {
+      throw new Error('do not execute');
+    });
+    const list: unknown[] = [];
+    Object.defineProperty(list, '0', { get: getter });
+    expect(sanitizeContext({ list })).toEqual({ list: ['[ACCESSOR]'] });
+    expect(getter).not.toHaveBeenCalled();
+    expect(() =>
+      observabilityService.captureException(
+        raw,
+        new Proxy({}, { getOwnPropertyDescriptor: getter }),
+      ),
+    ).not.toThrow();
+  } finally {
+    observabilityService.setAdapter(null);
+  }
 });

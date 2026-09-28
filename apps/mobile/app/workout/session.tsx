@@ -1,5 +1,5 @@
 import { WorkoutElapsedTime } from '../../src/components/workout/WorkoutElapsedTime';
-import { Theme, useThemeStyles, AnimatedDisclosure } from '@fitness-tracker/ui';
+import { Theme, useThemeStyles, AnimatedDisclosure, PremiumSurface } from '@fitness-tracker/ui';
 import { useMeasuredReorder } from '../../src/hooks/useMeasuredReorder';
 import { getStorageScope, isScopeCurrent } from '../../src/data/storageScope';
 import { scopedAlert as Alert } from '../../src/utils/scopedAlert';
@@ -14,6 +14,7 @@ import {
   Animated,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  useWindowDimensions,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Crypto from 'expo-crypto';
@@ -46,6 +47,8 @@ export default function WorkoutSessionScreen() {
   const { showConfirm } = useDialog();
   const { t, language } = useI18n();
   const insets = useSafeAreaInsets();
+  const { width, fontScale } = useWindowDimensions();
+  const [measuredHeaderHeight, setMeasuredHeaderHeight] = useState(0);
   const {
     status,
     name,
@@ -203,7 +206,12 @@ export default function WorkoutSessionScreen() {
       if (err instanceof Error && err.message === 'TEMPLATE_LOCKED') {
         usePaywallStore.getState().openPaywall('pro', 'template_limit');
       } else {
-        Alert.alert(language === 'de' ? 'Speichern fehlgeschlagen' : 'Saving failed', language === 'de' ? 'Dein Training bleibt erhalten. Bitte erneut versuchen.' : 'Your workout is preserved. Please try again.');
+        Alert.alert(
+          language === 'de' ? 'Speichern fehlgeschlagen' : 'Saving failed',
+          language === 'de'
+            ? 'Dein Training bleibt erhalten. Bitte erneut versuchen.'
+            : 'Your workout is preserved. Please try again.',
+        );
       }
     }
   };
@@ -221,7 +229,12 @@ export default function WorkoutSessionScreen() {
       if (err instanceof Error && err.message === 'TEMPLATE_LIMIT_REACHED') {
         usePaywallStore.getState().openPaywall('pro', 'template_limit');
       } else {
-        Alert.alert(language === 'de' ? 'Speichern fehlgeschlagen' : 'Saving failed', language === 'de' ? 'Dein Training bleibt erhalten. Bitte erneut versuchen.' : 'Your workout is preserved. Please try again.');
+        Alert.alert(
+          language === 'de' ? 'Speichern fehlgeschlagen' : 'Saving failed',
+          language === 'de'
+            ? 'Dein Training bleibt erhalten. Bitte erneut versuchen.'
+            : 'Your workout is preserved. Please try again.',
+        );
       }
     }
   };
@@ -285,8 +298,36 @@ export default function WorkoutSessionScreen() {
   };
 
   const topSafeArea = Math.max(insets.top, 12);
-  const headerBodyHeight = 68;
-  const headerHeight = topSafeArea + headerBodyHeight;
+  const compactHeader = width / Math.max(fontScale, 1) < 380;
+  const headerBodyHeight = Math.max(76, 50 * fontScale + 24);
+  const headerHeight = Math.max(measuredHeaderHeight, topSafeArea + headerBodyHeight);
+  const headerTitle = (
+    <View
+      testID="workout-session-title-group"
+      style={[
+        styles.headerTitleGroup,
+        compactHeader && { flex: 0, paddingTop: 8, width: '100%' },
+      ]}
+    >
+      <Text
+        numberOfLines={compactHeader ? 2 : 1}
+        style={[
+          theme.typography.heading,
+          styles.standardTitle,
+          { color: theme.colors.text },
+        ]}
+      >
+        {name}
+      </Text>
+      <WorkoutElapsedTime
+        style={[
+          theme.typography.display,
+          styles.standardElapsed,
+          { color: theme.colors.primary },
+        ]}
+      />
+    </View>
+  );
 
   return (
     <Animated.View
@@ -305,13 +346,14 @@ export default function WorkoutSessionScreen() {
 
       {/* Unified Header */}
       <View
+        testID="workout-session-header"
+        onLayout={(event) => setMeasuredHeaderHeight(event.nativeEvent.layout.height)}
         style={[
           styles.headerContainer,
           {
             backgroundColor: theme.colors.surface,
             borderBottomColor: theme.colors.border,
-            height: headerHeight,
-            minHeight: headerHeight,
+            minHeight: topSafeArea + headerBodyHeight,
             paddingTop: topSafeArea,
             position: 'absolute',
             top: 0,
@@ -321,8 +363,10 @@ export default function WorkoutSessionScreen() {
           },
         ]}
       >
+        {theme.premium && <PremiumSurface colors={theme.premium.surfaceGradient} />}
         <View
           key="standard-header"
+          testID="workout-session-actions"
           style={[
             styles.standardHeaderContent,
             { maxWidth: 1040, width: '100%', alignSelf: 'center' },
@@ -345,35 +389,17 @@ export default function WorkoutSessionScreen() {
             >
               <Ionicons name="chevron-down" size={24} color={theme.colors.primary} />
             </Pressable>
-            <View style={styles.headerTitleGroup}>
-              <Text
-                numberOfLines={1}
-                style={[
-                  theme.typography.heading,
-                  styles.standardTitle,
-                  { color: theme.colors.text },
-                ]}
-              >
-                {name}
-              </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
-                <WorkoutElapsedTime
-                  style={[
-                    styles.standardElapsed,
-                    theme.typography.display,
-                    { color: theme.colors.primary },
-                  ]}
-                />
-              </View>
-            </View>
+            {!compactHeader && headerTitle}
           </View>
           <Button
             title={t('workout.finish')}
             variant="primary"
             onPress={handleFinish}
-            style={{ minHeight: 48, paddingHorizontal: 12 }}
+            style={{ minHeight: 48, paddingHorizontal: 12, flexShrink: 0, maxWidth: compactHeader ? '65%' : '35%' }}
+            textStyle={{ flexShrink: 1 }}
           />
         </View>
+        {compactHeader && headerTitle}
 
         {/* Progress Bar */}
         {totalSetsCount > 0 && (
@@ -399,6 +425,7 @@ export default function WorkoutSessionScreen() {
       </View>
 
       <ScrollView
+        testID="workout-session-content"
         ref={sorter.scrollViewRef}
         onLayout={sorter.onLayout}
         onContentSizeChange={sorter.onContentSizeChange}
@@ -680,8 +707,8 @@ const createStyles = (theme: Theme) =>
     },
     headerContainer: {
       borderBottomWidth: 1,
-      paddingHorizontal: 24,
-      paddingBottom: 8,
+      paddingHorizontal: 16,
+      paddingBottom: 12,
       justifyContent: 'center',
       overflow: 'visible',
     },
@@ -707,11 +734,11 @@ const createStyles = (theme: Theme) =>
       flexShrink: 0,
     },
     standardHeaderContent: {
+      paddingVertical: 4,
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
       alignSelf: 'stretch',
-      flex: 1,
       minHeight: 52,
     },
     headerLeft: {
@@ -727,11 +754,11 @@ const createStyles = (theme: Theme) =>
     },
     standardTitle: {
       fontSize: 18,
-      lineHeight: 22,
+      lineHeight: 26,
     },
     standardElapsed: {
       fontSize: 20,
-      lineHeight: 24,
+      lineHeight: 28,
     },
     title: {
       marginBottom: 2,

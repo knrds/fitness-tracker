@@ -207,6 +207,18 @@ export function mapExercises(rawData: RawExercise[]): Exercise[] {
       });
     }
 
+    // These catalog variants omit the forearm assignment present on the alternate
+    // and cross-body hammer curls. Neutral-grip elbow flexion also recruits the
+    // brachioradialis; keep the contribution secondary in our display heuristic.
+    if (
+      ['Hammer_Curls', 'Incline_Hammer_Curls', 'Cable_Hammer_Curls_-_Rope_Attachment'].includes(
+        raw.id,
+      ) &&
+      !secondaryMuscles.includes(MuscleGroup.Forearms)
+    ) {
+      secondaryMuscles.push(MuscleGroup.Forearms);
+    }
+
     // Experience level
     let experienceLevel: Exercise['experienceLevel'] = 'beginner';
     if (raw.level === 'intermediate') experienceLevel = 'intermediate';
@@ -240,4 +252,3 @@ export function mapExercises(rawData: RawExercise[]): Exercise[] {
     return mappedEx;
   });
 }
-

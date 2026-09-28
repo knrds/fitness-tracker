@@ -33,7 +33,7 @@ Verification status: PARTIAL
 | **Übungsfotos (0.jpg / 1.jpg)** | 873 Bildpaare | GitHub Raw CDN (`yuhonas/free-exercise-db`) | remote | Upstream Unlicense, Bild-Vorprovenienz unklar | NO (Chain of title unklar) | **PARTIAL** |
 | **Übungs-GIFs (`exerciseGifs.json`)** | 0 (entfernt) | Ehemalige Hotlinks auf `static.exercisedb.dev` | N/A | Datei in Commit `92aae8f` vollständig gelöscht | N/A | **REMOVED** |
 | **Übungskatalog V1 (`exercisedb-v1.json`)** | 0 (entfernt) | Ehemaliger 38k-Zeilen-Dump | N/A | Datei in Commit `92aae8f` vollständig gelöscht | N/A | **REMOVED** |
-| **Anatomie-Vektorpfade** | 2 SVG-Figuren (Front/Back) | `HichamELBSI/react-native-body-highlighter` | lokal (Code) | Ja (`apps/mobile/src/components/anatomy/LICENSE`: MIT) | YES (MIT konform) | **CLEAR** |
+| **Anatomie-Vektorpfade** | 4 SVG-Figuren (männlich/weiblich, Front/Back) | `HichamELBSI/react-native-body-highlighter` | lokal (Code) | Ja (`apps/mobile/src/components/anatomy/LICENSE`: MIT) | YES (MIT konform) | **CLEAR** |
 | **Level Badges (`level-badges.png`)** | 1 Sprite (4 Badges) | Generiert via Higgsfield (Job `4a335c38...`) | lokal | Dokumentiert in `README.md`, aber Provider Terms ungeprüft | NO (Terms offen) | **ASTRA_REVIEW_REQUIRED** |
 | **Rank Icons (`rank-01.png` - `rank-10.png`)** | 10 PNG-Grafiken | Lokale Bild-Assets | lokal | Keine Lizenzdatei beigelegt | NO | **ASTRA_REVIEW_REQUIRED** |
 | **App Icons & Splash** | 4 PNGs (`icon.png`, `adaptive-icon.png`, `splash-icon.png`, `favicon.png`) | Projekt-Assets | lokal | Proprietär / Projekt-Assets | YES | **CLEAR** |
@@ -78,3 +78,10 @@ Detaillierter Nachweis liegt vor in:
    - Option 2 (Vollständige Risikofreiheit): Globalen Schalter `modeOverride = 'ANATOMY_FALLBACK'` in `getExerciseMedia.ts` aktivieren, falls vor Store-Einreichung jegliches Restrisiko externer Fotografien eliminiert werden soll.
 2. **Rank-Icons & Level-Badges:**
    - Vor Store-Release klären, ob Higgsfield AI-Nutzungsbedingungen kommerzielle App-Nutzung freigeben oder ob stattdessen eigene EVARO-Vektorgrafiken genutzt werden sollen.
+
+
+## Premium cosmetics asset update — 27.09.2026
+
+- `packages/ui/assets/premium/{energy,thread,coffee,cherry}.png`: four optimized 256px local emblems from Higgsfield `gpt_image_2_5`, job `9a99fcc2-34ba-4021-8993-045c7ec0311f`, generated 26.09.2026 in project `24464f21-8afa-43e2-bfaa-00c58603cbb3`. Source atlas was inspected, cropped and compressed locally; no runtime remote media fetch. Provider commercial terms still require legal review, not inferred from successful generation.
+- Generated marble job `bb2f2569-14ae-4c50-9d14-aa0a16f6fd78` was rejected by the user and removed from the shipped asset set.
+- Female anatomy uses the same pinned MIT upstream and adjacent LICENSE as male anatomy. Source attribution in anatomy/README.md. New backgrounds, vessels and accessory paths are local project SVG code.

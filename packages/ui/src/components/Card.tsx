@@ -9,11 +9,13 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../ThemeProvider';
+import { PremiumSurface, PremiumMaterialVariation } from './PremiumVisuals';
 
 export interface CardProps extends ViewProps {
   onPress?: () => void;
   padding?: 'none' | 'sm' | 'md' | 'lg';
   variant?: 'default' | 'highlight';
+  materialVariation?: PremiumMaterialVariation;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -24,6 +26,7 @@ export const Card: React.FC<CardProps> = ({
   style,
   padding = 'lg',
   variant = 'default',
+  materialVariation = 'quiet',
   ...props
 }) => {
   const theme = useTheme();
@@ -81,6 +84,15 @@ export const Card: React.FC<CardProps> = ({
       borderColor: borderColor,
       borderRadius: theme.radius.lg,
       padding: paddingValue,
+      ...(theme.premium
+        ? {
+            shadowColor: theme.premium.shadow,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: theme.isDark ? 0.12 : 0.1,
+            shadowRadius: 12,
+            elevation: 2,
+          }
+        : {}),
     },
     style,
   ];
@@ -95,6 +107,14 @@ export const Card: React.FC<CardProps> = ({
         style={[cardStyle, animatedStyle]}
         {...props}
       >
+        {theme.premium && (
+          <PremiumSurface
+            colors={theme.premium.surfaceGradient}
+            radius={theme.radius.lg}
+            material={theme.premium}
+            variation={materialVariation}
+          />
+        )}
         {children}
       </AnimatedPressable>
     );
@@ -102,6 +122,14 @@ export const Card: React.FC<CardProps> = ({
 
   return (
     <View style={cardStyle} {...props}>
+      {theme.premium && (
+        <PremiumSurface
+          colors={theme.premium.surfaceGradient}
+          radius={theme.radius.lg}
+          material={theme.premium}
+          variation={materialVariation}
+        />
+      )}
       {children}
     </View>
   );

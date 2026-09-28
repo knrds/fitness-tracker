@@ -1,4 +1,12 @@
 # EVARO – Beta Regression Suite & Quality Assurance Matrix
+
+## Checkpoint verification — 28.09.2026
+
+- `pnpm build:preview` PASS: typecheck/lint, 158 domain + 941 mobile + 55 API + 20 security tests, web export. `pnpm audit:ci` PASS with the two already reviewed build-only image-size high exceptions; zero criticals. The test runner still reports its existing worker shutdown warning, without a failed suite.
+- Browser beta export: uniform 198px theme card heights and matching widths at 320/390/768/1440; no horizontal document overflow. Cherry hydration is centered at x=720 in a 1440px viewport. Female front/back anatomy and preference switches, scoped motifs and narrow presentation inspected. Browser checks do not establish physical-device acceptance.
+- Regression coverage: `appearanceLayout`, `premiumThemes`, `folderVisibility`, `homeProgramCompletion`, `CelebrationVisibility`, `WorkoutSessionHeader`, `SessionExerciseCardVolume`, profile restoration, exercise search, muscle regions, scheduling across local/DST boundaries and telemetry privacy. Existing auth/upstream/malformed-encoding tests remain green.
+- Remote acceptance is recorded by the checkpoint PR, GitHub checks and Vercel deployment for its actual SHA. Full beta/store gate remains NO-GO for the external requirements listed above; no new beta tag is created for this independently deliverable update.
+
 ## Kostenloser iPhone-Testpfad — 20.09.2026
 
 Ausführung und Environment-Matrix: [IPHONE_FREE_TEST_GUIDE](IPHONE_FREE_TEST_GUIDE.md). Lokaler WLAN-Server ist statisch und providerfrei; nur erfundene Gastdaten über HTTP. HTTPS-/Auth-/Cloud-Abnahme erst mit separatem Staging und erfüllten Gates. SDK 54 bleibt bestehen. Manifest/Home-Screen-Metadaten sind keine Offline-/Native-Garantie.

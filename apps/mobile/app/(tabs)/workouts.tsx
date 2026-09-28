@@ -25,7 +25,11 @@ import { useTheme, useDialog, withAlpha } from '@fitness-tracker/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { hapticFeedback } from '../../src/utils/haptics';
 import * as Crypto from 'expo-crypto';
-import { useProgramStore, isDefaultTemplateId, isTemplateEditable } from '../../src/stores/programStore';
+import {
+  useProgramStore,
+  isDefaultTemplateId,
+  isTemplateEditable,
+} from '../../src/stores/programStore';
 import { useWorkoutStore } from '../../src/stores/workoutStore';
 import { useExerciseStore } from '../../src/stores/exerciseStore';
 import { useHistoryStore } from '../../src/stores/historyStore';
@@ -52,6 +56,8 @@ export default function WorkoutsScreen() {
     templates: allTemplates,
     hiddenTemplateIds = [],
     setTemplateHidden,
+    hiddenFolderNames = [],
+    setFolderHidden,
     customFolders = [],
     deleteTemplate,
     updateTemplatesOrder,
@@ -63,7 +69,17 @@ export default function WorkoutsScreen() {
     createProgram,
   } = useProgramStore();
   const [showHidden, setShowHidden] = useState(false);
-  const templates = useMemo(() => allTemplates.filter(template => showHidden || !hiddenTemplateIds.includes(template.id)), [allTemplates, hiddenTemplateIds, showHidden]);
+  const hiddenFolderKeys = useMemo(
+    () => new Set(hiddenFolderNames.map(name => name.trim().toLowerCase())),
+    [hiddenFolderNames],
+  );
+  const templates = useMemo(
+    () => allTemplates.filter((template) => showHidden || (
+      !hiddenTemplateIds.includes(template.id) &&
+      !hiddenFolderKeys.has(template.folder?.trim().toLowerCase() ?? '')
+    )),
+    [allTemplates, hiddenTemplateIds, hiddenFolderKeys, showHidden],
+  );
 
   const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
   const { exercises } = useExerciseStore();
@@ -87,8 +103,8 @@ export default function WorkoutsScreen() {
   const [assignFolderTemplateId, setAssignFolderTemplateId] = useState<string | null>(null);
 
   // Track expanded/collapsed folders (default to all expanded)
-  const expandedFolders = useProgramStore(state => state.expandedFolders);
-  const setExpandedFolders = useProgramStore(state => state.setExpandedFolders);
+  const expandedFolders = useProgramStore((state) => state.expandedFolders);
+  const setExpandedFolders = useProgramStore((state) => state.setExpandedFolders);
 
   const sharedScrollViewRef = useRef<ScrollView>(null);
   useFocusScroll(sharedScrollViewRef);
@@ -109,10 +125,12 @@ export default function WorkoutsScreen() {
     return list;
   }, [customFolders]);
 
-  const folderItems = useMemo(
-    () => allFolders.map((name) => ({ id: name, name })),
-    [allFolders],
+  const visibleFolders = useMemo(
+    () => allFolders.filter(name => showHidden || !hiddenFolderKeys.has(name.toLowerCase())),
+    [allFolders, hiddenFolderKeys, showHidden],
   );
+  const hiddenItemCount = hiddenTemplateIds.length + allFolders.filter(name => hiddenFolderKeys.has(name.toLowerCase())).length;
+  const folderItems = useMemo(() => visibleFolders.map((name) => ({ id: name, name })), [visibleFolders]);
 
   // Sorter for reordering folders themselves
   const folderSorter = useMeasuredReorder(
@@ -168,7 +186,7 @@ export default function WorkoutsScreen() {
   // Sorter for reordering templates smoothly within folders and moving across folders
   const templateSorter = useFolderTemplateReorder({
     templates,
-    allFolders,
+    allFolders: visibleFolders,
     expandedFolders,
     onExpandFolder: (folderName) => {
       setExpandedFolders((prev) => ({ ...prev, [folderName]: true }));
@@ -384,7 +402,12 @@ export default function WorkoutsScreen() {
   }, [tab]);
 
   const handleCreateProgramFromWorkouts = () => {
-    if (!entitlementService.canCreateProgram(useProgramStore.getState().programs.filter(program => !isDefaultProgramId(program.id)).length)) {
+    if (
+      !entitlementService.canCreateProgram(
+        useProgramStore.getState().programs.filter((program) => !isDefaultProgramId(program.id))
+          .length,
+      )
+    ) {
       setCreateProgramModalVisible(false);
       usePaywallStore.getState().openPaywall('pro', 'program');
       return;
@@ -392,9 +415,7 @@ export default function WorkoutsScreen() {
 
     if (!newProgramName.trim()) {
       const msg =
-        language === 'de'
-          ? 'Der Programmname ist erforderlich.'
-          : 'Program name is required.';
+        language === 'de' ? 'Der Programmname ist erforderlich.' : 'Program name is required.';
       if (Platform.OS === 'web') {
         if (typeof globalThis !== 'undefined' && 'alert' in globalThis) {
           (globalThis as { alert?: (msg: string) => void }).alert?.(msg);
@@ -475,7 +496,19 @@ export default function WorkoutsScreen() {
           onPress={() => setSummaryTemplateId(item.id)}
         >
           <Text style={styles.cardTitle}>{item.name}</Text>
-          {isDefaultTemplateId(item.id) && <Text style={{ color: theme.colors.primary, fontSize: 11, marginTop: 4 }}>🔒 EVARO · STANDARD</Text>}
+          {isDefaultTemplateId(item.id) && (
+            <Text style={{ color: theme.colors.primary, fontSize: 11, marginTop: 4 }}>
+              🔒 EVARO · STANDARD
+            </Text>
+          )}
+          {hiddenTemplateIds.includes(item.id) && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+              <Ionicons name="eye-off-outline" size={16} color={theme.colors.muted} />
+              <Text style={{ color: theme.colors.muted, fontSize: 11 }}>
+                {language === 'de' ? 'Ausgeblendet' : 'Hidden'}
+              </Text>
+            </View>
+          )}
           <Text style={styles.cardSubtitle} numberOfLines={2} ellipsizeMode="tail">
             {exerciseNames ||
               `${item.exercises.length} ${
@@ -484,17 +517,13 @@ export default function WorkoutsScreen() {
                     ? 'Übung'
                     : 'Exercise'
                   : language === 'de'
-                  ? 'Übungen'
-                  : 'Exercises'
+                    ? 'Übungen'
+                    : 'Exercises'
               }`}
           </Text>
         </Pressable>
 
-        <Pressable
-          style={styles.kebabBtn}
-          hitSlop={10}
-          onPress={() => setMenuTemplateId(item.id)}
-        >
+        <Pressable style={styles.kebabBtn} hitSlop={10} onPress={() => setMenuTemplateId(item.id)}>
           <Ionicons name="ellipsis-vertical" size={20} color={theme.colors.muted} />
         </Pressable>
       </Animated.View>
@@ -509,12 +538,7 @@ export default function WorkoutsScreen() {
       ]}
     >
       <View style={styles.tabHeaderRow}>
-        <Text
-          style={[
-            theme.typography.heading,
-            { color: theme.colors.text, fontSize: 24 },
-          ]}
-        >
+        <Text style={[theme.typography.heading, { color: theme.colors.text, fontSize: 24 }]}>
           {t('plans.title')}
         </Text>
         <Pressable
@@ -528,7 +552,6 @@ export default function WorkoutsScreen() {
           style={[styles.createHeaderBtn, { backgroundColor: theme.colors.primary }]}
         >
           <Ionicons name="add" size={24} color={theme.colors.onPrimary} />
-
         </Pressable>
       </View>
       <SegmentedControl
@@ -554,9 +577,31 @@ export default function WorkoutsScreen() {
           scrollEventThrottle={16}
         >
           {/* Quick Actions Row: Direct Template Create Button */}
-          <Pressable accessibilityRole="switch" accessibilityState={{ checked: showHidden }}
-            onPress={() => setShowHidden(value => !value)} style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 20 }}>
-            <Text style={{ color: theme.colors.primary }}>{language === 'de' ? `Ausgeblendete anzeigen (${hiddenTemplateIds.length})` : `Show hidden (${hiddenTemplateIds.length})`}</Text>
+          <Pressable
+            accessibilityRole="switch"
+            accessibilityState={{ checked: showHidden }}
+            accessibilityLabel={
+              language === 'de' ? 'Ausgeblendete Vorlagen und Ordner anzeigen' : 'Show hidden templates and folders'
+            }
+            onPress={() => setShowHidden((value) => !value)}
+            style={{
+              minHeight: 44,
+              alignItems: 'center',
+              flexDirection: 'row',
+              gap: 8,
+              paddingHorizontal: 20,
+            }}
+          >
+            <Ionicons
+              name={showHidden ? 'eye-outline' : 'eye-off-outline'}
+              size={20}
+              color={theme.colors.primary}
+            />
+            <Text style={{ color: theme.colors.primary }}>
+              {language === 'de'
+                ? `Ausgeblendete anzeigen (${hiddenItemCount})`
+                : `Show hidden (${hiddenItemCount})`}
+            </Text>
           </Pressable>
           <View style={styles.quickActionsSection}>
             <Pressable
@@ -625,8 +670,8 @@ export default function WorkoutsScreen() {
                               ? 'Übung'
                               : 'Exercise'
                             : language === 'de'
-                            ? 'Übungen'
-                            : 'Exercises'
+                              ? 'Übungen'
+                              : 'Exercises'
                         }`;
 
                   return (
@@ -647,7 +692,11 @@ export default function WorkoutsScreen() {
                             setMenuTemplateId(item.id);
                           }}
                         >
-                          <Ionicons name="ellipsis-horizontal" size={18} color={theme.colors.muted} />
+                          <Ionicons
+                            name="ellipsis-horizontal"
+                            size={18}
+                            color={theme.colors.muted}
+                          />
                         </Pressable>
                       </View>
                       <Text style={styles.gridCardSubtitle} numberOfLines={3} ellipsizeMode="tail">
@@ -689,9 +738,10 @@ export default function WorkoutsScreen() {
             </View>
 
             {/* Render each folder with reorderable folder handle */}
-            {allFolders.map((folderName) => {
+            {visibleFolders.map((folderName) => {
               const folderItemsInFolder = folderMap.get(folderName) || [];
               const expanded = isFolderExpanded(folderName);
+              const hidden = hiddenFolderKeys.has(folderName.toLowerCase());
               const isHoveredTarget = templateSorter.hoveredTargetFolder === folderName;
 
               return (
@@ -710,10 +760,7 @@ export default function WorkoutsScreen() {
                     isHoveredTarget && styles.folderGroupHovered,
                   ]}
                 >
-                  <Pressable
-                    style={styles.folderHeader}
-                    onPress={() => toggleFolder(folderName)}
-                  >
+                  <Pressable style={styles.folderHeader} onPress={() => toggleFolder(folderName)}>
                     {/* Folder Reorder Drag Handle */}
                     <View
                       style={[
@@ -738,6 +785,7 @@ export default function WorkoutsScreen() {
                         color={theme.colors.primary}
                       />
                       <Text
+                        numberOfLines={1}
                         style={[
                           styles.folderTitle,
                           isHoveredTarget && { color: theme.colors.primary },
@@ -751,13 +799,36 @@ export default function WorkoutsScreen() {
                     <View style={styles.folderHeaderRight}>
                       {isHoveredTarget && (
                         <View style={styles.dropTargetBadge}>
-                          <Ionicons name="arrow-down-circle" size={13} color={theme.colors.primary} />
+                          <Ionicons
+                            name="arrow-down-circle"
+                            size={13}
+                            color={theme.colors.primary}
+                          />
                           <Text style={styles.dropTargetBadgeText}>
                             {language === 'de' ? 'Hier ablegen' : 'Drop here'}
                           </Text>
                         </View>
                       )}
                       <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${language === 'de'
+                          ? hidden ? 'Ordner einblenden' : 'Ordner ausblenden'
+                          : hidden ? 'Show folder' : 'Hide folder'}: ${folderName}`}
+                        style={styles.folderVisibilityBtn}
+                        onPress={(event) => {
+                          event.stopPropagation();
+                          setFolderHidden(folderName, !hidden);
+                        }}
+                      >
+                        <Ionicons
+                          name={hidden ? 'eye-off-outline' : 'eye-outline'}
+                          size={20}
+                          color={hidden ? theme.colors.muted : theme.colors.primary}
+                        />
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${language === 'de' ? 'Ordneroptionen' : 'Folder options'}: ${folderName}`}
                         style={styles.folderKebabBtn}
                         hitSlop={10}
                         onPress={(e) => {
@@ -798,7 +869,7 @@ export default function WorkoutsScreen() {
             })}
 
             {/* Unassigned Templates Section */}
-            {allFolders.length > 0 && unassignedTemplates.length > 0 && (
+            {visibleFolders.length > 0 && unassignedTemplates.length > 0 && (
               <View
                 style={[
                   styles.folderGroup,
@@ -855,11 +926,7 @@ export default function WorkoutsScreen() {
                       </View>
                     )}
                     <Ionicons
-                      name={
-                        isFolderExpanded('__unassigned__')
-                          ? 'chevron-down'
-                          : 'chevron-forward'
-                      }
+                      name={isFolderExpanded('__unassigned__') ? 'chevron-down' : 'chevron-forward'}
                       size={18}
                       color={theme.colors.muted}
                     />
@@ -874,29 +941,29 @@ export default function WorkoutsScreen() {
               </View>
             )}
 
-            {/* If no folders exist yet, render flat list with drag-and-drop */}
-            {allFolders.length === 0 && (
+            {/* Without visible folders, keep unassigned templates accessible as a flat list. */}
+            {visibleFolders.length === 0 && (
               <View
                 style={styles.list}
                 onLayout={(e) => {
                   templateSorter.folderLayouts.current['__unassigned__'] = e.nativeEvent.layout;
                 }}
               >
-                <View style={styles.emptyFolderHintCard}>
+                {allFolders.length === 0 && <View style={styles.emptyFolderHintCard}>
                   <Ionicons name="folder-outline" size={24} color={theme.colors.primary} />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.emptyFolderHintTitle}>
-                      {t('plans.folderHintTitle')}
-                    </Text>
-                    <Text style={styles.emptyFolderHintText}>
-                      {t('plans.folderHintText')}
-                    </Text>
+                    <Text style={styles.emptyFolderHintTitle}>{t('plans.folderHintTitle')}</Text>
+                    <Text style={styles.emptyFolderHintText}>{t('plans.folderHintText')}</Text>
                   </View>
-                </View>
+                </View>}
                 {templates.map((item) => renderTemplateCard(item))}
                 {templates.length === 0 && (
                   <Text style={styles.emptyText}>
-                    {t('plans.noTemplatesSaved')}
+                    {!showHidden && hiddenItemCount > 0
+                      ? language === 'de'
+                        ? 'Keine sichtbaren Vorlagen. Aktiviere „Ausgeblendete anzeigen“, um sie einzublenden.'
+                        : 'No visible templates. Turn on “Show hidden” to restore them.'
+                      : t('plans.noTemplatesSaved')}
                   </Text>
                 )}
               </View>
@@ -971,7 +1038,15 @@ export default function WorkoutsScreen() {
               }}
             >
               <Ionicons name="create-outline" size={20} color={theme.colors.text} />
-              <Text style={styles.menuItemText}>{menuTemplate && isDefaultTemplateId(menuTemplate.id) ? (language === 'de' ? 'EVARO Standard · schreibgeschützt' : 'EVARO Default · read-only') : (language === 'de' ? 'Bearbeiten' : 'Edit')}</Text>
+              <Text style={styles.menuItemText}>
+                {menuTemplate && isDefaultTemplateId(menuTemplate.id)
+                  ? language === 'de'
+                    ? 'EVARO Standard · schreibgeschützt'
+                    : 'EVARO Default · read-only'
+                  : language === 'de'
+                    ? 'Bearbeiten'
+                    : 'Edit'}
+              </Text>
             </Pressable>
             <Pressable
               style={[
@@ -1007,7 +1082,9 @@ export default function WorkoutsScreen() {
               }}
             >
               <Ionicons name="arrow-down-outline" size={20} color={theme.colors.text} />
-              <Text style={styles.menuItemText}>{language === 'de' ? 'Nach unten' : 'Move Down'}</Text>
+              <Text style={styles.menuItemText}>
+                {language === 'de' ? 'Nach unten' : 'Move Down'}
+              </Text>
             </Pressable>
             <Pressable
               style={styles.menuItem}
@@ -1021,30 +1098,53 @@ export default function WorkoutsScreen() {
               <Ionicons name="share-outline" size={20} color={theme.colors.text} />
               <Text style={styles.menuItemText}>{language === 'de' ? 'Teilen' : 'Share'}</Text>
             </Pressable>
-            <Pressable style={styles.menuItem} onPress={() => {
-              if (menuTemplate) setTemplateHidden(menuTemplate.id, !hiddenTemplateIds.includes(menuTemplate.id));
-              setMenuTemplateId(null);
-            }}>
-              <Ionicons name="eye-off-outline" size={20} color={theme.colors.text} />
-              <Text style={styles.menuItemText}>{menuTemplate && hiddenTemplateIds.includes(menuTemplate.id) ? (language === 'de' ? 'Einblenden' : 'Unhide') : (language === 'de' ? 'Ausblenden' : 'Hide')}</Text>
-            </Pressable>
-            {menuTemplate && !isDefaultTemplateId(menuTemplate.id) && <Pressable
+            <Pressable
               style={styles.menuItem}
               onPress={() => {
-                const id = menuTemplate.id;
+                if (menuTemplate)
+                  setTemplateHidden(menuTemplate.id, !hiddenTemplateIds.includes(menuTemplate.id));
                 setMenuTemplateId(null);
-                handleDeleteTemplate(id);
-              }}>
-              <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
-              <Text style={[styles.menuItemText, { color: theme.colors.error }]}>
-                {language === 'de' ? 'Löschen' : 'Delete'}
+              }}
+            >
+              <Ionicons
+                name={
+                  menuTemplate && hiddenTemplateIds.includes(menuTemplate.id)
+                    ? 'eye-outline'
+                    : 'eye-off-outline'
+                }
+                size={20}
+                color={theme.colors.text}
+              />
+              <Text style={styles.menuItemText}>
+                {menuTemplate && hiddenTemplateIds.includes(menuTemplate.id)
+                  ? language === 'de'
+                    ? 'Einblenden'
+                    : 'Unhide'
+                  : language === 'de'
+                    ? 'Ausblenden'
+                    : 'Hide'}
               </Text>
-            </Pressable>}
+            </Pressable>
+            {menuTemplate && !isDefaultTemplateId(menuTemplate.id) && (
+              <Pressable
+                style={styles.menuItem}
+                onPress={() => {
+                  const id = menuTemplate.id;
+                  setMenuTemplateId(null);
+                  handleDeleteTemplate(id);
+                }}
+              >
+                <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
+                <Text style={[styles.menuItemText, { color: theme.colors.error }]}>
+                  {language === 'de' ? 'Löschen' : 'Delete'}
+                </Text>
+              </Pressable>
+            )}
           </View>
         </Pressable>
       </Modal>
 
-      {/* Folder Action Menu (Rename / Delete) */}
+      {/* Folder Action Menu */}
       <Modal
         visible={folderMenuName !== null}
         transparent
@@ -1056,6 +1156,27 @@ export default function WorkoutsScreen() {
             <Text style={styles.menuTitle}>
               {language === 'de' ? 'ORDNER' : 'FOLDER'}: {folderMenuName}
             </Text>
+            <Pressable
+              accessibilityRole="button"
+              style={styles.menuItem}
+              onPress={() => {
+                if (folderMenuName) {
+                  setFolderHidden(folderMenuName, !hiddenFolderKeys.has(folderMenuName.toLowerCase()));
+                }
+                setFolderMenuName(null);
+              }}
+            >
+              <Ionicons
+                name={hiddenFolderKeys.has(folderMenuName?.toLowerCase() ?? '') ? 'eye-outline' : 'eye-off-outline'}
+                size={20}
+                color={theme.colors.text}
+              />
+              <Text style={styles.menuItemText}>
+                {hiddenFolderKeys.has(folderMenuName?.toLowerCase() ?? '')
+                  ? language === 'de' ? 'Ordner einblenden' : 'Show folder'
+                  : language === 'de' ? 'Ordner ausblenden' : 'Hide folder'}
+              </Text>
+            </Pressable>
             <Pressable
               style={styles.menuItem}
               onPress={() => {
@@ -1128,7 +1249,10 @@ export default function WorkoutsScreen() {
             />
             <View style={styles.folderModalButtonsRow}>
               <Pressable
-                style={[styles.folderModalBtn, { borderColor: theme.colors.border, borderWidth: 1 }]}
+                style={[
+                  styles.folderModalBtn,
+                  { borderColor: theme.colors.border, borderWidth: 1 },
+                ]}
                 onPress={() => setFolderModalVisible(false)}
               >
                 <Text style={{ color: theme.colors.muted, fontFamily: 'SpaceGrotesk_600SemiBold' }}>
@@ -1293,7 +1417,6 @@ export default function WorkoutsScreen() {
         }}
       />
 
-
       {/* Create Choice Menu Modal */}
       <Modal
         visible={isCreateMenuVisible}
@@ -1383,7 +1506,13 @@ export default function WorkoutsScreen() {
               onPress={() => {
                 void hapticFeedback.selection();
                 setCreateMenuVisible(false);
-                if (!entitlementService.canCreateProgram(useProgramStore.getState().programs.filter(program => !isDefaultProgramId(program.id)).length)) {
+                if (
+                  !entitlementService.canCreateProgram(
+                    useProgramStore
+                      .getState()
+                      .programs.filter((program) => !isDefaultProgramId(program.id)).length,
+                  )
+                ) {
                   usePaywallStore.getState().openPaywall('pro', 'program');
                   return;
                 }
@@ -1422,10 +1551,7 @@ export default function WorkoutsScreen() {
         animationType="slide"
         onRequestClose={() => setCreateProgramModalVisible(false)}
       >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setCreateProgramModalVisible(false)}
-        >
+        <Pressable style={styles.modalOverlay} onPress={() => setCreateProgramModalVisible(false)}>
           <Pressable
             style={[
               styles.modalCard,
@@ -1462,7 +1588,9 @@ export default function WorkoutsScreen() {
                 },
               ]}
               placeholder={
-                language === 'de' ? 'Programmname (z. B. Push/Pull/Legs)' : 'Program Name (e.g. PPL)'
+                language === 'de'
+                  ? 'Programmname (z. B. Push/Pull/Legs)'
+                  : 'Program Name (e.g. PPL)'
               }
               placeholderTextColor={theme.colors.muted}
               value={newProgramName}
@@ -1480,11 +1608,7 @@ export default function WorkoutsScreen() {
                   height: 64,
                 },
               ]}
-              placeholder={
-                language === 'de'
-                  ? 'Beschreibung (optional)'
-                  : 'Description (optional)'
-              }
+              placeholder={language === 'de' ? 'Beschreibung (optional)' : 'Description (optional)'}
               placeholderTextColor={theme.colors.muted}
               value={newProgramDesc}
               onChangeText={setNewProgramDesc}
@@ -1721,8 +1845,10 @@ const createStyles = (theme: Theme) =>
       alignItems: 'center',
       gap: 10,
       flex: 1,
+      minWidth: 0,
     },
     folderTitle: {
+      flexShrink: 1,
       fontSize: 14,
       fontFamily: 'SpaceGrotesk_700Bold',
       color: theme.colors.text,
@@ -1741,6 +1867,12 @@ const createStyles = (theme: Theme) =>
     folderKebabBtn: {
       minWidth: 32,
       minHeight: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    folderVisibilityBtn: {
+      minWidth: 44,
+      minHeight: 44,
       alignItems: 'center',
       justifyContent: 'center',
     },

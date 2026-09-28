@@ -1,4 +1,4 @@
-import { useProfileStore } from '../profileStore';
+import { useProfileStore, syncAppearanceForTier } from '../profileStore';
 import { useHistoryStore } from '../historyStore';
 import { WorkoutSession, Equipment, MuscleGroup, MovementPattern } from '@fitness-tracker/domain';
 import { useAchievementStore } from '../achievementStore';
@@ -341,4 +341,44 @@ describe('profileStore', () => {
     expect(useHydrationStore.getState().dailyGoalMl).toBe(2500);
     expect(useHydrationStore.getState().todayIntakeMl).toBe(0);
   });
+});
+
+
+describe('heatmap illustration preference', () => {
+  it('defaults with biological sex changes while allowing independent later overrides', () => {
+    const before = useProfileStore.getState().profile;
+    try {
+      useProfileStore.setState({ profile: { displayName: 'Test', preferredUnits: 'metric' } });
+      useProfileStore.getState().updateProfile({ biologicalSex: 'female' });
+      expect(useProfileStore.getState().profile.heatmapBody).toBe('female');
+      useProfileStore.getState().updateProfile({ heatmapBody: 'male' });
+      expect(useProfileStore.getState().profile.biologicalSex).toBe('female');
+      useProfileStore.getState().updateProfile({ displayName: 'Renamed', biologicalSex: 'female' });
+      expect(useProfileStore.getState().profile.heatmapBody).toBe('male');
+      useProfileStore.getState().updateProfile({ biologicalSex: 'male', heatmapBody: 'female' });
+      expect(useProfileStore.getState().profile.heatmapBody).toBe('female');
+      expect(JSON.parse(useProfileStore.getState().exportData()).profile.heatmapBody).toBe('female');
+    } finally { useProfileStore.setState({ profile: before }); }
+  });
+  it('retains saved inactive palettes but does not let them be newly selected', () => {
+    const before = useProfileStore.getState().profile;
+    try {
+      useProfileStore.setState({ profile: { ...before, colorway: 'verde' } });
+      useProfileStore.getState().updateProfile({ displayName: 'Still compatible' });
+      expect(useProfileStore.getState().profile.colorway).toBe('verde');
+      useProfileStore.getState().updateProfile({ colorway: 'glacier' });
+      useProfileStore.getState().updateProfile({ colorway: 'slate' });
+      expect(useProfileStore.getState().profile.colorway).toBe('glacier');
+    } finally { useProfileStore.setState({ profile: before }); }
+  });
+});
+
+it('restores a saved inactive palette on upgrade without making it newly selectable', () => {
+  const before = useProfileStore.getState().profile;
+  try {
+    useProfileStore.setState({ profile: { ...before, colorway: 'glacier', savedPremiumColorway: 'verde' } });
+    syncAppearanceForTier('pro');
+    expect(useProfileStore.getState().profile.colorway).toBe('verde');
+    expect(useProfileStore.getState().profile.savedPremiumColorway).toBeUndefined();
+  } finally { useProfileStore.setState({ profile: before }); }
 });

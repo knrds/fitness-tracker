@@ -5,6 +5,8 @@
  * Enforces strict client-side sanitization: Zero raw health, workout, coach, or auth data.
  */
 
+import { redactString } from '../utils/logger';
+
 export interface ObservabilityAdapter {
   captureException(error: Error, context?: Record<string, unknown>): void;
   captureBreadcrumb(category: string, message: string, data?: Record<string, unknown>): void;
@@ -35,25 +37,47 @@ const BEARER_HEADER_REGEX = /Bearer\s+[a-zA-Z0-9._~+/-]+=*/gi;
  */
 export function sanitizeString(input: string): string {
   if (!input || typeof input !== 'string') return '';
-  return input
-    .replace(EMAIL_REGEX, '[REDACTED_EMAIL]')
-    .replace(JWT_TOKEN_REGEX, '[REDACTED_TOKEN]')
-    .replace(BEARER_HEADER_REGEX, 'Bearer [REDACTED_TOKEN]');
+  return redactString(
+    input
+      .replace(EMAIL_REGEX, '[REDACTED_EMAIL]')
+      .replace(JWT_TOKEN_REGEX, '[REDACTED_TOKEN]')
+      .replace(BEARER_HEADER_REGEX, 'Bearer [REDACTED_TOKEN]'),
+  );
 }
 
 /**
- * Deeply sanitizes arbitrary context objects to guarantee zero health/auth data leaks.
+ * Bounded local redaction. Remote telemetry additionally requires allowlisted metadata.
  */
-export function sanitizeContext(context?: Record<string, unknown>): Record<string, unknown> {
+function sanitizeContextUnchecked(
+  context?: Record<string, unknown>,
+  depth = 0,
+  seen = new WeakSet<object>(),
+): Record<string, unknown> {
   if (!context || typeof context !== 'object') return {};
+  if (depth >= 5) return { truncated: true };
+  if (seen.has(context)) return { circular: true };
+  seen.add(context);
 
   const sanitized: Record<string, unknown> = {};
 
-  for (const [key, value] of Object.entries(context)) {
-    if (FORBIDDEN_KEY_PATTERN.test(key)) {
+  for (const key of Object.keys(context).slice(0, 50)) {
+    const normalizedKey = key.replace(/[_-]/g, '');
+    if (
+      FORBIDDEN_KEY_PATTERN.test(key) ||
+      /^(accessToken|refreshToken|apiKey|serviceRole|clientSecret|secret|bodyMeasurements|workoutHistory|chatHistory|imageUrl|audioUrl)$/i.test(
+        normalizedKey,
+      )
+    ) {
       sanitized[key] = '[REDACTED_SENSITIVE_KEY]';
       continue;
     }
+    // Never execute a getter while reporting another error.
+    const descriptor = Object.getOwnPropertyDescriptor(context, key);
+    if (!descriptor || !('value' in descriptor)) {
+      sanitized[key] = '[ACCESSOR]';
+      continue;
+    }
+    const value: unknown = descriptor.value;
 
     if (value === null || value === undefined) {
       sanitized[key] = value;
@@ -62,21 +86,102 @@ export function sanitizeContext(context?: Record<string, unknown>): Record<strin
     } else if (typeof value === 'number' || typeof value === 'boolean') {
       sanitized[key] = value;
     } else if (Array.isArray(value)) {
-      sanitized[key] = value.slice(0, 5).map((item) =>
-        typeof item === 'object' && item !== null
-          ? sanitizeContext(item as Record<string, unknown>)
-          : typeof item === 'string'
-            ? sanitizeString(item)
-            : item,
-      );
+      const items: unknown[] = [];
+      for (let index = 0; index < Math.min(value.length, 5); index++) {
+        const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+        if (!descriptor || !('value' in descriptor)) {
+          items.push('[ACCESSOR]');
+          continue;
+        }
+        const item: unknown = descriptor.value;
+        items.push(
+          typeof item === 'object' && item !== null
+            ? sanitizeContext(item as Record<string, unknown>, depth + 1, seen)
+            : typeof item === 'string'
+              ? sanitizeString(item)
+              : typeof item === 'number' || typeof item === 'boolean' || item == null
+                ? item
+                : '[UNSUPPORTED_TYPE]',
+        );
+      }
+      sanitized[key] = items;
     } else if (typeof value === 'object') {
-      sanitized[key] = sanitizeContext(value as Record<string, unknown>);
+      sanitized[key] = sanitizeContext(value as Record<string, unknown>, depth + 1, seen);
     } else {
       sanitized[key] = '[UNSUPPORTED_TYPE]';
     }
   }
 
   return sanitized;
+}
+
+/** Reporting an error must not execute accessors or fail on hostile proxies. */
+export function sanitizeContext(
+  context?: Record<string, unknown>,
+  depth = 0,
+  seen = new WeakSet<object>(),
+): Record<string, unknown> {
+  try {
+    return sanitizeContextUnchecked(context, depth, seen);
+  } catch {
+    return { unavailable: true };
+  }
+}
+
+const COMPONENTS = new Set([
+  'ErrorBoundary',
+  'RestTimer',
+  'LoginScreen',
+  'WorkoutSession',
+  'CoachScreen',
+  'ProfileScreen',
+]);
+const ROUTES = new Set([
+  '/',
+  '/history',
+  '/profile',
+  '/body',
+  '/coach',
+  '/workouts',
+  '/exercises',
+  '/workout/session',
+]);
+const CATEGORIES = new Set(['navigation', 'action', 'network', 'storage', 'render', 'sync']);
+function operationalContext(raw?: Record<string, unknown>): Record<string, unknown> {
+  const safe: Record<string, unknown> = {};
+  try {
+    for (const key of ['component', 'route', 'errorId']) {
+      const value = raw && Object.getOwnPropertyDescriptor(raw, key)?.value;
+      if (typeof value !== 'string') continue;
+      if (
+        (key === 'component' && COMPONENTS.has(value)) ||
+        (key === 'route' && ROUTES.has(value)) ||
+        (key === 'errorId' && /^ERR-[A-F0-9]{6}$/.test(value))
+      )
+        safe[key] = value;
+    }
+  } catch {
+    /* Only known operational fields may leave the process. */
+  }
+  return safe;
+}
+function errorCategory(error: Error): string {
+  try {
+    const name = Object.getOwnPropertyDescriptor(error, 'name')?.value;
+    if (
+      typeof name === 'string' &&
+      ['Error', 'TypeError', 'RangeError', 'SyntaxError', 'ReferenceError', 'URIError'].includes(
+        name,
+      )
+    )
+      return name;
+    if (error instanceof TypeError) return 'TypeError';
+    if (error instanceof RangeError) return 'RangeError';
+    if (error instanceof SyntaxError) return 'SyntaxError';
+  } catch {
+    /* A malformed error remains a generic application error. */
+  }
+  return 'Error';
 }
 
 export class ObservabilityService {
@@ -99,20 +204,24 @@ export class ObservabilityService {
    * Captures an exception with strict PII sanitization.
    */
   captureException(error: Error, rawContext?: Record<string, unknown>): SanitizedPayload {
-    const sanitizedMsg = sanitizeString(error.message || '');
-    const sanitizedContext = sanitizeContext(rawContext);
+    const sanitizedMsg = 'Application error';
+    const sanitizedContext = operationalContext(rawContext);
 
     const payload: SanitizedPayload = {
-      name: error.name || 'Error',
+      name: errorCategory(error),
       message: sanitizedMsg,
       context: sanitizedContext,
       timestamp: new Date().toISOString(),
-      ...(error.stack ? { stack: sanitizeString(error.stack) } : {}),
     };
 
     if (this.adapter) {
       try {
-        this.adapter.captureException(error, sanitizedContext);
+        // Do not forward raw message, stack, cause or arbitrary Error properties.
+        const safeError = new Error(payload.message);
+        safeError.name = payload.name;
+        if (payload.stack) safeError.stack = payload.stack;
+        else delete safeError.stack;
+        this.adapter.captureException(safeError, sanitizedContext);
       } catch {
         // Observability must never crash the host application
       }
@@ -124,11 +233,11 @@ export class ObservabilityService {
   /**
    * Adds an operational breadcrumb without sensitive payloads.
    */
-  captureBreadcrumb(category: string, message: string, data?: Record<string, unknown>): void {
-    const sanitizedData = sanitizeContext(data);
+  captureBreadcrumb(category: string, _message: string, data?: Record<string, unknown>): void {
+    const sanitizedData = operationalContext(data);
     const entry = {
-      category: sanitizeString(category),
-      message: sanitizeString(message),
+      category: CATEGORIES.has(category) ? category : 'action',
+      message: 'Operational event',
       timestamp: new Date().toISOString(),
     };
 
@@ -139,7 +248,7 @@ export class ObservabilityService {
 
     if (this.adapter) {
       try {
-        this.adapter.captureBreadcrumb(category, message, sanitizedData);
+        this.adapter.captureBreadcrumb(entry.category, entry.message, sanitizedData);
       } catch {
         // Swallow
       }

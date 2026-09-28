@@ -2,86 +2,18 @@ import { Theme, useThemeStyles, withAlpha } from '@fitness-tracker/ui';
 import { LevelEmblem } from '../LevelProgress';
 import { getRankForLevel } from '../../utils/level';
 import React, { useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ACHIEVEMENTS } from '@fitness-tracker/domain';
 import { useTheme } from '@fitness-tracker/ui';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withDelay,
-  withTiming,
-  Easing,
-  useReducedMotion,
-} from 'react-native-reanimated';
+import { CelebrationModal } from './CelebrationModal';
 import * as Haptics from 'expo-haptics';
 
 import { useAchievementStore } from '../../stores/achievementStore';
 import { useWorkoutStore } from '../../stores/workoutStore';
 import { useI18n } from '../../i18n';
 
-const ConfettiParticle = ({ index }: { index: number }) => {
-  const theme = useTheme();
-  const startX = Math.random() * 320 - 160;
-  const endX = startX + (Math.random() * 120 - 60);
-  const startY = -60;
-  const endY = 460 + Math.random() * 240;
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withDelay(
-      Math.random() * 800,
-      withTiming(1, {
-        duration: 2500 + Math.random() * 1200,
-        easing: Easing.out(Easing.quad),
-      }),
-    );
-  }, [progress]);
-
-  const animStyle = useAnimatedStyle(() => {
-    const x = startX + (endX - startX) * progress.value;
-    const y = startY + (endY - startY) * progress.value;
-    const rotate = `${progress.value * 360 * (index % 2 === 0 ? 1 : -1)}deg`;
-    const scale = 0.6 + (1 - progress.value) * 0.7;
-    const opacity = 1 - progress.value;
-
-    return {
-      position: 'absolute',
-      transform: [{ translateX: x }, { translateY: y }, { rotate }, { scale }],
-      opacity,
-    };
-  });
-
-  const colors = theme.chart.series;
-  const color = colors[index % colors.length];
-
-  return (
-    <Animated.View
-      style={[
-        animStyle,
-        {
-          width: index % 3 === 0 ? 8 : 12,
-          height: index % 3 === 0 ? 12 : 8,
-          backgroundColor: color,
-          borderRadius: index % 2 === 0 ? 0 : 4,
-        },
-      ]}
-    />
-  );
-};
-
-const ConfettiRain = () => {
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {Array.from({ length: 18 }).map((_, idx) => (
-        <ConfettiParticle key={idx} index={idx} />
-      ))}
-    </View>
-  );
-};
-
 export const AchievementCelebration = () => {
-  const reducedMotion = useReducedMotion();
   const { newlyUnlocked, levelUpTo, clearCelebrations } = useAchievementStore();
   const { lastFinishedSession } = useWorkoutStore();
   const { language, formatAchievement } = useI18n();
@@ -99,10 +31,13 @@ export const AchievementCelebration = () => {
   if (!isVisible) return null;
 
   return (
-    <Modal visible={isVisible} animationType="fade" transparent onRequestClose={clearCelebrations}>
+    <CelebrationModal
+      visible={isVisible}
+      animationType="fade"
+      transparent
+      onRequestClose={clearCelebrations}
+    >
       <Pressable style={styles.overlay} onPress={clearCelebrations}>
-        {/* Render interactive confetti overlay */}
-        {!reducedMotion && <ConfettiRain />}
         <Pressable
           style={[
             styles.card,
@@ -140,7 +75,8 @@ export const AchievementCelebration = () => {
                     marginBottom: 4,
                   }}
                 >
-                  {language === 'de' ? 'Rang' : 'Rank'} {getRankForLevel(levelUpTo).rank} · {getRankForLevel(levelUpTo).title}
+                  {language === 'de' ? 'Rang' : 'Rank'} {getRankForLevel(levelUpTo).rank} ·{' '}
+                  {getRankForLevel(levelUpTo).title}
                 </Text>
                 <Text style={[styles.desc, { color: theme.colors.muted }]}>
                   {language === 'de'
@@ -225,7 +161,7 @@ export const AchievementCelebration = () => {
           </Pressable>
         </Pressable>
       </Pressable>
-    </Modal>
+    </CelebrationModal>
   );
 };
 

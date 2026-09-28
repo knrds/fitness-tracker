@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleProp, ViewStyle, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -7,7 +7,7 @@ import Animated, {
   withTiming,
   useReducedMotion,
 } from 'react-native-reanimated';
-import { useTheme } from '@fitness-tracker/ui';
+import { useTheme, PremiumSurface, PremiumEffect } from '@fitness-tracker/ui';
 import { getLevelProgress } from '@fitness-tracker/domain';
 import { getRankForLevel } from '../utils/level';
 import { useI18n } from '../i18n';
@@ -34,6 +34,12 @@ export function LevelProgress({
   const theme = useTheme();
   const { t } = useI18n();
   const reduced = useReducedMotion();
+  const previousLevel = useRef(level);
+  const [milestone, setMilestone] = useState(0);
+  useEffect(() => {
+    if (level > previousLevel.current) setMilestone((value) => value + 1);
+    previousLevel.current = level;
+  }, [level]);
   const rankInfo = getRankForLevel(level);
   const progressInfo = getLevelProgress(xp);
 
@@ -73,6 +79,9 @@ export function LevelProgress({
         customStyle,
       ]}
     >
+      {theme.premium && (
+        <PremiumSurface colors={theme.premium.surfaceGradient} radius={theme.radius.lg} />
+      )}
       {!compact && <VoltBackdrop />}
       <LevelRankBadge level={level} size={compact ? 44 : 56} />
       <View style={{ flex: 1, gap: compact ? 4 : 7 }}>
@@ -105,14 +114,10 @@ export function LevelProgress({
               >
                 {progressInfo.xpInCurrentLevel} / {progressInfo.xpRequiredForNextLevel} XP
               </Text>
-              {onPress && (
-                <Ionicons name="chevron-forward" size={12} color={theme.colors.muted} />
-              )}
+              {onPress && <Ionicons name="chevron-forward" size={12} color={theme.colors.muted} />}
             </View>
           ) : (
-            onPress && (
-              <Ionicons name="chevron-forward" size={14} color={theme.colors.muted} />
-            )
+            onPress && <Ionicons name="chevron-forward" size={14} color={theme.colors.muted} />
           )}
         </View>
         <View
@@ -140,7 +145,14 @@ export function LevelProgress({
               },
               barStyle,
             ]}
-          />
+          >
+            {theme.premium && (
+              <PremiumSurface
+                colors={[theme.premium.buttonGradient[0], theme.premium.highlight]}
+                radius={6}
+              />
+            )}
+          </Animated.View>
         </View>
         {!compact && (
           <View style={{ gap: 2 }}>
@@ -166,6 +178,7 @@ export function LevelProgress({
           </View>
         )}
       </View>
+      <PremiumEffect trigger={milestone} />
     </View>
   );
 

@@ -529,8 +529,10 @@ export interface ProgramState {
   setExpandedFolders: (value: Record<string, boolean> | ((previous: Record<string, boolean>) => Record<string, boolean>)) => void;
   hiddenTemplateIds: string[];
   hiddenProgramIds: string[];
+  hiddenFolderNames: string[];
   setTemplateHidden: (id: UUID, hidden: boolean) => void;
   setProgramHidden: (id: UUID, hidden: boolean) => void;
+  setFolderHidden: (name: string, hidden: boolean) => void;
 
   createProgram: (program: Partial<Program>) => void;
   updateProgram: (id: UUID, updates: Partial<Program>) => void;
@@ -557,6 +559,7 @@ const programPersistedSchema = z.object({
   expandedFolders: z.record(z.boolean()).optional(),
   hiddenTemplateIds: z.array(z.string()).optional(),
   hiddenProgramIds: z.array(z.string()).optional(),
+  hiddenFolderNames: z.array(z.string().trim().min(1).max(50)).optional(),
 });
 
 type ProgramPersistedState = z.infer<typeof programPersistedSchema>;
@@ -568,6 +571,7 @@ const defaultPersistedState: ProgramPersistedState = {
   expandedFolders: {},
   hiddenTemplateIds: [],
   hiddenProgramIds: [],
+  hiddenFolderNames: [],
 };
 
 export const useProgramStore = create<ProgramState>()(
@@ -580,12 +584,20 @@ export const useProgramStore = create<ProgramState>()(
       setExpandedFolders: value => set(state => ({ expandedFolders: typeof value === 'function' ? value(state.expandedFolders) : value })),
       hiddenTemplateIds: [],
       hiddenProgramIds: [],
+      hiddenFolderNames: [],
       setTemplateHidden: (id, hidden) => set(state => ({
         hiddenTemplateIds: hidden ? [...new Set([...state.hiddenTemplateIds, id])] : state.hiddenTemplateIds.filter(value => value !== id),
       })),
       setProgramHidden: (id, hidden) => set(state => ({
         hiddenProgramIds: hidden ? [...new Set([...state.hiddenProgramIds, id])] : state.hiddenProgramIds.filter(value => value !== id),
       })),
+      setFolderHidden: (name, hidden) => set(state => {
+        const key = name.trim().toLowerCase();
+        const folder = state.customFolders.find(value => value.trim().toLowerCase() === key);
+        if (!folder) return state;
+        const remaining = state.hiddenFolderNames.filter(value => value.trim().toLowerCase() !== key);
+        return { hiddenFolderNames: hidden ? [...remaining, folder] : remaining };
+      }),
 
       createProgram: (programPartial) => {
         if (!entitlementService.canCreateProgram(get().programs.filter(p => !isDefaultProgramId(p.id)).length)) {
@@ -779,7 +791,23 @@ export const useProgramStore = create<ProgramState>()(
             }
             return t;
           });
-          return { customFolders: updatedFolders, templates: updatedTemplates };
+          const hiddenKeys = new Set(state.hiddenFolderNames.map(name => {
+            const key = name.trim().toLowerCase();
+            return key === trimmedOld ? trimmedNew.toLowerCase() : key;
+          }));
+          const expandedFolders = { ...state.expandedFolders };
+          for (const name of Object.keys(expandedFolders)) {
+            if (name.trim().toLowerCase() === trimmedOld) {
+              expandedFolders[trimmedNew] = expandedFolders[name]!;
+              delete expandedFolders[name];
+            }
+          }
+          return {
+            customFolders: updatedFolders,
+            templates: updatedTemplates,
+            hiddenFolderNames: updatedFolders.filter(name => hiddenKeys.has(name.toLowerCase())),
+            expandedFolders,
+          };
         }),
 
       deleteFolder: (name: string) =>
@@ -795,7 +823,12 @@ export const useProgramStore = create<ProgramState>()(
             }
             return t;
           });
-          return { customFolders: updatedFolders, templates: updatedTemplates };
+          return {
+            customFolders: updatedFolders,
+            templates: updatedTemplates,
+            hiddenFolderNames: state.hiddenFolderNames.filter(name => name.trim().toLowerCase() !== trimmedTarget),
+            expandedFolders: Object.fromEntries(Object.entries(state.expandedFolders).filter(([name]) => name.trim().toLowerCase() !== trimmedTarget)),
+          };
         }),
 
       setTemplateFolder: (templateId: UUID, folder: string | null) =>
@@ -826,8 +859,18 @@ export const useProgramStore = create<ProgramState>()(
         }),
 
       updateFoldersOrder: (folders: string[]) =>
-        set({
-          customFolders: folders.map((f) => f.trim()).filter(Boolean),
+        set(state => {
+          // A visible-only reorder must retain hidden folders and their template assignments.
+          const requested = folders.map(name => name.trim().toLowerCase());
+          const reordered = requested
+            .filter((key, index) => requested.indexOf(key) === index)
+            .map(key => state.customFolders.find(name => name.trim().toLowerCase() === key))
+            .filter((name): name is string => name !== undefined);
+          let index = 0;
+          return {
+            customFolders: state.customFolders.map(name =>
+              requested.includes(name.trim().toLowerCase()) ? reordered[index++]! : name),
+          };
         }),
     }),
     {
@@ -854,6 +897,7 @@ export const useProgramStore = create<ProgramState>()(
           templates: saved.templates as WorkoutTemplate[],
           customFolders: saved.customFolders ?? [],
           expandedFolders: saved.expandedFolders ?? {},
+          hiddenFolderNames: saved.hiddenFolderNames ?? [],
           hiddenTemplateIds: saved.hiddenTemplateIds ?? saved.templates.filter(t =>
             isDefaultTemplateId(t.id) && !getDefaultTemplates().some(item => item.id === t.id)).map(t => t.id),
           hiddenProgramIds: saved.hiddenProgramIds ?? saved.programs.filter(p =>
@@ -862,6 +906,7 @@ export const useProgramStore = create<ProgramState>()(
       },
       onRehydrateStorage: () => (state) => {
         if (state) {
+          state.hiddenFolderNames ??= [];
           state.hiddenTemplateIds ??= state.templates.filter(template => isDefaultTemplateId(template.id) && !getDefaultTemplates().some(t => t.id === template.id)).map(t => t.id);
           state.hiddenProgramIds ??= state.programs.filter(program => isDefaultProgramId(program.id) && !getDefaultPrograms().some(p => p.id === program.id)).map(p => p.id);
           if (!state.customFolders) {
@@ -878,6 +923,8 @@ export const useProgramStore = create<ProgramState>()(
               }
             }
             state.customFolders = cleanFolders;
+            const hiddenKeys = new Set(state.hiddenFolderNames.map(name => name.trim().toLowerCase()));
+            state.hiddenFolderNames = cleanFolders.filter(name => hiddenKeys.has(name.toLowerCase()));
 
             // Clear orphaned folder assignments from templates whose folder does not exist in cleanFolders
             if (state.templates) {

@@ -1,9 +1,17 @@
-import React, { useEffect, useMemo } from 'react';
-import { Animated, Platform, StyleSheet, View, ViewStyle, Text, useWindowDimensions, Easing } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Animated,
+  Platform,
+  StyleSheet,
+  View,
+  ViewStyle,
+  Text,
+  LayoutChangeEvent,
+  Easing,
+} from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
-import { useTheme } from '@fitness-tracker/ui';
+import { useTheme, PremiumSuccessAccent } from '@fitness-tracker/ui';
 import { CelebrationEffect, useProfileStore } from '../../stores/profileStore';
-
 
 interface Particle {
   id: number;
@@ -17,7 +25,7 @@ interface Particle {
   animY: Animated.Value;
   animX: Animated.Value;
   animRotate: Animated.Value;
-  animScale: Animated.Value;
+  animOpacity: Animated.Value;
   startY: number;
   endY: number;
   endX: number;
@@ -28,8 +36,12 @@ export interface WorkoutCelebrationOverlayProps {
   style?: ViewStyle;
 }
 
-export function WorkoutCelebrationOverlay({ effect: propEffect, style }: WorkoutCelebrationOverlayProps) {
-  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
+export function WorkoutCelebrationOverlay({
+  effect: propEffect,
+  style,
+}: WorkoutCelebrationOverlayProps) {
+  const [viewport, setViewport] = useState({ width: 0, height: 0 });
+  const { width: viewportWidth, height: viewportHeight } = viewport;
   const theme = useTheme();
   const reducedMotion = useReducedMotion();
   const profileEffect = useProfileStore((s) => s.profile.celebrationEffect ?? 'classic');
@@ -59,8 +71,10 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
 
   const colors = getColors(effect);
 
-  const particles = useMemo<Particle[]>(() =>
-    Array.from({ length: effect === 'fireworks' ? 36 : 24 }).map((_, i) => {
+  const particles = useMemo<Particle[]>(() => {
+    // The native modal, safe area and web app may all be smaller than the device window.
+    if (reducedMotion || viewportWidth <= 0 || viewportHeight <= 0) return [];
+    return Array.from({ length: effect === 'fireworks' ? 36 : 24 }).map((_, i) => {
       const isNeon = effect === 'neon';
       const isInferno = effect === 'inferno';
       const isGold = effect === 'gold';
@@ -69,54 +83,85 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
       const isAurora = effect === 'aurora';
       const isFireworks = effect === 'fireworks';
       const angle = (i / 36) * Math.PI * 2;
-      const radius = Math.min(SCREEN_WIDTH, SCREEN_HEIGHT) * (0.25 + Math.random() * 0.25);
+      const radius = Math.min(viewportWidth, viewportHeight) * (0.2 + Math.random() * 0.2);
 
       const size = isNeon
         ? Math.random() * 3 + 3
         : isMatrix
-        ? 12
+          ? 12
+          : isInferno
+            ? Math.random() * 6 + 5
+            : isGold
+              ? Math.random() * 8 + 7
+              : isCosmic
+                ? Math.random() * 10 + 6
+                : Math.random() * 8 + 6;
+      const heightRatio = isAurora
+        ? 9
+        : isNeon
+          ? Math.random() * 4 + 3
+          : isMatrix
+            ? 3.5
+            : isInferno
+              ? Math.random() * 1.6 + 1
+              : isCosmic && i % 2 === 0
+                ? 1.4
+                : 1;
+      const borderRadius =
+        isNeon || isMatrix
+          ? 2
+          : isInferno || isGold
+            ? size / 2
+            : isCosmic
+              ? i % 2 === 0
+                ? 1
+                : size / 2
+              : i % 2 === 0
+                ? 2
+                : size / 2;
+
+      const x = isFireworks
+        ? (viewportWidth - size) / 2
+        : Math.random() * Math.max(0, viewportWidth - size);
+      const drift = isFireworks
+        ? Math.cos(angle) * radius
+        : isAurora
+          ? (i % 2 ? -1 : 1) * viewportWidth * 0.6
+          : isNeon
+            ? -viewportWidth * 0.45
+            : isMatrix
+              ? 0
+              : (Math.random() - 0.5) * Math.min(150, viewportWidth * 0.5);
+      const startY = isFireworks
+        ? viewportHeight * 0.4
         : isInferno
-        ? Math.random() * 6 + 5
-        : isGold
-        ? Math.random() * 8 + 7
-        : isCosmic
-        ? Math.random() * 10 + 6
-        : Math.random() * 8 + 6;
-      const heightRatio = isAurora ? 9 : isNeon
-        ? Math.random() * 4 + 3
-        : isMatrix
-        ? 3.5
-        : isInferno
-        ? Math.random() * 1.6 + 1
-        : isCosmic && i % 2 === 0
-        ? 1.4
-        : 1;
-      const borderRadius = isNeon || isMatrix
-        ? 2
-        : isInferno || isGold
-        ? size / 2
-        : isCosmic
-        ? (i % 2 === 0 ? 1 : size / 2)
-        : (i % 2 === 0 ? 2 : size / 2);
+          ? viewportHeight
+          : -size * heightRatio;
 
       return {
         id: i,
-        x: isFireworks ? SCREEN_WIDTH / 2 : Math.random() * SCREEN_WIDTH,
+        x,
         size,
         heightRatio,
         borderRadius,
         color: colors[Math.floor(Math.random() * colors.length)] || theme.colors.primary,
         delay: Math.random() * 180,
         duration: isNeon ? 1100 : isMatrix ? 1600 : isGold ? 2100 : 1800,
-        startY: isFireworks ? SCREEN_HEIGHT * 0.4 : isInferno ? SCREEN_HEIGHT : -50,
-        endY: isFireworks ? SCREEN_HEIGHT * 0.4 + Math.sin(angle) * radius : isInferno ? SCREEN_HEIGHT * 0.1 : SCREEN_HEIGHT + 50,
-        endX: isFireworks ? Math.cos(angle) * radius : isAurora ? (i % 2 ? -1 : 1) * SCREEN_WIDTH * 0.6 : isNeon ? -SCREEN_WIDTH * 0.45 : isMatrix ? 0 : (Math.random() - 0.5) * 150,
-        animY: new Animated.Value(-25),
+        startY,
+        endY: isFireworks
+          ? viewportHeight * 0.4 + Math.sin(angle) * radius
+          : isInferno
+            ? viewportHeight * 0.1
+            : viewportHeight + size * heightRatio,
+        // Keep lateral travel in the measured viewport, including narrow phones.
+        endX: Math.min(Math.max(0, x + drift), Math.max(0, viewportWidth - size)) - x,
+        animY: new Animated.Value(startY),
         animX: new Animated.Value(0),
         animRotate: new Animated.Value(0),
-        animScale: new Animated.Value(1),
+        animOpacity: new Animated.Value(1),
       };
-    }), [effect, SCREEN_WIDTH, SCREEN_HEIGHT, theme.colors.primary]);
+    });
+  }, [effect, viewportWidth, viewportHeight, theme.colors.primary, reducedMotion]);
 
   useEffect(() => {
     if (reducedMotion) return;
@@ -125,6 +170,7 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
       p.animY.setValue(p.startY);
       p.animX.setValue(0);
       p.animRotate.setValue(0);
+      p.animOpacity.setValue(1);
 
       const anim = Animated.sequence([
         Animated.delay(p.delay),
@@ -145,6 +191,14 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
             duration: p.duration,
             useNativeDriver: Platform.OS !== 'web',
           }),
+          Animated.sequence([
+            Animated.delay(p.duration - 300),
+            Animated.timing(p.animOpacity, {
+              toValue: 0,
+              duration: 300,
+              useNativeDriver: Platform.OS !== 'web',
+            }),
+          ]),
         ]),
       ]);
       anim.start();
@@ -156,10 +210,27 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
     };
   }, [particles, effect, reducedMotion]);
 
-  if (reducedMotion) return null;
+  const measureViewport = ({ nativeEvent: { layout } }: LayoutChangeEvent) => {
+    if (layout.width <= 0 || layout.height <= 0) return;
+    setViewport((current) =>
+      current.width === layout.width && current.height === layout.height
+        ? current
+        : { width: layout.width, height: layout.height },
+    );
+  };
+
+  if (reducedMotion && !theme.premium) return null;
 
   return (
-    <View testID={`celebration-${effect}`} style={[StyleSheet.absoluteFill, { overflow: 'hidden' }, style]} pointerEvents="none">
+    <View
+      testID={`celebration-${effect}`}
+      style={[styles.overlay, style]}
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      onLayout={measureViewport}
+    >
+      <PremiumSuccessAccent />
       {particles.map((p) => (
         <Animated.View
           key={`${effect}-${p.id}`}
@@ -172,17 +243,17 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
               height: p.size * p.heightRatio,
               borderRadius: p.borderRadius,
               backgroundColor: effect === 'matrix' || effect === 'cosmic' ? 'transparent' : p.color,
+              opacity: p.animOpacity,
               shadowColor: p.color,
               shadowOpacity:
-                effect === 'neon' || effect === 'cosmic' || effect === 'inferno' || effect === 'matrix'
+                effect === 'neon' ||
+                effect === 'cosmic' ||
+                effect === 'inferno' ||
+                effect === 'matrix'
                   ? 0.85
                   : 0.3,
               shadowRadius:
-                effect === 'neon' || effect === 'matrix'
-                  ? 6
-                  : effect === 'inferno'
-                  ? 8
-                  : 3,
+                effect === 'neon' || effect === 'matrix' ? 6 : effect === 'inferno' ? 8 : 3,
               transform: [
                 { translateY: p.animY },
                 { translateX: p.animX },
@@ -196,9 +267,18 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
             },
           ]}
         >
-          {(effect === 'matrix' || effect === 'cosmic') && <Text style={{ color: p.color, fontSize: effect === 'matrix' ? 12 : p.size, lineHeight: effect === 'matrix' ? 13 : p.size, fontWeight: '700' }}>
-            {effect === 'matrix' ? (p.id % 2 ? '1\n0\n1' : '0\n1\n0') : '✦'}
-          </Text>}
+          {(effect === 'matrix' || effect === 'cosmic') && (
+            <Text
+              style={{
+                color: p.color,
+                fontSize: effect === 'matrix' ? 12 : p.size,
+                lineHeight: effect === 'matrix' ? 13 : p.size,
+                fontWeight: '700',
+              }}
+            >
+              {effect === 'matrix' ? (p.id % 2 ? '1\n0\n1' : '0\n1\n0') : '✦'}
+            </Text>
+          )}
         </Animated.View>
       ))}
     </View>
@@ -206,6 +286,11 @@ export function WorkoutCelebrationOverlay({ effect: propEffect, style }: Workout
 }
 
 const styles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+    zIndex: 1,
+  },
   particle: {
     position: 'absolute',
     top: 0,

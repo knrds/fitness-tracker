@@ -11,20 +11,31 @@ import {
 } from '../rewards';
 
 describe('rewards utility', () => {
-  it('contains 19 configured colorways with 9 light modes and 10 dark modes', () => {
-    expect(COLORWAY_REWARDS).toHaveLength(19);
+  it('contains 20 configured colorways with 9 light modes and 11 dark modes', () => {
+    expect(COLORWAY_REWARDS).toHaveLength(20);
     const lightModes = COLORWAY_REWARDS.filter((c) => c.isLight);
     const darkModes = COLORWAY_REWARDS.filter((c) => !c.isLight);
     expect(lightModes).toHaveLength(9);
-    expect(darkModes).toHaveLength(10);
+    expect(darkModes).toHaveLength(11);
 
-    expect(lightModes.map((c) => c.id)).toEqual(['arctic', 'mocha', 'solar', 'linen', 'sage', 'rose', 'cherry', 'lavender', 'alpine']);
+    expect(lightModes.map((c) => c.id)).toEqual([
+      'arctic',
+      'mocha',
+      'solar',
+      'linen',
+      'sage',
+      'rose',
+      'cherry',
+      'lavender',
+      'alpine',
+    ]);
     expect(darkModes.map((c) => c.id)).toEqual([
       'glacier',
       'ultraviolet',
       'slate',
       'crimson',
       'verde',
+      'gotham',
       'telemetry',
       'ember',
       'avionics',
@@ -34,7 +45,7 @@ describe('rewards utility', () => {
   });
 
   it('puts both free palettes first and distributes the special Coach rewards', () => {
-    expect(COLORWAY_REWARDS.slice(0, 2).map(c => c.id)).toEqual(['glacier', 'arctic']);
+    expect(COLORWAY_REWARDS.slice(0, 2).map((c) => c.id)).toEqual(['glacier', 'arctic']);
     expect(getColorwayRewardConfig('mocha')?.requiredLevel).toBe(1);
     expect(getColorwayRewardConfig('ultraviolet')?.requiredLevel).toBe(1);
     expect(getColorwayRewardConfig('cherry')?.requiredLevel).toBe(25);
@@ -60,7 +71,7 @@ describe('rewards utility', () => {
     expect(isColorwayUnlocked('crimson', 11)).toBe(true);
     expect(isColorwayUnlocked('rose', 11)).toBe(false);
 
-    // Level 16 (Rank 4): Porcelain Rose unlocks
+    // Level 16 (Rank 4): Petal Rose unlocks
     expect(isColorwayUnlocked('rose', 22)).toBe(true);
     expect(isColorwayUnlocked('alpine', 16)).toBe(false);
 
@@ -164,7 +175,7 @@ describe('rewards utility', () => {
     expect(crimsonConfig?.requiredLevel).toBe(10);
 
     const roseConfig = getColorwayRewardConfig('rose');
-    expect(roseConfig?.name).toBe('Porcelain Rose');
+    expect(roseConfig?.name).toBe('Petal Rose');
     expect(roseConfig?.requiredLevel).toBe(22);
 
     const cosmicConfig = getCelebrationRewardConfig('cosmic');

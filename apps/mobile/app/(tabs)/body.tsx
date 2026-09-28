@@ -440,9 +440,7 @@ export default function BodyTrackingScreen() {
             <Ionicons name="close" size={18} color={theme.colors.muted} />
           </Pressable>
         </View>
-        <Text style={[styles.bodyFactText, { color: theme.colors.text }]}>
-          {currentFact}
-        </Text>
+        <Text style={[styles.bodyFactText, { color: theme.colors.text }]}>{currentFact}</Text>
         <Pressable
           onPress={() => {
             setBodyFactIndex((prev) => (prev + 1) % facts.length);
@@ -636,20 +634,26 @@ export default function BodyTrackingScreen() {
         >
           {t('nav.body')}
         </Text>
-        {(
+        {
           <Pressable
             style={[styles.addBtn, { backgroundColor: theme.colors.primary }]}
-            onPress={() => activeBodyTab === 'metrics' ? setModalVisible(true) : setCustomExerciseVisible(true)}
-            accessibilityRole="button" accessibilityLabel={language === 'de' ? 'Hinzufügen' : 'Add'}
+            onPress={() =>
+              activeBodyTab === 'metrics' ? setModalVisible(true) : setCustomExerciseVisible(true)
+            }
+            accessibilityRole="button"
+            accessibilityLabel={language === 'de' ? 'Hinzufügen' : 'Add'}
             testID="add-metric-btn"
             hitSlop={5}
           >
             <Ionicons name="add" size={24} color={theme.colors.onPrimary} />
           </Pressable>
-        )}
+        }
       </View>
 
-      <CustomExerciseModal visible={customExerciseVisible} onClose={() => setCustomExerciseVisible(false)} />
+      <CustomExerciseModal
+        visible={customExerciseVisible}
+        onClose={() => setCustomExerciseVisible(false)}
+      />
       <SegmentedControl
         label={language === 'en' ? 'Body views' : 'Körperansichten'}
         value={activeBodyTab}
@@ -796,8 +800,7 @@ export default function BodyTrackingScreen() {
             style={[
               styles.overviewRow,
               {
-                marginTop:
-                  activeBodyWidget === 'weight' || activeBodyWidget === 'height' ? 0 : -10,
+                marginTop: activeBodyWidget === 'weight' || activeBodyWidget === 'height' ? 0 : -10,
               },
             ]}
           >
@@ -834,7 +837,9 @@ export default function BodyTrackingScreen() {
                   style={styles.cardIcon}
                 />
                 <Ionicons
-                  name={activeBodyWidget === 'bodyFat' ? 'chevron-up' : 'information-circle-outline'}
+                  name={
+                    activeBodyWidget === 'bodyFat' ? 'chevron-up' : 'information-circle-outline'
+                  }
                   size={16}
                   color={activeBodyWidget === 'bodyFat' ? theme.colors.primary : theme.colors.muted}
                 />
@@ -1018,34 +1023,46 @@ export default function BodyTrackingScreen() {
           >
             {t('body.hydration')}
           </Text>
-          <Card padding="md" style={styles.hydrationCard}>
+          <Card padding="md" materialVariation="detail" style={styles.hydrationCard}>
             <VoltBackdrop />
-            <View style={styles.hydrationHeader}>
-              <View>
-                <Text style={[styles.hydrationLabel, { color: theme.colors.muted }]}>{t('body.today')}</Text>
-                <Text style={[styles.hydrationValue, { color: theme.colors.text }]}>
-                  {todayIntakeMl.toLocaleString()} / {dailyGoalMl.toLocaleString()} ml
-                </Text>
-              </View>
-              <Text style={[styles.hydrationPercent, { color: theme.colors.primary }]}>
-                {hydrationPercent}%
-              </Text>
-            </View>
-            <WaterVessel progress={hydrationProgress} />
-            <View style={styles.hydrationButtons}>
-              {[250, 500, 1000].map((amount) => (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${amount} Milliliter Wasser hinzufügen`}
-                  key={amount}
-                  style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
-                  onPress={() => addWater(amount)}
-                >
-                  <Text style={[styles.hydrationButtonText, { color: theme.colors.primary }]}>
-                    +{amount === 1000 ? '1 L' : `${amount} ml`}
+            <View
+              style={{
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 12,
+              }}
+            >
+              <View style={{ alignSelf: 'stretch' }}>
+                <View style={styles.hydrationHeader}>
+                  <View>
+                    <Text style={[styles.hydrationLabel, { color: theme.colors.muted }]}>
+                      {t('body.today')}
+                    </Text>
+                    <Text style={[styles.hydrationValue, { color: theme.colors.text }]}>
+                      {todayIntakeMl.toLocaleString()} / {dailyGoalMl.toLocaleString()} ml
+                    </Text>
+                  </View>
+                  <Text style={[styles.hydrationPercent, { color: theme.colors.primary }]}>
+                    {hydrationPercent}%
                   </Text>
-                </Pressable>
-              ))}
+                </View>
+              </View>
+              <WaterVessel progress={hydrationProgress} />
+              <View style={styles.hydrationButtons}>
+                {[250, 500, 1000].map((amount) => (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${amount} Milliliter Wasser hinzufügen`}
+                    key={amount}
+                    style={[styles.hydrationButton, { borderColor: theme.colors.border }]}
+                    onPress={() => addWater(amount)}
+                  >
+                    <Text style={[styles.hydrationButtonText, { color: theme.colors.primary }]}>
+                      +{amount === 1000 ? '1 L' : `${amount} ml`}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
             </View>
             <Pressable
               accessibilityRole="button"
@@ -1186,15 +1203,14 @@ export default function BodyTrackingScreen() {
             accessibilityLabel="Körperfett erklärt"
             style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 }}
             onPress={() =>
-              Alert.alert(
-                t('body.understandingBodyFat'),
-                t('body.bodyFatExplanation'),
-              )
+              Alert.alert(t('body.understandingBodyFat'), t('body.bodyFatExplanation'))
             }
           >
             <Ionicons name="information-circle-outline" size={20} color={theme.colors.primary} />
             <Text style={{ color: theme.colors.muted }}>
-              {language === 'en' ? 'What does body fat percentage mean?' : 'Was bedeutet mein Körperfettanteil?'}
+              {language === 'en'
+                ? 'What does body fat percentage mean?'
+                : 'Was bedeutet mein Körperfettanteil?'}
             </Text>
           </Pressable>
           {renderChart()}
@@ -1259,7 +1275,11 @@ export default function BodyTrackingScreen() {
                         }).format(metric.recordedAt)}
                       </Text>
                       <Text style={[styles.progressionSub, { color: theme.colors.muted }]}>
-                        {metric.weightKg ? displayWeight(metric.weightKg) : (language === 'en' ? 'No weight' : 'Kein Gewicht')}
+                        {metric.weightKg
+                          ? displayWeight(metric.weightKg)
+                          : language === 'en'
+                            ? 'No weight'
+                            : 'Kein Gewicht'}
                       </Text>
                     </View>
                     <View style={styles.progressionDeltaCol}>
@@ -1331,7 +1351,6 @@ export default function BodyTrackingScreen() {
         </ScrollView>
       ) : (
         <ExercisesScreen embedded />
-
       )}
 
       {/* Input Modal */}
@@ -1370,9 +1389,7 @@ export default function BodyTrackingScreen() {
                 color={theme.colors.primary}
                 style={{ marginRight: 8 }}
               />
-              <Text style={[styles.dateTriggerText, { color: theme.colors.text }]}>
-                {dateStr}
-              </Text>
+              <Text style={[styles.dateTriggerText, { color: theme.colors.text }]}>{dateStr}</Text>
               <Ionicons
                 name="chevron-down"
                 size={16}
@@ -1432,20 +1449,31 @@ export default function BodyTrackingScreen() {
               { color: theme.colors.primary, ...theme.typography.caption },
             ]}
           >
-            {t('body.circumferences')} ({isImperial ? t('body.inches').toUpperCase() : t('body.cm').toUpperCase()})
+            {t('body.circumferences')} (
+            {isImperial ? t('body.inches').toUpperCase() : t('body.cm').toUpperCase()})
           </Text>
 
           <MeasurementMap
             unit={isImperial ? 'in' : 'cm'}
             fields={[
-              { label: t('body.chest'), value: chest, onChange: setChest, muscles: [MuscleGroup.Chest] },
+              {
+                label: t('body.chest'),
+                value: chest,
+                onChange: setChest,
+                muscles: [MuscleGroup.Chest],
+              },
               {
                 label: t('body.waist'),
                 value: waist,
                 onChange: setWaist,
                 muscles: [MuscleGroup.Abs, MuscleGroup.Obliques],
               },
-              { label: t('body.hips'), value: hips, onChange: setHips, muscles: [MuscleGroup.Glutes] },
+              {
+                label: t('body.hips'),
+                value: hips,
+                onChange: setHips,
+                muscles: [MuscleGroup.Glutes],
+              },
               {
                 label: t('body.arms'),
                 value: arms,
@@ -1697,7 +1725,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 12,
-    height: 38,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },

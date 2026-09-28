@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../ThemeProvider';
 import { Button } from './Button';
+import { PremiumSurface } from './PremiumVisuals';
 import { Ionicons } from '@expo/vector-icons'; // Assuming expo/vector-icons is available since it's an Expo app
 
 export interface ModalProps {
@@ -125,7 +126,15 @@ export const Modal: React.FC<ModalProps> = ({
               },
             ]}
           >
-            <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+            {theme.premium && (
+              <PremiumSurface colors={theme.premium.surfaceGradient} radius={theme.radius.lg} />
+            )}
+            <View
+              style={[
+                styles.header,
+                { borderBottomColor: theme.premium?.highlight ?? theme.colors.border },
+              ]}
+            >
               <Text
                 style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}
               >

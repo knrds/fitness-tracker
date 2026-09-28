@@ -13,7 +13,8 @@ import {
   Equipment,
   MovementPattern,
   MuscleGroup,
-  matchesMuscleRegion,
+  MuscleRegion,
+  matchesMuscleGroup,
 } from '@fitness-tracker/domain';
 import { HorizontalFadeScroll } from '../../src/components/HorizontalFadeScroll';
 import { useI18n } from '../../src/i18n';
@@ -26,14 +27,8 @@ const MUSCLE_FILTERS = [
   { id: 'warmup', label: 'Warmup' },
   { id: 'warmup_cardio', label: 'Warmup Cardio' },
   { id: 'strength', label: 'Strength' },
-  { id: MuscleGroup.Chest, label: 'Chest' },
-  { id: MuscleGroup.UpperBack, label: 'Back' }, // We'll map 'Back' to upper back for the filter
-  { id: MuscleGroup.Quads, label: 'Legs' },
-  { id: MuscleGroup.FrontDelts, label: 'Shoulders' },
-  { id: MuscleGroup.Biceps, label: 'Arms' },
-  { id: MuscleGroup.Abs, label: 'Core' },
-  { id: MuscleGroup.Obliques, label: 'Obliques' },
-  { id: MuscleGroup.FullBody, label: 'Full Body' },
+  ...Object.values(MuscleGroup).map((id) => ({ id, label: id })),
+  { id: 'adductors', label: 'Adductors' },
 ];
 
 const WARMUP_KEYWORDS = [
@@ -145,11 +140,6 @@ export default function ExercisesScreen({ embedded = false }: ExercisesScreenPro
     if (id === 'warmup') return language === 'de' ? 'Aufwärmen' : 'Warmup';
     if (id === 'warmup_cardio') return language === 'de' ? 'Aufwärm-Cardio' : 'Warmup Cardio';
     if (id === 'strength') return language === 'de' ? 'Krafttraining' : 'Strength';
-    if (id === MuscleGroup.UpperBack) return language === 'de' ? 'Rücken' : 'Back';
-    if (id === MuscleGroup.Quads) return language === 'de' ? 'Beine' : 'Legs';
-    if (id === MuscleGroup.FrontDelts) return language === 'de' ? 'Schultern' : 'Shoulders';
-    if (id === MuscleGroup.Biceps) return language === 'de' ? 'Arme' : 'Arms';
-    if (id === MuscleGroup.Abs) return language === 'de' ? 'Bauch/Rumpf' : 'Core';
     return formatMuscle(id);
   };
 
@@ -217,7 +207,7 @@ export default function ExercisesScreen({ embedded = false }: ExercisesScreenPro
       if (selectedMuscle === MuscleGroup.Obliques) {
         return isObliqueLikeExercise(ex);
       }
-      return selectedMuscle ? matchesMuscleRegion(ex, selectedMuscle as MuscleGroup) : true;
+      return selectedMuscle ? matchesMuscleGroup(ex, selectedMuscle as MuscleRegion) : true;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -258,9 +248,16 @@ export default function ExercisesScreen({ embedded = false }: ExercisesScreenPro
         >
           {language === 'de' ? 'ÜBUNGSBIBLIOTHEK' : 'EXERCISE LIBRARY'}
         </Text>
-        {!embedded && <Pressable accessibilityRole="button" accessibilityLabel={language === 'de' ? 'Übung hinzufügen' : 'Add exercise'} style={styles.createBtn} onPress={() => setShowCustomModal(true)}>
-          <Ionicons name="add" size={24} color={theme.colors.primary} />
-        </Pressable>}
+        {!embedded && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={language === 'de' ? 'Übung hinzufügen' : 'Add exercise'}
+            style={styles.createBtn}
+            onPress={() => setShowCustomModal(true)}
+          >
+            <Ionicons name="add" size={24} color={theme.colors.primary} />
+          </Pressable>
+        )}
       </View>
 
       <View style={[styles.searchContainer, { zIndex: 100 }]}>

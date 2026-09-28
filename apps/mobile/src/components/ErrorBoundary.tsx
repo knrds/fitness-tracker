@@ -33,7 +33,10 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(_error: Error): State {
-    const randomHex = Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0').toUpperCase();
+    const randomHex = Math.floor(Math.random() * 0xffffff)
+      .toString(16)
+      .padStart(6, '0')
+      .toUpperCase();
     return {
       hasError: true,
       errorId: `ERR-${randomHex}`,
@@ -41,17 +44,13 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Log sanitized error information without leaking PII
-    logger.error(`[ErrorBoundary] Caught unexpected UI error (${this.state.errorId}):`, {
-      name: error.name,
-      message: error.message,
-      componentStack: errorInfo.componentStack?.slice(0, 500),
-    });
-
-    // Forward through sanitized observability crash monitoring
-    observabilityService.captureException(error, {
+    const safe = observabilityService.captureException(error, {
       errorId: this.state.errorId,
-      componentStack: errorInfo.componentStack?.slice(0, 500),
+      component: 'ErrorBoundary',
+    });
+    logger.error(`[ErrorBoundary] Caught unexpected UI error (${this.state.errorId}):`, {
+      name: safe.name,
+      message: safe.message,
     });
 
     this.props.onError?.(error, errorInfo);

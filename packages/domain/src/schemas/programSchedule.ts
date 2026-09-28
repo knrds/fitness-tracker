@@ -47,7 +47,12 @@ export function calculateProgramWeek(
   if (!startedAt) return 1;
   const start = startOfDay(new Date(startedAt));
   const current = startOfDay(currentDate);
-  const diffDays = Math.floor((current.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  // Calendar days can contain 23 or 25 hours around daylight-saving changes.
+  const diffDays = Math.round(
+    (Date.UTC(current.getFullYear(), current.getMonth(), current.getDate()) -
+      Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())) /
+      86400000,
+  );
   if (diffDays < 0) return 1;
   const week = Math.floor(diffDays / 7) + 1;
   return week;
@@ -94,7 +99,12 @@ export function getProgramScheduleStatus(
   const totalWorkoutsCount = program.workouts.length;
 
   // Completed sessions belonging to this program
-  const programSessions = sessions.filter((s) => s.programId === program.id);
+  const programSessions = sessions.filter(
+    (s) =>
+      s.programId === program.id &&
+      s.completedAt &&
+      Number.isFinite(new Date(s.completedAt).getTime()),
+  );
   const completedWorkoutsCount = programSessions.length;
 
   // Workouts scheduled for today (currentWeek, todayDayOfWeek)
@@ -102,23 +112,33 @@ export function getProgramScheduleStatus(
     .filter((w) => w.week === currentWeek && w.dayOfWeek === todayDayOfWeek)
     .sort((a, b) => a.order - b.order);
 
-  const todayWorkout = todaysWorkouts[0] ?? null;
-  const todayTemplate = todayWorkout ? templateMap.get(todayWorkout.templateId) ?? null : null;
-
-  // Check if today's workout was completed today
+  // Match each finished session to at most one scheduled slot on its local day.
+  // Repeating a template twice in one day still requires two completed sessions.
   const todayStart = startOfDay(currentDate).getTime();
-  const todayEnd = todayStart + 86400000;
-
-  const isTodayCompleted = todayWorkout
-    ? programSessions.some((s) => {
-        const sessionTime = new Date(s.startedAt).getTime();
-        return (
-          sessionTime >= todayStart &&
-          sessionTime < todayEnd &&
-          (s.templateId === todayWorkout.templateId || s.name === todayTemplate?.name)
-        );
-      })
-    : false;
+  const tomorrow = startOfDay(currentDate);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const programStart = program.startedAt ? new Date(program.startedAt).getTime() : -Infinity;
+  const remainingSessions = programSessions.filter((session) => {
+    const sessionTime = new Date(session.startedAt).getTime();
+    return (
+      sessionTime >= todayStart && sessionTime < tomorrow.getTime() && sessionTime >= programStart
+    );
+  });
+  const remainingWorkouts = todaysWorkouts.filter((workout) => {
+    const template = templateMap.get(workout.templateId);
+    const matchingSessionIndex = remainingSessions.findIndex((session) =>
+      session.templateId
+        ? session.templateId === workout.templateId
+        : template !== undefined && session.name === template.name,
+    );
+    if (matchingSessionIndex < 0) return true;
+    remainingSessions.splice(matchingSessionIndex, 1);
+    return false;
+  });
+  const isTodayCompleted = todaysWorkouts.length > 0 && remainingWorkouts.length === 0;
+  // Keep the completed day's identity available instead of replacing it with a future slot.
+  const todayWorkout = remainingWorkouts[0] ?? todaysWorkouts[0] ?? null;
+  const todayTemplate = todayWorkout ? (templateMap.get(todayWorkout.templateId) ?? null) : null;
 
   const isRestDay = !todayWorkout || isTodayCompleted || isCompleted;
 
@@ -164,7 +184,7 @@ export function getProgramScheduleStatus(
     }
   }
 
-  const nextTemplate = nextWorkout ? templateMap.get(nextWorkout.templateId) ?? null : null;
+  const nextTemplate = nextWorkout ? (templateMap.get(nextWorkout.templateId) ?? null) : null;
 
   return {
     hasActiveProgram: true,

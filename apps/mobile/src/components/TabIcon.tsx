@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, withAlpha } from '@fitness-tracker/ui';
+import { useTheme, withAlpha, PremiumSurface } from '@fitness-tracker/ui';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -97,7 +97,20 @@ export function TabIcon({
         animatedStyle,
       ]}
     >
-      <Ionicons name={name} color={iconColor} size={22} allowFontScaling={false} />
+      {theme.premium && focused && (
+        <PremiumSurface
+          colors={isHome ? theme.premium.buttonGradient : theme.premium.surfaceGradient}
+          radius={isHome ? 17 : 14}
+        />
+      )}
+      <Ionicons
+        name={name}
+        color={
+          theme.premium && focused ? (isHome ? '#FFFFFF' : theme.premium.highlight) : iconColor
+        }
+        size={22}
+        allowFontScaling={false}
+      />
     </Animated.View>
   );
 }

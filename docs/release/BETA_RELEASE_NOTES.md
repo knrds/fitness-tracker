@@ -1,5 +1,10 @@
 # EVARO Beta Release Notes
 
+
+## Unversioned beta update — 28.09.2026
+
+Premium visual systems refined with consistent theme cards, quieter varied backgrounds, male/female anatomy and centered drink illustrations. Retired Verde/Slate selection without removing saved palettes; added Gotham Signal and refreshed Petal Rose. Fixed folder hiding/restoration, exercise-volume baseline/progress, narrow workout headers, rounded tab focus and confetti hidden behind popups. Added secondary-muscle activity and complete muscle search/filtering; distribution rings now show relative contribution clearly. A finished daily program workout stays completed, with the next day shown separately. Refined accessory placement on both anatomy views, restored the female vampire face and removed the Mocha monocle. Telemetry adapters receive only generic events and allowlisted technical context. No new release tag; device and commercial launch gates remain open.
+
 ## Unreleased — beta finalization candidate
 
 - Reversible plan hiding, protected GK/PPL defaults, Free 3-template/1-program limits, folder chooser and consistent exercise back controls.

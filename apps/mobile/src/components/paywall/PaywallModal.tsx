@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme, withAlpha } from '@fitness-tracker/ui';
+import { useTheme, withAlpha, createTheme } from '@fitness-tracker/ui';
+import { PremiumThemePreview } from '../PremiumThemePreview';
 
 import { useI18n } from '../../i18n';
 import { usePaywallStore } from '../../stores/paywallStore';
@@ -92,7 +93,10 @@ export function PaywallModal({
         { icon: 'sparkles-outline', text: 'Persönlicher AI Trainingscoach (Fast & Plan Mode)' },
         { icon: 'calendar-outline', text: 'Individuelle Trainingspläne & Periodisierung' },
         { icon: 'trending-up-outline', text: 'Echtzeit-Trainingsanalyse & Progression' },
-        { icon: 'shield-checkmark-outline', text: 'Alle EVARO Pro-Funktionen uneingeschränkt enthalten' },
+        {
+          icon: 'shield-checkmark-outline',
+          text: 'Alle EVARO Pro-Funktionen uneingeschränkt enthalten',
+        },
       ]
     : [
         { icon: 'barbell-outline', text: t('paywall.benefitPlans') },
@@ -146,19 +150,11 @@ export function PaywallModal({
         >
           {/* Headline & Subtitle */}
           <View style={styles.headerBox}>
-            <Text
-              style={[
-                styles.title,
-                { color: theme.colors.text, ...theme.typography.heading },
-              ]}
-            >
+            <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
               {isCoachContext ? 'EVARO Coach' : t('paywall.title')}
             </Text>
             <Text
-              style={[
-                styles.subtitle,
-                { color: theme.colors.muted, ...theme.typography.body },
-              ]}
+              style={[styles.subtitle, { color: theme.colors.muted, ...theme.typography.body }]}
             >
               {isCoachContext
                 ? 'Training, das sich an dich anpasst. Inklusive aller Pro-Features.'
@@ -202,6 +198,11 @@ export function PaywallModal({
             ))}
           </View>
 
+          {isCoachContext && (
+            <PremiumThemePreview
+              theme={createTheme(theme.premium ? theme.colorway : 'ultraviolet')}
+            />
+          )}
           {/* Pricing Options */}
           <View style={styles.plansSection}>
             {/* Annual Plan (Featured) */}
@@ -214,9 +215,7 @@ export function PaywallModal({
                       ? withAlpha(theme.colors.primary, 0.08)
                       : theme.colors.surface,
                   borderColor:
-                    selectedPackage === 'annual'
-                      ? theme.colors.primary
-                      : theme.colors.border,
+                    selectedPackage === 'annual' ? theme.colors.primary : theme.colors.border,
                   borderWidth: selectedPackage === 'annual' ? 2 : 1,
                 },
               ]}
@@ -235,34 +234,16 @@ export function PaywallModal({
                   >
                     {t('paywall.annualTitle')}
                   </Text>
-                  <View
-                    style={[
-                      styles.featuredTag,
-                      { backgroundColor: theme.colors.primary },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.featuredTagText,
-                        { color: theme.colors.background },
-                      ]}
-                    >
+                  <View style={[styles.featuredTag, { backgroundColor: theme.colors.primary }]}>
+                    <Text style={[styles.featuredTagText, { color: theme.colors.background }]}>
                       {t('paywall.annualBadge')}
                     </Text>
                   </View>
                 </View>
                 <Ionicons
-                  name={
-                    selectedPackage === 'annual'
-                      ? 'checkmark-circle'
-                      : 'ellipse-outline'
-                  }
+                  name={selectedPackage === 'annual' ? 'checkmark-circle' : 'ellipse-outline'}
                   size={22}
-                  color={
-                    selectedPackage === 'annual'
-                      ? theme.colors.primary
-                      : theme.colors.muted
-                  }
+                  color={selectedPackage === 'annual' ? theme.colors.primary : theme.colors.muted}
                 />
               </View>
 
@@ -301,9 +282,7 @@ export function PaywallModal({
                       ? withAlpha(theme.colors.primary, 0.08)
                       : theme.colors.surface,
                   borderColor:
-                    selectedPackage === 'monthly'
-                      ? theme.colors.primary
-                      : theme.colors.border,
+                    selectedPackage === 'monthly' ? theme.colors.primary : theme.colors.border,
                   borderWidth: selectedPackage === 'monthly' ? 2 : 1,
                 },
               ]}
@@ -322,17 +301,9 @@ export function PaywallModal({
                   {t('paywall.monthlyTitle')}
                 </Text>
                 <Ionicons
-                  name={
-                    selectedPackage === 'monthly'
-                      ? 'checkmark-circle'
-                      : 'ellipse-outline'
-                  }
+                  name={selectedPackage === 'monthly' ? 'checkmark-circle' : 'ellipse-outline'}
                   size={22}
-                  color={
-                    selectedPackage === 'monthly'
-                      ? theme.colors.primary
-                      : theme.colors.muted
-                  }
+                  color={selectedPackage === 'monthly' ? theme.colors.primary : theme.colors.muted}
                 />
               </View>
 
@@ -360,16 +331,9 @@ export function PaywallModal({
           {/* Error notice if any */}
           {error ? (
             <View
-              style={[
-                styles.errorCard,
-                { backgroundColor: withAlpha(theme.colors.error, 0.1) },
-              ]}
+              style={[styles.errorCard, { backgroundColor: withAlpha(theme.colors.error, 0.1) }]}
             >
-              <Ionicons
-                name="alert-circle-outline"
-                size={16}
-                color={theme.colors.error}
-              />
+              <Ionicons name="alert-circle-outline" size={16} color={theme.colors.error} />
               <Text
                 style={[styles.errorText, { color: theme.colors.error }]}
                 testID="paywall-error-text"
@@ -455,11 +419,7 @@ export function PaywallModal({
 
             <Text style={[styles.bulletSep, { color: theme.colors.muted }]}>•</Text>
 
-            <Pressable
-              onPress={openPrivacy}
-              accessibilityRole="button"
-              testID="privacy-btn"
-            >
+            <Pressable onPress={openPrivacy} accessibilityRole="button" testID="privacy-btn">
               <Text
                 style={[
                   styles.linkText,

@@ -2,7 +2,7 @@ import { TabIcon } from '../../src/components/TabIcon';
 import { useReducedMotion } from 'react-native-reanimated';
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { useTheme, withAlpha } from '@fitness-tracker/ui';
+import { useTheme, withAlpha, PremiumSurface } from '@fitness-tracker/ui';
 import { View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MinimizedWorkoutBar } from '../../src/components/workout/MinimizedWorkoutBar';
@@ -23,6 +23,13 @@ export default function TabLayout() {
         <Tabs
           screenOptions={{
             headerShown: false,
+            ...(theme.premium
+              ? {
+                  tabBarBackground: () => (
+                    <PremiumSurface colors={theme.premium!.surfaceGradient} radius={36} />
+                  ),
+                }
+              : {}),
             animation: reducedMotion ? 'none' : 'shift',
             tabBarActiveTintColor: theme.colors.primary,
             tabBarInactiveTintColor: theme.colors.muted,
@@ -46,7 +53,7 @@ export default function TabLayout() {
               marginHorizontal: 16,
               marginBottom: Math.max(insets.bottom, 10),
               borderWidth: 1,
-              borderColor: withAlpha(theme.colors.primary, 0.16),
+              borderColor: theme.premium?.highlight ?? withAlpha(theme.colors.primary, 0.16),
               borderRadius: 36,
               height: itemHeight + 16,
               paddingTop: 7,

@@ -1,8 +1,10 @@
 import { isCompletedWorkingSet } from '@fitness-tracker/domain';
-import { SegmentedControl } from '@fitness-tracker/ui';
+import { SegmentedControl, calendarVisual, PremiumMotif } from '@fitness-tracker/ui';
 import { Theme, useThemeStyles, withAlpha } from '@fitness-tracker/ui';
 import { useReducedMotion } from 'react-native-reanimated';
 import { useFocusScroll } from '../../src/hooks/useFocusScroll';
+import { useSortedHistory } from '../../src/hooks/useSortedHistory';
+import { calendarRecordDays } from '../../src/utils/calendarRecords';
 import React, { useState } from 'react';
 import {
   View,
@@ -103,9 +105,8 @@ function HistoryView() {
   const { exercises: allExercises } = useExerciseStore();
   const profile = useProfileStore((state) => state.profile);
   const isImperial = profile?.preferredUnits === 'imperial';
-  useHistoryStore((state) => state.sessions);
-  const { getSessionsByDateDesc } = useHistoryStore();
-  const sessions = getSessionsByDateDesc();
+  const sessions = useSortedHistory();
+  const recordDays = React.useMemo(() => calendarRecordDays(sessions), [sessions]);
   const { showConfirm } = useDialog();
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
@@ -409,7 +410,8 @@ function HistoryView() {
           numberOfLines={2}
           ellipsizeMode="tail"
         >
-          {exerciseNames || `${item.exercises.length} ${language === 'de' ? 'Übungen' : 'Exercises'}`}
+          {exerciseNames ||
+            `${item.exercises.length} ${language === 'de' ? 'Übungen' : 'Exercises'}`}
         </Text>
         <View style={styles.stats}>
           <View style={styles.statItem}>
@@ -477,9 +479,7 @@ function HistoryView() {
     const today = new Date();
 
     const daysOfWeekHeaders =
-      language === 'en'
-        ? ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-        : ['M', 'D', 'M', 'D', 'F', 'S', 'S'];
+      language === 'en' ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['M', 'D', 'M', 'D', 'F', 'S', 'S'];
 
     const weekDays = React.useMemo(() => {
       return Array.from({ length: 7 }).map((_, index) => {
@@ -543,7 +543,7 @@ function HistoryView() {
 
       const statusLabel =
         count > 0
-          ? `${count} ${count === 1 ? (language === 'de' ? 'Training' : 'Workout') : (language === 'de' ? 'Trainings' : 'Workouts')}`
+          ? `${count} ${count === 1 ? (language === 'de' ? 'Training' : 'Workout') : language === 'de' ? 'Trainings' : 'Workouts'}`
           : language === 'de'
             ? 'Kein Training'
             : 'No workouts';
@@ -570,10 +570,16 @@ function HistoryView() {
                     ? theme.colors.surfaceElevated
                     : theme.colors.surface,
             },
+            calendarVisual(theme, {
+              count,
+              selected: isSelected,
+              today: isToday,
+              record: recordDays.has(key),
+            }),
           ]}
           accessibilityRole="button"
           accessibilityState={{ selected: isSelected }}
-          accessibilityLabel={`${dateLabel}: ${statusLabel}${isToday ? (language === 'de' ? ', heute' : ', today') : ''}${isSelected ? (language === 'de' ? ', ausgewählt' : ', selected') : ''}`}
+          accessibilityLabel={`${dateLabel}: ${statusLabel}${recordDays.has(key) ? ', PR' : ''}${isToday ? (language === 'de' ? ', heute' : ', today') : ''}${isSelected ? (language === 'de' ? ', ausgewählt' : ', selected') : ''}`}
           onPress={() => {
             void hapticFeedback.selection();
             setSelectedDateKey(isSelected ? null : key);
@@ -599,6 +605,10 @@ function HistoryView() {
               : day.getDate()}
           </Text>
           <View style={styles.consistencyBlocks}>
+            {recordDays.has(key) && <Ionicons name="star" size={10} color={theme.chart.record} />}
+            {theme.premium?.calendarVariant === 'blossom' && count > 0 && (
+              <PremiumMotif size={14} />
+            )}
             {Array.from({ length: Math.min(count, 5) }).map((_, blockIndex) => (
               <View
                 key={blockIndex}
@@ -624,8 +634,17 @@ function HistoryView() {
     };
 
     return (
-      <Card padding="md" style={styles.consistencyCard}>
-        <View style={styles.consistencyHeader}>
+      <Card padding="md" materialVariation="scattered" style={styles.consistencyCard}>
+        <View
+          style={[
+            styles.consistencyHeader,
+            theme.premium && {
+              borderBottomWidth: 1,
+              borderBottomColor: theme.premium.highlight,
+              paddingBottom: 12,
+            },
+          ]}
+        >
           <Text style={[styles.consistencyTitle, { color: theme.colors.text }]}>
             {t('workout.consistency')}
           </Text>
@@ -709,126 +728,127 @@ function HistoryView() {
         )}
 
         {/* Inline Selected Day Detail Box */}
-        {selectedDateKey !== null && (() => {
-          const [y, m, d] = selectedDateKey.split('-').map(Number);
-          const selDate = new Date(y!, m! - 1, d!);
-          const daySessions = sessionsByDate[selectedDateKey] ?? [];
-          const formattedDate = new Intl.DateTimeFormat(language === 'de' ? 'de-DE' : 'en-US', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-          }).format(selDate);
+        {selectedDateKey !== null &&
+          (() => {
+            const [y, m, d] = selectedDateKey.split('-').map(Number);
+            const selDate = new Date(y!, m! - 1, d!);
+            const daySessions = sessionsByDate[selectedDateKey] ?? [];
+            const formattedDate = new Intl.DateTimeFormat(language === 'de' ? 'de-DE' : 'en-US', {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+            }).format(selDate);
 
-          return (
-            <View
-              style={[
-                styles.inlineDayCard,
-                {
-                  backgroundColor: theme.colors.surfaceElevated,
-                  borderColor: withAlpha(theme.colors.primary, 0.3),
-                },
-              ]}
-            >
-              <View style={styles.inlineDayHeader}>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.inlineDayTitle, { color: theme.colors.text }]}>
-                    {formattedDate}
-                  </Text>
-                  <Text style={[styles.inlineDaySubtitle, { color: theme.colors.muted }]}>
-                    {daySessions.length === 0
-                      ? language === 'de'
-                        ? 'Kein Training an diesem Tag'
-                        : 'No workouts on this day'
-                      : `${daySessions.length} ${
-                          daySessions.length === 1
-                            ? language === 'de'
-                              ? 'Training'
-                              : 'Workout'
-                            : language === 'de'
-                              ? 'Trainings'
-                              : 'Workouts'
-                        }`}
-                  </Text>
-                </View>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={language === 'de' ? 'Auswahl schließen' : 'Close selection'}
-                  hitSlop={10}
-                  onPress={() => setSelectedDateKey(null)}
-                  style={styles.inlineDayCloseBtn}
-                >
-                  <Ionicons name="close" size={18} color={theme.colors.muted} />
-                </Pressable>
-              </View>
-
-              {daySessions.length > 0 ? (
-                <View style={styles.inlineSessionList}>
-                  {daySessions.map((session) => {
-                    const summary = summarizeWorkout(session);
-                    const displayVolume = isImperial
-                      ? Math.round(summary.totalVolume * 2.20462)
-                      : Math.round(summary.totalVolume);
-                    const volumeUnit = isImperial ? 'lbs' : 'kg';
-                    const exerciseCount = session.exercises.length;
-                    const totalSets = session.exercises.reduce(
-                      (acc, ex) => acc + ex.sets.filter(isCompletedWorkingSet).length,
-                      0,
-                    );
-
-                    return (
-                      <Pressable
-                        key={session.id}
-                        style={[
-                          styles.inlineSessionRow,
-                          {
-                            backgroundColor: theme.colors.background,
-                            borderColor: theme.colors.border,
-                          },
-                        ]}
-                        onPress={() => setSelectedSession(session)}
-                        accessibilityRole="button"
-                        accessibilityLabel={`${session.name}, ${formatDuration(session.durationSeconds)}`}
-                      >
-                        <View style={{ flex: 1, minWidth: 0 }}>
-                          <Text
-                            style={[styles.inlineSessionName, { color: theme.colors.text }]}
-                            numberOfLines={1}
-                          >
-                            {session.name}
-                          </Text>
-                          <Text style={[styles.inlineSessionMeta, { color: theme.colors.muted }]}>
-                            {formatDuration(session.durationSeconds)} · {exerciseCount}{' '}
-                            {exerciseCount === 1
+            return (
+              <View
+                style={[
+                  styles.inlineDayCard,
+                  {
+                    backgroundColor: theme.colors.surfaceElevated,
+                    borderColor: withAlpha(theme.colors.primary, 0.3),
+                  },
+                ]}
+              >
+                <View style={styles.inlineDayHeader}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.inlineDayTitle, { color: theme.colors.text }]}>
+                      {formattedDate}
+                    </Text>
+                    <Text style={[styles.inlineDaySubtitle, { color: theme.colors.muted }]}>
+                      {daySessions.length === 0
+                        ? language === 'de'
+                          ? 'Kein Training an diesem Tag'
+                          : 'No workouts on this day'
+                        : `${daySessions.length} ${
+                            daySessions.length === 1
                               ? language === 'de'
-                                ? 'Übung'
-                                : 'exercise'
+                                ? 'Training'
+                                : 'Workout'
                               : language === 'de'
-                                ? 'Übungen'
-                                : 'exercises'}{' '}
-                            · {totalSets} {t('workout.sets')}
-                            {displayVolume > 0
-                              ? ` · ${displayVolume.toLocaleString()} ${volumeUnit}`
-                              : ''}
-                          </Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
-                      </Pressable>
-                    );
-                  })}
+                                ? 'Trainings'
+                                : 'Workouts'
+                          }`}
+                    </Text>
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={language === 'de' ? 'Auswahl schließen' : 'Close selection'}
+                    hitSlop={10}
+                    onPress={() => setSelectedDateKey(null)}
+                    style={styles.inlineDayCloseBtn}
+                  >
+                    <Ionicons name="close" size={18} color={theme.colors.muted} />
+                  </Pressable>
                 </View>
-              ) : (
-                <View style={styles.inlineEmptyState}>
-                  <Ionicons name="bed-outline" size={20} color={theme.colors.muted} />
-                  <Text style={[styles.inlineEmptyText, { color: theme.colors.muted }]}>
-                    {language === 'de'
-                      ? 'Ruhetag · Keine Einheit geloggt'
-                      : 'Rest day · No session logged'}
-                  </Text>
-                </View>
-              )}
-            </View>
-          );
-        })()}
+
+                {daySessions.length > 0 ? (
+                  <View style={styles.inlineSessionList}>
+                    {daySessions.map((session) => {
+                      const summary = summarizeWorkout(session);
+                      const displayVolume = isImperial
+                        ? Math.round(summary.totalVolume * 2.20462)
+                        : Math.round(summary.totalVolume);
+                      const volumeUnit = isImperial ? 'lbs' : 'kg';
+                      const exerciseCount = session.exercises.length;
+                      const totalSets = session.exercises.reduce(
+                        (acc, ex) => acc + ex.sets.filter(isCompletedWorkingSet).length,
+                        0,
+                      );
+
+                      return (
+                        <Pressable
+                          key={session.id}
+                          style={[
+                            styles.inlineSessionRow,
+                            {
+                              backgroundColor: theme.colors.background,
+                              borderColor: theme.colors.border,
+                            },
+                          ]}
+                          onPress={() => setSelectedSession(session)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${session.name}, ${formatDuration(session.durationSeconds)}`}
+                        >
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <Text
+                              style={[styles.inlineSessionName, { color: theme.colors.text }]}
+                              numberOfLines={1}
+                            >
+                              {session.name}
+                            </Text>
+                            <Text style={[styles.inlineSessionMeta, { color: theme.colors.muted }]}>
+                              {formatDuration(session.durationSeconds)} · {exerciseCount}{' '}
+                              {exerciseCount === 1
+                                ? language === 'de'
+                                  ? 'Übung'
+                                  : 'exercise'
+                                : language === 'de'
+                                  ? 'Übungen'
+                                  : 'exercises'}{' '}
+                              · {totalSets} {t('workout.sets')}
+                              {displayVolume > 0
+                                ? ` · ${displayVolume.toLocaleString()} ${volumeUnit}`
+                                : ''}
+                            </Text>
+                          </View>
+                          <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                ) : (
+                  <View style={styles.inlineEmptyState}>
+                    <Ionicons name="bed-outline" size={20} color={theme.colors.muted} />
+                    <Text style={[styles.inlineEmptyText, { color: theme.colors.muted }]}>
+                      {language === 'de'
+                        ? 'Ruhetag · Keine Einheit geloggt'
+                        : 'Rest day · No session logged'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            );
+          })()}
 
         <Text style={[styles.consistencyHint, { color: theme.colors.muted }]}>
           {language === 'en'
@@ -979,9 +999,16 @@ function HistoryView() {
                     { backgroundColor: theme.colors.background, borderColor: theme.colors.border },
                   ]}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <View
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}
+                  >
                     <Ionicons name="analytics-outline" size={13} color={theme.colors.primary} />
-                    <Text style={[styles.modalFactTitle, { color: theme.colors.primary, marginBottom: 0 }]}>
+                    <Text
+                      style={[
+                        styles.modalFactTitle,
+                        { color: theme.colors.primary, marginBottom: 0 },
+                      ]}
+                    >
                       {language === 'de' ? 'SESSION-TELEMETRIE' : 'SESSION TELEMETRY'}
                     </Text>
                   </View>
@@ -1026,10 +1053,7 @@ function HistoryView() {
         animationType="fade"
         onRequestClose={() => setActionMenuVisible(false)}
       >
-        <Pressable
-          style={styles.sheetOverlay}
-          onPress={() => setActionMenuVisible(false)}
-        >
+        <Pressable style={styles.sheetOverlay} onPress={() => setActionMenuVisible(false)}>
           <View
             style={[
               styles.sheetContent,
@@ -1048,7 +1072,12 @@ function HistoryView() {
               accessibilityRole="button"
               accessibilityLabel={language === 'de' ? 'Workout bearbeiten' : 'Edit workout'}
             >
-              <Ionicons name="pencil-outline" size={20} color={theme.colors.text} style={{ marginRight: 12 }} />
+              <Ionicons
+                name="pencil-outline"
+                size={20}
+                color={theme.colors.text}
+                style={{ marginRight: 12 }}
+              />
               <Text style={[styles.sheetItemText, { color: theme.colors.text }]}>
                 {language === 'de' ? 'Bearbeiten' : 'Edit'}
               </Text>
@@ -1062,7 +1091,12 @@ function HistoryView() {
               accessibilityRole="button"
               accessibilityLabel={language === 'de' ? 'Workout löschen' : 'Delete workout'}
             >
-              <Ionicons name="trash-outline" size={20} color={theme.colors.error} style={{ marginRight: 12 }} />
+              <Ionicons
+                name="trash-outline"
+                size={20}
+                color={theme.colors.error}
+                style={{ marginRight: 12 }}
+              />
               <Text style={[styles.sheetItemText, { color: theme.colors.error }]}>
                 {language === 'de' ? 'Löschen' : 'Delete'}
               </Text>
@@ -1076,15 +1110,15 @@ function HistoryView() {
               accessibilityRole="button"
               accessibilityLabel={language === 'de' ? 'Abbrechen' : 'Cancel'}
             >
-              <Text style={[styles.sheetItemText, { color: theme.colors.muted, textAlign: 'center' }]}>
+              <Text
+                style={[styles.sheetItemText, { color: theme.colors.muted, textAlign: 'center' }]}
+              >
                 {language === 'de' ? 'Abbrechen' : 'Cancel'}
               </Text>
             </Pressable>
           </View>
         </Pressable>
       </Modal>
-
-
     </>
   );
 }
@@ -1427,7 +1461,7 @@ function ProgressView() {
             }}
             getDotColor={(dataPoint, dataPointIndex) => {
               const point = history[dataPointIndex];
-              return point?.isWeightPR ? theme.colors.warning : theme.colors.primary;
+              return point?.isWeightPR ? theme.chart.record : theme.chart.line;
             }}
             chartConfig={{
               backgroundColor: theme.colors.surface,
@@ -1718,8 +1752,8 @@ function AchievementBadge({ kind }: { kind: 'one_time' | 'repeatable' }) {
             ? 'REPEATABLE'
             : 'WIEDERHOLBAR'
           : language === 'en'
-          ? 'ONE-TIME'
-          : 'EINMALIG'}
+            ? 'ONE-TIME'
+            : 'EINMALIG'}
       </Text>
     </View>
   );
@@ -1745,11 +1779,7 @@ function AchievementsView() {
       ref={scrollRef}
       contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom + 20, 100) }]}
     >
-      <LevelProgress
-        level={level}
-        xp={xp}
-        onPress={() => setBattlePassVisible(true)}
-      />
+      <LevelProgress level={level} xp={xp} onPress={() => setBattlePassVisible(true)} />
 
       {/* Repeatable */}
       <Text
@@ -1842,7 +1872,9 @@ function AchievementsView() {
                 padding="md"
               >
                 <View style={styles.achRow}>
-                  <View style={[styles.achIconContainer, { backgroundColor: theme.colors.surface }]}>
+                  <View
+                    style={[styles.achIconContainer, { backgroundColor: theme.colors.surface }]}
+                  >
                     <Ionicons
                       name={ach.icon as React.ComponentProps<typeof Ionicons>['name']}
                       size={24}
@@ -1854,7 +1886,11 @@ function AchievementsView() {
                       <Text
                         style={[
                           styles.achName,
-                          { color: theme.colors.text, ...theme.typography.body, fontWeight: 'bold' },
+                          {
+                            color: theme.colors.text,
+                            ...theme.typography.body,
+                            fontWeight: 'bold',
+                          },
                         ]}
                       >
                         {localized.name}

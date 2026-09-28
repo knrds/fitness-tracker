@@ -8,7 +8,7 @@ import {
   ImageStyle,
   AccessibilityRole,
 } from 'react-native';
-import { useTheme, withAlpha } from '@fitness-tracker/ui';
+import { useTheme, withAlpha, PremiumSurface } from '@fitness-tracker/ui';
 import { getRankForLevel } from '../utils/level';
 
 export type LevelRankBadgeSize = 'sm' | 'md' | 'lg' | 'xl' | number;
@@ -43,7 +43,7 @@ export function LevelRankBadge({
 }: LevelRankBadgeProps) {
   const theme = useTheme();
   const rankInfo = getRankForLevel(level);
-  const dimension = typeof size === 'number' ? size : SIZE_MAP[size] ?? SIZE_MAP.md;
+  const dimension = typeof size === 'number' ? size : (SIZE_MAP[size] ?? SIZE_MAP.md);
   const radius = Math.round(dimension / 2);
   const borderWidth = Math.max(1, Math.round(dimension * 0.04));
 
@@ -66,11 +66,13 @@ export function LevelRankBadge({
           height: dimension,
           borderRadius: radius,
           borderWidth: showFrame ? borderWidth : 0,
-          borderColor: withAlpha(theme.colors.primary, 0.4),
+          borderColor: theme.premium?.highlight ?? withAlpha(theme.colors.primary, 0.4),
+          backgroundColor: theme.colors.surface,
         },
         style,
       ]}
     >
+      {theme.premium && <PremiumSurface colors={theme.premium.surfaceGradient} radius={radius} />}
       <Image
         source={rankInfo.icon}
         resizeMode="contain"

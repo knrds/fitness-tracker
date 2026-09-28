@@ -44,7 +44,7 @@ describe('programStore', () => {
   beforeEach(() => {
     mockUuidCounter = 0;
     // reset state manually since we don't have a reset function
-    useProgramStore.setState({ programs: [], templates: [], customFolders: [] });
+    useProgramStore.setState({ programs: [], templates: [], customFolders: [], expandedFolders: {}, hiddenTemplateIds: [], hiddenProgramIds: [], hiddenFolderNames: [] });
   });
 
   it('creates a new program', () => {
@@ -186,6 +186,57 @@ describe('programStore', () => {
     useProgramStore.getState().deleteFolder('Arnold Classic Split');
     expect(useProgramStore.getState().customFolders).not.toContain('Arnold Classic Split');
     expect(useProgramStore.getState().templates.find((t) => t.id === 't-arnold-1')?.folder).toBeUndefined();
+  });
+
+  it('hides and restores folders without changing templates or individual template visibility', () => {
+    const templates = [{ ...getDefaultTemplates()[0]!, folder: 'Upper' }];
+    useProgramStore.setState({ templates, customFolders: ['Upper'], hiddenTemplateIds: [templates[0]!.id] });
+    const store = useProgramStore.getState();
+    store.setFolderHidden(' upper ', true);
+    store.setFolderHidden('UPPER', true);
+    store.setFolderHidden('Unknown', true);
+    expect(useProgramStore.getState().hiddenFolderNames).toEqual(['Upper']);
+    expect(useProgramStore.getState().templates).toBe(templates);
+    expect(useProgramStore.getState().customFolders).toEqual(['Upper']);
+    store.setFolderHidden(' upper ', false);
+    expect(useProgramStore.getState().hiddenFolderNames).toEqual([]);
+    expect(useProgramStore.getState().hiddenTemplateIds).toEqual([templates[0]!.id]);
+    expect(useProgramStore.getState().templates).toBe(templates);
+  });
+
+  it('restores folder visibility from serialized storage and defaults legacy stores to visible', () => {
+    useProgramStore.getState().createFolder('Upper');
+    useProgramStore.getState().setFolderHidden('Upper', true);
+    const merge = useProgramStore.persist.getOptions().merge!;
+    const saved = JSON.parse(JSON.stringify(useProgramStore.getState()));
+    expect(merge(saved, useProgramStore.getInitialState()).hiddenFolderNames).toEqual(['Upper']);
+    expect(merge({ templates: [], programs: [], customFolders: ['Upper'] }, useProgramStore.getState()).hiddenFolderNames).toEqual([]);
+    useProgramStore.getState().setFolderHidden('Upper', false);
+    expect(merge(JSON.parse(JSON.stringify(useProgramStore.getState())), useProgramStore.getInitialState()).hiddenFolderNames).toEqual([]);
+  });
+
+  it('retains hidden folders and their position when only visible folders are reordered', () => {
+    useProgramStore.setState({ customFolders: ['Upper', 'Hidden', 'Lower'], hiddenFolderNames: ['Hidden'] });
+    useProgramStore.getState().updateFoldersOrder([' lower ', 'UPPER', 'lower', 'Unknown']);
+    expect(useProgramStore.getState().customFolders).toEqual(['Lower', 'Hidden', 'Upper']);
+    expect(useProgramStore.getState().hiddenFolderNames).toEqual(['Hidden']);
+  });
+
+  it('keeps visibility through folder renames and clears stale preferences when a folder is deleted', () => {
+    const template = { ...getDefaultTemplates()[0]!, folder: 'Upper' };
+    useProgramStore.setState({ templates: [template], customFolders: ['Upper'], hiddenFolderNames: ['Upper'], expandedFolders: { Upper: false } });
+    const store = useProgramStore.getState();
+    store.renameFolder(' upper ', 'Renamed');
+    expect(useProgramStore.getState().hiddenFolderNames).toEqual(['Renamed']);
+    expect(useProgramStore.getState().expandedFolders).toEqual({ Renamed: false });
+    expect(useProgramStore.getState().templates[0]!.folder).toBe('Renamed');
+    store.deleteFolder(' RENAMED ');
+    expect(useProgramStore.getState().hiddenFolderNames).toEqual([]);
+    expect(useProgramStore.getState().expandedFolders).toEqual({});
+    expect(useProgramStore.getState().templates).toHaveLength(1);
+    expect(useProgramStore.getState().templates[0]!.folder).toBeUndefined();
+    store.createFolder('Renamed');
+    expect(useProgramStore.getState().hiddenFolderNames).toEqual([]);
   });
 
   it('handles folder creation, deletion, and renaming case-insensitively without leaving ghost folders', () => {

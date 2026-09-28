@@ -1,5 +1,6 @@
 import { EXERCISES, MuscleGroup } from '@fitness-tracker/domain';
 import { matchesExerciseSearch, normalizeExerciseSearch } from '../exerciseSearch';
+import { translations } from '../../i18n/translations';
 
 const dip = {
   ...EXERCISES[0]!,
@@ -23,4 +24,20 @@ describe('exercise search', () => {
   });
   it('keeps all exercises for an empty search', () =>
     expect(matchesExerciseSearch(dip, '   ')).toBe(true));
+  it.each(Object.values(MuscleGroup))('finds %s by its German and English name in either muscle role', (muscle) => {
+    for (const language of ['de', 'en'] as const) {
+      const query = translations[language].muscles[muscle];
+      const exercise = { ...dip, isCustom: true, name: 'Test movement', primaryMuscles: [muscle], secondaryMuscles: [] };
+      expect(matchesExerciseSearch(exercise, query)).toBe(true);
+      expect(matchesExerciseSearch({ ...exercise, primaryMuscles: [MuscleGroup.FullBody], secondaryMuscles: [muscle] }, query)).toBe(true);
+    }
+  });
+  it('searches adductors separately from quadriceps using catalog assignments', () => {
+    const adduction = EXERCISES.find((exercise) => exercise.name === 'Cable Hip Adduction')!;
+    const extension = EXERCISES.find((exercise) => exercise.name === 'Leg Extensions')!;
+    expect(matchesExerciseSearch(adduction, 'Adduktoren')).toBe(true);
+    expect(matchesExerciseSearch(adduction, 'adductors')).toBe(true);
+    expect(matchesExerciseSearch(adduction, 'Quadrizeps')).toBe(false);
+    expect(matchesExerciseSearch(extension, 'Adduktoren')).toBe(false);
+  });
 });

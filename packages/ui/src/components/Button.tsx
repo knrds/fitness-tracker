@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Pressable,
@@ -18,6 +18,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../ThemeProvider';
+import { PremiumSurface, PremiumEffect } from './PremiumVisuals';
 
 export interface ButtonProps extends PressableProps {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -39,6 +40,7 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const theme = useTheme();
+  const [effect, setEffect] = useState(0);
   const reducedMotion = useReducedMotion();
   const scale = useSharedValue(1);
 
@@ -68,6 +70,7 @@ export const Button: React.FC<ButtonProps> = ({
 
   const handlePress = (e: import('react-native').GestureResponderEvent) => {
     if (!disabled && !isLoading && onPress) {
+      if (theme.premium) setEffect((value) => value + 1);
       if (Platform.OS !== 'web') {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
       }
@@ -82,7 +85,7 @@ export const Button: React.FC<ButtonProps> = ({
   switch (variant) {
     case 'primary':
       backgroundColor = theme.colors.primary;
-      textColor = theme.colors.background;
+      textColor = theme.colors.onPrimary;
       break;
     case 'secondary':
       backgroundColor = theme.colors.surface;
@@ -105,7 +108,11 @@ export const Button: React.FC<ButtonProps> = ({
       backgroundColor,
       borderColor,
       borderWidth: variant === 'secondary' ? 1 : 0,
-      borderRadius: theme.radius.md,
+      borderRadius: theme.premium?.buttonRadius ?? theme.radius.md,
+      overflow: 'hidden' as const,
+      ...(theme.premium && variant === 'primary'
+        ? { borderWidth: 1, borderColor: theme.premium.highlight }
+        : {}),
       opacity: isDisabled ? 0.5 : 1,
     },
     style,
@@ -122,6 +129,10 @@ export const Button: React.FC<ButtonProps> = ({
       style={[buttonStyle, animatedStyle]}
       {...props}
     >
+      {theme.premium && variant === 'primary' && (
+        <PremiumSurface colors={theme.premium.buttonGradient} radius={theme.premium.buttonRadius} />
+      )}
+      {variant === 'primary' && <PremiumEffect trigger={effect} />}
       {isLoading ? (
         <ActivityIndicator color={textColor} />
       ) : (

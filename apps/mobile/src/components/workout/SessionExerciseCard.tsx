@@ -35,6 +35,7 @@ import {
   SetType,
   estimateOneRepMax,
   summarizeSessionExercise,
+  compareExerciseVolume,
   Equipment,
   MovementPattern,
 } from '@fitness-tracker/domain';
@@ -142,16 +143,30 @@ export const SessionExerciseCard = ({
   } = useWorkoutStore();
   const { profile } = useProfileStore();
   const sessionExercises = useWorkoutStore((state) => state.exercises);
+  const sessionId = useWorkoutStore((state) => state.sessionId);
+  const startedAt = useWorkoutStore((state) => state.startedAt);
   const isImperial = profile.preferredUnits === 'imperial';
 
   const getPreviousPerformance = useHistoryStore((state) => state.getPreviousPerformance);
   const historySessions = useHistoryStore((state) => state.sessions);
   const occurrenceIndex = sessionExercises
     .filter((ex) => ex.exerciseId === sessionExercise.exerciseId)
+    .sort((a, b) => a.order - b.order)
     .findIndex((ex) => ex.id === sessionExercise.id);
   const lastPerformance = React.useMemo(
-    () => getPreviousPerformance(sessionExercise.exerciseId, occurrenceIndex),
-    [getPreviousPerformance, sessionExercise.exerciseId, occurrenceIndex, historySessions],
+    () =>
+      getPreviousPerformance(sessionExercise.exerciseId, occurrenceIndex, {
+        excludeSessionId: sessionId,
+        beforeStartedAt: startedAt,
+      }),
+    [
+      getPreviousPerformance,
+      sessionExercise.exerciseId,
+      occurrenceIndex,
+      historySessions,
+      sessionId,
+      startedAt,
+    ],
   );
   const [plateCalcVisible, setPlateCalcVisible] = useState(false);
   const [infoModalVisible, setInfoModalVisible] = useState(false);
@@ -351,24 +366,27 @@ export const SessionExerciseCard = ({
   };
 
   // Calculate statistics for the (i) modal
-  const sessionVolume = summarizeSessionExercise(sessionExercise).totalVolume;
-  const previousVolume = React.useMemo(() => {
-    if (!lastPerformance) return 0;
-    return summarizeSessionExercise({
-      id: sessionExercise.id,
-      exerciseId: sessionExercise.exerciseId,
-      order: sessionExercise.order,
-      sets: lastPerformance.sets,
-    }).totalVolume;
-  }, [lastPerformance, sessionExercise.exerciseId, sessionExercise.id, sessionExercise.order]);
-  const volumeDeltaPercent =
-    previousVolume > 0 ? ((sessionVolume - previousVolume) / previousVolume) * 100 : null;
+  const volumeComparison = compareExerciseVolume(sessionExercise, lastPerformance);
+  const sessionVolume = volumeComparison.currentVolume;
+  const volumeDeltaPercent = volumeComparison.deltaPercent;
   const volumeDeltaLabel =
     volumeDeltaPercent === null
-      ? 'NEW'
-      : `${volumeDeltaPercent >= 0 ? '+' : ''}${volumeDeltaPercent.toFixed(0)}%`;
+      ? '—'
+      : `${volumeDeltaPercent >= 0 ? '+' : ''}${volumeDeltaPercent.toFixed(2).replace('.', language === 'de' ? ',' : '.')}%`;
+  const volumeComparisonNote =
+    volumeComparison.status === 'pending'
+      ? language === 'de'
+        ? `${volumeComparison.completedWorkingSetCount}/${volumeComparison.workingSetCount} Arbeitssätze abgeschlossen. Zwischenstand ohne Warmup, verglichen mit dem gesamten letzten Übungsvolumen.`
+        : `${volumeComparison.completedWorkingSetCount}/${volumeComparison.workingSetCount} working sets complete. Volume so far, excluding warmups, compared with the full previous exercise volume.`
+      : volumeComparison.status === 'no-baseline'
+        ? language === 'de'
+          ? 'Kein früheres Vergleichsvolumen vorhanden.'
+          : 'No previous volume to compare.'
+        : language === 'de'
+          ? 'Volumen aus abgeschlossenen Sätzen, ohne Warmup.'
+          : 'Volume from completed sets, excluding warmups.';
   const volumeDeltaColor =
-    volumeDeltaPercent === null
+    volumeDeltaPercent === null || volumeComparison.status === 'pending'
       ? theme.colors.muted
       : volumeDeltaPercent > 0
         ? theme.colors.success
@@ -1044,7 +1062,13 @@ export const SessionExerciseCard = ({
               </View>
               <View style={styles.infoStatBox}>
                 <Text style={[styles.infoStatLabel, { color: theme.colors.muted }]}>
-                  {language === 'de' ? 'Vgl. Letztes' : 'Vs Last'}
+                  {volumeComparison.status === 'pending'
+                    ? language === 'de'
+                      ? 'Bisher vs. letztes'
+                      : 'Vs Last (so far)'
+                    : language === 'de'
+                      ? 'Vgl. Letztes'
+                      : 'Vs Last'}
                 </Text>
                 <Text style={[styles.infoStatValue, { color: volumeDeltaColor }]}>
                   {volumeDeltaLabel}
@@ -1097,6 +1121,17 @@ export const SessionExerciseCard = ({
             </View>
 
             {/* Previous Performance */}
+            <Text style={[styles.infoStatLabel, { color: theme.colors.muted }]}>
+              {volumeComparisonNote}
+            </Text>
+            {lastPerformance && (
+              <Text style={[styles.infoStatLabel, { color: theme.colors.muted, marginTop: 4 }]}>
+                {language === 'de' ? 'Letztes Mal' : 'Previous'}:{' '}
+                {Math.round(volumeComparison.previousVolume * (isImperial ? 2.20462 : 1))}{' '}
+                {isImperial ? 'lbs' : 'kg'} ·{' '}
+                {lastPerformance.date.toLocaleDateString(language === 'de' ? 'de-DE' : 'en-US')}
+              </Text>
+            )}
             <Text
               style={[
                 styles.infoSubtitle,

@@ -1,6 +1,6 @@
 import { Theme, useThemeStyles } from '@fitness-tracker/ui';
 import React from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { summarizeSessionExercise, summarizeWorkout } from '@fitness-tracker/domain';
@@ -10,7 +10,7 @@ import { getCaffeineWarningLevel, useCaffeineStore } from '../../stores/caffeine
 import { useExerciseStore } from '../../stores/exerciseStore';
 import { useProfileStore } from '../../stores/profileStore';
 import { useWorkoutStore } from '../../stores/workoutStore';
-import { WorkoutCelebrationOverlay } from './WorkoutCelebrationOverlay';
+import { CelebrationModal } from './CelebrationModal';
 
 export const WorkoutCompleteModal = () => {
   const theme = useTheme();
@@ -275,14 +275,18 @@ export const WorkoutCompleteModal = () => {
     : Math.round(summary.totalVolume);
 
   return (
-    <Modal visible animationType="slide" transparent onRequestClose={clearLastFinishedSession}>
+    <CelebrationModal
+      visible
+      animationType="slide"
+      transparent
+      onRequestClose={clearLastFinishedSession}
+    >
       <Pressable
         style={styles.overlay}
         onPress={clearLastFinishedSession}
         accessibilityRole="button"
         accessibilityLabel={text('Zusammenfassung schließen', 'Close summary')}
       >
-        <WorkoutCelebrationOverlay />
         <Pressable
           style={[
             styles.card,
@@ -453,7 +457,7 @@ export const WorkoutCompleteModal = () => {
           </Pressable>
         </Pressable>
       </Pressable>
-    </Modal>
+    </CelebrationModal>
   );
 };
 

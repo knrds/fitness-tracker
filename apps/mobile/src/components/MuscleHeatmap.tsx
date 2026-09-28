@@ -1,13 +1,19 @@
+import { useProfileStore } from '../stores/profileStore';
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated, Platform } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import { AnatomyFigure } from './anatomy/AnatomyFigure';
-import { MuscleGroup } from '@fitness-tracker/domain';
-import { useTheme } from '@fitness-tracker/ui';
+import {
+  MuscleActivity,
+  MuscleGroup,
+  MuscleRegion,
+  getHeatmapActivity,
+} from '@fitness-tracker/domain';
+import { useTheme, heatmapColor } from '@fitness-tracker/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n, formatMuscle } from '../i18n';
 
-const frontMuscles: MuscleGroup[] = [
+const frontMuscles: MuscleRegion[] = [
   MuscleGroup.Chest,
   MuscleGroup.FrontDelts,
   MuscleGroup.Biceps,
@@ -15,10 +21,11 @@ const frontMuscles: MuscleGroup[] = [
   MuscleGroup.Abs,
   MuscleGroup.Obliques,
   MuscleGroup.Quads,
+  'adductors',
   MuscleGroup.Calves,
 ];
 
-const backMuscles: MuscleGroup[] = [
+const backMuscles: MuscleRegion[] = [
   MuscleGroup.Traps,
   MuscleGroup.RearDelts,
   MuscleGroup.Lats,
@@ -34,10 +41,13 @@ export function MuscleHeatmap({
   activity,
   onSelect,
 }: {
-  activity: Partial<Record<MuscleGroup, number>>;
-  onSelect: (muscle: MuscleGroup) => void;
+  activity: MuscleActivity;
+  onSelect: (muscle: MuscleRegion) => void;
 }) {
   const theme = useTheme();
+  const bodyVariant = useProfileStore(
+    (s) => s.profile.heatmapBody ?? (s.profile.biologicalSex === 'female' ? 'female' : 'male'),
+  );
   const { t, language } = useI18n();
   const [side, setSide] = useState<'front' | 'back'>('front');
   const reducedMotion = useReducedMotion();
@@ -62,16 +72,8 @@ export function MuscleHeatmap({
   const [width, setWidth] = useState(300);
   const currentMuscles = side === 'front' ? frontMuscles : backMuscles;
   const maximum = Math.max(1, ...Object.values(activity));
-  const color = (muscle: MuscleGroup) => {
-    const count = activity[muscle] || 0;
-    return count === 0
-      ? theme.anatomy.base
-      : count / maximum < 0.35
-        ? theme.anatomy.heat[1]!
-        : count / maximum < 0.7
-          ? theme.anatomy.heat[2]!
-          : theme.anatomy.heat[3]!;
-  };
+  const color = (muscle: MuscleRegion) =>
+    heatmapColor(theme, getHeatmapActivity(activity, muscle), maximum);
   const wide = width > 560;
   return (
     <View
@@ -83,7 +85,9 @@ export function MuscleHeatmap({
     >
       <View style={styles.heading}>
         <View>
-          <Text style={[styles.title, { color: theme.colors.text }]}>{t('muscles.muscleFocus')}</Text>
+          <Text style={[styles.title, { color: theme.colors.text }]}>
+            {t('muscles.muscleFocus')}
+          </Text>
           <Text style={[styles.subtitle, { color: theme.colors.muted }]}>
             {t('muscles.workingSets7Days')}
           </Text>
@@ -113,12 +117,18 @@ export function MuscleHeatmap({
       </View>
       <View style={{ flexDirection: wide ? 'row' : 'column', alignItems: 'center', gap: 16 }}>
         <Animated.View style={[styles.figure, { width: wide ? '45%' : '100%', opacity: fade }]}>
-          <AnatomyFigure side={side} height={wide ? 440 : 420} color={color} onSelect={onSelect} />
+          <AnatomyFigure
+            bodyVariant={bodyVariant}
+            side={side}
+            height={wide ? 440 : 420}
+            color={color}
+            onSelect={onSelect}
+          />
         </Animated.View>
         <View style={[styles.regions, { width: wide ? '50%' : '100%' }]}>
           {currentMuscles.map((muscle) => {
             const label = formatMuscle(muscle, language);
-            const count = activity[muscle] || 0;
+            const count = getHeatmapActivity(activity, muscle).toLocaleString(language);
             return (
               <Pressable
                 key={muscle}
@@ -158,6 +168,9 @@ export function MuscleHeatmap({
         ))}
         <Text style={{ color: theme.colors.muted, fontSize: 11 }}>{t('muscles.moreSets')}</Text>
       </View>
+      <Text style={[styles.subtitle, { color: theme.colors.muted, textAlign: 'center' }]}>
+        {t('muscles.activityWeightHint')}
+      </Text>
       <Text style={[styles.subtitle, { color: theme.colors.muted, textAlign: 'center' }]}>
         {t('muscles.tapHint')}
       </Text>

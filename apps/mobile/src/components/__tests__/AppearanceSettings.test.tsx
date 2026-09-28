@@ -52,7 +52,7 @@ describe('AppearanceSettings', () => {
     expect(getByText('Crimson Neon')).toBeTruthy();
     expect(getByText('Arctic Lab')).toBeTruthy();
     expect(getByText('Solar Dune')).toBeTruthy();
-    expect(getByText('Porcelain Rose')).toBeTruthy();
+    expect(getByText('Petal Rose')).toBeTruthy();
     expect(getByText('Alpine Mist')).toBeTruthy();
 
     // Celebration names
@@ -94,8 +94,8 @@ describe('AppearanceSettings', () => {
     fireEvent.press(crimsonTheme);
     expect(useProfileStore.getState().profile.colorway).toBe('crimson');
 
-    // Porcelain Rose requires Level 16 - now unlocked!
-    const roseTheme = getByText('Porcelain Rose');
+    // Petal Rose requires Level 16 - now unlocked!
+    const roseTheme = getByText('Petal Rose');
     fireEvent.press(roseTheme);
     expect(useProfileStore.getState().profile.colorway).toBe('rose');
 

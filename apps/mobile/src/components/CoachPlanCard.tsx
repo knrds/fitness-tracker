@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChatMessage } from '@fitness-tracker/domain';
-import { useTheme } from '@fitness-tracker/ui';
+import { useTheme, Card } from '@fitness-tracker/ui';
 import { useExerciseStore } from '../stores/exerciseStore';
 import { getStorageScope } from '../data/storageScope';
 import { saveCoachPlan } from '../utils/saveCoachPlan';
@@ -19,7 +19,7 @@ export function CoachPlanCard({ message }: { message: ChatMessage }) {
   const isProgram =
     message.plan.kind === 'program' || (!message.plan.kind && message.plan.days.length > 1);
   return (
-    <View style={{ gap: 14, marginTop: 16, minWidth: 0 }}>
+    <Card style={{ gap: 14, marginTop: 16, minWidth: 0 }} padding="md">
       <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700' }}>
         {message.plan.name}
       </Text>
@@ -97,6 +97,6 @@ export function CoachPlanCard({ message }: { message: ChatMessage }) {
               : 'Workout-Template speichern'}
         </Text>
       </Pressable>
-    </View>
+    </Card>
   );
 }

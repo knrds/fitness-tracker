@@ -5,6 +5,7 @@ import { ErrorBoundary } from '../ErrorBoundary';
 import { logger } from '../../utils/logger';
 
 jest.mock('../../utils/logger', () => ({
+  ...jest.requireActual('../../utils/logger'),
   logger: {
     error: jest.fn(),
     warn: jest.fn(),
@@ -38,7 +39,7 @@ describe('ErrorBoundary UI Recovery & Exception Handling', () => {
     const { getByTestId } = render(
       <ErrorBoundary>
         <ProblemChild shouldThrow={false} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
 
     expect(getByTestId('child-content')).toBeTruthy();
@@ -50,7 +51,7 @@ describe('ErrorBoundary UI Recovery & Exception Handling', () => {
     const { getByTestId, queryByTestId, queryByText } = render(
       <ErrorBoundary onError={onErrorSpy}>
         <ProblemChild shouldThrow={true} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
 
     // Child is unmounted, fallback is rendered
@@ -73,7 +74,7 @@ describe('ErrorBoundary UI Recovery & Exception Handling', () => {
     const { getByTestId, rerender, queryByTestId } = render(
       <ErrorBoundary onReset={onResetSpy}>
         <ProblemChild shouldThrow={shouldThrow} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
 
     expect(getByTestId('error-boundary-fallback')).toBeTruthy();
@@ -83,7 +84,7 @@ describe('ErrorBoundary UI Recovery & Exception Handling', () => {
     rerender(
       <ErrorBoundary onReset={onResetSpy}>
         <ProblemChild shouldThrow={shouldThrow} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
 
     // Press retry
@@ -100,7 +101,7 @@ describe('ErrorBoundary UI Recovery & Exception Handling', () => {
     const { getByTestId } = render(
       <ErrorBoundary fallback={customFallback}>
         <ProblemChild shouldThrow={true} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
 
     expect(getByTestId('custom-fallback-node')).toBeTruthy();

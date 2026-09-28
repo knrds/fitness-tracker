@@ -4,6 +4,7 @@ export * from './calculateStreak';
 export * from './detectPRs';
 export * from './summarizeWorkout';
 export * from './summarizeSessionExercise';
+export * from './compareExerciseVolume';
 export * from './getExerciseProgressHistory';
 export * from './getBestWeights';
 export * from './getBestE1RMs';

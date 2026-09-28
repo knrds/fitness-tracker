@@ -1,5 +1,5 @@
-import { COACH_COLORWAYS, migrateColorway } from '@fitness-tracker/ui';
-import { registerBetaTesterPreference } from '../utils/betaAccessConfig';
+import { COACH_COLORWAYS, INACTIVE_COLORWAYS, migrateColorway } from '@fitness-tracker/ui';
+import { registerBetaTesterPreference, isBetaFullAccess } from '../utils/betaAccessConfig';
 import { getStorageScope, isScopeCurrent } from '../data/storageScope';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
@@ -66,6 +66,7 @@ export interface Profile {
   language?: 'de' | 'en';
   colorway?: Colorway | undefined;
   savedPremiumColorway?: Colorway | undefined;
+  heatmapBody?: 'male' | 'female';
   celebrationEffect?: CelebrationEffect;
   fitnessGoal?: FitnessGoal;
   experienceLevel?: ExperienceLevel;
@@ -148,8 +149,16 @@ const profileStateSchema = z.object({
       'linen',
       'sage',
       'slate',
-      'lavender', 'mocha', 'ultraviolet', 'cherry', 'bordeaux',
-      'pearl', 'nocturne', 'prism', 'eclipse',
+      'lavender',
+      'mocha',
+      'ultraviolet',
+      'cherry',
+      'bordeaux',
+      'gotham',
+      'pearl',
+      'nocturne',
+      'prism',
+      'eclipse',
     ])
     .transform(migrateColorway)
     .optional(),
@@ -170,11 +179,20 @@ const profileStateSchema = z.object({
       'linen',
       'sage',
       'slate',
-      'lavender', 'mocha', 'ultraviolet', 'cherry', 'bordeaux',
-      'pearl', 'nocturne', 'prism', 'eclipse',
+      'lavender',
+      'mocha',
+      'ultraviolet',
+      'cherry',
+      'bordeaux',
+      'gotham',
+      'pearl',
+      'nocturne',
+      'prism',
+      'eclipse',
     ])
     .transform(migrateColorway)
     .optional(),
+  heatmapBody: z.enum(['male', 'female']).optional(),
   celebrationEffect: z
     .enum(['classic', 'neon', 'inferno', 'gold', 'matrix', 'cosmic', 'aurora', 'fireworks'])
     .optional(),
@@ -220,9 +238,27 @@ export const useProfileStore = create<ProfileState>()(
       profile: defaultProfile,
 
       updateProfile: (updates) =>
-        set((state) => ({
-          profile: { ...state.profile, ...updates },
-        })),
+        set((state) => {
+          const allowed = { ...updates };
+          // A changed profile sex chooses a sensible illustration; appearance can override it later.
+          if (
+            updates.biologicalSex !== undefined &&
+            updates.biologicalSex !== state.profile.biologicalSex &&
+            updates.heatmapBody === undefined
+          ) {
+            allowed.heatmapBody = updates.biologicalSex === 'female' ? 'female' : 'male';
+          }
+          if (allowed.colorway && INACTIVE_COLORWAYS.includes(allowed.colorway))
+            delete allowed.colorway;
+          if (
+            allowed.colorway &&
+            COACH_COLORWAYS.includes(allowed.colorway) &&
+            !isBetaFullAccess() &&
+            entitlementService.getTier() !== 'coach'
+          )
+            delete allowed.colorway;
+          return { profile: { ...state.profile, ...allowed } };
+        }),
 
       setAiConsent: (version = CURRENT_AI_CONSENT_VERSION) =>
         set((state) => ({
@@ -433,7 +469,17 @@ export const useProfileStore = create<ProfileState>()(
   ),
 );
 
-const LIGHT_COLORWAYS: Colorway[] = ['mocha', 'cherry', 'lavender', 'linen', 'sage', 'arctic', 'solar', 'rose', 'alpine'];
+const LIGHT_COLORWAYS: Colorway[] = [
+  'mocha',
+  'cherry',
+  'lavender',
+  'linen',
+  'sage',
+  'arctic',
+  'solar',
+  'rose',
+  'alpine',
+];
 
 export function syncAppearanceForTier(tier: SubscriptionTier) {
   const state = useProfileStore.getState();
@@ -449,10 +495,17 @@ export function syncAppearanceForTier(tier: SubscriptionTier) {
       });
     }
   } else if (tier === 'pro' || tier === 'coach') {
-    if (state.profile.savedPremiumColorway && (tier === 'coach' || !COACH_COLORWAYS.includes(state.profile.savedPremiumColorway))) {
-      state.updateProfile({
-        colorway: state.profile.savedPremiumColorway,
-        savedPremiumColorway: undefined,
+    if (
+      state.profile.savedPremiumColorway &&
+      (tier === 'coach' || !COACH_COLORWAYS.includes(state.profile.savedPremiumColorway))
+    ) {
+      // Restoring a previously owned palette is not a new selection from the catalogue.
+      useProfileStore.setState({
+        profile: {
+          ...state.profile,
+          colorway: state.profile.savedPremiumColorway,
+          savedPremiumColorway: undefined,
+        },
       });
     }
   }

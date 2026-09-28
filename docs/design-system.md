@@ -77,3 +77,14 @@ Every list-like or remote/persistent surface should define:
 - Split large screens into feature components when a file grows beyond roughly 300-400 lines or mixes unrelated workflows.
 - Keep domain calculations out of screens. Use `packages/domain/src/logic/` helpers for volume, PRs, e1RM, streaks, and workout summaries.
 - Prefer stable dimensions for boards, stat tiles, tabs, and chart areas so text, icons, and loading states do not shift layout.
+
+
+## Premium visual systems — 27 September 2026
+
+`packages/ui/src/premium.ts` is the shared source for materials, button/input/card radii, hydration, heat buckets, calendar accents and bounded motion. Four systems use the existing Card/Button/Input/Modal/SegmentedControl instead of parallel screen implementations. Ultraviolet retains its reactor/cyborg treatment; Bordeaux uses charcoal, garnet and selective gothic tracery; Mocha uses ceramics/espresso; Cherry uses paper, ink and cherries.
+
+Default cards are quiet. Explicit `materialVariation` (`signature`, `detail`, `scattered`) gives selected widgets different clipped edge motifs; decoration never intercepts input or covers content. No full-surface marble bitmap remains. Reduced Motion disables optional traveling highlights and particle motion. Keyboard focus follows the selected control radius.
+
+Appearance uses identical 72px thumbnail geometry for every theme, stable two-line name slots and fixed grid columns. Order: defaults, six light, six dark, four Premium. Verde/Slate definitions survive for existing data but cannot be newly selected. Petal Rose replaces the old Rose palette using soft blush/pink plus deep rose for readable controls. Premium emblems only occupy reserved slots; dashboard/rank badges have no extra theme signature.
+
+Male/female anatomical vector sets share muscle mappings and interaction paths. Biological sex changes select the corresponding figure; the appearance preference can override it later. Decorations are noninteractive on both views; rear accessories follow the mirrored hands and capes sit behind the muscle paths. Faces are front-only. No accessory changes the muscle data or hit targets. Hydration always describes WATER intake even for coffee/ink/garnet illustrations, centered on all widths.

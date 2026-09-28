@@ -58,6 +58,10 @@ export enum MuscleGroup {
   FullBody = 'full_body',
 }
 
+/** Display/search regions can be finer than the persisted muscle-group taxonomy. */
+export type MuscleRegion = MuscleGroup | 'adductors';
+export type MuscleActivity = Partial<Record<MuscleRegion, number>>;
+
 /** Equipment required to perform an exercise. */
 export enum Equipment {
   Barbell = 'barbell',

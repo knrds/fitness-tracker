@@ -1,5 +1,29 @@
 # ASTRA START HERE — aktueller Handoff 2026-09-22
 
+## Current checkpoint — 28.09.2026 premium refinement and regression fixes
+
+Risk MEDIUM: shared presentation components plus additive local preferences; no destructive migration, production DB change, auth bypass, billing activation or release-number change.
+
+- Unified ordinary/Premium theme thumbnails, stable title slots, 6 light/6 dark ordering and reversible retirement of Verde/Slate. Gotham remains ordinary level 20; Petal Rose replaces the old Rose palette. Higgsfield emblems are local, reserved accents; dashboard/rank signature clutter removed.
+- Four premium systems now share theme-driven radii, focus rings, surfaces, charts/calendar highlights, anatomy and distinct hydration vessels. Default surfaces stay quiet; selected widgets use varied clipped motifs. Male/female figures share exact muscle hit paths; profile sex sets the initial view and users may override it. Desktop vessels are centered. Native-modal celebrations are drawn above summary/achievement cards, use measured dimensions and preserve Reduced Motion/touch pass-through.
+- Folders hide/unhide persistently without deleting templates; rename/reorder preserve hidden state. Exercise volume compares the same occurrence in the latest strictly earlier eligible workout. Partial progress is labeled and neutral; 612 → 630 kg gives +2.94%. Header adapts to narrow/large-font layouts and measures scroll clearance.
+- Closed a telemetry privacy bug: adapters previously received original Error/breadcrumb text despite a sanitized local buffer. They now receive generic error categories/events plus strictly allowlisted operational context; raw messages, stacks, causes and free-form health/chat text never reach the adapter. Cycle/accessor/proxy guards and original-object preservation are tested. No remote monitoring provider is fabricated.
+- Muscle activity now includes secondary regions at 0.5 versus primary 1.0 per completed working set (a UI weighting heuristic, not a physiological dose). Search/filter supports every illustrated region, including adductors, in DE/EN. Distribution rings scale to the leading region while labels retain real shares.
+- Completed program sessions remain attached to the current local day; tomorrow appears separately with its own week and preview. Starting an extra workout remains possible. DST boundaries and duplicate same-day template slots are tested.
+- Premium accessories now cover front/back views at readable size; Cherry quill/inkwell geometry is shared and bounded. Restored the previous female vampire face and removed the female Mocha monocle at user request.
+- Canonical tests/build and remote acceptance: see final verification below; do not infer deployment completion from local checks. Previous accepted main: f2a8cda, tag remains v0.1.0-beta.8. This is a beta update, not commercial launch acceptance.
+
+Remaining gates: PHYSICAL_DEVICE_REQUIRED — Samsung S25 startup reproduction, native storage migration, keyboard/gestures/rotation and modal effect acceptance. ASTRA_REQUIRED — distributed Coach quotas, Supabase sync/delete deployment and multi-device conflict acceptance, SAST/DAST and full production operations. USER_ACTION_REQUIRED — store accounts/products, branch protection/operational ownership and monitoring configuration. LEGAL_REVIEW_REQUIRED — policies, processor contracts and image/generated-art commercial rights. Existing local adapters/tests do not close those external gates.
+
+
+## Checkpoint verification — 28.09.2026
+
+- `pnpm build:preview` PASS: typecheck/lint, 158 domain + 941 mobile + 55 API + 20 security tests, web export. `pnpm audit:ci` PASS with the two already reviewed build-only image-size high exceptions; zero criticals. The test runner still reports its existing worker shutdown warning, without a failed suite.
+- Browser beta export: uniform 198px theme card heights and matching widths at 320/390/768/1440; no horizontal document overflow. Cherry hydration is centered at x=720 in a 1440px viewport. Female front/back anatomy and preference switches, scoped motifs and narrow presentation inspected. Browser checks do not establish physical-device acceptance.
+- Regression coverage: `appearanceLayout`, `premiumThemes`, `folderVisibility`, `homeProgramCompletion`, `CelebrationVisibility`, `WorkoutSessionHeader`, `SessionExerciseCardVolume`, profile restoration, exercise search, muscle regions, scheduling across local/DST boundaries and telemetry privacy. Existing auth/upstream/malformed-encoding tests remain green.
+- Remote acceptance is recorded by the checkpoint PR, GitHub checks and Vercel deployment for its actual SHA. Full beta/store gate remains NO-GO for the external requirements listed above; no new beta tag is created for this independently deliverable update.
+
+
 Read the newest continued checkpoint in EXECUTION_STATUS.md first. Latest attachment: f68a965e-5bf1-46f6-a1b1-820a72314bbd/Eingefügter Text.txt. Preserve its unresolved scope listed there; Samsung failure is NOT yet diagnosed. Main b1dc169 already contains the preceding ebf376e checkpoint.
 
 ## Current override — 24.09.2026

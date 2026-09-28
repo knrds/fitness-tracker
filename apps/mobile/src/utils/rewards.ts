@@ -30,19 +30,62 @@ export interface RewardCelebrationConfig {
 }
 
 const colorwayLevels: Partial<Record<Colorway, number>> = {
-  mocha: 1, ultraviolet: 1, cherry: 25, bordeaux: 50,
-  glacier: 1, arctic: 1, solar: 2, slate: 4, linen: 6, crimson: 10,
-  sage: 14, verde: 18, rose: 22, telemetry: 26, lavender: 30,
-  ember: 34, alpine: 38, avionics: 42, titanium: 46,
+  gotham: 20,
+  mocha: 1,
+  ultraviolet: 1,
+  cherry: 25,
+  bordeaux: 50,
+  glacier: 1,
+  arctic: 1,
+  solar: 2,
+  slate: 4,
+  linen: 6,
+  crimson: 10,
+  sage: 14,
+  verde: 18,
+  rose: 22,
+  telemetry: 26,
+  lavender: 30,
+  ember: 34,
+  alpine: 38,
+  avionics: 42,
+  titanium: 46,
 };
-export const COLORWAY_REWARDS: RewardColorwayConfig[] = colorways.map(option => ({
-  id: option.id, name: option.name, subtitle: option.description, isLight: !!option.isLight,
-  requiredLevel: colorwayLevels[option.id] ?? 1,
-  requiredRank: Math.floor(((colorwayLevels[option.id] ?? 1) - 1) / 5) + 1,
-})).sort((a, b) => Number(!['glacier', 'arctic'].includes(a.id)) - Number(!['glacier', 'arctic'].includes(b.id)) || Number(a.isLight) - Number(b.isLight) || a.requiredLevel - b.requiredLevel);
+export const COLORWAY_REWARDS: RewardColorwayConfig[] = colorways
+  .map((option) => ({
+    id: option.id,
+    name: option.name,
+    subtitle: option.description,
+    isLight: !!option.isLight,
+    requiredLevel: colorwayLevels[option.id] ?? 1,
+    requiredRank: Math.floor(((colorwayLevels[option.id] ?? 1) - 1) / 5) + 1,
+  }))
+  .sort(
+    (a, b) =>
+      Number(!['glacier', 'arctic'].includes(a.id)) -
+        Number(!['glacier', 'arctic'].includes(b.id)) ||
+      Number(a.isLight) - Number(b.isLight) ||
+      a.requiredLevel - b.requiredLevel,
+  );
 export const CELEBRATION_REWARDS: RewardCelebrationConfig[] = [
-  { id: 'aurora', name: 'Aurora Ribbons', subtitle: 'Flowing ribbons', description: 'Soft ribbons drift across the sky.', requiredLevel: 3, requiredRank: 1, previewColors: ['#5EEAD4', '#A78BFA', '#F9A8D4'] },
-  { id: 'fireworks', name: 'Victory Fireworks', subtitle: 'Radial bursts', description: 'A bright radial finale for your workout.', requiredLevel: 50, requiredRank: 10, previewColors: ['#FCD34D', '#FB7185', '#38BDF8'] },
+  {
+    id: 'aurora',
+    name: 'Aurora Ribbons',
+    subtitle: 'Flowing ribbons',
+    description: 'Soft ribbons drift across the sky.',
+    requiredLevel: 3,
+    requiredRank: 1,
+    previewColors: ['#5EEAD4', '#A78BFA', '#F9A8D4'],
+  },
+  {
+    id: 'fireworks',
+    name: 'Victory Fireworks',
+    subtitle: 'Radial bursts',
+    description: 'A bright radial finale for your workout.',
+    requiredLevel: 50,
+    requiredRank: 10,
+    previewColors: ['#FCD34D', '#FB7185', '#38BDF8'],
+  },
   {
     id: 'classic',
     name: 'Klassisches Konfetti',
@@ -126,8 +169,7 @@ export function getLocalizedCelebrationConfig(
   lang: Language = 'de',
 ): RewardCelebrationConfig {
   const loc =
-    translations[lang]?.celebrations?.[config.id] ||
-    translations.de.celebrations?.[config.id];
+    translations[lang]?.celebrations?.[config.id] || translations.de.celebrations?.[config.id];
   if (!loc) return config;
   return {
     ...config,

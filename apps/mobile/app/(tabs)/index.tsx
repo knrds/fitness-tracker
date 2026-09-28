@@ -4,12 +4,7 @@ import { Theme, useThemeStyles, useTheme, useDialog } from '@fitness-tracker/ui'
 import { useFocusScroll } from '../../src/hooks/useFocusScroll';
 import React from 'react';
 import { useReducedMotion } from 'react-native-reanimated';
-import {
-  StyleSheet,
-  ScrollView,
-  Animated,
-  Platform,
-} from 'react-native';
+import { StyleSheet, ScrollView, Animated, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -115,15 +110,12 @@ export default function HomeScreen() {
     [activeProgram, templates, sessions, today],
   );
 
-  // Determine featured template to show on Home dashboard
-  const featuredProgramTemplate = React.useMemo(() => {
-    if (!scheduleStatus.hasActiveProgram) return null;
-    if (scheduleStatus.todayTemplate && !scheduleStatus.isTodayCompleted) {
-      return scheduleStatus.todayTemplate;
-    }
-    // If today is completed or rest day, present next template if available
-    return scheduleStatus.nextTemplate;
-  }, [scheduleStatus]);
+  const todayTemplate = scheduleStatus.todayTemplate;
+  const futureTemplate =
+    scheduleStatus.nextWorkout?.id !== scheduleStatus.todayWorkout?.id ||
+    scheduleStatus.nextWorkoutWeek !== scheduleStatus.currentWeek
+      ? scheduleStatus.nextTemplate
+      : null;
 
   const handleStartWorkout = () => {
     if (status === 'idle' || status === 'finished') {
@@ -138,13 +130,13 @@ export default function HomeScreen() {
       return;
     }
 
-    if (featuredProgramTemplate && activeProgram) {
+    if (todayTemplate && activeProgram && !scheduleStatus.isTodayCompleted) {
       // Open preview modal first instead of blindly starting the session
-      const model = templateToPreviewModel(featuredProgramTemplate, exercises, {
+      const model = templateToPreviewModel(todayTemplate, exercises, {
         programId: activeProgram.id,
         programName: activeProgram.name,
-        week: scheduleStatus.nextWorkoutWeek ?? scheduleStatus.currentWeek,
-        dayOfWeek: scheduleStatus.nextWorkoutDayOfWeek,
+        week: scheduleStatus.currentWeek,
+        dayOfWeek: scheduleStatus.todayWorkout?.dayOfWeek,
       });
       setPreviewModel(model);
       return;
@@ -153,16 +145,25 @@ export default function HomeScreen() {
     handleStartWorkout();
   };
 
+  const handlePreviewNext = () => {
+    if (!futureTemplate || !activeProgram) return;
+    setPreviewModel(
+      templateToPreviewModel(futureTemplate, exercises, {
+        programId: activeProgram.id,
+        programName: activeProgram.name,
+        week: scheduleStatus.nextWorkoutWeek,
+        dayOfWeek: scheduleStatus.nextWorkoutDayOfWeek,
+      }),
+    );
+  };
+
   const handleSelectTemplate = (template: WorkoutTemplate) => {
     const model = templateToPreviewModel(template, exercises);
     setPreviewModel(model);
   };
 
   const handleConfirmStartFromModal = (model: WorkoutPreviewModel) => {
-    const template =
-      model.templateRef ||
-      templates.find((t) => t.id === model.id) ||
-      featuredProgramTemplate;
+    const template = model.templateRef || templates.find((t) => t.id === model.id);
     setPreviewModel(null);
     if (template) {
       handleStartTemplate(template, model.programId);
@@ -185,13 +186,18 @@ export default function HomeScreen() {
     >
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }], gap: 12 }}>
         <VoltDashboard
-          template={featuredProgramTemplate}
+          template={todayTemplate}
+          todayCompleted={scheduleStatus.isTodayCompleted}
+          nextTemplate={futureTemplate}
+          nextWeek={scheduleStatus.nextWorkoutWeek}
+          nextDayOfWeek={scheduleStatus.nextWorkoutDayOfWeek}
           programName={activeProgram?.name}
           week={scheduleStatus.currentWeek}
           durationWeeks={activeProgram?.durationWeeks}
           templates={sortedTemplates}
           activity={muscleVolumes}
           onStart={handleStartToday}
+          onNext={handlePreviewNext}
           onTemplate={handleSelectTemplate}
           resume={status === 'active' || status === 'paused'}
         />

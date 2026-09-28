@@ -1,6 +1,7 @@
+import { useProfileStore } from '../stores/profileStore';
 import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, TextInput } from 'react-native';
-import { MuscleGroup } from '@fitness-tracker/domain';
+import { MuscleGroup, type MuscleRegion } from '@fitness-tracker/domain';
 import { useTheme } from '@fitness-tracker/ui';
 import { AnatomyFigure } from './anatomy/AnatomyFigure';
 import { useI18n } from '../i18n';
@@ -19,6 +20,11 @@ type Measurement = {
 };
 export function MeasurementMap({ fields, unit }: { fields: Measurement[]; unit: string }) {
   const theme = useTheme();
+  const bodyVariant = useProfileStore(
+    (s) => s.profile.heatmapBody ?? (s.profile.biologicalSex === 'female' ? 'female' : 'male'),
+  );
+  const measurementMuscle = (muscle: MuscleRegion): MuscleGroup =>
+    muscle === 'adductors' ? MuscleGroup.Quads : muscle;
   const { language } = useI18n();
   const [selected, setSelected] = useState(0);
   const reduced = useReducedMotion();
@@ -34,17 +40,22 @@ export function MeasurementMap({ fields, unit }: { fields: Measurement[]; unit: 
     <View style={{ width: '100%', gap: 12 }}>
       <Animated.View style={figureStyle}>
         <AnatomyFigure
+          bodyVariant={bodyVariant}
           side={field.muscles.includes(MuscleGroup.Glutes) ? 'back' : 'front'}
           height={290}
           color={(muscle) =>
-            field.muscles.includes(muscle)
+            field.muscles.includes(measurementMuscle(muscle))
               ? theme.colors.tertiary
-              : fields.some((item) => item.value && item.muscles.includes(muscle))
+              : fields.some(
+                    (item) => item.value && item.muscles.includes(measurementMuscle(muscle)),
+                  )
                 ? theme.colors.secondary
                 : theme.anatomy.base
           }
           onSelect={(muscle) => {
-            const index = fields.findIndex((item) => item.muscles.includes(muscle));
+            const index = fields.findIndex((item) =>
+              item.muscles.includes(measurementMuscle(muscle)),
+            );
             if (index >= 0) setSelected(index);
           }}
         />

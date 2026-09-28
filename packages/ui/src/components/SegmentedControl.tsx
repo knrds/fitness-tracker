@@ -8,6 +8,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useTheme } from '../ThemeProvider';
+import { PremiumSurface } from './PremiumVisuals';
 
 export function SegmentedControl<T extends string>({
   options,
@@ -23,6 +24,8 @@ export function SegmentedControl<T extends string>({
   const theme = useTheme();
   const reduced = useReducedMotion();
   const [width, setWidth] = useState(0);
+  const [focused, setFocused] = useState<T | null>(null);
+  const radius = theme.premium?.buttonRadius ?? theme.radius.sm;
   const position = useSharedValue(0);
   const itemWidth = Math.max(0, width - 8) / Math.max(1, options.length);
   const index = Math.max(
@@ -59,14 +62,18 @@ export function SegmentedControl<T extends string>({
               bottom: 4,
               left: 4,
               width: itemWidth,
-              borderRadius: theme.radius.sm,
+              borderRadius: radius,
               backgroundColor: theme.colors.surfaceElevated,
               borderWidth: 1,
               borderColor: theme.colors.borderActive,
             },
             indicatorStyle,
           ]}
-        />
+        >
+          {theme.premium && (
+            <PremiumSurface colors={theme.premium.surfaceGradient} radius={radius} />
+          )}
+        </Animated.View>
       )}
       {options.map((option) => {
         const selected = value === option.value;
@@ -78,6 +85,8 @@ export function SegmentedControl<T extends string>({
             accessibilityState={{ selected }}
             aria-selected={selected}
             onPress={() => onChange(option.value)}
+            onFocus={() => setFocused(option.value)}
+            onBlur={() => setFocused(null)}
             style={({ pressed }) => ({
               flex: 1,
               minWidth: 0,
@@ -86,7 +95,10 @@ export function SegmentedControl<T extends string>({
               paddingHorizontal: 6,
               justifyContent: 'center',
               alignItems: 'center',
-              borderRadius: theme.radius.sm,
+              borderRadius: radius,
+              borderWidth: 2,
+              borderColor: focused === option.value ? theme.colors.text : 'transparent',
+              outlineWidth: 0,
               backgroundColor: 'transparent',
               opacity: pressed ? 0.8 : 1,
             })}
@@ -97,7 +109,9 @@ export function SegmentedControl<T extends string>({
                 {
                   fontSize: 13,
                   textAlign: 'center',
-                  color: selected ? theme.colors.primary : theme.colors.muted,
+                  color: selected
+                    ? (theme.premium?.highlight ?? theme.colors.primary)
+                    : theme.colors.muted,
                 },
               ]}
             >

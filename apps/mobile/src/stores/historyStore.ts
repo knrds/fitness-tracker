@@ -3,10 +3,12 @@ import { persist } from 'zustand/middleware';
 import {
   WorkoutSession,
   UUID,
-  ExerciseSet,
+  PreviousExercisePerformance,
+  PreviousPerformanceOptions,
   calculateStreak,
   getBestWeights,
   summarizeSessionExercise,
+  getPreviousExercisePerformance,
 } from '@fitness-tracker/domain';
 import { z } from 'zod';
 import { createHydratedStorage } from './storage';
@@ -25,7 +27,8 @@ export interface HistoryStore {
   getPreviousPerformance: (
     exerciseId: UUID,
     occurrenceIndex?: number,
-  ) => { date: Date; sets: ExerciseSet[] } | null;
+    options?: PreviousPerformanceOptions,
+  ) => PreviousExercisePerformance | null;
 }
 
 import { historyPersistedSchema } from '../data/persistedContracts';
@@ -95,22 +98,8 @@ export const useHistoryStore = create<HistoryStore>()(
         return history;
       },
 
-      getPreviousPerformance: (exerciseId, occurrenceIndex = 0) => {
-        if (!Number.isInteger(occurrenceIndex) || occurrenceIndex < 0) return null;
-        const sortedSessions = get().getSessionsByDateDesc();
-        for (const session of sortedSessions) {
-          const sessionEx = session.exercises.filter((ex) => ex.exerciseId === exerciseId)[
-            occurrenceIndex
-          ];
-          if (sessionEx && sessionEx.sets.some((s) => s.completed)) {
-            return {
-              date: session.startedAt,
-              sets: sessionEx.sets.filter((s) => s.completed),
-            };
-          }
-        }
-        return null;
-      },
+      getPreviousPerformance: (exerciseId, occurrenceIndex = 0, options) =>
+        getPreviousExercisePerformance(get().sessions, exerciseId, occurrenceIndex, options),
     }),
     {
       name: 'history-storage',

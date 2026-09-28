@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import {
   getProgramScheduleStatus,
   calculateProgramWeek,
@@ -63,6 +63,25 @@ const mockProgram: Program = {
   ],
 };
 
+const finishedSession = (
+  startedAt: Date,
+  overrides: Partial<WorkoutSession> = {},
+): WorkoutSession => ({
+  id: 'finished-session',
+  userId: 'user-1',
+  programId: mockProgram.id,
+  templateId: mockTemplateA.id,
+  name: mockTemplateA.name,
+  startedAt,
+  completedAt: new Date(startedAt.getTime() + 30 * 60 * 1000),
+  exercises: [],
+  createdAt: startedAt,
+  updatedAt: startedAt,
+  ...overrides,
+});
+
+afterEach(() => vi.unstubAllEnvs());
+
 describe('programSchedule', () => {
   it('handles no active program gracefully', () => {
     const status = getProgramScheduleStatus(null, [mockTemplateA], []);
@@ -81,7 +100,12 @@ describe('programSchedule', () => {
   it('detects a scheduled workout for today when not yet completed', () => {
     // 2026-09-02 was Wednesday (dayOfWeek: 3), in Week 1 of program started 2026-09-01
     const testDate = new Date('2026-09-02T10:00:00.000Z');
-    const status = getProgramScheduleStatus(mockProgram, [mockTemplateA, mockTemplateB], [], testDate);
+    const status = getProgramScheduleStatus(
+      mockProgram,
+      [mockTemplateA, mockTemplateB],
+      [],
+      testDate,
+    );
 
     expect(status.hasActiveProgram).toBe(true);
     expect(status.currentWeek).toBe(1);
@@ -95,7 +119,12 @@ describe('programSchedule', () => {
   it('detects a rest day and points to the next upcoming workout', () => {
     // 2026-09-03 was Thursday (dayOfWeek: 4) - no workout scheduled
     const testDate = new Date('2026-09-03T10:00:00.000Z');
-    const status = getProgramScheduleStatus(mockProgram, [mockTemplateA, mockTemplateB], [], testDate);
+    const status = getProgramScheduleStatus(
+      mockProgram,
+      [mockTemplateA, mockTemplateB],
+      [],
+      testDate,
+    );
 
     expect(status.isRestDay).toBe(true);
     expect(status.todayWorkout).toBeNull();
@@ -140,7 +169,12 @@ describe('programSchedule', () => {
   it('advances next workout across weeks (e.g. from Friday week 1 to Monday week 2)', () => {
     // 2026-09-05 (Saturday, day 6, week 1)
     const testDate = new Date('2026-09-05T10:00:00.000Z');
-    const status = getProgramScheduleStatus(mockProgram, [mockTemplateA, mockTemplateB], [], testDate);
+    const status = getProgramScheduleStatus(
+      mockProgram,
+      [mockTemplateA, mockTemplateB],
+      [],
+      testDate,
+    );
 
     expect(status.isRestDay).toBe(true);
     expect(status.nextWorkout?.id).toBe('pw-2-1'); // Week 2, Day 1
@@ -148,10 +182,148 @@ describe('programSchedule', () => {
     expect(status.nextWorkoutDayOfWeek).toBe(1);
   });
 
+  it('keeps a completed Sunday in today and Monday in the next program week', () => {
+    const program: Program = {
+      ...mockProgram,
+      startedAt: new Date(2026, 8, 21),
+      workouts: [
+        { id: 'sunday', templateId: mockTemplateA.id, week: 1, dayOfWeek: 7, order: 0 },
+        { id: 'monday', templateId: mockTemplateB.id, week: 2, dayOfWeek: 1, order: 0 },
+      ],
+    };
+    const session = finishedSession(new Date(2026, 8, 27, 10));
+    const sunday = getProgramScheduleStatus(
+      program,
+      [mockTemplateA, mockTemplateB],
+      [session],
+      new Date(2026, 8, 27, 15),
+    );
+    expect(sunday.isTodayCompleted).toBe(true);
+    expect(sunday.todayWorkout?.id).toBe('sunday');
+    expect(sunday.todayTemplate?.id).toBe(mockTemplateA.id);
+    expect(sunday.nextWorkout?.id).toBe('monday');
+    expect(sunday.nextWorkoutWeek).toBe(2);
+    expect(sunday.nextWorkoutDayOfWeek).toBe(1);
+
+    const monday = getProgramScheduleStatus(
+      program,
+      [mockTemplateA, mockTemplateB],
+      [session],
+      new Date(2026, 8, 28, 8),
+    );
+    expect(monday.currentWeek).toBe(2);
+    expect(monday.todayWorkout?.id).toBe('monday');
+    expect(monday.isTodayCompleted).toBe(false);
+  });
+
+  it('requires a separate completed session for each same-day slot, including repeated templates', () => {
+    const program: Program = {
+      ...mockProgram,
+      startedAt: new Date(2026, 8, 21),
+      workouts: [
+        { id: 'sunday-first', templateId: mockTemplateA.id, week: 1, dayOfWeek: 7, order: 0 },
+        { id: 'sunday-second', templateId: mockTemplateA.id, week: 1, dayOfWeek: 7, order: 1 },
+        { id: 'monday', templateId: mockTemplateB.id, week: 2, dayOfWeek: 1, order: 0 },
+      ],
+    };
+    const first = finishedSession(new Date(2026, 8, 27, 10));
+    const second = finishedSession(new Date(2026, 8, 27, 15), { id: 'second-session' });
+    const date = new Date(2026, 8, 27, 18);
+    const afterFirst = getProgramScheduleStatus(
+      program,
+      [mockTemplateA, mockTemplateB],
+      [first],
+      date,
+    );
+    expect(afterFirst.isTodayCompleted).toBe(false);
+    expect(afterFirst.todayWorkout?.id).toBe('sunday-second');
+    expect(afterFirst.nextWorkout?.id).toBe('sunday-second');
+    const afterBoth = getProgramScheduleStatus(
+      program,
+      [mockTemplateA, mockTemplateB],
+      [first, second],
+      date,
+    );
+    expect(afterBoth.isTodayCompleted).toBe(true);
+    expect(afterBoth.nextWorkout?.id).toBe('monday');
+  });
+
+  it('ignores in-progress, unrelated and previous-day sessions instead of trusting an equal title', () => {
+    const date = new Date(2026, 8, 2, 18);
+    const inProgress = finishedSession(new Date(2026, 8, 2, 10), { templateId: mockTemplateB.id });
+    delete inProgress.completedAt;
+    const sessions = [
+      inProgress,
+      finishedSession(new Date(2026, 8, 2, 10), { name: mockTemplateB.name }),
+      finishedSession(new Date(2026, 8, 1, 10), { templateId: mockTemplateB.id }),
+      finishedSession(new Date(2026, 8, 2, 10), {
+        templateId: mockTemplateB.id,
+        programId: 'another-program',
+      }),
+    ];
+    const status = getProgramScheduleStatus(
+      mockProgram,
+      [mockTemplateA, mockTemplateB],
+      sessions,
+      date,
+    );
+    expect(status.isTodayCompleted).toBe(false);
+    expect(status.todayTemplate?.id).toBe(mockTemplateB.id);
+  });
+
+  it.each(['America/Los_Angeles', 'Europe/Berlin', 'UTC'])(
+    'matches the local Sunday, not the UTC day, in %s',
+    (timezone) => {
+      vi.stubEnv('TZ', timezone);
+      const date = new Date(2026, 8, 27, 23, 45);
+      const program = {
+        ...mockProgram,
+        startedAt: new Date(2026, 8, 21),
+        workouts: [{ id: 'sunday', templateId: mockTemplateA.id, week: 1, dayOfWeek: 7, order: 0 }],
+      };
+      const status = getProgramScheduleStatus(
+        program,
+        [mockTemplateA],
+        [finishedSession(new Date(2026, 8, 27, 23))],
+        date,
+      );
+      expect(status.isTodayCompleted).toBe(true);
+    },
+  );
+
+  it('keeps program weeks and day boundaries correct across daylight saving changes', () => {
+    vi.stubEnv('TZ', 'Europe/Berlin');
+    expect(calculateProgramWeek(new Date(2026, 2, 23), new Date(2026, 2, 30), 4)).toBe(2);
+    const sundayProgram = (start: Date): Program => ({
+      ...mockProgram,
+      startedAt: start,
+      workouts: [{ id: 'sunday', templateId: mockTemplateA.id, week: 1, dayOfWeek: 7, order: 0 }],
+    });
+    const spring = getProgramScheduleStatus(
+      sundayProgram(new Date(2026, 2, 23)),
+      [mockTemplateA],
+      [finishedSession(new Date(2026, 2, 30, 0, 15))],
+      new Date(2026, 2, 29, 23),
+    );
+    expect(spring.isTodayCompleted).toBe(false);
+    const autumn = getProgramScheduleStatus(
+      sundayProgram(new Date(2026, 9, 19)),
+      [mockTemplateA],
+      [finishedSession(new Date(2026, 9, 25, 23, 15))],
+      new Date(2026, 9, 25, 23, 50),
+    );
+    expect(autumn.isTodayCompleted).toBe(true);
+  });
+
   it('identifies a completed program when current date exceeds durationWeeks', () => {
     // 5 weeks after 2026-09-01 -> 2026-10-10
     const testDate = new Date('2026-10-10T10:00:00.000Z');
-    const status = getProgramScheduleStatus(mockProgram, [mockTemplateA, mockTemplateB], [], testDate);
+    const status = getProgramScheduleStatus(
+      mockProgram,
+      [mockTemplateA, mockTemplateB],
+      [],
+      testDate,
+    );
 
     expect(status.isCompleted).toBe(true);
     expect(status.isRestDay).toBe(true);
@@ -190,7 +362,12 @@ describe('programSchedule', () => {
         name: 'Pull A (Modified)',
       };
       const testDate = new Date('2026-09-02T10:00:00.000Z');
-      const status = getProgramScheduleStatus(mockProgram, [mockTemplateA, modifiedTemplate], [], testDate);
+      const status = getProgramScheduleStatus(
+        mockProgram,
+        [mockTemplateA, modifiedTemplate],
+        [],
+        testDate,
+      );
 
       expect(status.todayTemplate?.name).toBe('Pull A (Modified)');
     });
@@ -201,7 +378,12 @@ describe('programSchedule', () => {
         exercises: [],
       };
       const testDate = new Date('2026-09-04T10:00:00.000Z'); // Friday
-      const status = getProgramScheduleStatus(mockProgram, [brokenTemplate, mockTemplateB], [], testDate);
+      const status = getProgramScheduleStatus(
+        mockProgram,
+        [brokenTemplate, mockTemplateB],
+        [],
+        testDate,
+      );
 
       expect(status.todayTemplate).toBeDefined();
       expect(status.todayTemplate?.exercises).toHaveLength(0);
@@ -217,7 +399,12 @@ describe('programSchedule', () => {
       });
 
       const testDate = new Date('2026-09-02T10:00:00.000Z');
-      const status = getProgramScheduleStatus(restoredProgram, [mockTemplateA, mockTemplateB], [], testDate);
+      const status = getProgramScheduleStatus(
+        restoredProgram,
+        [mockTemplateA, mockTemplateB],
+        [],
+        testDate,
+      );
 
       expect(status.hasActiveProgram).toBe(true);
       expect(status.todayWorkout?.id).toBe('pw-1-3');
@@ -225,8 +412,18 @@ describe('programSchedule', () => {
 
     it('next workout remains deterministic across multiple invocations', () => {
       const testDate = new Date('2026-09-03T10:00:00.000Z');
-      const status1 = getProgramScheduleStatus(mockProgram, [mockTemplateA, mockTemplateB], [], testDate);
-      const status2 = getProgramScheduleStatus(mockProgram, [mockTemplateA, mockTemplateB], [], testDate);
+      const status1 = getProgramScheduleStatus(
+        mockProgram,
+        [mockTemplateA, mockTemplateB],
+        [],
+        testDate,
+      );
+      const status2 = getProgramScheduleStatus(
+        mockProgram,
+        [mockTemplateA, mockTemplateB],
+        [],
+        testDate,
+      );
 
       expect(status1.nextWorkout?.id).toBe(status2.nextWorkout?.id);
       expect(status1.nextWorkoutWeek).toBe(status2.nextWorkoutWeek);
@@ -235,7 +432,12 @@ describe('programSchedule', () => {
 
     it('handles rest days cleanly with todayWorkout null and explicit nextWorkout', () => {
       const restDayDate = new Date('2026-09-03T10:00:00.000Z');
-      const status = getProgramScheduleStatus(mockProgram, [mockTemplateA, mockTemplateB], [], restDayDate);
+      const status = getProgramScheduleStatus(
+        mockProgram,
+        [mockTemplateA, mockTemplateB],
+        [],
+        restDayDate,
+      );
 
       expect(status.isRestDay).toBe(true);
       expect(status.todayWorkout).toBeNull();

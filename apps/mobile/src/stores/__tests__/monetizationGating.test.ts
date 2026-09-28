@@ -1,8 +1,14 @@
-import { useProgramStore, isTemplateEditable, isProgramEditable, isDefaultTemplateId } from '../programStore';
+import {
+  useProgramStore,
+  isTemplateEditable,
+  isProgramEditable,
+  isDefaultTemplateId,
+} from '../programStore';
 import { useWorkoutStore } from '../workoutStore';
 import { useBodyMetricStore } from '../bodyMetricStore';
 import { useCoachStore } from '../coachStore';
 import { useProfileStore } from '../profileStore';
+import { COACH_COLORWAYS } from '@fitness-tracker/ui';
 import { useExerciseStore } from '../exerciseStore';
 import { entitlementService } from '../../services/entitlementService';
 import { saveCoachPlan } from '../../utils/saveCoachPlan';
@@ -81,7 +87,9 @@ describe('Monetization Capability Integration & Direct Bypass Protection', () =>
       });
       expect(useProgramStore.getState().templates.length).toBe(2);
 
-      useProgramStore.getState().createTemplate({ id: 'tmpl-3', name: 'Template 3', exercises: [] });
+      useProgramStore
+        .getState()
+        .createTemplate({ id: 'tmpl-3', name: 'Template 3', exercises: [] });
       // #4 - Blocked at store action level
       expect(() => {
         useProgramStore.getState().createTemplate({
@@ -215,7 +223,9 @@ describe('Monetization Capability Integration & Direct Bypass Protection', () =>
       // Program becomes read-only
       expect(isProgramEditable('prog-1')).toBe(true);
       useProgramStore.getState().updateProgram('prog-1', { name: 'Free program update' });
-      expect(() => useProgramStore.getState().createProgram({ name: 'Second free program' })).toThrow('PROGRAM_FEATURE_LOCKED');
+      expect(() =>
+        useProgramStore.getState().createProgram({ name: 'Second free program' }),
+      ).toThrow('PROGRAM_FEATURE_LOCKED');
 
       // Re-upgrade restores editability
       entitlementService.setMockTier('pro');
@@ -337,6 +347,49 @@ describe('Monetization Capability Integration & Direct Bypass Protection', () =>
   });
 
   describe('Phase 7 & 11: Appearance Downgrade Preservation & Restoration', () => {
+    it.each(COACH_COLORWAYS)(
+      'enforces Coach selection for %s while preserving beta preview access',
+      async (colorway) => {
+        const previousEnv = process.env.EXPO_PUBLIC_APP_ENV;
+        process.env.EXPO_PUBLIC_APP_ENV = 'production';
+        const verifiedTier = jest.spyOn(entitlementService, 'getTier');
+        try {
+          for (const tier of ['free', 'pro'] as const) {
+            verifiedTier.mockReturnValue(tier);
+            useProfileStore.getState().updateProfile({ colorway });
+            expect(useProfileStore.getState().profile.colorway).not.toBe(colorway);
+          }
+          verifiedTier.mockReturnValue('coach');
+          useProfileStore.getState().updateProfile({ colorway });
+          expect(useProfileStore.getState().profile.colorway).toBe(colorway);
+          const restored = (await useProfileStore.persist.getOptions().migrate!(
+            { profile: useProfileStore.getState().profile },
+            0,
+          )) as { profile: { colorway: string } };
+          expect(restored.profile.colorway).toBe(colorway);
+          verifiedTier.mockReturnValue('free');
+          process.env.EXPO_PUBLIC_APP_ENV = 'beta';
+          entitlementService.setBetaBypass(true);
+          useProfileStore.getState().updateProfile({ colorway });
+          expect(useProfileStore.getState().profile.colorway).toBe(colorway);
+        } finally {
+          verifiedTier.mockRestore();
+          if (previousEnv === undefined) delete process.env.EXPO_PUBLIC_APP_ENV;
+          else process.env.EXPO_PUBLIC_APP_ENV = previousEnv;
+        }
+      },
+    );
+
+    it('keeps Gotham in ordinary Pro unlocks and restores its persisted choice', async () => {
+      entitlementService.setMockTier('pro');
+      useProfileStore.getState().updateProfile({ colorway: 'gotham' });
+      expect(useProfileStore.getState().profile.colorway).toBe('gotham');
+      const restored = (await useProfileStore.persist.getOptions().migrate!(
+        { profile: useProfileStore.getState().profile },
+        0,
+      )) as { profile: { colorway: string } };
+      expect(restored.profile.colorway).toBe('gotham');
+    });
     it('Downgrade from PRO safely reverts to FREE appearance while saving selection, and restores on re-upgrade', () => {
       entitlementService.setMockTier('pro');
       useProfileStore.getState().updateProfile({ colorway: 'crimson' });

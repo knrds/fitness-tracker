@@ -4,16 +4,31 @@ import { View, StyleSheet } from 'react-native';
 import type { CelebrationEffect } from '../../stores/profileStore';
 import { WorkoutCelebrationOverlay } from './WorkoutCelebrationOverlay';
 
-const preview = create<{ effect: CelebrationEffect | null }>(() => ({ effect: null }));
+const preview = create<{ effect: CelebrationEffect | null; sequence: number }>(() => ({
+  effect: null,
+  sequence: 0,
+}));
 /** Render at the app root: independent of scroll position and never intercepting taps. */
 export function CelebrationPreviewHost() {
-  const effect = preview(state => state.effect);
-  return effect ? <View testID="celebration-viewport" pointerEvents="none" style={[StyleSheet.absoluteFillObject, { zIndex: 10000 }]}><WorkoutCelebrationOverlay key={effect} effect={effect} /></View> : null;
+  const { effect, sequence } = preview();
+  return effect ? (
+    <View
+      testID="celebration-viewport"
+      pointerEvents="none"
+      style={[StyleSheet.absoluteFillObject, { zIndex: 10000 }]}
+    >
+      <WorkoutCelebrationOverlay key={sequence} effect={effect} />
+    </View>
+  ) : null;
 }
 export function CelebrationPreview({ effect }: { effect: CelebrationEffect }) {
   useEffect(() => {
-    preview.setState({ effect });
-    return () => { preview.setState({ effect: null }); };
+    const sequence = preview.getState().sequence + 1;
+    preview.setState({ effect, sequence });
+    return () => {
+      // An older source must not cancel a newer preview, even for the same effect.
+      if (preview.getState().sequence === sequence) preview.setState({ effect: null });
+    };
   }, [effect]);
   return null;
 }

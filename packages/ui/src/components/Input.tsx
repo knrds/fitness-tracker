@@ -24,7 +24,7 @@ export const Input: React.FC<InputProps> = ({
   const borderColor = error
     ? theme.colors.error
     : focused
-      ? theme.colors.borderActive
+      ? (theme.premium?.highlight ?? theme.colors.borderActive)
       : theme.colors.border;
   const isMultiline = multiline === true;
 

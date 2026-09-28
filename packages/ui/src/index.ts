@@ -10,3 +10,7 @@ export * from './components/LoadingSkeleton';
 export * from './components/Modal';
 export * from './components/SegmentedControl';
 export { AnimatedDisclosure } from './components/AnimatedDisclosure';
+export * from './premium';
+export * from './calendarVisual';
+export * from './heatmapColor';
+export * from './components/PremiumVisuals';

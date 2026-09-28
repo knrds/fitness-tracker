@@ -1,8 +1,30 @@
-import { COACH_COLORWAYS } from '@fitness-tracker/ui';
+import {
+  COACH_COLORWAYS,
+  INACTIVE_COLORWAYS,
+  PremiumMotif,
+  SegmentedControl,
+} from '@fitness-tracker/ui';
+import { PremiumThemePreview } from './PremiumThemePreview';
 import { isBetaFullAccess } from '../utils/betaAccessConfig';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { createTheme, useTheme, withAlpha } from '@fitness-tracker/ui';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import {
+  createTheme,
+  useTheme,
+  withAlpha,
+  Colorway,
+  Modal as ThemeModal,
+  ThemeProvider,
+} from '@fitness-tracker/ui';
+import { WaterVessel } from './WaterVessel';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useProfileStore, CelebrationEffect } from '../stores/profileStore';
@@ -28,6 +50,11 @@ import { monetizationAnalytics } from '../services/monetizationAnalytics';
 export function AppearanceSettings() {
   const theme = useTheme();
   const { t, language } = useI18n();
+  const [detailTheme, setDetailTheme] = useState<Colorway | null>(null);
+  const [gridWidth, setGridWidth] = useState(0);
+  const { fontScale } = useWindowDimensions();
+  const columns = gridWidth >= 900 ? 4 : gridWidth >= 330 ? 2 : 1;
+  const cardWidth = gridWidth ? (gridWidth - (columns - 1) * 12) / columns : '100%';
   const { profile, updateProfile } = useProfileStore();
   const { level, xp, setTestLevel } = useAchievementStore();
   const [battlePassVisible, setBattlePassVisible] = useState(false);
@@ -58,11 +85,17 @@ export function AppearanceSettings() {
   const activeColorway = profile.colorway ?? 'glacier';
   const activeCelebration = profile.celebrationEffect ?? 'classic';
 
-  const standardThemes = COLORWAY_REWARDS.filter(c => c.id === 'glacier' || c.id === 'arctic');
-  const lightThemes = COLORWAY_REWARDS.filter((c) => c.isLight && c.id !== 'arctic' && !COACH_COLORWAYS.includes(c.id));
-  const darkThemes = COLORWAY_REWARDS.filter((c) => !c.isLight && c.id !== 'glacier' && !COACH_COLORWAYS.includes(c.id));
+  const selectableThemes = COLORWAY_REWARDS.filter((c) => !INACTIVE_COLORWAYS.includes(c.id));
+  const standardThemes = COLORWAY_REWARDS.filter((c) => c.id === 'glacier' || c.id === 'arctic');
+  const lightThemes = COLORWAY_REWARDS.filter(
+    (c) => c.isLight && c.id !== 'arctic' && !COACH_COLORWAYS.includes(c.id),
+  );
+  const darkThemes = selectableThemes.filter(
+    (c) => !c.isLight && c.id !== 'glacier' && !COACH_COLORWAYS.includes(c.id),
+  );
 
   const handleSelectColorway = (item: RewardColorwayConfig) => {
+    if (INACTIVE_COLORWAYS.includes(item.id)) return;
     const tier = entitlementService.getTier();
     const isFreeColorway = item.id === 'glacier' || item.id === 'arctic';
 
@@ -131,7 +164,7 @@ export function AppearanceSettings() {
 
     // Trigger preview burst
     if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
-    setPreviewSequence(value => value + 1);
+    setPreviewSequence((value) => value + 1);
     setPreviewEffect(item.id);
     previewTimerRef.current = setTimeout(() => {
       setPreviewEffect(null);
@@ -141,9 +174,17 @@ export function AppearanceSettings() {
   const renderColorwayCard = (option: RewardColorwayConfig) => {
     const preview = createTheme(option.id);
     const isSelected = option.id === activeColorway;
-    const coachLocked = !isBetaFullAccess() && COACH_COLORWAYS.includes(option.id) && entitlementService.getTier() !== 'coach';
-    const proLocked = !isBetaFullAccess() && option.id !== 'glacier' && option.id !== 'arctic' && !entitlementService.canUsePremiumAppearance();
-    const isUnlocked = !coachLocked && !proLocked && (isBetaFullAccess() || isColorwayUnlocked(option.id, level));
+    const coachLocked =
+      !isBetaFullAccess() &&
+      COACH_COLORWAYS.includes(option.id) &&
+      entitlementService.getTier() !== 'coach';
+    const proLocked =
+      !isBetaFullAccess() &&
+      option.id !== 'glacier' &&
+      option.id !== 'arctic' &&
+      !entitlementService.canUsePremiumAppearance();
+    const isUnlocked =
+      !coachLocked && !proLocked && (isBetaFullAccess() || isColorwayUnlocked(option.id, level));
 
     return (
       <Pressable
@@ -153,8 +194,19 @@ export function AppearanceSettings() {
         accessibilityState={{ checked: isSelected, disabled: !isUnlocked }}
         aria-checked={isSelected}
         onPress={() => handleSelectColorway(option)}
+        onLongPress={() => {
+          if (preview.premium) setDetailTheme(option.id);
+        }}
+        accessibilityHint={
+          preview.premium
+            ? language === 'de'
+              ? 'Gedrückt halten für Materialvorschau'
+              : 'Hold for material preview'
+            : ''
+        }
         style={({ pressed }) => [
           styles.themeCard,
+          { width: cardWidth },
           {
             backgroundColor: isSelected
               ? withAlpha(theme.colors.primary, 0.08)
@@ -162,25 +214,36 @@ export function AppearanceSettings() {
             borderColor: isSelected
               ? theme.colors.primary
               : isUnlocked
-              ? theme.colors.border
-              : theme.colors.border,
+                ? theme.colors.border
+                : theme.colors.border,
             opacity: !isUnlocked ? 0.72 : pressed ? 0.82 : 1,
           },
         ]}
       >
         {/* Top Meta: Name & Mode / Lock Badge */}
-        <View style={styles.cardTopRow}>
-          <Text
-            numberOfLines={1}
-            style={[
-              styles.themeName,
-              {
-                color: isSelected ? theme.colors.primary : isUnlocked ? theme.colors.text : theme.colors.muted,
-              },
-            ]}
-          >
-            {option.name}
-          </Text>
+        <View
+          testID={`theme-header-${option.id}`}
+          style={[styles.cardTopRow, { minHeight: 60 * fontScale }]}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6, width: '100%' }}>
+            {preview.premium && <PremiumMotif spec={preview.premium} size={24} />}
+            <Text
+              numberOfLines={2}
+              style={[
+                styles.themeName,
+                { minHeight: 36 * fontScale, flex: 1 },
+                {
+                  color: isSelected
+                    ? theme.colors.primary
+                    : isUnlocked
+                      ? theme.colors.text
+                      : theme.colors.muted,
+                },
+              ]}
+            >
+              {option.name}
+            </Text>
+          </View>
           {isUnlocked ? (
             <View
               style={[
@@ -220,7 +283,13 @@ export function AppearanceSettings() {
                 },
               ]}
             >
-              <Ionicons name={coachLocked ? 'diamond-outline' : proLocked ? 'shield-outline' : 'lock-closed'} size={10} color={theme.colors.warning} />
+              <Ionicons
+                name={
+                  coachLocked ? 'diamond-outline' : proLocked ? 'shield-outline' : 'lock-closed'
+                }
+                size={10}
+                color={theme.colors.warning}
+              />
               <Text style={[styles.badgeText, { color: theme.colors.warning }]}>
                 {coachLocked ? 'COACH' : proLocked ? 'PRO' : `LVL ${option.requiredLevel}`}
               </Text>
@@ -230,6 +299,7 @@ export function AppearanceSettings() {
 
         {/* Live Miniature UI Mockup */}
         <View
+          testID={`theme-thumbnail-${option.id}`}
           style={[
             styles.mockupContainer,
             {
@@ -250,17 +320,9 @@ export function AppearanceSettings() {
           >
             <View style={[styles.miniDot, { backgroundColor: preview.colors.primary }]} />
             <View
-              style={[
-                styles.miniLine,
-                { backgroundColor: preview.colors.border, width: 44 },
-              ]}
+              style={[styles.miniLine, { backgroundColor: preview.colors.border, width: 44 }]}
             />
-            <View
-              style={[
-                styles.miniCircle,
-                { backgroundColor: preview.colors.border },
-              ]}
-            />
+            <View style={[styles.miniCircle, { backgroundColor: preview.colors.border }]} />
           </View>
 
           {/* Mini Card in Preview */}
@@ -287,47 +349,45 @@ export function AppearanceSettings() {
                 ]}
               />
             </View>
-            <View
-              style={[
-                styles.miniButton,
-                { backgroundColor: preview.colors.primary },
-              ]}
-            >
-              <Ionicons
-                name="flash"
-                size={8}
-                color={preview.colors.onPrimary || '#FFFFFF'}
-              />
+            <View style={[styles.miniButton, { backgroundColor: preview.colors.primary }]}>
+              <Ionicons name="flash" size={8} color={preview.colors.onPrimary || '#FFFFFF'} />
             </View>
           </View>
 
           {/* Swatch palette dots */}
           <View style={styles.swatchRow}>
-            {[
-              preview.colors.primary,
-              preview.colors.secondary,
-              preview.colors.tertiary,
-            ].map((color, idx) => (
-              <View
-                key={idx}
-                style={[styles.swatchDot, { backgroundColor: color }]}
-              />
-            ))}
+            {[preview.colors.primary, preview.colors.secondary, preview.colors.tertiary].map(
+              (color, idx) => (
+                <View key={idx} style={[styles.swatchDot, { backgroundColor: color }]} />
+              ),
+            )}
           </View>
         </View>
-
         {/* Bottom Description & Status Indicator */}
         <View style={styles.cardBottomRow}>
           <Text
             numberOfLines={1}
-            style={[styles.themeDesc, { color: isUnlocked ? theme.colors.muted : theme.colors.muted }]}
+            style={[
+              styles.themeDesc,
+              { color: isUnlocked ? theme.colors.muted : theme.colors.muted },
+            ]}
           >
             {option.subtitle}
           </Text>
           {isSelected ? (
             <Ionicons name="checkmark-circle" color={theme.colors.primary} size={18} />
           ) : !isUnlocked ? (
-            <Ionicons name="lock-closed-outline" color={theme.colors.warning} size={16} />
+            <Ionicons
+              name={
+                coachLocked
+                  ? 'diamond-outline'
+                  : proLocked
+                    ? 'shield-outline'
+                    : 'lock-closed-outline'
+              }
+              color={theme.colors.warning}
+              size={16}
+            />
           ) : (
             <Ionicons name="ellipse-outline" color={theme.colors.muted} size={18} />
           )}
@@ -353,7 +413,10 @@ export function AppearanceSettings() {
             onPress={() => setBattlePassVisible(true)}
             style={[
               styles.battlePassBtn,
-              { backgroundColor: theme.colors.primary + '18', borderColor: theme.colors.primary + '40' },
+              {
+                backgroundColor: theme.colors.primary + '18',
+                borderColor: theme.colors.primary + '40',
+              },
             ]}
           >
             <Ionicons name="flash" size={12} color={theme.colors.primary} />
@@ -363,243 +426,243 @@ export function AppearanceSettings() {
           </Pressable>
         </View>
         <Text style={[styles.subtitle, { color: theme.colors.muted }]}>
-          {t('settings.themesSubtitle')}
+          {t('settings.themesSubtitle').replace('{count}', String(selectableThemes.length))}
         </Text>
       </View>
 
       {/* The simulator is unnecessary when beta unlocks every reward. */}
-      {!isBetaFullAccess() && <View
-        style={[
-          styles.betaCard,
-          {
-            backgroundColor: theme.colors.surface,
-            borderColor: theme.colors.primary + '50',
-          },
-        ]}
-      >
-        <View style={styles.betaCardHeader}>
-          <View style={[styles.betaTag, { backgroundColor: theme.colors.primary + '20' }]}>
-            <Ionicons name="flask" size={13} color={theme.colors.primary} />
-            <Text style={[styles.betaTagText, { color: theme.colors.primary }]}>
-              {t('settings.betaTester')}
-            </Text>
-          </View>
-          <Text style={[styles.betaCardTitle, { color: theme.colors.text }]}>
-            {t('settings.simulatorTitle')}
-          </Text>
-        </View>
-
-        <Text style={[styles.betaCardDesc, { color: theme.colors.muted }]}>
-          {t('settings.simulatorDesc')}
-        </Text>
-
-        {/* Current Simulated Status Row */}
-        <View style={styles.betaStatusRow}>
-          <Text style={[styles.betaLevelText, { color: theme.colors.primary }]}>
-            LEVEL {level}
-          </Text>
-          <Text style={[styles.betaRankText, { color: theme.colors.text }]}>
-            {t('rank.rank')} {currentRank.rank}: {currentRank.title}
-          </Text>
-          <Text style={[styles.betaXpText, { color: theme.colors.muted }]}>
-            ({getXpForLevel(level).toLocaleString(language === 'de' ? 'de-DE' : 'en-US')} XP)
-          </Text>
-        </View>
-
-        {/* Interactive Track */}
+      {!isBetaFullAccess() && (
         <View
-          style={styles.sliderTrackContainer}
-          onLayout={(e) => {
-            const w = e.nativeEvent.layout.width;
-            if (w > 0) setSliderWidth(w);
-          }}
+          style={[
+            styles.betaCard,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.primary + '50',
+            },
+          ]}
         >
-          <Pressable
-            accessibilityRole="adjustable"
-            accessibilityLabel={t('settings.sliderLabel').replace('{level}', String(level))}
-            onPress={(e) => {
-              if (sliderWidth > 0) {
-                const ratio = Math.max(0, Math.min(1, e.nativeEvent.locationX / sliderWidth));
-                const targetLvl = Math.max(1, Math.min(50, Math.round(1 + ratio * 49)));
-                handleSetExactLevel(targetLvl);
-              }
-            }}
-            style={[
-              styles.sliderTrackBg,
-              { backgroundColor: theme.colors.surfaceElevated || theme.colors.border },
-            ]}
-          >
-            <View
-              style={[
-                styles.sliderTrackFill,
-                {
-                  width: `${Math.max(2, Math.min(100, ((level - 1) / 49) * 100))}%`,
-                  backgroundColor: theme.colors.primary,
-                },
-              ]}
-            />
-            <View
-              style={[
-                styles.sliderThumb,
-                {
-                  left: `${Math.max(0, Math.min(94, ((level - 1) / 49) * 100))}%`,
-                  backgroundColor: theme.colors.primary,
-                  borderColor: theme.colors.background,
-                },
-              ]}
-            />
-          </Pressable>
-        </View>
-
-        {/* Stepper Buttons Row */}
-        <View style={styles.stepperRow}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('settings.stepLevelBack').replace('{count}', '5')}
-            disabled={level <= 1}
-            onPress={() => handleStepLevel(-5)}
-            style={({ pressed }) => [
-              styles.stepBtn,
-              {
-                backgroundColor: theme.colors.background,
-                borderColor: theme.colors.border,
-                opacity: level <= 1 ? 0.4 : pressed ? 0.7 : 1,
-              },
-            ]}
-          >
-            <Text style={[styles.stepBtnText, { color: theme.colors.text }]}>-5</Text>
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('settings.stepLevelBack').replace('{count}', '1')}
-            disabled={level <= 1}
-            onPress={() => handleStepLevel(-1)}
-            style={({ pressed }) => [
-              styles.stepBtn,
-              {
-                backgroundColor: theme.colors.background,
-                borderColor: theme.colors.border,
-                opacity: level <= 1 ? 0.4 : pressed ? 0.7 : 1,
-              },
-            ]}
-          >
-            <Text style={[styles.stepBtnText, { color: theme.colors.text }]}>-1</Text>
-          </Pressable>
-
-          <View
-            style={[
-              styles.levelDisplayPill,
-              {
-                backgroundColor: theme.colors.primary + '18',
-                borderColor: theme.colors.primary + '40',
-              },
-            ]}
-          >
-            <Text style={[styles.levelDisplayPillText, { color: theme.colors.primary }]}>
-              L{level} / 50
+          <View style={styles.betaCardHeader}>
+            <View style={[styles.betaTag, { backgroundColor: theme.colors.primary + '20' }]}>
+              <Ionicons name="flask" size={13} color={theme.colors.primary} />
+              <Text style={[styles.betaTagText, { color: theme.colors.primary }]}>
+                {t('settings.betaTester')}
+              </Text>
+            </View>
+            <Text style={[styles.betaCardTitle, { color: theme.colors.text }]}>
+              {t('settings.simulatorTitle')}
             </Text>
           </View>
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('settings.stepLevelForward').replace('{count}', '1')}
-            disabled={level >= 50}
-            onPress={() => handleStepLevel(1)}
-            style={({ pressed }) => [
-              styles.stepBtn,
-              {
-                backgroundColor: theme.colors.background,
-                borderColor: theme.colors.border,
-                opacity: level >= 50 ? 0.4 : pressed ? 0.7 : 1,
-              },
-            ]}
-          >
-            <Text style={[styles.stepBtnText, { color: theme.colors.text }]}>+1</Text>
-          </Pressable>
+          <Text style={[styles.betaCardDesc, { color: theme.colors.muted }]}>
+            {t('settings.simulatorDesc')}
+          </Text>
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('settings.stepLevelForward').replace('{count}', '5')}
-            disabled={level >= 50}
-            onPress={() => handleStepLevel(5)}
-            style={({ pressed }) => [
-              styles.stepBtn,
-              {
-                backgroundColor: theme.colors.background,
-                borderColor: theme.colors.border,
-                opacity: level >= 50 ? 0.4 : pressed ? 0.7 : 1,
-              },
-            ]}
-          >
-            <Text style={[styles.stepBtnText, { color: theme.colors.text }]}>+5</Text>
-          </Pressable>
-        </View>
+          {/* Current Simulated Status Row */}
+          <View style={styles.betaStatusRow}>
+            <Text style={[styles.betaLevelText, { color: theme.colors.primary }]}>
+              LEVEL {level}
+            </Text>
+            <Text style={[styles.betaRankText, { color: theme.colors.text }]}>
+              {t('rank.rank')} {currentRank.rank}: {currentRank.title}
+            </Text>
+            <Text style={[styles.betaXpText, { color: theme.colors.muted }]}>
+              ({getXpForLevel(level).toLocaleString(language === 'de' ? 'de-DE' : 'en-US')} XP)
+            </Text>
+          </View>
 
-        {/* Milestone Quick-Jump Pills */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.milestonesRow}
-        >
-          {[
-            { lvl: 1, label: 'L1 Start' },
-            { lvl: 8, label: 'L8 Inferno 🔥' },
-            { lvl: 13, label: 'L13 Neon ⚡' },
-            { lvl: 16, label: 'L16 Rose' },
-            { lvl: 21, label: 'L21 Verde' },
-            { lvl: 26, label: 'L26 Telemetry' },
-            { lvl: 29, label: 'L29 Gold 🏆' },
-            { lvl: 31, label: 'L31 Alpine' },
-            { lvl: 33, label: 'L33 Matrix 💻' },
-            { lvl: 41, label: 'L41 Avionics' },
-            { lvl: 43, label: 'L43 Cosmic 🌌' },
-            { lvl: 50, label: 'L50 Master' },
-          ].map((m) => {
-            const isCurrent = level === m.lvl;
-            return (
-              <Pressable
-                key={m.lvl}
-                accessibilityRole="button"
-                accessibilityLabel={t('settings.jumpToLevel').replace('{level}', String(m.lvl))}
-                onPress={() => handleSetExactLevel(m.lvl)}
-                style={({ pressed }) => [
-                  styles.milestonePill,
+          {/* Interactive Track */}
+          <View
+            style={styles.sliderTrackContainer}
+            onLayout={(e) => {
+              const w = e.nativeEvent.layout.width;
+              if (w > 0) setSliderWidth(w);
+            }}
+          >
+            <Pressable
+              accessibilityRole="adjustable"
+              accessibilityLabel={t('settings.sliderLabel').replace('{level}', String(level))}
+              onPress={(e) => {
+                if (sliderWidth > 0) {
+                  const ratio = Math.max(0, Math.min(1, e.nativeEvent.locationX / sliderWidth));
+                  const targetLvl = Math.max(1, Math.min(50, Math.round(1 + ratio * 49)));
+                  handleSetExactLevel(targetLvl);
+                }
+              }}
+              style={[
+                styles.sliderTrackBg,
+                { backgroundColor: theme.colors.surfaceElevated || theme.colors.border },
+              ]}
+            >
+              <View
+                style={[
+                  styles.sliderTrackFill,
                   {
-                    backgroundColor: isCurrent
-                      ? theme.colors.primary
-                      : theme.colors.background,
-                    borderColor: isCurrent ? theme.colors.primary : theme.colors.border,
-                    opacity: pressed ? 0.75 : 1,
+                    width: `${Math.max(2, Math.min(100, ((level - 1) / 49) * 100))}%`,
+                    backgroundColor: theme.colors.primary,
                   },
                 ]}
-              >
-                <Text
-                  style={[
-                    styles.milestonePillText,
+              />
+              <View
+                style={[
+                  styles.sliderThumb,
+                  {
+                    left: `${Math.max(0, Math.min(94, ((level - 1) / 49) * 100))}%`,
+                    backgroundColor: theme.colors.primary,
+                    borderColor: theme.colors.background,
+                  },
+                ]}
+              />
+            </Pressable>
+          </View>
+
+          {/* Stepper Buttons Row */}
+          <View style={styles.stepperRow}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('settings.stepLevelBack').replace('{count}', '5')}
+              disabled={level <= 1}
+              onPress={() => handleStepLevel(-5)}
+              style={({ pressed }) => [
+                styles.stepBtn,
+                {
+                  backgroundColor: theme.colors.background,
+                  borderColor: theme.colors.border,
+                  opacity: level <= 1 ? 0.4 : pressed ? 0.7 : 1,
+                },
+              ]}
+            >
+              <Text style={[styles.stepBtnText, { color: theme.colors.text }]}>-5</Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('settings.stepLevelBack').replace('{count}', '1')}
+              disabled={level <= 1}
+              onPress={() => handleStepLevel(-1)}
+              style={({ pressed }) => [
+                styles.stepBtn,
+                {
+                  backgroundColor: theme.colors.background,
+                  borderColor: theme.colors.border,
+                  opacity: level <= 1 ? 0.4 : pressed ? 0.7 : 1,
+                },
+              ]}
+            >
+              <Text style={[styles.stepBtnText, { color: theme.colors.text }]}>-1</Text>
+            </Pressable>
+
+            <View
+              style={[
+                styles.levelDisplayPill,
+                {
+                  backgroundColor: theme.colors.primary + '18',
+                  borderColor: theme.colors.primary + '40',
+                },
+              ]}
+            >
+              <Text style={[styles.levelDisplayPillText, { color: theme.colors.primary }]}>
+                L{level} / 50
+              </Text>
+            </View>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('settings.stepLevelForward').replace('{count}', '1')}
+              disabled={level >= 50}
+              onPress={() => handleStepLevel(1)}
+              style={({ pressed }) => [
+                styles.stepBtn,
+                {
+                  backgroundColor: theme.colors.background,
+                  borderColor: theme.colors.border,
+                  opacity: level >= 50 ? 0.4 : pressed ? 0.7 : 1,
+                },
+              ]}
+            >
+              <Text style={[styles.stepBtnText, { color: theme.colors.text }]}>+1</Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('settings.stepLevelForward').replace('{count}', '5')}
+              disabled={level >= 50}
+              onPress={() => handleStepLevel(5)}
+              style={({ pressed }) => [
+                styles.stepBtn,
+                {
+                  backgroundColor: theme.colors.background,
+                  borderColor: theme.colors.border,
+                  opacity: level >= 50 ? 0.4 : pressed ? 0.7 : 1,
+                },
+              ]}
+            >
+              <Text style={[styles.stepBtnText, { color: theme.colors.text }]}>+5</Text>
+            </Pressable>
+          </View>
+
+          {/* Milestone Quick-Jump Pills */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.milestonesRow}
+          >
+            {[
+              { lvl: 1, label: 'L1 Start' },
+              { lvl: 8, label: 'L8 Inferno 🔥' },
+              { lvl: 13, label: 'L13 Neon ⚡' },
+              { lvl: 16, label: 'L16 Rose' },
+
+              { lvl: 26, label: 'L26 Telemetry' },
+              { lvl: 29, label: 'L29 Gold 🏆' },
+              { lvl: 31, label: 'L31 Alpine' },
+              { lvl: 33, label: 'L33 Matrix 💻' },
+              { lvl: 41, label: 'L41 Avionics' },
+              { lvl: 43, label: 'L43 Cosmic 🌌' },
+              { lvl: 50, label: 'L50 Master' },
+            ].map((m) => {
+              const isCurrent = level === m.lvl;
+              return (
+                <Pressable
+                  key={m.lvl}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('settings.jumpToLevel').replace('{level}', String(m.lvl))}
+                  onPress={() => handleSetExactLevel(m.lvl)}
+                  style={({ pressed }) => [
+                    styles.milestonePill,
                     {
-                      color: isCurrent
-                        ? theme.colors.background
-                        : theme.colors.text,
-                      fontWeight: isCurrent ? '700' : '500',
+                      backgroundColor: isCurrent ? theme.colors.primary : theme.colors.background,
+                      borderColor: isCurrent ? theme.colors.primary : theme.colors.border,
+                      opacity: pressed ? 0.75 : 1,
                     },
                   ]}
                 >
-                  {m.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      </View>}
+                  <Text
+                    style={[
+                      styles.milestonePillText,
+                      {
+                        color: isCurrent ? theme.colors.background : theme.colors.text,
+                        fontWeight: isCurrent ? '700' : '500',
+                      },
+                    ]}
+                  >
+                    {m.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
 
       <View style={styles.subgroup}>
         <Text style={[styles.subgroupTitle, { color: theme.colors.text }]}>STANDARD</Text>
-        <View style={styles.grid}>{standardThemes.map(renderColorwayCard)}</View>
-      </View>
-      <View style={styles.subgroup}>
-        <Text style={[styles.subgroupTitle, { color: theme.colors.text }]}>PREMIUM</Text>
-        <View style={styles.grid}>{COLORWAY_REWARDS.filter(c => COACH_COLORWAYS.includes(c.id)).map(renderColorwayCard)}</View>
+        <View
+          testID="theme-grid"
+          style={styles.grid}
+          onLayout={(event) => setGridWidth(event.nativeEvent.layout.width)}
+        >
+          {standardThemes.map(renderColorwayCard)}
+        </View>
       </View>
       {/* Group 1: Light Themes (Helle Farbwelten) */}
       <View style={styles.subgroup}>
@@ -621,6 +684,27 @@ export function AppearanceSettings() {
           </Text>
         </View>
         <View style={styles.grid}>{darkThemes.map(renderColorwayCard)}</View>
+      </View>
+
+      <View style={styles.subgroup}>
+        <Text style={[styles.subgroupTitle, { color: theme.colors.text }]}>PREMIUM</Text>
+        <View style={styles.grid}>
+          {COLORWAY_REWARDS.filter((c) => COACH_COLORWAYS.includes(c.id)).map(renderColorwayCard)}
+        </View>
+      </View>
+      <View style={styles.subgroup}>
+        <Text style={[styles.subgroupTitle, { color: theme.colors.text }]}>
+          {language === 'de' ? 'KÖRPERANSICHT DER HEATMAP' : 'HEATMAP BODY VIEW'}
+        </Text>
+        <SegmentedControl
+          label={language === 'de' ? 'Heatmap Körperansicht' : 'Heatmap body view'}
+          value={profile.heatmapBody ?? (profile.biologicalSex === 'female' ? 'female' : 'male')}
+          options={[
+            { value: 'male', label: language === 'de' ? 'Männlich' : 'Male' },
+            { value: 'female', label: language === 'de' ? 'Weiblich' : 'Female' },
+          ]}
+          onChange={(value) => updateProfile({ heatmapBody: value as 'male' | 'female' })}
+        />
       </View>
 
       {/* Group 3: Workout Celebration Rewards */}
@@ -655,9 +739,7 @@ export function AppearanceSettings() {
                     backgroundColor: isSelected
                       ? withAlpha(theme.colors.primary, 0.08)
                       : theme.colors.surface,
-                    borderColor: isSelected
-                      ? theme.colors.primary
-                      : theme.colors.border,
+                    borderColor: isSelected ? theme.colors.primary : theme.colors.border,
                     opacity: !isUnlocked ? 0.7 : pressed ? 0.85 : 1,
                   },
                 ]}
@@ -670,7 +752,12 @@ export function AppearanceSettings() {
                         key={i}
                         style={[
                           styles.celebrationDot,
-                          { backgroundColor: color, shadowColor: color, shadowOpacity: 0.5, shadowRadius: 3 },
+                          {
+                            backgroundColor: color,
+                            shadowColor: color,
+                            shadowOpacity: 0.5,
+                            shadowRadius: 3,
+                          },
                         ]}
                       />
                     ))}
@@ -709,8 +796,20 @@ export function AppearanceSettings() {
                 </View>
 
                 <Ionicons
-                  name={isSelected ? 'checkmark-circle' : !isUnlocked ? 'lock-closed-outline' : 'ellipse-outline'}
-                  color={isSelected ? theme.colors.primary : !isUnlocked ? theme.colors.warning : theme.colors.muted}
+                  name={
+                    isSelected
+                      ? 'checkmark-circle'
+                      : !isUnlocked
+                        ? 'lock-closed-outline'
+                        : 'ellipse-outline'
+                  }
+                  color={
+                    isSelected
+                      ? theme.colors.primary
+                      : !isUnlocked
+                        ? theme.colors.warning
+                        : theme.colors.muted
+                  }
                   size={20}
                 />
               </Pressable>
@@ -722,6 +821,21 @@ export function AppearanceSettings() {
       {/* Live Preview Overlay when tapping a celebration effect */}
       {previewEffect && <CelebrationPreview key={previewSequence} effect={previewEffect} />}
 
+      {detailTheme && (
+        <ThemeProvider colorway={detailTheme}>
+          <ThemeModal
+            visible
+            onClose={() => setDetailTheme(null)}
+            title={COLORWAY_REWARDS.find((item) => item.id === detailTheme)?.name ?? 'Premium'}
+          >
+            <PremiumThemePreview theme={createTheme(detailTheme)} />
+            <WaterVessel progress={0.65} />
+            <Text style={{ color: createTheme(detailTheme).colors.text }}>
+              {language === 'de' ? 'Materialvorschau · Hydration' : 'Material preview · Hydration'}
+            </Text>
+          </ThemeModal>
+        </ThemeProvider>
+      )}
       {/* Battle Pass Popup */}
       <BattlePassModal
         visible={battlePassVisible}
@@ -790,23 +904,26 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   themeCard: {
-    flex: 1,
-    minWidth: 155,
+    flexGrow: 0,
+    flexShrink: 0,
+    minWidth: 0,
     padding: 12,
     gap: 10,
     borderWidth: 1,
     borderRadius: 14,
   },
   cardTopRow: {
-    flexDirection: 'row',
+    minHeight: 60,
+    flexDirection: 'column',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 6,
   },
   themeName: {
     fontSize: 13,
     fontFamily: 'SpaceGrotesk_700Bold',
-    flex: 1,
+    lineHeight: 18,
+    minHeight: 36,
   },
   badge: {
     flexDirection: 'row',

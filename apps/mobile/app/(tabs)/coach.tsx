@@ -10,9 +10,13 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@fitness-tracker/ui';
+import { useTheme, PremiumSignature } from '@fitness-tracker/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChatMessage, hasValidAiConsent, CURRENT_AI_CONSENT_VERSION } from '@fitness-tracker/domain';
+import {
+  ChatMessage,
+  hasValidAiConsent,
+  CURRENT_AI_CONSENT_VERSION,
+} from '@fitness-tracker/domain';
 
 import { HorizontalFadeScroll } from '../../src/components/HorizontalFadeScroll';
 import { useCoachStore } from '../../src/stores/coachStore';
@@ -105,8 +109,7 @@ export default function CoachScreen() {
       });
       if (!isScopeCurrent(scope) || result.canceled) return;
       const asset = result.assets[0];
-      if (!asset?.base64 || asset.base64.length > 5500000)
-        throw Error(t('coach.imageTooLarge'));
+      if (!asset?.base64 || asset.base64.length > 5500000) throw Error(t('coach.imageTooLarge'));
       const mime = Platform.OS === 'web' ? asset.mimeType || 'image/jpeg' : 'image/jpeg';
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(mime))
         throw Error(t('coach.unsupportedImageFormat'));
@@ -214,6 +217,7 @@ export default function CoachScreen() {
           </Pressable>
         </View>
 
+        <PremiumSignature compact />
         {error ? (
           <View
             style={[
@@ -307,8 +311,8 @@ export default function CoachScreen() {
               </Text>
               {language === 'de' ? (
                 <Text style={[styles.welcomeText, { color: theme.colors.muted }]}>
-                  Deine Frage, die letzten Nachrichten und eine Zusammenfassung deiner Trainingsdaten
-                  werden an den KI-Dienst gesendet.{'\n\n'}
+                  Deine Frage, die letzten Nachrichten und eine Zusammenfassung deiner
+                  Trainingsdaten werden an den KI-Dienst gesendet.{'\n\n'}
                   <Text style={{ color: theme.colors.primary, fontFamily: 'Manrope_700Bold' }}>
                     Tipp:
                   </Text>{' '}
@@ -324,7 +328,8 @@ export default function CoachScreen() {
                 </Text>
               ) : (
                 <Text style={[styles.welcomeText, { color: theme.colors.muted }]}>
-                  Your question, recent messages, and a summary of your workout data will be sent to the AI service.{'\n\n'}
+                  Your question, recent messages, and a summary of your workout data will be sent to
+                  the AI service.{'\n\n'}
                   <Text style={{ color: theme.colors.primary, fontFamily: 'Manrope_700Bold' }}>
                     Tip:
                   </Text>{' '}

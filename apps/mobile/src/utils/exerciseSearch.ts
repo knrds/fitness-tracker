@@ -1,4 +1,5 @@
-import type { Exercise } from '@fitness-tracker/domain';
+import { type Exercise, getExerciseMuscleRegions } from '@fitness-tracker/domain';
+import { translations } from '../i18n/translations';
 
 const aliases: Record<string, string> = {
   apps: 'abs',
@@ -16,6 +17,7 @@ export const normalizeExerciseSearch = (value: string) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
+    .replace(/ß/g, 'ss')
     .replace(/[-_]/g, ' ')
     .trim()
     .replace(/\s+/g, ' ');
@@ -27,7 +29,13 @@ export function matchesExerciseSearch(exercise: Exercise, query: string): boolea
   if (!normalized) return true;
   const name = normalizeExerciseSearch(exercise.name);
   const tokens = normalized.split(' ').map((token) => aliases[token] ?? token);
-  const searchable = [name, ...exercise.primaryMuscles, ...exercise.secondaryMuscles, ...(exercise.equipmentOptions ?? [exercise.equipment])]
+  const regions = getExerciseMuscleRegions(exercise);
+  const muscleNames = [...regions.primaryMuscles, ...regions.secondaryMuscles].flatMap((muscle) => [
+    muscle,
+    translations.de.muscles[muscle],
+    translations.en.muscles[muscle],
+  ]);
+  const searchable = [name, ...muscleNames, ...(exercise.equipmentOptions ?? [exercise.equipment])]
     .map(normalizeExerciseSearch)
     .join(' ');
   return (

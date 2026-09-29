@@ -8,6 +8,8 @@ let mockLanguage = 'en';
 let mockToday = new Date(2026, 8, 27, 16);
 let mockSessions: WorkoutSession[] = [];
 let mockStatus = 'idle';
+let mockProfile: { showDashboardLevel?: boolean; dashboardWeekExpanded?: boolean } = {};
+const mockUpdateProfile = jest.fn((updates: typeof mockProfile) => Object.assign(mockProfile, updates));
 const mockStartQuick = jest.fn();
 const mockStartTemplate = jest.fn();
 const mockPush = jest.fn();
@@ -43,14 +45,19 @@ jest.mock('../../stores/workoutStore', () => ({
 }));
 jest.mock('../../stores/exerciseStore', () => ({ useExerciseStore: () => ({ exercises: [] }) }));
 jest.mock('../../stores/historyStore', () => ({ useHistoryStore: () => ({ getSessionsByDateDesc: () => mockSessions, getStreak: () => 1 }) }));
-jest.mock('../../stores/profileStore', () => ({ useProfileStore: () => ({ profile: {} }) }));
+jest.mock('../../stores/profileStore', () => ({
+  useProfileStore: () => ({ profile: mockProfile, updateProfile: mockUpdateProfile }),
+}));
 jest.mock('../../stores/achievementStore', () => ({ useAchievementStore: () => ({ level: 1, xp: 0 }) }));
 jest.mock('../../services/avatarStorageService', () => ({ resolveAvatarUri: () => undefined }));
 jest.mock('../../utils/haptics', () => ({ hapticFeedback: { selection: jest.fn() } }));
 jest.mock('../ActivityRing', () => ({ ActivityRing: () => null }));
 jest.mock('../anatomy/AnatomyFigure', () => ({ AnatomyFigure: () => null }));
 jest.mock('../MuscleHeatmap', () => ({ MuscleHeatmap: () => null }));
-jest.mock('../LevelProgress', () => ({ LevelProgress: () => null }));
+jest.mock('../LevelProgress', () => {
+  const { Text } = jest.requireActual('react-native');
+  return { LevelProgress: () => <Text>Dashboard level progress</Text> };
+});
 jest.mock('../LevelRankBadge', () => ({ LevelRankBadge: () => null }));
 jest.mock('../BattlePassModal', () => ({ BattlePassModal: () => null }));
 jest.mock('../SyncIndicator', () => ({ SyncIndicator: () => null }));
@@ -61,6 +68,7 @@ beforeEach(() => {
   mockLanguage = 'en';
   mockToday = new Date(2026, 8, 27, 16);
   mockStatus = 'finished';
+  mockProfile = {};
   mockSessions = [{
     id: 'completed-sunday', userId: 'user', programId: 'program', templateId: 'template-0',
     name: 'Sunday workout', startedAt: new Date(2026, 8, 27, 10), completedAt: new Date(2026, 8, 27, 11),
@@ -114,4 +122,59 @@ it('opens the next session preview with its future program week', () => {
   expect(screen.getByText('Active program · Week 2 (Monday)')).toBeTruthy();
   expect(mockStartQuick).not.toHaveBeenCalled();
   expect(mockStartTemplate).not.toHaveBeenCalled();
+});
+
+it('defaults older profiles to a compact dashboard and honors explicit level visibility', () => {
+  const screen = render(
+    <ThemeProvider>
+      <HomeScreen />
+    </ThemeProvider>,
+  );
+  expect(screen.queryByText('Dashboard level progress')).toBeNull();
+  expect(screen.queryByTestId('dashboard-week-days')).toBeNull();
+  expect(
+    screen.getByRole('button', { name: 'Weekly cycle' }).props.accessibilityState.expanded,
+  ).toBe(false);
+  mockProfile.showDashboardLevel = true;
+  screen.rerender(
+    <ThemeProvider>
+      <HomeScreen />
+    </ThemeProvider>,
+  );
+  expect(screen.getByText('Dashboard level progress')).toBeTruthy();
+  mockProfile.showDashboardLevel = false;
+  screen.rerender(
+    <ThemeProvider>
+      <HomeScreen />
+    </ThemeProvider>,
+  );
+  expect(screen.queryByText('Dashboard level progress')).toBeNull();
+});
+
+it('opens and closes the week independently of level visibility and restores the saved choice', () => {
+  const screen = render(
+    <ThemeProvider>
+      <HomeScreen />
+    </ThemeProvider>,
+  );
+  fireEvent.press(screen.getByRole('button', { name: 'Weekly cycle' }));
+  expect(mockUpdateProfile).toHaveBeenLastCalledWith({ dashboardWeekExpanded: true });
+  screen.rerender(
+    <ThemeProvider>
+      <HomeScreen />
+    </ThemeProvider>,
+  );
+  expect(screen.getByTestId('dashboard-week-days')).toBeTruthy();
+  expect(screen.queryByText('Dashboard level progress')).toBeNull();
+  screen.unmount();
+  const restored = render(
+    <ThemeProvider>
+      <HomeScreen />
+    </ThemeProvider>,
+  );
+  expect(
+    restored.getByRole('button', { name: 'Weekly cycle' }).props.accessibilityState.expanded,
+  ).toBe(true);
+  fireEvent.press(restored.getByRole('button', { name: 'Weekly cycle' }));
+  expect(mockUpdateProfile).toHaveBeenLastCalledWith({ dashboardWeekExpanded: false });
 });

@@ -1,5 +1,9 @@
 # EVARO Beta Release Notes
 
+## Unversioned compact dashboard update
+
+Level progress on Home now defaults off (enable it in Profile settings). The weekly cycle defaults collapsed and remembers expansion. Dependency checks now block deployment when the audit fails or returns incomplete evidence instead of treating missing data as a clean scan.
+
 
 ## Unversioned beta update — 28.09.2026
 

@@ -13,7 +13,7 @@
  * - Any new or unreviewed High finding immediately breaks CI.
  */
 
-const { spawnSync } = require('node:child_process');
+const { isValidAuditReport, runPnpmAudit } = require('./audit-report.cjs');
 
 const ALLOWED_HIGH_EXCEPTIONS = [
   {
@@ -45,51 +45,13 @@ const ALLOWED_HIGH_EXCEPTIONS = [
 ];
 
 function runAudit() {
-  if (process.env.CI_AUDIT_DATA) {
-    try {
-      return JSON.parse(process.env.CI_AUDIT_DATA);
-    } catch (e) {
-      console.error('Invalid CI_AUDIT_DATA JSON:', e.message);
-      return null;
-    }
-  }
-
-  const isWin = process.platform === 'win32';
-  const result = isWin
-    ? spawnSync('pnpm audit --json', {
-        shell: true,
-        encoding: 'utf8',
-        maxBuffer: 50 * 1024 * 1024,
-        env: process.env,
-        timeout: 180000,
-      })
-    : spawnSync('pnpm', ['audit', '--json'], {
-        encoding: 'utf8',
-        maxBuffer: 50 * 1024 * 1024,
-        env: process.env,
-        timeout: 180000,
-      });
-
-  const rawOutput = result.stdout || result.stderr || '';
-  try {
-    return JSON.parse(rawOutput);
-  } catch {
-    const match = rawOutput.match(/\{[\s\S]*\}/);
-    if (match) {
-      try {
-        return JSON.parse(match[0]);
-      } catch {
-        return null;
-      }
-    }
-  }
-  return null;
+  return runPnpmAudit({ fixture: process.env.CI_AUDIT_DATA });
 }
 
 function evaluateAudit(audit) {
-  if (!audit) {
-    console.error('[SECURITY AUDIT ERROR] Failed to parse pnpm audit output.');
-    return { passed: false, error: 'Failed to parse audit data' };
+  if (!isValidAuditReport(audit)) {
+    console.error('[SECURITY AUDIT ERROR] Audit did not complete with a valid pnpm report.');
+    return { passed: false, error: 'Missing or invalid audit evidence' };
   }
 
   let criticalCount = 0;
@@ -193,13 +155,13 @@ function main() {
   for (const item of evaluation.approvedHighs) {
     console.log(`  - Package:    ${item.package} (${item.advisory})`);
     console.log(`    Title:      ${item.title}`);
-    console.log(`    Role:       ${item.exception.dependencyPath} (Runtime Reachable: 0)`);
+    console.log(`    Role:       ${item.exception.dependencyPath} (reviewed build-tool path; not verified by this gate)`);
     console.log(`    Reason:     ${item.exception.reason}`);
     console.log(`    Owner:      ${item.exception.owner}`);
     console.log(`    Milestone:  ${item.exception.removalMilestone}`);
     console.log(`    Review:     ${item.exception.reviewCondition}\n`);
   }
-  console.log('Client Reachable:  0 (All high findings confined to dev/build toolchains)');
+  console.log('Client Reachability: not inferred from audit metadata; reviewed exceptions require dependency-path review.');
   console.log('================================================================================\n');
   console.log('[SECURITY GATE PASS] CI dependency release requirements verified.\n');
 }

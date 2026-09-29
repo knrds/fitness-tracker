@@ -67,6 +67,8 @@ export interface Profile {
   colorway?: Colorway | undefined;
   savedPremiumColorway?: Colorway | undefined;
   heatmapBody?: 'male' | 'female';
+  showDashboardLevel?: boolean;
+  dashboardWeekExpanded?: boolean;
   celebrationEffect?: CelebrationEffect;
   fitnessGoal?: FitnessGoal;
   experienceLevel?: ExperienceLevel;
@@ -126,6 +128,8 @@ const defaultProfile: Profile = {
   showExerciseDeleteConfirmation: true,
   hapticsEnabled: true,
   soundEnabled: true,
+  showDashboardLevel: false,
+  dashboardWeekExpanded: false,
 };
 
 const profileStateSchema = z.object({
@@ -193,6 +197,8 @@ const profileStateSchema = z.object({
     .transform(migrateColorway)
     .optional(),
   heatmapBody: z.enum(['male', 'female']).optional(),
+  showDashboardLevel: z.boolean().optional(),
+  dashboardWeekExpanded: z.boolean().optional(),
   celebrationEffect: z
     .enum(['classic', 'neon', 'inferno', 'gold', 'matrix', 'cosmic', 'aurora', 'fireworks'])
     .optional(),

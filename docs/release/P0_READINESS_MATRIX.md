@@ -1,5 +1,9 @@
 # EVARO Current State Matrix — Astra / Gemini 2026-09-22
 
+## New S1/S9 checkpoint — compact dashboard / audit failure handling
+
+Registry/process failures and malformed audit evidence now fail closed in both dependency gates, with regressions. No claim of runtime reachability from audit metadata; dependency path/version policy, SAST/SBOM/license automation and external approvals remain PARTIAL. WP-09 adds opt-in dashboard level progress and a persisted collapsed weekly cycle.
+
 
 ## Delta against HEAD — 28.09.2026
 

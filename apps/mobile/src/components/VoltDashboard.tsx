@@ -76,7 +76,9 @@ export function VoltDashboard({
   const [showMuscleDetails, setShowMuscleDetails] = React.useState(false);
   const wide = useWindowDimensions().width >= 800;
   const [battlePassVisible, setBattlePassVisible] = React.useState(false);
-  const { profile } = useProfileStore();
+  const { profile, updateProfile } = useProfileStore();
+  const weekExpanded = profile.dashboardWeekExpanded ?? false;
+  const sideBySide = wide && weekExpanded;
   const { t, formatMuscle, language } = useI18n();
   const { level, xp } = useAchievementStore();
   const { exercises } = useExerciseStore();
@@ -124,146 +126,173 @@ export function VoltDashboard({
       ? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
       : ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
   const weekCard = (
-    <Card padding="md" style={{ flex: wide ? 1 : undefined, justifyContent: 'center' }}>
-      {panelTitle(
-        language === 'en' ? 'WEEKLY MICROCYCLE' : 'WOCHEN-MIKROZYKLUS',
-        'calendar-outline',
-        `${weekly.length} ${language === 'en' ? 'SESSIONS' : 'EINHEITEN'}`,
-      )}
-      <View style={{ flexDirection: 'row', gap: 5 }}>
-        {Array.from({ length: 7 }, (_, i) => {
-          const date = new Date(monday);
-          date.setDate(date.getDate() + i);
-          const trained = hasWorkoutOnDate(weekly, date);
-          const active = date.toDateString() === today.toDateString();
-          const isSelected = selectedDayIndex === i;
-          return (
-            <Pressable
-              key={i}
-              onPress={() => {
-                void hapticFeedback.selection();
-                setSelectedDayIndex(isSelected ? null : i);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={`${date.toLocaleDateString()}: ${trained ? 'trainiert' : 'kein Training'}`}
-              style={{
-                flex: 1,
-                minWidth: 0,
-                minHeight: 62,
-                borderRadius: 10,
-                borderWidth: 1,
-                borderColor: isSelected ? c.primary : active ? withAlpha(c.primary, 0.6) : c.border,
-                backgroundColor: isSelected
-                  ? withAlpha(c.primary, 0.18)
-                  : active
-                    ? c.primary
-                    : c.surfaceElevated,
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 5,
-                paddingVertical: 6,
-              }}
-            >
-              <Text
-                style={[
-                  label,
-                  {
-                    color: active && !isSelected ? c.onPrimary : isSelected ? c.primary : c.muted,
-                    letterSpacing: 0,
-                    fontWeight: isSelected || active ? '700' : '500',
-                  },
-                ]}
-              >
-                {dayInitials[i]}
-              </Text>
-              <Ionicons
-                name={trained ? 'checkmark-circle' : active ? 'radio-button-on' : 'ellipse-outline'}
-                size={18}
-                color={
-                  active && !isSelected ? c.onPrimary : trained || isSelected ? c.primary : c.muted
-                }
-              />
-              <Text
+    <Card padding="md" style={{ flex: sideBySide ? 1 : undefined }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={language === 'en' ? 'Weekly cycle' : 'Wochenzyklus'}
+        accessibilityState={{ expanded: weekExpanded }}
+        aria-expanded={weekExpanded}
+        onPress={() => {
+          void hapticFeedback.selection();
+          updateProfile({ dashboardWeekExpanded: !weekExpanded });
+        }}
+        style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+      >
+        <Ionicons name="calendar-outline" size={16} color={c.primary} />
+        <Text style={[label, { color: c.text, flex: 1 }]}>
+          {language === 'en' ? 'WEEKLY CYCLE' : 'WOCHENZYKLUS'}
+        </Text>
+        <Text style={[label, { color: c.primary, letterSpacing: 0 }]}>
+          {weekly.length} {language === 'en' ? 'sessions' : 'Einheiten'}
+        </Text>
+        <Ionicons name={weekExpanded ? 'chevron-up' : 'chevron-down'} size={18} color={c.muted} />
+      </Pressable>
+      <AnimatedDisclosure expanded={weekExpanded}>
+        <View testID="dashboard-week-days" style={{ flexDirection: 'row', gap: 5, paddingTop: 12 }}>
+          {Array.from({ length: 7 }, (_, i) => {
+            const date = new Date(monday);
+            date.setDate(date.getDate() + i);
+            const trained = hasWorkoutOnDate(weekly, date);
+            const active = date.toDateString() === today.toDateString();
+            const isSelected = selectedDayIndex === i;
+            return (
+              <Pressable
+                key={i}
+                onPress={() => {
+                  void hapticFeedback.selection();
+                  setSelectedDayIndex(isSelected ? null : i);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`${date.toLocaleDateString(language === 'en' ? 'en-GB' : 'de-DE')}: ${trained ? (language === 'en' ? 'trained' : 'trainiert') : language === 'en' ? 'no workout' : 'kein Training'}`}
                 style={{
-                  fontSize: 10,
-                  color: active && !isSelected ? c.onPrimary : c.muted,
-                  fontVariant: ['tabular-nums'],
+                  flex: 1,
+                  minWidth: 0,
+                  minHeight: 62,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor: isSelected
+                    ? c.primary
+                    : active
+                      ? withAlpha(c.primary, 0.6)
+                      : c.border,
+                  backgroundColor: isSelected
+                    ? withAlpha(c.primary, 0.18)
+                    : active
+                      ? c.primary
+                      : c.surfaceElevated,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 5,
+                  paddingVertical: 6,
                 }}
               >
-                {date.getDate()}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      {selectedDayIndex !== null &&
-        (() => {
-          const selDate = new Date(monday);
-          selDate.setDate(selDate.getDate() + selectedDayIndex);
-          const daySessions = getWorkoutsForDate(weekly, selDate);
-          return (
-            <View
-              style={{
-                marginTop: 12,
-                padding: 12,
-                borderRadius: 10,
-                backgroundColor: c.surfaceElevated,
-                borderWidth: 1,
-                borderColor: withAlpha(c.primary, 0.25),
-                gap: 6,
-              }}
-            >
+                <Text
+                  style={[
+                    label,
+                    {
+                      color: active && !isSelected ? c.onPrimary : isSelected ? c.primary : c.muted,
+                      letterSpacing: 0,
+                      fontWeight: isSelected || active ? '700' : '500',
+                    },
+                  ]}
+                >
+                  {dayInitials[i]}
+                </Text>
+                <Ionicons
+                  name={
+                    trained ? 'checkmark-circle' : active ? 'radio-button-on' : 'ellipse-outline'
+                  }
+                  size={18}
+                  color={
+                    active && !isSelected
+                      ? c.onPrimary
+                      : trained || isSelected
+                        ? c.primary
+                        : c.muted
+                  }
+                />
+                <Text
+                  style={{
+                    fontSize: 10,
+                    color: active && !isSelected ? c.onPrimary : c.muted,
+                    fontVariant: ['tabular-nums'],
+                  }}
+                >
+                  {date.getDate()}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        {selectedDayIndex !== null &&
+          (() => {
+            const selDate = new Date(monday);
+            selDate.setDate(selDate.getDate() + selectedDayIndex);
+            const daySessions = getWorkoutsForDate(weekly, selDate);
+            return (
               <View
                 style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
+                  marginTop: 12,
+                  padding: 12,
+                  borderRadius: 10,
+                  backgroundColor: c.surfaceElevated,
+                  borderWidth: 1,
+                  borderColor: withAlpha(c.primary, 0.25),
+                  gap: 6,
                 }}
               >
-                <Text style={{ fontFamily: 'SpaceGrotesk_700Bold', fontSize: 13, color: c.text }}>
-                  {dayNames[selectedDayIndex]} · {selDate.toLocaleDateString()}
-                </Text>
-                <Pressable onPress={() => setSelectedDayIndex(null)} hitSlop={10}>
-                  <Ionicons name="close" size={16} color={c.muted} />
-                </Pressable>
-              </View>
-              {daySessions.length > 0 ? (
-                daySessions.map((s) => (
-                  <View
-                    key={s.id}
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginTop: 2,
-                    }}
-                  >
-                    <Text
-                      style={{ color: c.primary, fontSize: 13, fontWeight: '600', flex: 1 }}
-                      numberOfLines={1}
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ fontFamily: 'SpaceGrotesk_700Bold', fontSize: 13, color: c.text }}>
+                    {dayNames[selectedDayIndex]} · {selDate.toLocaleDateString()}
+                  </Text>
+                  <Pressable onPress={() => setSelectedDayIndex(null)} hitSlop={10}>
+                    <Ionicons name="close" size={16} color={c.muted} />
+                  </Pressable>
+                </View>
+                {daySessions.length > 0 ? (
+                  daySessions.map((s) => (
+                    <View
+                      key={s.id}
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginTop: 2,
+                      }}
                     >
-                      {s.name}
-                    </Text>
-                    <Text style={{ color: c.muted, fontSize: 12, fontVariant: ['tabular-nums'] }}>
-                      {s.durationSeconds ? `${Math.round(s.durationSeconds / 60)} Min · ` : ''}
-                      {s.exercises.reduce(
-                        (acc, ex) => acc + ex.sets.filter(isCompletedWorkingSet).length,
-                        0,
-                      )}{' '}
-                      {t('workout.sets')}
-                    </Text>
-                  </View>
-                ))
-              ) : (
-                <Text style={{ color: c.muted, fontSize: 12, fontStyle: 'italic' }}>
-                  {language === 'en'
-                    ? 'Rest day · No session logged'
-                    : 'Ruhetag · Keine Einheit geloggt'}
-                </Text>
-              )}
-            </View>
-          );
-        })()}
+                      <Text
+                        style={{ color: c.primary, fontSize: 13, fontWeight: '600', flex: 1 }}
+                        numberOfLines={1}
+                      >
+                        {s.name}
+                      </Text>
+                      <Text style={{ color: c.muted, fontSize: 12, fontVariant: ['tabular-nums'] }}>
+                        {s.durationSeconds ? `${Math.round(s.durationSeconds / 60)} Min · ` : ''}
+                        {s.exercises.reduce(
+                          (acc, ex) => acc + ex.sets.filter(isCompletedWorkingSet).length,
+                          0,
+                        )}{' '}
+                        {t('workout.sets')}
+                      </Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={{ color: c.muted, fontSize: 12, fontStyle: 'italic' }}>
+                    {language === 'en'
+                      ? 'Rest day · No session logged'
+                      : 'Ruhetag · Keine Einheit geloggt'}
+                  </Text>
+                )}
+              </View>
+            );
+          })()}
+      </AnimatedDisclosure>
     </Card>
   );
   const hero = (
@@ -511,10 +540,14 @@ export function VoltDashboard({
           <Ionicons name="options-outline" size={20} color={c.muted} />
         </View>
       </Card>
-      <LevelProgress level={level} xp={xp} compact onPress={() => setBattlePassVisible(true)} />
-      <View style={{ flexDirection: wide ? 'row' : 'column', gap: 18, alignItems: 'stretch' }}>
-        <View style={{ flex: wide ? 1 : undefined, minWidth: 0 }}>{weekCard}</View>
-        <View style={{ flex: wide ? 1.4 : undefined, minWidth: 0 }}>{hero}</View>
+      {profile.showDashboardLevel === true && (
+        <LevelProgress level={level} xp={xp} compact onPress={() => setBattlePassVisible(true)} />
+      )}
+      <View
+        style={{ flexDirection: sideBySide ? 'row' : 'column', gap: 18, alignItems: 'stretch' }}
+      >
+        <View style={{ flex: sideBySide ? 1 : undefined, minWidth: 0 }}>{weekCard}</View>
+        <View style={{ flex: sideBySide ? 1.4 : undefined, minWidth: 0 }}>{hero}</View>
       </View>
       {/* Templates — prioritized before analytics */}
       {templates.length > 0 && (

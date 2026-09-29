@@ -1,5 +1,14 @@
 # EVARO Astra Takeover — Execution Status
 
+## Compact dashboard and audit gate checkpoint — 29.09.2026
+
+Risk LOW for additive account-scoped presentation preferences; MEDIUM for registry/process output at the deployment-approval boundary. Dashboard level progress defaults off and can be enabled in Profile settings. The weekly cycle defaults collapsed, remains keyboard/screen-reader accessible, animates through the shared disclosure, and preserves the user's choice. Missing legacy fields use the compact defaults; profile level progress and workout data are unaffected.
+
+S1/S9: CI and preview audit gates now reject missing/malformed/incomplete reports, registry errors, invalid counters/advisories and failed/timed-out processes. Valid pnpm vulnerability exit 1 remains supported. Audit output alone is no proof of dependency reachability; installed-version/path enforcement and broader SAST/license/SBOM controls remain open. No dependencies, production credentials, user data, migrations or authorization contracts changed.
+
+Validation: full local typecheck/lint/verify/web export PASS (158 domain, 944 mobile, 55 API, 41 security tests). Browser at 390px: default compact view, level toggle, weekly expansion and reload persistence verified with zero horizontal overflow. Remote checks are recorded by its PR. Physical device acceptance and the existing backend/store/legal/operations gates remain open. This is an unversioned update on beta.8.
+
+
 ## Current checkpoint — 28.09.2026 premium refinement and regression fixes
 
 Risk MEDIUM: shared presentation components plus additive local preferences; no destructive migration, production DB change, auth bypass, billing activation or release-number change.

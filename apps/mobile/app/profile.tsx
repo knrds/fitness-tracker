@@ -1367,6 +1367,46 @@ export default function ProfileScreen() {
             )}
           </View>
 
+          <Pressable
+            style={styles.settingsRow}
+            accessibilityRole="switch"
+            accessibilityLabel={
+              language === 'de' ? 'Levelanzeige auf dem Dashboard' : 'Dashboard level progress'
+            }
+            accessibilityState={{ checked: profile.showDashboardLevel === true }}
+            onPress={() =>
+              updateProfile({ showDashboardLevel: profile.showDashboardLevel !== true })
+            }
+          >
+            <View style={[styles.settingsRowLeft, { flex: 1, minWidth: 0, paddingRight: 12 }]}>
+              <Ionicons name="trending-up-outline" size={22} color={theme.colors.muted} />
+              <Text style={[styles.settingsLabel, { flex: 1 }]}>
+                {language === 'de' ? 'Levelanzeige auf dem Dashboard' : 'Dashboard level progress'}
+              </Text>
+            </View>
+            <View style={styles.settingsRowRight}>
+              <Text style={styles.settingsValue}>
+                {profile.showDashboardLevel === true ? t('settings.on') : t('settings.off')}
+              </Text>
+              <View
+                style={[
+                  styles.togglePill,
+                  profile.showDashboardLevel === true
+                    ? styles.togglePillActive
+                    : styles.togglePillInactive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.toggleKnob,
+                    profile.showDashboardLevel === true
+                      ? styles.toggleKnobActive
+                      : styles.toggleKnobInactive,
+                  ]}
+                />
+              </View>
+            </View>
+          </Pressable>
           {/* Haptics Toggle */}
           {isBetaEnvironmentAllowed() && (
             <Pressable style={styles.settingsRow} accessibilityRole="switch"

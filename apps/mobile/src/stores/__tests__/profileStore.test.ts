@@ -20,6 +20,21 @@ jest.mock('react-native-mmkv', () => ({
 }));
 
 describe('profileStore', () => {
+  it('retains dashboard choices in the persisted schema and personal data export', async () => {
+    const previous = useProfileStore.getState().profile;
+    try {
+      useProfileStore.getState().updateProfile({ showDashboardLevel: true, dashboardWeekExpanded: true });
+      const persisted = JSON.parse(JSON.stringify({ profile: useProfileStore.getState().profile }));
+      const reloaded = await useProfileStore.persist.getOptions().migrate!(persisted, 0);
+      expect(reloaded).toMatchObject({ profile: { showDashboardLevel: true, dashboardWeekExpanded: true } });
+      expect(JSON.parse(useProfileStore.getState().exportData()).profile).toMatchObject({ showDashboardLevel: true, dashboardWeekExpanded: true });
+      useProfileStore.getState().updateProfile({ showDashboardLevel: false, dashboardWeekExpanded: false });
+      expect(useProfileStore.getState().profile).toMatchObject({ showDashboardLevel: false, dashboardWeekExpanded: false });
+    } finally {
+      useProfileStore.setState({ profile: previous });
+    }
+  });
+
   it('exports training plans, preferences, coach history and progress without runtime credentials', () => {
     useProgramStore.setState({ programs: getDefaultPrograms(), templates: getDefaultTemplates() });
     useExerciseStore.setState({

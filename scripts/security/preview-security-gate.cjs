@@ -13,49 +13,10 @@
  *   - Explicitly logs NON_RELEASE status to prevent any confusion with production release builds
  */
 
-const { spawnSync } = require('node:child_process');
+const { runPnpmAudit } = require('./audit-report.cjs');
 
 function runAudit() {
-  if (process.env.EVARO_AUDIT_DATA) {
-    try {
-      return JSON.parse(process.env.EVARO_AUDIT_DATA);
-    } catch {
-      return null;
-    }
-  }
-
-  const isWin = process.platform === 'win32';
-  const result = isWin
-    ? spawnSync('pnpm audit --json', {
-        shell: true,
-        encoding: 'utf8',
-        maxBuffer: 50 * 1024 * 1024,
-        env: process.env,
-        timeout: 180000,
-      })
-    : spawnSync('pnpm', ['audit', '--json'], {
-        encoding: 'utf8',
-        maxBuffer: 50 * 1024 * 1024,
-        env: process.env,
-        timeout: 180000,
-      });
-
-  let auditData = null;
-  const rawOutput = result.stdout || result.stderr || '';
-  try {
-    auditData = JSON.parse(rawOutput);
-  } catch {
-    const match = rawOutput.match(/\{[\s\S]*\}/);
-    if (match) {
-      try {
-        auditData = JSON.parse(match[0]);
-      } catch {
-        auditData = null;
-      }
-    }
-  }
-
-  return auditData;
+  return runPnpmAudit({ fixture: process.env.EVARO_AUDIT_DATA });
 }
 
 
@@ -87,6 +48,10 @@ function main() {
   verifyEnvironmentSafety();
 
   const audit = runAudit();
+  if (!audit) {
+    console.error('[SECURITY AUDIT ERROR] Audit did not complete with a valid pnpm report. Preview build aborted.');
+    process.exit(1);
+  }
 
   let criticalCount = 0;
   let highCount = 0;
@@ -125,7 +90,7 @@ function main() {
   console.log(`Vulnerabilities:   ${criticalCount} Critical | ${highCount} High | ${moderateCount} Moderate`);
   console.log(`High Packages:     ${Array.from(highPackages).join(', ') || 'none'}`);
   console.log(`Moderate Packages: ${Array.from(moderatePackages).join(', ') || 'none'}`);
-  console.log('Client Reachable:  0 (All findings verified in Metro/Babel/Jest/ESLint/Vitest/Xcode toolchains)');
+  console.log('Client Reachability: not inferred from audit metadata; dependency-path review required.');
   console.log('Scope Allowed:     Synthetic test data only, LAN/Safari validation, UI & i18n checks.');
   console.log('Scope Forbidden:   Real health data, production accounts, billing, store submissions.');
   console.log('================================================================================\n');

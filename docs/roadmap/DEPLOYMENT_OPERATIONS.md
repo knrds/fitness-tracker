@@ -20,6 +20,14 @@ Providerkonfiguration serverseitig nach [api/.env.example](../../api/.env.exampl
 
 ## Umgebungen und Identität
 
+### Kostenlose PostgreSQL-Grundlagen prüfen
+
+Vor Cloudaktivierung existiert kein provisionierter EVARO-Server. [Private Quoten-SQL](../../database/coach-quota.sql) ist ein additives einmaliges Installationsartefakt, keine automatisch angewendete Supabase-Migration. Keine Standardpolicy/Nutzer aktiviert. SQL-Grants/Definerowner, Read-Committed-Pool, Enrollment/Retention, echte Geldbudgets, Restore und Serveranbindung vor Produktion abnehmen. Optionaler REST-Adapter benötigt noch eine service-only Bridge; private Tabellen nicht exponieren.
+
+Auf einem **isolierten lokalen** PostgreSQL mit Testadmin und freiem Port 55432: `PGUSER=<testadmin> bash scripts/security/run-coach-quota-tests.sh`. Runner erzwingt Loopback, erzeugt eigens benannte Testdatenbanken, testet Lifecycle/Rechte/Rollback sowie parallele Budget-/Replaygrenzen. Keine Remote-Host-/Reset-/Dropoption. Auf Windows über WSL; `.gitattributes` hält Bash-Dateien in LF. Aktueller Hosttest PostgreSQL 16.15, CI-Service weiterhin gepinntes PostgreSQL 17.11. Kein bezahltes Datenbankprojekt oder AI-Aufruf nötig.
+
+`COACH_QUOTA_ENABLED=false` erhält die bisherige private Beta. Erst nach realer Server-/Client-/Policy-Abnahme aktivieren; fehlender Store bei Aktivierung stoppt Providerkosten. Account-Deletionskern hat weder Envschalter noch Route und bleibt ohne konkrete freigegebene Adapter OFF.
+
 | Ziel | Konfiguration | Freigabegrenze |
 | --- | --- | --- |
 | Lokal | Loopbackserver, synthetische Daten, `.env.coach.local` ignoriert | Keine öffentliche unautorisierte API |

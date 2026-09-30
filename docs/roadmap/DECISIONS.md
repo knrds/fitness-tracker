@@ -6,9 +6,9 @@
 | --- | --- | --- |
 | Bestehendes Expo/RN-Monorepo behalten | Native Geräte und Web mit gemeinsamen Domain-/UIverträgen; ein Rewrite behebt Datenfehler nicht. Keine getrennten Repos/FastAPI/Next.js ohne Bedarf. | Belegtem Plattform-/Buildlimit |
 | SQLite + Outbox als native lokale Wahrheit | Offline-Training, atomarer Finish und vorhandene Migration/Tests; Zustand bleibt Projektion. Web hat separate KVgrenzen. | Gemessenen Speicher-/Abfrageengpässen, nicht UIvorlieben |
-| Managed Supabase/PostgreSQL weiterverwenden | Auth/RLS/Schema/Client bereits vorhanden. Transaktionale RPCs/Revisionen/Idempotenz ergänzen statt Infrastrukturwechsel. | Compliance-, Kosten- oder Lastnachweis mit Migrationsplan |
+| PostgreSQL als Basis; Hosting/Auth offen | Betreiber bestätigt 30.09.: noch kein Supabase-Projekt. Vorbereitete Auth/RLS/Clientpfade erhalten; neue Grundlagen portabel. Keine Datenmigration erforderlich. | Konkretem Kosten-/Betriebs-/Regionen-/Authvergleich vor Cloudaktivierung |
 | Kleiner stateless Node-Coach auf Vercel | Bestehender HTTPSpfad, überschaubare Trust Boundary. Kein Clientproviderkey. | Gemessenen Laufzeit-/Medien-/Kostenlimits |
-| Quoten zuerst atomar in PostgreSQL | Wenigste neue Systeme; Requestreserve/Usage/User-/Globalcap in einer Transaktion. Noch nicht implementiert. | Gemessenem Bedarf für separate Redislimits/Queue |
+| Quoten zuerst atomar in PostgreSQL | Private Tages-/Versuchsreservierung lokal implementiert und echt getestet; keine Eurokosten-/Produktivfreigabe. | Gemessenem Bedarf für separate Redislimits/Queue |
 | SecureStore dual-read/readback/marker | Kein nativer Klartextfallback, Originalbytes bis bestätigtem Commit erhalten, Logoutresurrection verhindern. | Realem Payload-/Backup-/Geräteproblem; kompatibler Forward-Fix |
 | Keine automatische Datenreparatur/Löschung | Korrupte/unbekannte Bytes sind Nutzerdaten, nicht Wegwerfmaterial. Recovery/Quarantäne zuerst. | Explizitem Nutzerreset mit Scope-/Backupschutz |
 | Gemeinsame Editoren/Domainberechnungen | Live/Template/History, Satzstatistik/Planung/PR/Datum nicht parallel neu implementieren. | Versioniertem Fachvertrag mit Migration |
@@ -48,3 +48,5 @@ Der vom Nutzer hervorgehobene [Rechtsskill-Repository](https://github.com/Klotzk
 - Expo ist SDK54, Node24.x; veraltete SDK53-/MMKV-only-/237/598-Testangaben sind ersetzt. Bestehende Artworks/Themes und DateWheel wurden nicht entfernt.
 
 Neue Entscheidungen hier kurz mit Anlass, Konsequenz, Risiko und Überprüfungsbedingung ergänzen. Aktuellen Taskstatus ausschließlich in MASTER_ROADMAP pflegen.
+
+Betreiberklärung 30.09.2026: Supabase enthält eine echte PostgreSQL-Datenbank samt verwalteten Zusatzdiensten ([Primärquelle](https://supabase.com/docs/guides/database/overview)). Ein reiner PostgreSQL-Host macht Skalierung nicht automatisch einfacher; Auth/API, Berechtigungen, Pooling, Backups/Restore und Betrieb müssen separat gedeckt sein. Noch kein Cloud-Projekt vorhanden: kein fiktiver Umzug. Neue Grundlagen sind unabhängig vom Hosting. Keine bezahlten Projekte/Branches, externen AI-Generierungen oder produktiven Schemaänderungen in diesem Checkpoint.

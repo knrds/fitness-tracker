@@ -7,6 +7,7 @@ const originalEnv = { ...process.env };
 // Dedicated tests below explicitly restore production/VERCEL to test rejection.
 process.env.NODE_ENV = 'test';
 delete process.env.VERCEL;
+delete process.env.COACH_QUOTA_ENABLED;
 after(() => {
   global.fetch = originalFetch;
   process.env = originalEnv;
@@ -41,7 +42,10 @@ test('server kill switch blocks requests before any provider access', async () =
   const previous = process.env.COACH_ENABLED;
   process.env.COACH_ENABLED = 'false';
   let called = false;
-  global.fetch = async () => { called = true; throw new Error('must not run'); };
+  global.fetch = async () => {
+    called = true;
+    throw new Error('must not run');
+  };
   try {
     const r = res();
     await handler(request(), r);
@@ -57,12 +61,19 @@ test('one identity cannot run parallel provider requests and admission is releas
   process.env.OPENROUTER_API_KEY = 'test-key';
   process.env.OPENROUTER_MODEL = 'test-model';
   let release;
-  const pending = new Promise(resolve => { release = resolve; });
+  const pending = new Promise((resolve) => {
+    release = resolve;
+  });
   let calls = 0;
   global.fetch = async () => {
     calls++;
     await pending;
-    return { ok: true, json: async () => ({ choices: [{ finish_reason: 'stop', message: { content: 'Training response' } }] }) };
+    return {
+      ok: true,
+      json: async () => ({
+        choices: [{ finish_reason: 'stop', message: { content: 'Training response' } }],
+      }),
+    };
   };
   const req = { ...request(), localCoachUser: 'loopback-concurrency-regression' };
   const first = res();
@@ -501,4 +512,295 @@ test('production and hosted deployments reject the local development identity', 
     if (previousVercel === undefined) delete process.env.VERCEL;
     else process.env.VERCEL = previousVercel;
   }
+});
+
+// Offline contract tests only: provider/auth/store calls are all intercepted.
+async function withQuota(run) {
+  const previous = { ...process.env };
+  const previousFetch = global.fetch;
+  Object.assign(process.env, {
+    COACH_QUOTA_ENABLED: 'true',
+    COACH_QUOTA_STORE: 'supabase-rpc',
+    COACH_QUOTA_HASH_SECRET: 'quota-test-fixture-'.repeat(3),
+    SUPABASE_URL: 'https://quota.example.test',
+    SUPABASE_SECRET_KEY: 'sb_secret_test_only',
+    OPENROUTER_API_KEY: 'test-provider-key',
+    OPENROUTER_MODEL: 'test-model',
+  });
+  delete process.env.COACH_ENABLED;
+  try {
+    await run();
+  } finally {
+    process.env = previous;
+    global.fetch = previousFetch;
+  }
+}
+const quotaRequest = (name) => ({
+  ...request(),
+  localCoachUser: 'loopback-quota-' + name,
+  headers: { 'idempotency-key': '00000000-0000-4000-8000-000000000020' },
+});
+function quotaFetch(overrides = {}) {
+  const calls = [];
+  let attempts = 0;
+  const fetch = async (url, init) => {
+    const body = init.body ? JSON.parse(init.body) : null;
+    if (url.endsWith('/auth/v1/user'))
+      return { ok: true, json: async () => ({ id: '00000000-0000-4000-8000-000000000001' }) };
+    const name = url.split('/').at(-1);
+    calls.push({ name, body });
+    if (overrides[name]) return overrides[name](body, calls);
+    if (name === 'coach_quota_reserve_v1')
+      return {
+        ok: true,
+        json: async () => ({
+          version: 1,
+          status: 'reserved',
+          reservation_id: '00000000-0000-4000-8000-000000000030',
+          principal: body.p_principal,
+          request_key: body.p_request_key,
+          request_hash: body.p_request_hash,
+          lease_id: body.p_lease_id,
+          modality: body.p_modality,
+          reserved_units: 2,
+          expires_at: new Date(Date.now() + 120000).toISOString(),
+        }),
+      };
+    if (name === 'coach_quota_begin_attempt_v1') {
+      attempts++;
+      return {
+        ok: true,
+        json: async () => ({
+          version: 1,
+          status: 'started',
+          reservation_id: body.p_reservation_id,
+          lease_id: body.p_lease_id,
+          attempt: body.p_attempt,
+        }),
+      };
+    }
+    if (name === 'coach_quota_finalize_v1')
+      return {
+        ok: true,
+        json: async () => ({
+          version: 1,
+          status: 'finalized',
+          reservation_id: body.p_reservation_id,
+          lease_id: body.p_lease_id,
+          charged_units: attempts,
+        }),
+      };
+    if (name === 'completions')
+      return {
+        ok: true,
+        json: async () => ({
+          choices: [{ finish_reason: 'stop', message: { content: 'Training reply' } }],
+        }),
+      };
+    if (name === 'transcriptions')
+      return { ok: true, json: async () => ({ text: 'Training transcript' }) };
+    throw new Error('Unexpected offline test route');
+  };
+  return { calls, fetch };
+}
+
+test('enabled quota rejects missing configuration/key and store outages before provider dispatch', async () => {
+  await withQuota(async () => {
+    for (const scenario of ['configuration', 'key', 'unavailable']) {
+      process.env.COACH_QUOTA_STORE = scenario === 'configuration' ? 'unknown' : 'supabase-rpc';
+      const req = quotaRequest(scenario);
+      if (scenario === 'key') delete req.headers['idempotency-key'];
+      const mock = quotaFetch({
+        coach_quota_reserve_v1: async () => {
+          throw new Error('private store details');
+        },
+      });
+      global.fetch = mock.fetch;
+      const r = res();
+      await handler(req, r);
+      assert.equal(r.code, scenario === 'key' ? 400 : 503);
+      assert.equal(
+        mock.calls.some((call) => call.name === 'completions'),
+        false,
+      );
+      assert.equal(JSON.stringify(r.body).includes('private'), false);
+    }
+  });
+});
+
+test('enabled quota honors global/user/access denial and duplicate keys without provider dispatch', async () => {
+  await withQuota(async () => {
+    for (const [status, reason] of [
+      ['denied', 'global_limit'],
+      ['denied', 'user_limit'],
+      ['denied', 'access_denied'],
+      ['completed'],
+      ['in_progress'],
+      ['conflict'],
+    ]) {
+      const mock = quotaFetch({
+        coach_quota_reserve_v1: async () => ({
+          ok: true,
+          json: async () =>
+            reason
+              ? { version: 1, status, reason, retry_after_seconds: 15 }
+              : { version: 1, status },
+        }),
+      });
+      global.fetch = mock.fetch;
+      const r = res();
+      await handler(quotaRequest(reason || status), r);
+      assert.equal(r.code, status === 'denied' ? (reason === 'access_denied' ? 403 : 429) : 409);
+      assert.equal(mock.calls.length, 1);
+      if (reason && reason !== 'access_denied') assert.equal(r.headers['Retry-After'], '15');
+    }
+  });
+});
+
+test('enabled quota binds verified account identity and persists each retry before provider dispatch', async () => {
+  await withQuota(async () => {
+    let providerCalls = 0;
+    const mock = quotaFetch({
+      completions: async () => ({
+        ok: true,
+        json: async () => ({
+          choices: [
+            {
+              finish_reason: ++providerCalls === 1 ? 'length' : 'stop',
+              message: { content: 'Complete training answer' },
+            },
+          ],
+        }),
+      }),
+    });
+    global.fetch = mock.fetch;
+    const req = { ...quotaRequest('account-retry'), localCoachUser: undefined };
+    req.headers.authorization = 'Bearer verified-token';
+    req.body.userId = 'client-forged';
+    req.body.isPro = true;
+    req.body.quota = { globalLimit: 999999 };
+    const r = res();
+    await handler(req, r);
+    assert.equal(r.code, 200);
+    assert.equal(r.body.reply, 'Complete training answer');
+    assert.deepEqual(
+      mock.calls.map((call) => call.name),
+      [
+        'coach_quota_reserve_v1',
+        'coach_quota_begin_attempt_v1',
+        'completions',
+        'coach_quota_begin_attempt_v1',
+        'completions',
+        'coach_quota_finalize_v1',
+      ],
+    );
+    assert.equal(mock.calls[0].body.p_principal, 'account:00000000-0000-4000-8000-000000000001');
+    assert.equal(JSON.stringify(mock.calls[0].body).includes('client-forged'), false);
+    assert.equal(mock.calls[3].body.p_attempt, 2);
+    assert.equal(mock.calls.at(-1).body.p_outcome, 'success');
+  });
+});
+
+test('image/audio requests reserve distinct modality envelopes and settle before success', async () => {
+  await withQuota(async () => {
+    for (const modality of ['image', 'audio']) {
+      const mock = quotaFetch();
+      global.fetch = mock.fetch;
+      const req = quotaRequest(modality);
+      if (modality === 'image') req.body.image = 'data:image/png;base64,YQ==';
+      else req.body.audio = { format: 'wav', data: 'YQ==' };
+      const r = res();
+      await handler(req, r);
+      assert.equal(r.code, 200);
+      assert.equal(mock.calls[0].body.p_modality, modality);
+      assert.equal(mock.calls[0].body.p_reserved_units, 2);
+      assert.equal(mock.calls.at(-1).name, 'coach_quota_finalize_v1');
+      assert.equal(mock.calls.at(-1).body.p_outcome, 'success');
+    }
+  });
+});
+
+test('a failed persisted retry marker prevents the second provider call and completes as failed', async () => {
+  await withQuota(async () => {
+    let providerCalls = 0;
+    const mock = quotaFetch({
+      coach_quota_begin_attempt_v1: async (body) =>
+        body.p_attempt === 1
+          ? {
+              ok: true,
+              json: async () => ({
+                version: 1,
+                status: 'started',
+                reservation_id: body.p_reservation_id,
+                lease_id: body.p_lease_id,
+                attempt: 1,
+              }),
+            }
+          : { ok: true, json: async () => ({ version: 1, status: 'expired' }) },
+      completions: async () => {
+        providerCalls++;
+        return {
+          ok: true,
+          json: async () => ({
+            choices: [{ finish_reason: 'length', message: { content: 'incomplete' } }],
+          }),
+        };
+      },
+      coach_quota_finalize_v1: async (body) => ({
+        ok: true,
+        json: async () => ({
+          version: 1,
+          status: 'finalized',
+          reservation_id: body.p_reservation_id,
+          lease_id: body.p_lease_id,
+          charged_units: 1,
+        }),
+      }),
+    });
+    global.fetch = mock.fetch;
+    const r = res();
+    await handler(quotaRequest('retry-expired'), r);
+    assert.equal(r.code, 503);
+    assert.equal(r.body.code, 'QUOTA_UNAVAILABLE');
+    assert.equal(providerCalls, 1);
+    assert.equal(mock.calls.at(-1).body.p_outcome, 'failed');
+  });
+});
+
+test('uncertain completion never returns a successful answer or sends a refund amount', async () => {
+  await withQuota(async () => {
+    const mock = quotaFetch({
+      coach_quota_finalize_v1: async () => {
+        throw new Error('store response lost after commit');
+      },
+    });
+    global.fetch = mock.fetch;
+    const r = res();
+    await handler(quotaRequest('completion-outage'), r);
+    assert.equal(r.code, 503);
+    assert.equal(r.body.reply, undefined);
+    assert.equal(r.body.code, 'QUOTA_UNAVAILABLE');
+    for (const call of mock.calls.filter((call) => call.name === 'coach_quota_finalize_v1'))
+      assert.deepEqual(Object.keys(call.body).sort(), [
+        'p_lease_id',
+        'p_outcome',
+        'p_reservation_id',
+      ]);
+    assert.equal(mock.calls.filter((call) => call.name === 'completions').length, 1);
+  });
+});
+
+test('deterministic safety interception needs no durable capacity or provider call', async () => {
+  await withQuota(async () => {
+    process.env.COACH_QUOTA_STORE = 'unknown';
+    const mock = quotaFetch();
+    global.fetch = mock.fetch;
+    const req = quotaRequest('safety');
+    req.body.messages[0].content = 'Ich plane ein extreme dry fast ohne Wasser für 3 Tage.';
+    const r = res();
+    await handler(req, r);
+    assert.equal(r.code, 200);
+    assert.equal(r.body.safetyIntercept, true);
+    assert.equal(mock.calls.length, 0);
+  });
 });

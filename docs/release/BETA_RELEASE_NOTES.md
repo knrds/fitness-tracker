@@ -2,7 +2,14 @@
 
 Letzter annotierter Paket-Beta-Tag: `v0.1.0-beta.8`. Main enthält spätere unversionierte Produktupdates. Aktuelle Freigaben und Blocker ausschließlich in [Projektorientierung](../roadmap/README.md) und [Master-Roadmap](../roadmap/MASTER_ROADMAP.md).
 
-## Unversionierter Checkpoint — 30.09.2026
+## Kostenlose Backend-/Security-Grundlagen — 30.09.2026
+
+- Portable private PostgreSQL-Quoten: Tageslimits pro Nutzer und global, getrennte Text-/Bild-/Audiolimits, sichere Reservierung/Wiederholung/Abschluss und Paralleltests. API-Anbindung vorbereitet, standardmäßig ausgeschaltet; produktiver Store und echte Eurokostenmessung bleiben offen.
+- Serverkern für sichere Kontolöschung mit frischer Reauth, kontogebundenen Aufträgen, bestätigten Stufen und Wiederaufnahme vorbereitet. Kein aktiver Löschendpoint und keine Cloudlöschung; konkrete Backendadapter fehlen.
+- Dependency-Ausnahmen auf tatsächliche Versionen/Pfade begrenzt und mit Re-Review-Frist versehen; neue SQL-Tests in CI. Shell-Gates bleiben auch in Windows-Checkouts ausführbar.
+- Lokale Prüfung: 1.280 Tests, Typecheck/Lint/Web-Export/Audit und echte PostgreSQL-RLS-/Quoten-/Paralleltests grün. Keine neue kostenpflichtige Infrastruktur oder Provideraufrufe.
+
+## Konsolidierung — PR #24 / main 39723d8
 
 - Projekt- und Releaseunterlagen in sieben zentralen Dokumenten konsolidiert; redundante AI-/Planungsberichte und ungenutzte Designreferenzen entfernt, Lizenz-/Migrations-/SQL-Nachweise erhalten.
 - Kontolöschung verlangt expliziten versionierten Serverbeleg für das ursprüngliche Konto; uneindeutige Antworten und Kontowechsel erhalten lokale Daten. Doppelte lokale Bereinigung entfernt; Teilfehler werden nicht als Erfolg ausgegeben.

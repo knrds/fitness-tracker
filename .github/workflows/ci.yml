@@ -109,3 +109,5 @@ jobs:
           persist-credentials: false
       - name: Real PostgreSQL RLS assertions and rollback proof
         run: bash scripts/security/run-rls-tests.sh
+      - name: Portable PostgreSQL Coach quota lifecycle and concurrency
+        run: bash scripts/security/run-coach-quota-tests.sh

@@ -7,6 +7,7 @@ const {
 const { getResearch } = require('./coach-research.cjs');
 const { screenCoachSafety } = require('./coach-safety.cjs');
 const { verifyBetaToken } = require('./beta-auth.cjs');
+const { CoachQuotaError, createQuotaFromEnv } = require('./coach-quota.cjs');
 const limits = new Map();
 // Per-instance admission guard. Distributed quotas and the provider spend cap
 // are separate deployment gates; this map is not a global cost ledger.
@@ -27,7 +28,7 @@ module.exports = async function handler(req, res) {
     res.setHeader('Vary', 'Origin');
   }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Idempotency-Key');
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (process.env.COACH_ENABLED === 'false')
@@ -56,7 +57,11 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  if (!localUser && !betaUser && (typeof authorization !== 'string' || !/^Bearer \S+$/.test(authorization)))
+  if (
+    !localUser &&
+    !betaUser &&
+    (typeof authorization !== 'string' || !/^Bearer \S+$/.test(authorization))
+  )
     return res.status(401).json({ error: 'Sign in required' });
   const { SUPABASE_URL, SUPABASE_ANON_KEY, OPENROUTER_API_KEY, OPENROUTER_MODEL } = process.env;
   if (
@@ -134,6 +139,8 @@ module.exports = async function handler(req, res) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 65000);
   let admittedUser = null;
+  let quotaReservation = null;
+  let quotaFinalized = false;
   try {
     let user = localUser || betaUser;
     if (!user) {
@@ -151,7 +158,12 @@ module.exports = async function handler(req, res) {
       return res.status(401).json({ error: 'Unable to verify account' });
     if (activeUsers.has(user.id) || activeUsers.size >= 8) {
       res.setHeader('Retry-After', '5');
-      return res.status(429).json({ code: 'CONCURRENCY_LIMIT', error: 'Coach request already running or service busy' });
+      return res
+        .status(429)
+        .json({
+          code: 'CONCURRENCY_LIMIT',
+          error: 'Coach request already running or service busy',
+        });
     }
     activeUsers.add(user.id);
     admittedUser = user.id;
@@ -180,6 +192,15 @@ module.exports = async function handler(req, res) {
         safetyIntercept: true,
         category: safetyScreen.category,
         model: 'evaro-safety-guardrail',
+      });
+    }
+    const quota = createQuotaFromEnv();
+    if (quota) {
+      quotaReservation = await quota.reserve({
+        identity: { source: localUser ? 'loopback' : betaUser ? 'beta' : 'account', id: user.id },
+        requestKey: req.headers['idempotency-key'],
+        body,
+        modality: audio ? 'audio' : image ? 'image' : 'text',
       });
     }
     const research =
@@ -227,6 +248,7 @@ module.exports = async function handler(req, res) {
     let plan;
     let reply;
     for (let attempt = 0; attempt < 2; attempt++) {
+      if (quotaReservation) await quotaReservation.beginAttempt(attempt + 1);
       const response = await fetch(
         audio
           ? 'https://openrouter.ai/api/v1/audio/transcriptions'
@@ -242,9 +264,18 @@ module.exports = async function handler(req, res) {
           body: JSON.stringify(
             audio
               ? {
-                  model, input_audio: audio, temperature: 0,
+                  model,
+                  input_audio: audio,
+                  temperature: 0,
                   // Omit language: retain automatic detection for German/English dictation.
-                  provider: { options: { groq: { prompt: 'Training, Workout, Sätze, Wiederholungen, RPE, RIR, Push, Pull, Legs, Kniebeuge, Bench Press, Deadlift.' } } },
+                  provider: {
+                    options: {
+                      groq: {
+                        prompt:
+                          'Training, Workout, Sätze, Wiederholungen, RPE, RIR, Push, Pull, Legs, Kniebeuge, Bench Press, Deadlift.',
+                      },
+                    },
+                  },
                 }
               : {
                   model,
@@ -280,6 +311,10 @@ module.exports = async function handler(req, res) {
       if (audio) {
         if (typeof data?.text !== 'string' || !data.text.trim())
           return res.status(502).json({ code: 'EMPTY_TRANSCRIPT', error: 'No speech recognized' });
+        if (quotaReservation) {
+          await quotaReservation.finalize('success');
+          quotaFinalized = true;
+        }
         return res.status(200).json({ reply: data.text.trim(), model });
       }
       const choice = data?.choices?.[0];
@@ -310,6 +345,10 @@ module.exports = async function handler(req, res) {
     }
     if (typeof reply !== 'string' || !reply.trim())
       return res.status(502).json({ error: 'Empty AI response' });
+    if (quotaReservation) {
+      await quotaReservation.finalize('success');
+      quotaFinalized = true;
+    }
     return res.status(200).json({
       reply: reply.trim(),
       model,
@@ -321,11 +360,27 @@ module.exports = async function handler(req, res) {
           }
         : {}),
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof CoachQuotaError) {
+      if (error.retryAfterSeconds !== undefined)
+        res.setHeader('Retry-After', String(Math.max(1, error.retryAfterSeconds)));
+      return res
+        .status(error.status)
+        .json({ code: error.code, error: 'Coach quota could not authorize this request' });
+    }
     return res
       .status(controller.signal.aborted ? 504 : 502)
       .json({ error: 'Coach request failed' });
   } finally {
+    if (quotaReservation && !quotaFinalized) {
+      // A failed/uncertain store completion retains durable capacity until the
+      // store reconciles it. Never release an attempted request in local RAM.
+      try {
+        await quotaReservation.finalize('failed');
+      } catch {
+        /* Retained by the store; no raw errors. */
+      }
+    }
     if (admittedUser !== null) activeUsers.delete(admittedUser);
     clearTimeout(timeout);
   }

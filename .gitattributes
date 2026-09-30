@@ -1,0 +1,2 @@
+# Bash gates must also run from Windows checkouts via WSL.
+*.sh text eol=lf

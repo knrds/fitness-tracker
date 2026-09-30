@@ -27,6 +27,7 @@ Produktions-DB-/Store-/Billingaktivierungen benötigen dafür bestehende ausdrü
 - UI/Tokens: `packages/ui/src/`
 - Coach: `api/`
 - Cloudmigrationen: `supabase/migrations/`; Baseline `docs/schema.sql`
+- Portable PostgreSQL-Grundlagen: `database/`; lokal/CI prüfen, keine automatische Cloudaktivierung
 - Gates: `scripts/security/`, `.github/workflows/ci.yml`
 
 Native Speicher-/Session- und SQL-Testdetails unter `docs/reference/`. Echte iOS-/Android-/Samsung-Abnahme bleibt ein separates Gate. Keine automatischen Rechts-/Storefreigaben behaupten.

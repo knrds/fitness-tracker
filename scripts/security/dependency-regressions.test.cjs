@@ -91,3 +91,41 @@ test('Expo undici rejects blob-like CRLF content type before sending a request',
     });
   `);
 });
+
+test('Expo undici rejects unrequested WebSocket protocols without crashing the process', () => {
+  isolated(`
+    const assert = require('node:assert/strict');
+    const http = require('node:http');
+    const { createHash } = require('node:crypto');
+    const { WebSocket } = require(${JSON.stringify(cli.resolve('undici'))});
+    async function probe(unwantedProtocol) {
+      const server = http.createServer();
+      const sockets = new Set();
+      server.on('upgrade', (request, socket) => {
+        sockets.add(socket);
+        const accept = createHash('sha1').update(request.headers['sec-websocket-key'] +
+          '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
+        socket.write('HTTP/1.1 101 Switching Protocols\\r\\nUpgrade: websocket\\r\\n' +
+          'Connection: Upgrade\\r\\nSec-WebSocket-Accept: ' + accept + '\\r\\n' +
+          (unwantedProtocol ? 'Sec-WebSocket-Protocol: unrequested\\r\\n' : '') + '\\r\\n');
+      });
+      await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+      try {
+        const outcome = await new Promise((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error('WebSocket handshake did not settle')), 1500);
+          const ws = new WebSocket('ws://127.0.0.1:' + server.address().port);
+          for (const event of ['open', 'error']) ws.addEventListener(event, () => {
+            clearTimeout(timer);
+            resolve(event);
+          }, { once: true });
+        });
+        assert.equal(outcome, unwantedProtocol ? 'error' : 'open');
+      } finally {
+        for (const socket of sockets) socket.destroy();
+        await new Promise(resolve => server.close(resolve));
+      }
+    }
+    (async () => { await probe(true); await probe(false); })()
+      .catch(error => { console.error(error.message); process.exitCode = 1; });
+  `);
+});

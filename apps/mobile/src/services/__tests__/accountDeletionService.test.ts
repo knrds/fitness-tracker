@@ -1,3 +1,4 @@
+import { beginScopeChange, selectStoragePartition, completeScopeChange } from '../../data/storageScope';
 import {
   accountDeletionService,
   AccountDeletionDependencies,
@@ -18,7 +19,11 @@ describe('Account Deletion Service Client Hardening', () => {
   let signedOut: boolean;
   let rpcCalls: string[];
 
+  const successResponse = () => ({ error: null, data: { version: 1, success: true, user_id: '11111111-1111-4111-8111-111111111111', deleted_at: '2026-09-30T12:00:00.000Z' } });
   beforeEach(() => {
+    const generation = beginScopeChange();
+    selectStoragePartition('account:11111111-1111-4111-8111-111111111111', generation);
+    completeScopeChange(generation);
     jest.clearAllMocks();
     localDataCleared = false;
     signedOut = false;
@@ -29,12 +34,12 @@ describe('Account Deletion Service Client Hardening', () => {
       isOnline: () => true,
       getAuthContext: async () => ({
         isAuthenticated: true,
-        userId: 'test-user-uuid',
+        userId: '11111111-1111-4111-8111-111111111111',
         isExpired: false,
       }),
       callCloudRpc: async (fnName: string) => {
         rpcCalls.push(fnName);
-        return { error: null };
+        return successResponse();
       },
       clearLocalData: async () => {
         localDataCleared = true;
@@ -139,7 +144,7 @@ describe('Account Deletion Service Client Hardening', () => {
   test('Test 6: Expired session -> authentication required', async () => {
     mockDeps.getAuthContext = async () => ({
       isAuthenticated: false,
-      userId: 'test-user-uuid',
+      userId: '11111111-1111-4111-8111-111111111111',
       isExpired: true,
     });
 
@@ -157,8 +162,8 @@ describe('Account Deletion Service Client Hardening', () => {
   });
 
   test('Test 7: Double submit protected (concurrent invocation rejected)', async () => {
-    let slowRpcResolve: (val: { error: null }) => void;
-    const slowRpcPromise = new Promise<{ error: null }>((resolve) => {
+    let slowRpcResolve: (val: ReturnType<typeof successResponse>) => void;
+    const slowRpcPromise = new Promise<ReturnType<typeof successResponse>>((resolve) => {
       slowRpcResolve = resolve;
     });
 
@@ -182,7 +187,7 @@ describe('Account Deletion Service Client Hardening', () => {
     expect(secondCall.code).toBe('DOUBLE_SUBMIT');
 
     // Resolve first call
-    slowRpcResolve!({ error: null });
+    slowRpcResolve!(successResponse());
     const firstCall = await firstCallPromise;
     expect(firstCall.success).toBe(true);
   });

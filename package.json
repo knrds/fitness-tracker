@@ -18,10 +18,12 @@
     "build": "pnpm --filter @fitness-tracker/mobile build && node scripts/check-web-export.cjs",
     "build:preview": "pnpm verify && node scripts/security/preview-security-gate.cjs && pnpm build",
     "audit:ci": "node scripts/security/ci-dependency-gate.cjs",
+    "docs:check": "node scripts/check-docs.cjs",
+    "test:docs": "node --test scripts/check-docs.test.cjs",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test && pnpm test:api && pnpm test:security",
-    "verify": "pnpm typecheck && pnpm lint && pnpm test",
+    "test": "pnpm -r test && pnpm test:api && pnpm test:security && pnpm test:docs",
+    "verify": "pnpm docs:check && pnpm typecheck && pnpm lint && pnpm test",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
   },
   "devDependencies": {

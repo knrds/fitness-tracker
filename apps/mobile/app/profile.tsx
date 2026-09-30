@@ -444,7 +444,9 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteAccount = async () => {
+    const scope = getStorageScope();
     const capability = await accountDeletionService.verifyDeletionCapability();
+    if (!isScopeCurrent(scope)) return;
     if (!capability.available) {
       Alert.alert(
         t('legal.deleteAccount'),
@@ -469,8 +471,8 @@ export default function ProfileScreen() {
             const res = await accountDeletionService.requestAccountDeletion({
               confirmationText: CONFIRMATION_KEYWORD,
             });
+            if (res.code === 'ACCOUNT_CHANGED') return;
             if (res.success) {
-              await accountDeletionService.clearLocalDataAfterConfirmedCloudDeletion();
               Alert.alert(
                 language === 'de' ? 'Erfolg' : 'Success',
                 language === 'de'
@@ -481,7 +483,9 @@ export default function ProfileScreen() {
               Alert.alert(
                 language === 'de' ? 'Fehler' : 'Error',
                 language === 'de'
-                  ? (res.error ?? 'Löschung fehlgeschlagen.')
+                  ? (res.cloudDeletionConfirmed
+                    ? 'Die Cloud-Löschung wurde bestätigt. Der lokale Abschluss oder die Abmeldung ist noch nicht vollständig bestätigt. Bitte prüfe den Kontostatus.'
+                    : 'Die Account-Löschung wurde nicht bestätigt. Lokale Daten bleiben erhalten. Bitte prüfe den Kontostatus und versuche es erneut.')
                   : (res.error ?? 'Deletion failed.'),
               );
             }

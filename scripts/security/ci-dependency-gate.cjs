@@ -26,7 +26,7 @@ const ALLOWED_HIGH_EXCEPTIONS = [
     reason:
       'Metro dev toolchain asset dimension parser. Build-time only; never bundled into iOS/Android native client or web runtime distribution.',
     owner: 'Astra Security Governance',
-    reviewCondition: 'Reviewed 2026-09-21 in DEPENDENCY_AUDIT_REPORT.md; must be removed on Expo SDK / Metro upgrade.',
+    reviewCondition: 'Reviewed 2026-09-21; source retained in Git at 39b2b3e, current policy: docs/roadmap/SECURITY_PRIVACY.md; remove on Expo SDK / Metro upgrade.',
     removalMilestone: 'Expo SDK 55 / Metro upgrade',
   },
   {
@@ -39,7 +39,7 @@ const ALLOWED_HIGH_EXCEPTIONS = [
     reason:
       'Metro dev toolchain asset dimension parser. Build-time only; never bundled into iOS/Android native client or web runtime distribution.',
     owner: 'Astra Security Governance',
-    reviewCondition: 'Reviewed 2026-09-21 in DEPENDENCY_AUDIT_REPORT.md; must be removed on Expo SDK / Metro upgrade.',
+    reviewCondition: 'Reviewed 2026-09-21; source retained in Git at 39b2b3e, current policy: docs/roadmap/SECURITY_PRIVACY.md; remove on Expo SDK / Metro upgrade.',
     removalMilestone: 'Expo SDK 55 / Metro upgrade',
   },
 ];

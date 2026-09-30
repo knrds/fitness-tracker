@@ -2,6 +2,9 @@ import { supabase, isSupabaseConfigured } from '../utils/supabase';
 import { useAuthStore } from '../stores/authStore';
 import { useProfileStore } from '../stores/profileStore';
 import { logger } from '../utils/logger';
+import { z } from 'zod';
+import { UUIDSchema } from '@fitness-tracker/domain';
+import { getStorageScope, isScopeCurrent } from '../data/storageScope';
 
 export type DeletionCapabilityCode =
   | 'READY'
@@ -21,8 +24,9 @@ export interface AccountDeletionRequest {
 
 export interface AccountDeletionResult {
   success: boolean;
-  code?: 'SUCCESS' | 'CONFIRMATION_INVALID' | 'DOUBLE_SUBMIT' | 'OFFLINE' | 'AUTH_EXPIRED' | 'CLOUD_RPC_FAILED';
+  code?: 'SUCCESS' | 'CONFIRMATION_INVALID' | 'DOUBLE_SUBMIT' | 'OFFLINE' | 'AUTH_EXPIRED' | 'CLOUD_RPC_FAILED' | 'ACCOUNT_CHANGED' | 'LOCAL_CLEANUP_FAILED' | 'SIGN_OUT_FAILED' | 'BACKEND_NOT_CONFIGURED';
   error?: string;
+  cloudDeletionConfirmed?: boolean;
   localCleanupExecuted: boolean;
 }
 
@@ -30,13 +34,22 @@ export interface AccountDeletionDependencies {
   isConfigured?: () => boolean;
   isOnline: () => boolean;
   getAuthContext: () => Promise<{ isAuthenticated: boolean; userId: string | null; isExpired: boolean }>;
-  callCloudRpc: (fnName: string) => Promise<{ error: { message: string; code?: string } | null }>;
+  callCloudRpc: (fnName: string) => Promise<{ data?: unknown; error: { message: string; code?: string } | null }>;
   clearLocalData: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 export const CONFIRMATION_KEYWORD = 'DELETE';
 export const CONFIRMATION_KEYWORD_DE = 'LÖSCHEN';
+
+// Client contract only: no deployed RPC is assumed. HTTP success or a void
+// response never authorizes a destructive local cleanup.
+const DeletionReceiptSchema = z.object({
+  version: z.literal(1),
+  success: z.literal(true),
+  user_id: UUIDSchema,
+  deleted_at: z.string().datetime({ offset: true }),
+}).strict();
 
 class AccountDeletionService {
   private isDeletionInProgress = false;
@@ -72,8 +85,8 @@ class AccountDeletionService {
     },
     callCloudRpc: async (fnName: string) => {
       try {
-        const { error } = await supabase.rpc(fnName);
-        return { error: error ? { message: error.message, code: error.code } : null };
+        const { data, error } = await supabase.rpc(fnName);
+        return { data, error: error ? { message: error.message, code: error.code } : null };
       } catch (err) {
         return { error: { message: err instanceof Error ? err.message : 'Network error calling cloud RPC' } };
       }
@@ -82,13 +95,14 @@ class AccountDeletionService {
       await useProfileStore.getState().clearAllData();
     },
     signOut: async () => {
-      await useAuthStore.getState().signOut();
+      const result = await useAuthStore.getState().signOut();
+      if (result.error) throw new Error('Session cleanup failed');
     },
   };
 
   /**
    * Verifies if the backend and client state allow initiating account deletion.
-   * Ensures the UI never shows a false or fake deletion button.
+   * Client prerequisites only; this does not certify that a backend RPC exists.
    */
   async verifyDeletionCapability(
     deps: AccountDeletionDependencies = this.defaultDeps
@@ -122,7 +136,7 @@ class AccountDeletionService {
     return {
       available: true,
       code: 'READY',
-      reason: 'Backend capability verified and authenticated session active.',
+      reason: 'Client prerequisites met; backend deletion must still be confirmed.',
     };
   }
 
@@ -158,6 +172,10 @@ class AccountDeletionService {
       };
     }
 
+    if (!(deps.isConfigured?.() ?? isSupabaseConfigured)) {
+      return { success: false, code: 'BACKEND_NOT_CONFIGURED', localCleanupExecuted: false };
+    }
+
     // 3. Connectivity check
     if (!deps.isOnline()) {
       return {
@@ -168,12 +186,25 @@ class AccountDeletionService {
       };
     }
 
+    const scope = getStorageScope();
+    let cloudDeletionConfirmed = false;
+    let localCleanupExecuted = false;
+    const accountChanged = (): AccountDeletionResult => ({
+      success: false,
+      code: 'ACCOUNT_CHANGED',
+      error: 'The account changed. No further local cleanup was attempted.',
+      cloudDeletionConfirmed,
+      localCleanupExecuted,
+    });
+    if (!isScopeCurrent(scope)) return accountChanged();
+
     // Lock process before starting async operations
     this.isDeletionInProgress = true;
     try {
       // 4. Authentication verification
       const auth = await deps.getAuthContext();
-      if (!auth.isAuthenticated || auth.isExpired) {
+      if (!isScopeCurrent(scope)) return accountChanged();
+      if (!auth.isAuthenticated || auth.isExpired || !UUIDSchema.safeParse(auth.userId).success) {
         return {
           success: false,
           code: 'AUTH_EXPIRED',
@@ -181,37 +212,58 @@ class AccountDeletionService {
           localCleanupExecuted: false,
         };
       }
-      logger.info(`[AccountDeletion] Initiating cloud RPC delete_user_account for user: ${auth.userId}`);
+      if (scope.partition !== `account:${auth.userId}`) return accountChanged();
 
       // 5. Execute cloud RPC delete_user_account
       const rpcResult = await deps.callCloudRpc('delete_user_account');
 
-      if (!rpcResult || typeof rpcResult !== 'object' || rpcResult.error) {
-        const errorDetail = rpcResult?.error?.message ?? 'Malformed or empty response from cloud deletion RPC';
-        logger.error('[AccountDeletion] Cloud RPC deletion failed. Preserving local user data.', rpcResult?.error ?? errorDetail);
+      const receipt = rpcResult && !rpcResult.error
+        ? DeletionReceiptSchema.safeParse(rpcResult.data)
+        : null;
+      if (!receipt?.success || receipt.data.user_id !== auth.userId) {
         return {
           success: false,
           code: 'CLOUD_RPC_FAILED',
-          error: `Cloud deletion failed: ${errorDetail}. Local data preserved.`,
+          error: 'Cloud deletion was not confirmed. Local data has been preserved.',
           localCleanupExecuted: false,
         };
       }
 
-      // 6. Cloud deletion confirmed -> Execute local data cleanup
-      logger.info('[AccountDeletion] Cloud deletion confirmed. Purging local device data.');
-      await this.clearLocalDataAfterConfirmedCloudDeletion(deps);
+      cloudDeletionConfirmed = true;
+      if (!isScopeCurrent(scope)) return accountChanged();
+
+      // clearAllData independently checks its scope after asynchronous backup cleanup.
+      try {
+        await deps.clearLocalData();
+        localCleanupExecuted = true;
+      } catch {
+        return { success: false, code: 'LOCAL_CLEANUP_FAILED', cloudDeletionConfirmed, localCleanupExecuted,
+          error: 'Cloud deletion was confirmed, but local cleanup failed.' };
+      }
+      if (!isScopeCurrent(scope)) return accountChanged();
+      try {
+        await deps.signOut();
+      } catch {
+        return { success: false, code: 'SIGN_OUT_FAILED', cloudDeletionConfirmed, localCleanupExecuted,
+          error: 'Cloud deletion and local cleanup completed, but sign-out failed.' };
+      }
+      const afterSignOut = getStorageScope();
+      if (!isScopeCurrent(afterSignOut) || (!isScopeCurrent(scope) && afterSignOut.partition !== 'legacy')) {
+        return accountChanged();
+      }
 
       return {
         success: true,
         code: 'SUCCESS',
+        cloudDeletionConfirmed,
         localCleanupExecuted: true,
       };
-    } catch (unexpectedError) {
-      logger.error('[AccountDeletion] Unexpected error during deletion:', unexpectedError);
+    } catch {
+      logger.error('[AccountDeletion] Deletion request failed.');
       return {
         success: false,
         code: 'CLOUD_RPC_FAILED',
-        error: unexpectedError instanceof Error ? unexpectedError.message : 'Unexpected deletion error',
+        error: 'Cloud deletion was not confirmed. Local data has been preserved.',
         localCleanupExecuted: false,
       };
     } finally {
@@ -219,24 +271,6 @@ class AccountDeletionService {
     }
   }
 
-  /**
-   * Purges local SQLite data, resets stores, and signs out.
-   * Only called AFTER the cloud has confirmed deletion of the account.
-   */
-  async clearLocalDataAfterConfirmedCloudDeletion(
-    deps: AccountDeletionDependencies = this.defaultDeps
-  ): Promise<void> {
-    try {
-      await deps.clearLocalData();
-    } catch (err) {
-      logger.warn('[AccountDeletion] Warning: local store cleanup encountered an error:', err);
-    }
-    try {
-      await deps.signOut();
-    } catch (err) {
-      logger.warn('[AccountDeletion] Warning: sign-out encountered an error:', err);
-    }
-  }
 }
 
 export const accountDeletionService = new AccountDeletionService();

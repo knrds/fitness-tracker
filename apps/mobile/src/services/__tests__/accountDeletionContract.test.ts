@@ -1,3 +1,4 @@
+import { beginScopeChange, selectStoragePartition, completeScopeChange } from '../../data/storageScope';
 import {
   accountDeletionService,
   AccountDeletionDependencies,
@@ -19,14 +20,18 @@ describe('S5 Account Deletion Contract & Resilience Suite', () => {
   let rpcCalls: { fnName: string; args?: unknown }[];
   let authContext: { isAuthenticated: boolean; userId: string | null; isExpired: boolean };
 
+  const successResponse = () => ({ error: null, data: { version: 1, success: true, user_id: '11111111-1111-4111-8111-111111111111', deleted_at: '2026-09-30T12:00:00.000Z' } });
   beforeEach(() => {
+    const generation = beginScopeChange();
+    selectStoragePartition('account:11111111-1111-4111-8111-111111111111', generation);
+    completeScopeChange(generation);
     jest.clearAllMocks();
     localDataPurged = false;
     sessionRevoked = false;
     rpcCalls = [];
     authContext = {
       isAuthenticated: true,
-      userId: '11111111-2222-3333-4444-555555555555',
+      userId: '11111111-1111-4111-8111-111111111111',
       isExpired: false,
     };
 
@@ -36,7 +41,7 @@ describe('S5 Account Deletion Contract & Resilience Suite', () => {
       getAuthContext: async () => authContext,
       callCloudRpc: async (fnName: string) => {
         rpcCalls.push({ fnName });
-        return { error: null };
+        return successResponse();
       },
       clearLocalData: async () => {
         localDataPurged = true;
@@ -143,7 +148,7 @@ describe('S5 Account Deletion Contract & Resilience Suite', () => {
     );
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/rate limit exceeded/i);
+    expect(result.error).toBe('Cloud deletion was not confirmed. Local data has been preserved.');
     expect(localDataPurged).toBe(false);
   });
 
@@ -159,7 +164,7 @@ describe('S5 Account Deletion Contract & Resilience Suite', () => {
     );
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/Storage bucket avatar purge failed/i);
+    expect(result.error).toBe('Cloud deletion was not confirmed. Local data has been preserved.');
     expect(localDataPurged).toBe(false);
   });
 
@@ -186,7 +191,7 @@ describe('S5 Account Deletion Contract & Resilience Suite', () => {
     mockDeps.callCloudRpc = async () => {
       executionOrder.push('cloud_rpc_start');
       executionOrder.push('cloud_rpc_confirmed');
-      return { error: null };
+      return successResponse();
     };
 
     mockDeps.clearLocalData = async () => {
@@ -240,8 +245,8 @@ describe('S5 Account Deletion Contract & Resilience Suite', () => {
   // 11. Concurrent Second Delete Call Lock
   it('Contract 11: In-flight deletion locks out concurrent secondary delete attempts', async () => {
     let completeRpc: () => void;
-    const inFlightPromise = new Promise<{ error: null }>((resolve) => {
-      completeRpc = () => resolve({ error: null });
+    const inFlightPromise = new Promise<ReturnType<typeof successResponse>>((resolve) => {
+      completeRpc = () => resolve(successResponse());
     });
 
     mockDeps.callCloudRpc = async () => inFlightPromise;
@@ -299,5 +304,100 @@ describe('S5 Account Deletion Contract & Resilience Suite', () => {
     expect(capabilityB.available).toBe(true);
     expect(capabilityB.code).toBe('READY');
     expect(localDataPurged).toBe(false);
+  });
+});
+
+describe('Account deletion receipt and in-flight account boundaries', () => {
+  const userA = '11111111-1111-4111-8111-111111111111';
+  const userB = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const moveTo = (userId: string | null) => {
+    const generation = beginScopeChange();
+    selectStoragePartition(userId ? `account:${userId}` : 'legacy', generation);
+    completeScopeChange(generation);
+  };
+  const receipt = () => ({ version: 1, success: true, user_id: userA, deleted_at: '2026-09-30T12:00:00.000Z' });
+  let deps: AccountDeletionDependencies;
+  let clearLocalData: jest.Mock;
+  let signOut: jest.Mock;
+  beforeEach(() => {
+    moveTo(userA);
+    clearLocalData = jest.fn(async () => undefined);
+    signOut = jest.fn(async () => undefined);
+    deps = {
+      isConfigured: () => true,
+      isOnline: () => true,
+      getAuthContext: async () => ({ isAuthenticated: true, userId: userA, isExpired: false }),
+      callCloudRpc: async () => ({ error: null, data: receipt() }),
+      clearLocalData,
+      signOut,
+    };
+  });
+  const request = () => accountDeletionService.requestAccountDeletion({ confirmationText: 'DELETE' }, deps);
+
+  it.each([
+    undefined, null, false, {}, { success: true },
+    { ...receipt(), version: 2 }, { ...receipt(), success: false },
+    { ...receipt(), user_id: userB }, { ...receipt(), user_id: 'invalid' },
+    { ...receipt(), deleted_at: 'yesterday' }, { ...receipt(), unexpected: true },
+  ])('rejects an ambiguous or mismatched backend receipt: %p', async (data) => {
+    deps.callCloudRpc = async () => ({ error: null, data });
+    expect(await request()).toMatchObject({ success: false, code: 'CLOUD_RPC_FAILED', localCleanupExecuted: false });
+    expect(clearLocalData).not.toHaveBeenCalled();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])('preserves data when the account changes during RPC (returns to A: %s)', async (returnToA) => {
+    let resolveRpc!: (value: { error: null; data: ReturnType<typeof receipt> }) => void;
+    let markStarted!: () => void;
+    const started = new Promise<void>((resolve) => { markStarted = resolve; });
+    deps.callCloudRpc = () => {
+      markStarted();
+      return new Promise((resolve) => { resolveRpc = resolve; });
+    };
+    const pending = request();
+    await started;
+    moveTo(userB);
+    if (returnToA) moveTo(userA);
+    resolveRpc({ error: null, data: receipt() });
+    expect(await pending).toMatchObject({ success: false, code: 'ACCOUNT_CHANGED', cloudDeletionConfirmed: true, localCleanupExecuted: false });
+    expect(clearLocalData).not.toHaveBeenCalled();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it('does not call the RPC after a scope change during authentication', async () => {
+    const rpc = jest.fn(deps.callCloudRpc);
+    deps.callCloudRpc = rpc;
+    deps.getAuthContext = async () => {
+      moveTo(userB);
+      return { isAuthenticated: true, userId: userA, isExpired: false };
+    };
+    expect(await request()).toMatchObject({ success: false, code: 'ACCOUNT_CHANGED' });
+    expect(rpc).not.toHaveBeenCalled();
+    expect(clearLocalData).not.toHaveBeenCalled();
+  });
+
+  it('reports local cleanup failure without claiming completed deletion or signing out', async () => {
+    clearLocalData.mockRejectedValueOnce(new Error('SQLITE_FULL'));
+    expect(await request()).toMatchObject({ success: false, code: 'LOCAL_CLEANUP_FAILED', cloudDeletionConfirmed: true, localCleanupExecuted: false });
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it('does not sign out another account selected during local cleanup', async () => {
+    clearLocalData.mockImplementationOnce(async () => { moveTo(userB); });
+    expect(await request()).toMatchObject({ success: false, code: 'ACCOUNT_CHANGED', cloudDeletionConfirmed: true, localCleanupExecuted: true });
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it('reports sign-out failure after confirmed cloud deletion and local cleanup', async () => {
+    signOut.mockRejectedValueOnce(new Error('Keychain failed'));
+    expect(await request()).toMatchObject({ success: false, code: 'SIGN_OUT_FAILED', cloudDeletionConfirmed: true, localCleanupExecuted: true });
+    expect(clearLocalData).toHaveBeenCalledTimes(1);
+  });
+
+  it('cleans the original account once and never resets guest data after sign-out', async () => {
+    signOut.mockImplementationOnce(async () => { moveTo(null); });
+    expect(await request()).toMatchObject({ success: true, cloudDeletionConfirmed: true, localCleanupExecuted: true });
+    expect(clearLocalData).toHaveBeenCalledTimes(1);
+    expect(signOut).toHaveBeenCalledTimes(1);
   });
 });

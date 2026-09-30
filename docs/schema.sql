@@ -13,7 +13,7 @@
 --
 -- Baseline schema only. Fresh databases also require versioned migrations in
 -- supabase/migrations, in filename order. Do not paste this into production.
--- Local verification and migration gates: docs/release/RLS_LOCAL_TEST_HARNESS.md.
+-- Local verification and migration gates: docs/reference/RLS_TESTING.md.
 -- =============================================================================
 
 -- Needed for gen_random_uuid()

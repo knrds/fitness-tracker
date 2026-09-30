@@ -1,19 +1,32 @@
-# Projektregeln – EVARO Security Takeover
+# Agentenvertrag — EVARO
 
-Aktueller Workspace: C:\Users\skwar\Desktop\TrainingsAppGPT. Benutzerauftrag vom 19.09.2026: sicherer Takeover, danach permanente Security Governance und Security-Roadmap. Review-Branch: astra/p0-release-core. Aktualisierung vom 20.09.2026: Abgeschlossene, ausreichend geprüfte und unabhängig auslieferbare Blöcke dürfen nach main integriert werden; der Nutzer erhält konkrete Testschritte mit erwarteten Ergebnissen. Vor Main-Push tatsächlichen Beta-/Deploymentweg prüfen. Keine pauschale Integration noch offener kritischer Migrationen oder Umgehung der Release-Gates. Feature- und Security-Roadmap weiterführen. Historischer Kontext: docs/AGENTS_REFERENCE.md.
+Beginne mit `docs/roadmap/README.md`. Dieser Bereich ist die einzige aktive Projektorientierung. Lies den Produktvertrag und die für den Auftrag betroffenen Architektur-/Security-/Deploymentteile; keine historischen Reports als aktuellen Zustand interpretieren.
 
-## Verbindliche Security Governance für alle Agenten
+## Arbeitsweise
 
-Vor Änderungen [EVARO_SECURITY_GUARDRAILS.md](evaro_release_execution_pack/EVARO_SECURITY_GUARDRAILS.md) lesen. Diese Regeln gelten dauerhaft für Astra, Gemini, Codex und weitere Agenten. Die aktuelle [Security-Roadmap](evaro_release_execution_pack/EVARO_SECURITY_RELEASE_ROADMAP.pdf) und die S0–S12-Matrix in [P0_READINESS_MATRIX.md](docs/release/P0_READINESS_MATRIX.md) bestimmen die Reihenfolge. Feature Expansion bleibt eingefroren. Priorität: Datenintegrität, Security/Privacy, Account-Sicherheit, AI-Sicherheit, Subscription-Integrität, Native-Stabilität, Performance, UX.
+- Vor Änderungen `git status`, Branch, Remote/main und vorhandene Arbeit prüfen. Sichere Arbeitsbranch verwenden; kein reset/clean/force push. Nutzerautorisierung hat Vorrang vor alten Arbeitsanweisungen.
+- Bestehende Domainlogik, Editoren, Stores und Adapter wiederverwenden; keine parallelen Implementierungen. React-freie Domain, kanonische kg/cm/metres und versionierte Schema-/DTOverträge erhalten.
+- Priorität: Datenintegrität, Autorisierung/Sicherheit, Privacy, Entitlements/Billing, native Stabilität, Performance, UX. Keine neue Infrastruktur ohne belegten Bedarf.
+- Jeder Bug-/Securityfix bekommt eine sinnvolle Regression. Nach Änderungen gezielte Tests, Typecheck/Lint und Secret-Precheck; vor Integration volle `pnpm build:preview`, `pnpm audit:ci` und CI. Betroffene DB-/RLS-/Migrationtests zusätzlich. Gates niemals abschalten.
+- Dokumentlinks über `pnpm docs:check` prüfen. Aktuellen Task-/Releasezustand nur in `docs/roadmap/MASTER_ROADMAP.md` pflegen; keine weiteren Handoff-/AI-Zwischenberichte.
+- Belege nennen Commit/Umgebung/Datum/Test/Ergebnis. Host/Mock/Browser/Local SQL/Remote/Physical unterscheiden. Kein Scaffold als fertige Integration und keine falschen Erfolgsmeldungen.
 
-Jeder Block dokumentiert Risiko (LOW/MEDIUM/HIGH/CRITICAL), Schutzbedarf, Vertrauensgrenzen, Tests und verbleibende Gates. Clientdaten, externe Eingaben und AI-Ausgaben sind nicht vertrauenswürdig. Server prüft Identität, Ownership und Entitlements. Kein privilegierter Schlüssel im Client. Keine Auth-, Health-, Workout- oder Coach-Rohdaten in generischen Logs/Analytics. Keine versteckten Produktions-Bypasses. Fehler dürfen weder lokalen Wipe noch verlorene Queue-Operationen als Erfolg tarnen.
+## Sicherheitsgrenzen
 
-Vor Commit: relevante Regressionen, Typecheck/Lint und Secret-Precheck. Vor PR/Meilenstein zusätzlich vollständige Tests/Build sowie Dependency-, Secret-, SAST- und Lizenzprüfung; migrationsbezogen echte Backend-/RLS-Tests. Fehlende oder fehlgeschlagene Kontrollen als offene Gates ausweisen. CI darf Security-Fehler nicht mit continue-on-error verbergen. Actions unveränderlich pinnen, minimale Tokenrechte, keine Secrets für unvertrauenswürdige PRs.
+Verbindlich: `docs/roadmap/SECURITY_PRIVACY.md`. Keine Clientsecrets, Clientrolle/Pro/Beta als Serverautorität oder sensitive Rohdaten in Logs/Telemetry/Support. Jede geschützte Operation authentifizieren/autorisieren; RLS und Grants gemeinsam prüfen. Kostenoperationen haben feste Limits und serverseitige Quoten.
 
-Keine Produktionsfreigabe bei unbewerteten kritischen/hohen Befunden. Risikoakzeptanz erfordert explizite Nutzerentscheidung mit Befund, Auswirkung, Ausnutzbarkeit, Mitigation, Owner und Ablaufdatum. Rechtstexte, Preise, Bundle-ID, Finanzverträge, Credential-Verantwortung und irreversible Produktionsmigrationen nicht selbst entscheiden. Blockierte Aufgaben halten unabhängige sichere Arbeit nicht auf.
+Nutzerdaten, Originalbytes, Backups und Outbox bei Fehlern erhalten. Kontowechsel und Async-Generationen beachten. Keine stillen Resets, Ownerzuweisungen, destruktiven Migrationen oder Token-Klartextfallbacks. Migration/Rollback/Data-Loss-Impact vor Änderungen prüfen.
 
-Vor Arbeit: ARCHITECTURE.md, DECISIONS.md, KNOWN_ISSUES.md, ROADMAP.md und git status lesen. iOS zuerst, Android vollständig, Windows als Entwicklungsrechner. Neue Nutzerpriorität vom 20.09.2026: kostenloser iPhone-Safari-/Home-Screen-Testpfad als Ergänzung ist ausdrücklich erlaubt, ohne SDK-Upgrade nur für Expo Go. Er ersetzt keine native Abnahme. Keine Production-Veröffentlichung, Store-Einreichung, Billing-Aktivierung oder Production-Supabase-Migration ohne erneute ausdrückliche Freigabe. Keine destruktiven Datei-/Git-Operationen; fremde Arbeit erhalten.
+Produktions-DB-/Store-/Billingaktivierungen benötigen dafür bestehende ausdrückliche Betreiberautorisierung und konkrete prüfbare Abnahme. Reversible lokale Vorbereitung autonom erledigen. Ungeklärte Critical/High blockieren Release; Risikoannahmen brauchen verantwortliche Person/Frist/Nachweis.
 
-Datenintegrität vor Features. Keine Session wegen Alter löschen, keine Queue-Operation still verwerfen. Alle externen Eingaben validieren. Domain bleibt React-frei; kg/cm kanonisch. Keine Secrets, keine blanket any/ts-ignore/lint-disable. Dependencies nur mit dokumentiertem Nutzen. Keine ungefragten Subagents; unabhängig voneinander mögliche Commands dürfen parallel laufen.
+## Einstieg in den Code
 
-Neue SQL-/Datenverträge dokumentieren, Migration und Tests mitliefern. Vor Meilenstein Typecheck/Lint/Tests; gezielte Regressionen vor Fix. Native Geräte- und Backendtests nicht durch Mocks ersetzen. ROADMAP enthält ehrliche offene Gates. Historische docs/Prompts sind Referenz; die oben ausdrücklich benannten aktuellen Security-Dokumente sind verbindlich. Wiederkehrende Sicherheitsprüfungen und Zuständigkeiten stehen in SECURITY.md. DONE nur für implementierte, getestete und integrierte Kontrollen; keine Dokumentations- oder Mock-Abnahme als Produktionsnachweis.
+- Expo-Routen: `apps/mobile/app/`
+- Komponenten/Stores/Services/Data: `apps/mobile/src/`
+- Domain/Schemas: `packages/domain/src/`
+- UI/Tokens: `packages/ui/src/`
+- Coach: `api/`
+- Cloudmigrationen: `supabase/migrations/`; Baseline `docs/schema.sql`
+- Gates: `scripts/security/`, `.github/workflows/ci.yml`
+
+Native Speicher-/Session- und SQL-Testdetails unter `docs/reference/`. Echte iOS-/Android-/Samsung-Abnahme bleibt ein separates Gate. Keine automatischen Rechts-/Storefreigaben behaupten.

@@ -1,21 +1,17 @@
-# EVARO – Native Mobile Trainings-App
+# EVARO
 
-React Native / Expo Trainings-App für iOS und Android, unter Windows entwickelt. Aktueller Workspace: `C:\Users\skwar\Desktop\TrainingsAppGPT`.
+Fitness-Tracker für iOS, Android und Web-Beta: Expo/React Native, gemeinsame Domain/UI, lokale SQLite-Persistenz und Node-Coach-API.
 
-## Start
-Node 24 (getestet: 24.13.0), pnpm 11.5.0.
-- Installieren: `pnpm install --frozen-lockfile`
-- Prüfen: `pnpm verify` (Checkpoint 19.09.2026: 598 Tests PASS; aktuelle Gates siehe Ausführungsstatus)
-- Coach Check: `pnpm coach:check`
-- Nativer Development Client: `pnpm dev-client`. (Passendes Development-Binary erforderlich; siehe `IOS_SETUP.md` und `ANDROID_SETUP.md`).
+**Entwickler und Agenten beginnen bei [docs/roadmap/README.md](docs/roadmap/README.md).** Dort stehen aktueller Zustand, Architektur, Produktvertrag und die einzige aktive Master-Roadmap samt Release-Gates.
 
-Die optionale Web-Vorschau startet mit `pnpm dev`, einschließlich lokalem Coach-Server. Sie nutzt einen statischen Export ohne Fast Refresh und ohne native SQLite-Garantien. OpenRouter-Konfiguration: `BACKEND.md`.
+Node 24.x, pnpm 11.5.0:
 
-## Dokumentation & Release-Vorbereitung
-- **Verbindliche Security-Regeln:** [`AGENTS.md`](AGENTS.md), [`EVARO_SECURITY_GUARDRAILS.md`](evaro_release_execution_pack/EVARO_SECURITY_GUARDRAILS.md)
-- **Security-Roadmap S0–S12:** [`Roadmap PDF`](evaro_release_execution_pack/EVARO_SECURITY_RELEASE_ROADMAP.pdf), [`aktuelle Matrix`](docs/release/P0_READINESS_MATRIX.md), [`Security-Betrieb`](SECURITY.md)
-- **Aktueller Ausführungsstatus:** [`docs/release/EXECUTION_STATUS.md`](docs/release/EXECUTION_STATUS.md)
-- **Beta Checkpoint Release Notes:** [`docs/release/BETA_RELEASE_NOTES.md`](docs/release/BETA_RELEASE_NOTES.md)
-- **Astra Handoff:** [`docs/release/ASTRA_HANDOFF.md`](docs/release/ASTRA_HANDOFF.md)
-- **Release Execution Pack:** [`evaro_release_execution_pack/MASTER_CHECKLIST.md`](evaro_release_execution_pack/MASTER_CHECKLIST.md)
-- **Architektur & Historie:** [`ARCHITECTURE.md`](ARCHITECTURE.md), [`ROADMAP.md`](ROADMAP.md), [`DECISIONS.md`](DECISIONS.md)
+```powershell
+pnpm install --frozen-lockfile
+pnpm verify
+pnpm build:preview
+```
+
+[Entwicklung/Deployment](docs/roadmap/DEPLOYMENT_OPERATIONS.md), [Security/Privacy](docs/roadmap/SECURITY_PRIVACY.md), [Beta-Änderungen](docs/release/BETA_RELEASE_NOTES.md), [Lizenzen/Assets](THIRD_PARTY_NOTICES.md).
+
+Private Beta; öffentlicher/kommerzieller Store-Release noch nicht freigegeben. Lokale Tests ersetzen keine native Geräte-, Cloud- oder Billing-Abnahme.

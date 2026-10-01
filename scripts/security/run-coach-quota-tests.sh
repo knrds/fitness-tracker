@@ -3,7 +3,7 @@ set -euo pipefail
 # Disposable local PostgreSQL only. No remote option, reset/drop or user fixtures.
 export PGHOST=127.0.0.1
 export PGHOSTADDR=127.0.0.1
-unset PGSERVICE PGSERVICEFILE
+unset PGSERVICE PGSERVICEFILE PGOPTIONS
 export PGPORT="${PGPORT:-55432}"
 export PGUSER="${PGUSER:-evaro_test_admin}"
 test_db="evaro_${RANDOM}_$(date +%s)_coach_quota_test"
@@ -109,3 +109,25 @@ psql -X -v ON_ERROR_STOP=1 -c "do \$\$ begin
   end if;
 end \$\$;" > "$log_dir/recipient-rollback.log"
 printf '%s\n' 'Coach quota existing client recipient rejected; fixture grant rolled back PASS'
+for direction in inherits recipient; do
+  if [[ "$direction" == inherits ]]; then
+    fixture_grant='grant evaro_quota_test_client to evaro_coach_owner'
+  else
+    fixture_grant='grant evaro_coach_owner to evaro_quota_test_client'
+  fi
+  if psql -X -v ON_ERROR_STOP=1 -c "begin; $fixture_grant;" -f database/coach-quota.sql > "$log_dir/unsafe-owner-$direction.log" 2>&1; then
+    printf '%s\n' 'ERROR: inherited definer-owner authority accepted'; exit 1
+  fi
+  grep -q 'Existing coach role has unsafe memberships' "$log_dir/unsafe-owner-$direction.log"
+  psql -X -v ON_ERROR_STOP=1 > "$log_dir/owner-$direction-rollback.log" <<'SQL'
+do $$ begin
+  if exists(select 1 from pg_auth_members where
+    member=(select oid from pg_roles where rolname='evaro_coach_owner') or
+    roleid=(select oid from pg_roles where rolname='evaro_coach_owner')) or
+    exists(select 1 from pg_namespace where nspname='evaro_private') then
+    raise exception 'Rejected owner preflight failed to roll back';
+  end if;
+end $$;
+SQL
+done
+printf '%s\n' 'Coach quota definer-owner memberships rejected in both directions; rollback PASS'

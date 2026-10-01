@@ -3,23 +3,26 @@
 -- Apply once to a reviewed database; all policies require explicit enrollment.
 begin;
 
-create schema if not exists evaro_private;
-revoke all on schema evaro_private from public;
-do $$ begin
-  if not exists (select 1 from pg_catalog.pg_roles where rolname = 'evaro_coach_server') then
-    create role evaro_coach_server nologin nosuperuser nobypassrls;
-  elsif exists (select 1 from pg_catalog.pg_roles where rolname = 'evaro_coach_server'
+do $$ declare v_role text; begin
+  foreach v_role in array array['evaro_coach_owner','evaro_coach_server'] loop
+  if not exists (select 1 from pg_catalog.pg_roles where rolname = v_role) then
+    execute pg_catalog.format('create role %I nologin noinherit nosuperuser nobypassrls nocreatedb nocreaterole noreplication',v_role);
+  elsif exists (select 1 from pg_catalog.pg_roles where rolname = v_role
                and (rolcanlogin or rolsuper or rolbypassrls or rolcreatedb or rolcreaterole or rolreplication)) then
     raise exception 'Unsafe existing coach role; review before applying';
   end if;
   -- Both inherited authority and existing recipients widen the new function
   -- grants. Provision trusted backend membership separately after install/review.
   if exists (select 1 from pg_catalog.pg_auth_members
-             where member = (select oid from pg_catalog.pg_roles where rolname='evaro_coach_server')
-                or roleid = (select oid from pg_catalog.pg_roles where rolname='evaro_coach_server')) then
+             where member = (select oid from pg_catalog.pg_roles where rolname=v_role)
+                or roleid = (select oid from pg_catalog.pg_roles where rolname=v_role)) then
     raise exception 'Existing coach role has unsafe memberships; review before applying';
   end if;
+  end loop;
 end $$;
+-- One-time install only. Never adopt an unknown pre-existing private schema.
+create schema evaro_private authorization evaro_coach_owner;
+revoke all on schema evaro_private from public;
 
 create table evaro_private.coach_quota_policies (
   policy_id text not null,
@@ -204,6 +207,17 @@ begin
     'lease_id',v_row.lease_id,'charged_units',v_row.charged_units);
 end $$;
 
+-- Definers run as the dedicated private owner, never an installing superuser.
+do $$ declare v_object record; begin
+  for v_object in select c.oid::pg_catalog.regclass as identity from pg_catalog.pg_class c
+    where c.relnamespace='evaro_private'::pg_catalog.regnamespace and c.relkind='r' loop
+    execute pg_catalog.format('alter table %s owner to evaro_coach_owner',v_object.identity);
+  end loop;
+  for v_object in select p.oid::pg_catalog.regprocedure as identity from pg_catalog.pg_proc p
+    where p.pronamespace='evaro_private'::pg_catalog.regnamespace loop
+    execute pg_catalog.format('alter function %s owner to evaro_coach_owner',v_object.identity);
+  end loop;
+end $$;
 revoke all on function evaro_private.coach_quota_reserve_v1(text,uuid,text,uuid,text,text,integer,integer) from public;
 revoke all on function evaro_private.coach_quota_begin_attempt_v1(uuid,uuid,integer) from public;
 revoke all on function evaro_private.coach_quota_finalize_v1(uuid,uuid,text) from public;

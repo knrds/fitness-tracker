@@ -17,6 +17,11 @@ select pg_temp.assert_true(not has_table_privilege('evaro_coach_server','evaro_p
 select pg_temp.assert_true(not has_table_privilege('evaro_coach_server','evaro_private.coach_quota_reservations','UPDATE'), 'server cannot refund ledger directly');
 select pg_temp.assert_true(not exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace cross join lateral aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl where n.nspname='evaro_private' and p.proname like 'coach_quota_%' and acl.grantee=0 and acl.privilege_type='EXECUTE'), 'PUBLIC cannot reserve');
 select pg_temp.assert_true(not exists(select 1 from pg_namespace where nspname='auth'), 'plain PostgreSQL needs no auth schema');
+select pg_temp.assert_true(not exists(select 1 from pg_roles where rolname='evaro_coach_owner'
+  and (rolcanlogin or rolsuper or rolbypassrls or rolcreatedb or rolcreaterole or rolreplication))
+  and not exists(select 1 from pg_proc p where p.pronamespace='evaro_private'::regnamespace
+    and p.proowner<>(select oid from pg_roles where rolname='evaro_coach_owner')),
+  'quota definers use a dedicated nonprivileged owner');
 select pg_temp.assert_true((evaro_private.coach_quota_reserve_v1('beta:tester','10000000-0000-4000-8000-000000000001',repeat('a',64),'20000000-0000-4000-8000-000000000001','text','coach-beta-v1',2,120)->>'reason')='access_denied','no policy means denied');
 
 insert into evaro_private.coach_quota_policies values ('coach-beta-v1','text',true,4,6), ('coach-beta-v1','image',true,2,2);

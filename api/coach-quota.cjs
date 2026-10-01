@@ -304,15 +304,20 @@ function createSupabaseQuotaStore({
 
 function createQuotaFromEnv(env = process.env) {
   if (env.COACH_QUOTA_ENABLED === undefined || env.COACH_QUOTA_ENABLED === 'false') return null;
-  if (env.COACH_QUOTA_ENABLED !== 'true' || env.COACH_QUOTA_STORE !== 'supabase-rpc')
+  if (env.COACH_QUOTA_ENABLED !== 'true' || !['postgres', 'supabase-rpc'].includes(env.COACH_QUOTA_STORE))
     throw new CoachQuotaError('QUOTA_NOT_CONFIGURED');
-  return createCoachQuota({
+  try { return createCoachQuota({
     hashSecret: env.COACH_QUOTA_HASH_SECRET,
-    store: createSupabaseQuotaStore({
+    store: env.COACH_QUOTA_STORE === 'postgres'
+      ? require('./coach-quota-postgres.cjs').createPostgresQuotaStoreFromEnv(env)
+      : createSupabaseQuotaStore({
       url: env.SUPABASE_URL,
       key: env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY,
     }),
-  });
+  }); } catch (error) {
+    if (error instanceof CoachQuotaError) throw error;
+    throw new CoachQuotaError('QUOTA_NOT_CONFIGURED');
+  }
 }
 
 module.exports = {

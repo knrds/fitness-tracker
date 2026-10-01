@@ -16,7 +16,7 @@ Space Grotesk (Florian Karsten), Manrope (Mikhail Sharanda) via @expo-google-fon
 
 ## Software
 
-Am 30.09.2026 lokal aufgelöste Metadaten: React 19.1.0, React Native 0.81.5, Expo 54.0.37, Zod 3.25.76, Zustand 5.0.14 und Supabase JS 2.107.0 weisen MIT aus. Kein vollständiger transitiver Lizenzscan. Alte pauschale Apache-/BSD-Zuordnungen für Supabase, Nanoid und Expo-Metro entfernt. pnpm-lock.yaml bestimmt Versionen; Scanner muss jede ausgelieferte Dependency inklusive Schrift-/Icondateien erfassen.
+Am 30.09.2026 lokal aufgelöste Metadaten: React 19.1.0, React Native 0.81.5, Expo 54.0.37, Zod 3.25.76, Zustand 5.0.14 und Supabase JS 2.107.0 weisen MIT aus. Serverseitig jetzt [node-postgres](https://github.com/brianc/node-postgres) 8.23.0 (MIT; Originaltext im installierten pg-Paket erhalten). `pnpm security:sbom` liefert ein quellversionsgebundenes Inventar einschließlich deklarierter transitiver Lizenzen; dies ist keine Rechts-/Artefaktfreigabe. Alte pauschale Apache-/BSD-Zuordnungen für Supabase, Nanoid und Expo-Metro entfernt. pnpm-lock.yaml bestimmt Versionen; tatsächliche Auslieferung inklusive Schrift-/Icondateien zusätzlich erfassen und vollständige nötige Lizenztexte beilegen.
 
 ## Projektgrafiken
 

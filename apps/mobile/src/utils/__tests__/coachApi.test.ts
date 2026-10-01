@@ -1,4 +1,7 @@
 const mockInvoke = jest.fn();
+jest.mock('expo-crypto', () => ({
+  randomUUID: () => jest.requireActual<typeof import('node:crypto')>('node:crypto').randomUUID(),
+}));
 
 jest.mock('../supabase', () => ({
   supabase: {
@@ -74,6 +77,61 @@ describe('coachApi', () => {
       }),
     );
     expect(mockInvoke).not.toHaveBeenCalled();
+  });
+
+  it('uses secure distinct request UUIDs and preserves an explicit replay identity', async () => {
+    process.env.EXPO_PUBLIC_COACH_CHAT_ENDPOINT = 'https://coach.example.test/chat';
+    const fetchMock = jest.fn().mockResolvedValue({ ok: true,
+      text: async () => JSON.stringify({ reply: 'Reply' }) });
+    global.fetch = fetchMock;
+    const { streamCoachResponse } = jest.requireActual<typeof import('../coachApi')>('../coachApi');
+    const context = { profile: { displayName: 'Test', preferredUnits: 'metric' as const } };
+    const fixed = '123e4567-e89b-42d3-a456-426614174000';
+    for (const key of [undefined, undefined, fixed, fixed]) {
+      const stream = streamCoachResponse([], context, { idempotencyKey: key });
+      await stream.next();
+      await stream.return(undefined);
+    }
+    const keys = fetchMock.mock.calls.map(([, init]) => init.headers['Idempotency-Key']);
+    expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(keys[0]).not.toBe(keys[1]);
+    expect(keys.slice(2)).toEqual([fixed, fixed]);
+  });
+
+  it('rejects invalid request identity or prior cancellation before any transmission', async () => {
+    process.env.EXPO_PUBLIC_COACH_CHAT_ENDPOINT = 'https://coach.example.test/chat';
+    const fetchMock = jest.fn(); global.fetch = fetchMock;
+    const { streamCoachResponse } = jest.requireActual<typeof import('../coachApi')>('../coachApi');
+    const context = { profile: { displayName: 'Test', preferredUnits: 'metric' as const } };
+    await expect(streamCoachResponse([], context, { idempotencyKey: 'bad\r\nheader' }).next())
+      .rejects.toThrow('Ungültige Coach-Anfragekennung');
+    const abort = new AbortController(); abort.abort();
+    await expect(streamCoachResponse([], context, { signal: abort.signal }).next())
+      .rejects.toThrow('Anfrage durch Nutzer abgebrochen');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('blocked circuit creates no timeout and completed requests remove abort listeners', async () => {
+    process.env.EXPO_PUBLIC_COACH_CHAT_ENDPOINT = 'https://coach.example.test/chat';
+    const { streamCoachResponse, defaultCoachCircuitBreaker } =
+      jest.requireActual<typeof import('../coachApi')>('../coachApi');
+    const check = jest.spyOn(defaultCoachCircuitBreaker, 'canExecute');
+    const timer = jest.spyOn(global, 'setTimeout');
+    const abort = new AbortController();
+    const remove = jest.spyOn(abort.signal, 'removeEventListener');
+    const fetchMock = jest.fn().mockResolvedValue({ ok: true,
+      text: async () => JSON.stringify({ reply: 'Reply' }) });
+    global.fetch = fetchMock;
+    const context = { profile: { displayName: 'Test', preferredUnits: 'metric' as const } };
+    try {
+      check.mockReturnValueOnce({ allowed: false, reason: 'Blocked' });
+      await expect(streamCoachResponse([], context).next()).rejects.toThrow('Blocked');
+      expect(timer).not.toHaveBeenCalled(); expect(fetchMock).not.toHaveBeenCalled();
+      check.mockReturnValue({ allowed: true });
+      const stream = streamCoachResponse([], context, { signal: abort.signal });
+      await stream.next(); await stream.return(undefined);
+      expect(remove).toHaveBeenCalledWith('abort', expect.any(Function));
+    } finally { check.mockRestore(); timer.mockRestore(); }
   });
 
   it('surfaces server failures instead of inventing a local reply', async () => {

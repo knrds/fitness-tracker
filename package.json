@@ -6,8 +6,10 @@
   "scripts": {
     "coach:local": "node api/local-server.cjs",
     "coach:check": "node api/provider-check.cjs",
-    "test:api": "node --test api/coach-chat.test.cjs api/coach-safety.test.cjs api/beta-session.test.cjs api/coach-quota.test.cjs api/account-deletion-lifecycle.test.cjs",
-    "test:security": "node --test scripts/security/dependency-regressions.test.cjs scripts/iphone-preview.test.cjs scripts/security/preview-security-gate.test.cjs scripts/security/ci-dependency-gate.test.cjs",
+    "test:api": "node --test api/coach-chat.test.cjs api/coach-safety.test.cjs api/beta-session.test.cjs api/coach-quota.test.cjs api/account-deletion-lifecycle.test.cjs api/private-postgres.test.cjs",
+    "test:security": "node --test scripts/security/dependency-regressions.test.cjs scripts/iphone-preview.test.cjs scripts/security/preview-security-gate.test.cjs scripts/security/ci-dependency-gate.test.cjs scripts/security/generate-sbom.test.cjs",
+    "test:postgres-adapters": "node scripts/security/run-postgres-adapter-tests.cjs",
+    "security:sbom": "node scripts/security/generate-sbom.cjs --output output/security/sbom.json",
     "preview:iphone": "node scripts/iphone-preview.cjs --lan",
     "dev": "pnpm --filter @fitness-tracker/mobile dev",
     "web": "pnpm --filter @fitness-tracker/mobile web",
@@ -53,5 +55,8 @@
   "engines": {
     "node": "24.x",
     "pnpm": ">=9.0.0"
+  },
+  "dependencies": {
+    "pg": "8.23.0"
   }
 }

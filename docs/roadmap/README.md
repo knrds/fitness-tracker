@@ -1,6 +1,6 @@
 # EVARO — Projektorientierung
 
-Stand: 30.09.2026. Integrierte Ausgangsbasis: `39723d8` (main, PR #24), anschließend kostenloser Engineeringcheckpoint für R01/R04/R05. Dieser Bereich ist die einzige aktive Projekt- und Release-Roadmap. Git enthält die ersetzten Unterlagen weiterhin; ihre alten Freigaben gelten nicht.
+Stand: 01.10.2026. Integrierte Ausgangsbasis: `a1d549a` (main, PR #25), anschließend kostenloser PostgreSQL-/Sync-/Inventarcheckpoint. Dieser Bereich ist die einzige aktive Projekt- und Release-Roadmap. Git enthält die ersetzten Unterlagen weiterhin; ihre alten Freigaben gelten nicht.
 
 ## Einstieg
 
@@ -19,9 +19,9 @@ Stand: 30.09.2026. Integrierte Ausgangsbasis: `39723d8` (main, PR #24), anschlie
 | --- | --- | --- |
 | Produkt | Workout-/Template-/History-Editor, Programme, Körperwerte, Coach, Premium-Themes, kompakter Home-Screen | Automatisierte Tests und vorherige Browser-Smokes; reale native Abnahme offen |
 | Lokal | Accountpartitionen, validierte Persistenz, native SQLite-v2-Transaktionen, wiederholbare Outbox, SecureStore-Adapter | Nicht jeder Befehl atomar; keine vollständige Geräte-/Recovery-Freigabe |
-| CI | Typecheck, Lint, Tests, Web-Export, Secret-/Dependency-Gates und echte PostgreSQL-RLS-Tests | Keine Remote-Supabase-Abnahme; SAST/Lizenz/SBOM und Schutzregeln fehlen |
-| Kostenloser Engineeringcheckpoint | 1.280 lokale Tests, Typecheck/Lint/Web-Export/Audit grün; echte PostgreSQL-RLS-/Quoten-/Paralleltests | Neue Backendkerne sind nicht produktiv angebunden; keine Remote-/Gerätefreigabe |
-| Web-Beta an integrierter Basis | PR #24 / Main `39723d8`, GitHub-Jobs grün; Vercel `dpl_ESdXBDz4a87ASaoYP8jNqohwTEsQ` READY; HTTP 200 und API-Negativsmokes 401/400 | Zeitpunktbezogener Nachweis; neue Änderungen am jeweiligen SHA nachweisen |
+| CI | Typecheck, Lint, Tests, Web-Export, Secret-/Dependency-Gates, PostgreSQL-Harnesses und Quell-SBOM | Keine Remote-Abnahme; SAST, native Artefaktinventare, Lizenzfreigabe und Schutzregeln offen |
+| Kostenloser Engineeringcheckpoint | 1.309 lokale Tests, Typecheck/Lint/Web-Export/Audit grün; echte PostgreSQL-RLS-/Quoten-/Journal-/Workout-/Adaptertests | Neue Backendpfade sind nicht produktiv aktiviert; keine Remote-/Gerätefreigabe |
+| Web-Beta an integrierter Basis | PR #25 / Main `a1d549a`, GitHub-Jobs grün; Vercel `dpl_4sWaSCSBsZnSX6FS2xqptQUMebPY` READY; HTTP 200 und API-Negativsmokes 401/400 | Zeitpunktbezogener Nachweis; neue Änderungen am jeweiligen SHA nachweisen |
 | Version | Paket `0.1.0-beta.8`; letzter Beta-Tag `v0.1.0-beta.8`; native Marketingversion `1.0.0` | Main enthält spätere unversionierte Beta-Updates; vor Store-Release abgleichen |
 
 Beta-URL: [fitness-tracker-one-eta.vercel.app](https://fitness-tracker-one-eta.vercel.app). Die Bezeichnung „Production“ in Vercel bedeutet derzeit das Main-Ziel der Beta, keine kommerzielle Freigabe.

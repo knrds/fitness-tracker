@@ -4,6 +4,8 @@ set -euo pipefail
 # Intentionally no remote host/URL option or destructive reset/drop command.
 # Caller supplies a disposable local PostgreSQL server and PGPASSWORD/PGUSER.
 export PGHOST=127.0.0.1
+export PGHOSTADDR=127.0.0.1
+unset PGSERVICE PGSERVICEFILE PGOPTIONS
 export PGPORT="${PGPORT:-55432}"
 export PGUSER="${PGUSER:-evaro_test_admin}"
 test_db="evaro_${RANDOM}_$(date +%s)_rls_test"

@@ -29,7 +29,7 @@ Dieser Vertrag ersetzt die früheren Guardrails. Priorität: Datenintegrität �
 | App → Supabase | BOLA, Owner-/FK-Spoofing, Konflikte | Restriktive Migration und echte lokale SQL-Negativtests | A/B/Anonymous-HTTP-Matrix, Views/RPC/Storage, deployed Schema |
 | App → Coach → Provider | Prompt Injection, gefährliche Antworten, Denial-of-Wallet | Bilinguale Safety, Tokenprüfung, Timeout, Instanzlimits | Verteiltes Ledger, serverseitige Bezahlrechte, globale Caps |
 | Billing → App/API | Client-Pro-Spoofing, Replay/Refund | Providerinterface und lokale UX-Guards | Storeprovider, authentifizierte/idempotente Webhooks |
-| CI/Dependencies → Bundle | Supply-Chain-/Build-Exfiltration | SHA-Pins, minimale Rechte, Scanner | SAST/Lizenz/SBOM, Required Checks, native Artefaktscan |
+| CI/Dependencies → Bundle | Supply-Chain-/Build-Exfiltration | SHA-Pins, minimale Rechte, Scanner, SHA-gebundene CycloneDX-Quellinventare | SAST/Lizenzfreigabe, Required Checks, ausgeliefertes Web-/Nativeinventar und Secretscan |
 | Logs/Support/Backups | Gesundheits-/Tokenleaks, zu lange Speicherung | Sanitizing und outbound Allowlist | Remoteadapter, Zugriffe/Retention, echte Alerts/Restore |
 
 Dateninventar vor jedem neuen Backendpfad ergänzen: Feldgruppe, Zweck, Speicher/Region, Empfänger, Rechtsgrundlage, Aufbewahrung, Export und Löschung. Sensitive Daten weder in Error-Messages noch Support-Dumps, CI-Outputs oder Session Replay. Für Support nur explizit ausgewählte redigierte Diagnosemetadaten.

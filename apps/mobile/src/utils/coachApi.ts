@@ -11,6 +11,7 @@ import {
 import { supabase, isSupabaseConfigured } from './supabase';
 import { defaultCoachCircuitBreaker } from './coachCircuitBreaker';
 import { isBetaFullAccess } from './betaAccessConfig';
+import { randomUUID } from './uuid';
 
 export { defaultCoachCircuitBreaker };
 
@@ -148,6 +149,8 @@ export interface CoachOptions {
   onResult?: (result: { plan?: CoachPlan | undefined; sources?: ChatMessage['sources'] }) => void;
   signal?: AbortSignal;
   timeoutMs?: number;
+  /** Reuse only for the same logical request and unchanged payload. */
+  idempotencyKey?: string | undefined;
 }
 
 export async function* streamCoachResponse(
@@ -167,7 +170,21 @@ export async function* streamCoachResponse(
   ) {
     throw new Error('Der Coach benötigt eine gültige HTTPS-Backend-URL.');
   }
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const circuitCheck = defaultCoachCircuitBreaker.canExecute();
+  if (!circuitCheck.allowed) {
+    throw new Error(
+      circuitCheck.reason ??
+        'Der KI-Coach ist vorübergehend nicht erreichbar. Bitte versuche es in wenigen Momenten erneut.',
+    );
+  }
+  const requestKey = options.idempotencyKey ?? randomUUID();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestKey))
+    throw new Error('Ungültige Coach-Anfragekennung.');
+  if (options.signal?.aborted) throw new Error('Anfrage durch Nutzer abgebrochen.');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Idempotency-Key': requestKey.toLowerCase(),
+  };
   let hasUserAuth = false;
   if (isSupabaseConfigured) {
     const { data, error } = await supabase.auth.getSession();
@@ -194,21 +211,10 @@ export async function* streamCoachResponse(
   }
   const controller = new AbortController();
   const timeoutMs = options.timeoutMs ?? 75000;
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  if (options.signal) {
-    if (options.signal.aborted) {
-      controller.abort();
-    } else {
-      options.signal.addEventListener('abort', () => controller.abort(), { once: true });
-    }
-  }
-  const circuitCheck = defaultCoachCircuitBreaker.canExecute();
-  if (!circuitCheck.allowed) {
-    throw new Error(
-      circuitCheck.reason ??
-        'Der KI-Coach ist vorübergehend nicht erreichbar. Bitte versuche es in wenigen Momenten erneut.',
-    );
-  }
+  const abortRequest = () => controller.abort();
+  const timeout = setTimeout(abortRequest, timeoutMs);
+  if (options.signal?.aborted) controller.abort();
+  else options.signal?.addEventListener('abort', abortRequest, { once: true });
 
   let responseReceived = false;
   try {
@@ -315,5 +321,6 @@ export async function* streamCoachResponse(
     throw error;
   } finally {
     clearTimeout(timeout);
+    options.signal?.removeEventListener('abort', abortRequest);
   }
 }

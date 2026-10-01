@@ -1,4 +1,7 @@
 import { randomBytes } from 'crypto';
+jest.mock('expo-crypto', () => ({
+  randomUUID: () => jest.requireActual<typeof import('node:crypto')>('node:crypto').randomUUID(),
+}));
 import { useProfileStore } from '../../stores/profileStore';
 import {
   isBetaFullAccess,

@@ -2,6 +2,14 @@
 
 Letzter annotierter Paket-Beta-Tag: `v0.1.0-beta.8`. Main enthält spätere unversionierte Produktupdates. Aktuelle Freigaben und Blocker ausschließlich in [Projektorientierung](../roadmap/README.md) und [Master-Roadmap](../roadmap/MASTER_ROADMAP.md).
 
+## PostgreSQL-/Sync-/Inventarcheckpoint — 01.10.2026
+
+- Direkte serverseitige PostgreSQL-Adapter mit geprüfter TLS-/Rollen-/Timeoutgrenze; echtes Löschjournal über Serverneustart hinweg. Eng begrenzte Korrektur für gemessenen Systemuhrversatz.
+- Atomarer Workoutvertrag mit Revisionen, Konflikten, Tombstones und Cursor vorbereitet; bestehende Daten bleiben erhalten. Keine automatische Cloudaktivierung oder Änderung des bisherigen Client-Syncpfads.
+- Sichere Coach-Anfragekennungen und Cleanup für Timer/Abortlistener; blockierte Anfragen hinterlassen keinen Timer.
+- Deterministisches CycloneDX-Quellinventar mit deklarierter Lizenzevidence als SHA-gebundenes CI-Artefakt; offene Lizenzprüfungen sichtbar erhalten.
+- Echte zusätzliche SQL-/Node-/Konkurrenz-/Rollbackprüfungen in CI. Keine bezahlten Services oder Provideraufrufe; produktive Löschung, Auth, monetäre Budgets und Storefreigabe bleiben offen.
+
 ## Kostenlose Backend-/Security-Grundlagen — 30.09.2026
 
 - Portable private PostgreSQL-Quoten: Tageslimits pro Nutzer und global, getrennte Text-/Bild-/Audiolimits, sichere Reservierung/Wiederholung/Abschluss und Paralleltests. API-Anbindung vorbereitet, standardmäßig ausgeschaltet; produktiver Store und echte Eurokostenmessung bleiben offen.

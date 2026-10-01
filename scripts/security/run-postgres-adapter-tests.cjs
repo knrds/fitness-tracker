@@ -1,7 +1,7 @@
 // Real server-adapter proof against a disposable local database. No remote
 // connection options, user data, provider calls or production activation.
 const assert = require('node:assert/strict');
-const { randomUUID } = require('node:crypto');
+const { randomUUID, randomBytes } = require('node:crypto');
 const { readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 const { Client } = require('pg');
@@ -16,6 +16,9 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) throw Error('Invalid lo
 const id = randomUUID().replaceAll('-', '');
 const database = 'evaro_' + id + '_postgres_adapter_test';
 const appRole = 'evaro_adapter_' + id;
+// CI uses SCRAM rather than local trust. An unpredictable per-run credential
+// stays in memory, never printed or shared with the installing/admin identity.
+const appPassword = randomBytes(32).toString('hex');
 const adminConfig = { host: '127.0.0.1', port, user: process.env.PGUSER || 'postgres',
   password: process.env.PGPASSWORD || undefined, ssl: false, connectionTimeoutMillis: 3000 };
 const root = resolve(__dirname, '../..');
@@ -34,17 +37,17 @@ async function run() {
   }
   // Unique synthetic role only. No real credentials; loopback test service.
   phase = 'restricted role setup';
-  await admin.query('CREATE ROLE ' + appRole + ' LOGIN NOINHERIT');
+  await admin.query('CREATE ROLE ' + appRole + " LOGIN NOINHERIT PASSWORD '" + appPassword + "'");
   roleCreated = true;
   await admin.query('GRANT evaro_coach_server, evaro_deletion_server TO ' + appRole);
-  const connectionString = 'postgresql://' + appRole + '@127.0.0.1:' + port + '/' + database;
+  const connectionString = 'postgresql://' + appRole + ':' + appPassword + '@127.0.0.1:' + port + '/' + database;
   const config = { connectionString, allowLocal: true };
   quotaExecutor = createPrivatePostgresExecutor({ profile: 'quota', ...config });
   deletionExecutor = createPrivatePostgresExecutor({ profile: 'deletion', ...config });
 
   // Positive and negative authority proof through a real restricted login.
   phase = 'restricted authority';
-  const restricted = new Client({ ...adminConfig, user: appRole, password: undefined, database });
+  const restricted = new Client({ ...adminConfig, user: appRole, password: appPassword, database });
   await restricted.connect();
   try {
     await restricted.query('SET ROLE evaro_coach_server');
@@ -129,7 +132,8 @@ async function run() {
   assert.equal(authenticated, false);
 
   const privileged = createPrivatePostgresExecutor({ profile: 'quota', allowLocal: true,
-    connectionString: 'postgresql://' + adminConfig.user + '@127.0.0.1:' + port + '/' + database });
+    connectionString: 'postgresql://' + encodeURIComponent(adminConfig.user) + ':' +
+      encodeURIComponent(adminConfig.password || '') + '@127.0.0.1:' + port + '/' + database });
   try {
     await assert.rejects(privileged.call('finalize', [randomUUID(), randomUUID(), 'failed']),
       { code: 'POSTGRES_UNAVAILABLE' });

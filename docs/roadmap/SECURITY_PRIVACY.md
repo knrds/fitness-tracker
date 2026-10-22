@@ -42,6 +42,10 @@ Release blockiert bei offenem Critical/ungeklärtem High, Secret-Leak, unbewiese
 
 Advisories `GHSA-w3rx-r6r6-pgpr` und `GHSA-5p2g-fcmc-qvqq`, image-size 1.2.1 über Metro, wurden am 21.09.2026 als Buildtool-Befunde triagiert (Originalbericht in Git an 39b2b3e). Zwei High-Ausnahmen bleiben. Das gehärtete Gate prüft stabiles GHSA, sämtliche Version-/Pfadfindings, installierten Metro 0.83.3→image-size 1.2.1-Pfad, vollständige High-Zählung und eine endliche Frist. Fremde/direkte Pfade, geborgte numerische IDs, fehlende Evidence oder veränderte Versionen blockieren. Engineering-Re-Review spätestens **21.10.2026 00:00 UTC**; danach blockiert CI bis zur echten erneuten Bewertung. Keine neue Betreiber-/Legal-Risikoannahme. Menschlicher Owner und Artefaktbeleg fehlender Runtimeexposition bleiben offen: Auditpfade allein beweisen keine Runtime-Sicherheit.
 
+Re-Audit 22.10.2026: Die image-size-Ausnahmen sind abgelaufen und wurden nicht verlängert. Metro löst `image-size` jetzt über `tools/image-size-compat` auf (1.x-Signatur, Parser 2.0.4); Regression prüft Auflösung und Mindestversion. Neu veröffentlichte Advisories: shell-quote (Critical), compression, source-map-js und vite (High) per Override auf gepatchte, mindestens zwei Wochen alte Releases ohne Installskripte. node-forge (GHSA-86w9-cpqp-85rv, @expo/cli-Codesigning) und braces (GHSA-vfj7-8cjw-p6xm, Metro-Dateiglobs) haben keinen veröffentlichten Fix; beide liegen in Build-/CLI-Pfaden. Keine Risikoannahme eingetragen: `USER_ACTION_REQUIRED` (Owner, Frist, Nachweis) oder Upstream-Release abwarten; bis dahin blockiert das CI-Dependency-Gate korrekt.
+
+KI-Coach-Schreibaktionen: Neue Übungen und Vorlagen-Updates sind Vorschläge. Server prüft Enums, Limits, Kataloggleichheit und nur gelistete Vorlagenrefs; Client prüft Schema, Existenz und Editierbarkeit erneut und schreibt nur nach Tippen auf Bestätigen transaktional mit Rollback. Rohe Vorlagen-IDs gehen nicht an das Modell.
+
 ## Juristische Prüfaufträge
 
 Technik liefert Datenkarte, Lösch-/Export-/Consentbelege und reale SDK-/Netzwerkflüsse. Rechtsprüfung entscheidet Anwendbarkeit und finalen Text; keine garantierte Rechtssicherheit.

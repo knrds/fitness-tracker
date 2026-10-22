@@ -18,6 +18,14 @@ Space Grotesk (Florian Karsten), Manrope (Mikhail Sharanda) via @expo-google-fon
 
 Am 30.09.2026 lokal aufgelöste Metadaten: React 19.1.0, React Native 0.81.5, Expo 54.0.37, Zod 3.25.76, Zustand 5.0.14 und Supabase JS 2.107.0 weisen MIT aus. Serverseitig jetzt [node-postgres](https://github.com/brianc/node-postgres) 8.23.0 (MIT; Originaltext im installierten pg-Paket erhalten). `pnpm security:sbom` liefert ein quellversionsgebundenes Inventar einschließlich deklarierter transitiver Lizenzen; dies ist keine Rechts-/Artefaktfreigabe. Alte pauschale Apache-/BSD-Zuordnungen für Supabase, Nanoid und Expo-Metro entfernt. pnpm-lock.yaml bestimmt Versionen; tatsächliche Auslieferung inklusive Schrift-/Icondateien zusätzlich erfassen und vollständige nötige Lizenztexte beilegen.
 
+## Build-Toolchain-Adapter
+
+`tools/image-size-compat` ist projekteigener Code und bindet [image-size](https://github.com/image-size/image-size) 2.0.4 (MIT, netroy) für Metro ein; der Originallizenztext liegt im installierten Paket. Keine Auslieferung im App-Bundle.
+
+## Nicht übernommen
+
+[openGym](https://github.com/DuarteSantos8/openGym) (AGPL-3.0, Medien von Gym visual) wurde nur als Designreferenz betrachtet; kein Code, Katalogtext oder Medium übernommen. Begründung in [Entscheidungen](docs/roadmap/DECISIONS.md).
+
 ## Projektgrafiken
 
 Higgsfield-Levelbadges/Premium-Embleme: Generierungsnachweise im [Assetinventar](docs/reference/ASSETS.md), Commercial Terms ungeprüft. Rangicons/Branding benötigen Urheber-/Nutzungsbeleg. AI-generiert oder lokaler Dateipfad beweist keine Rechtefreiheit.

@@ -1,6 +1,6 @@
 # EVARO — Projektorientierung
 
-Stand: 01.10.2026. Integrierte Ausgangsbasis: `a1d549a` (main, PR #25), anschließend kostenloser PostgreSQL-/Sync-/Inventarcheckpoint. Dieser Bereich ist die einzige aktive Projekt- und Release-Roadmap. Git enthält die ersetzten Unterlagen weiterhin; ihre alten Freigaben gelten nicht.
+Stand: 22.10.2026. Integrierte Ausgangsbasis: `a1d549a` (main, PR #25), anschließend kostenloser PostgreSQL-/Sync-/Inventarcheckpoint. Dieser Bereich ist die einzige aktive Projekt- und Release-Roadmap. Git enthält die ersetzten Unterlagen weiterhin; ihre alten Freigaben gelten nicht.
 
 ## Einstieg
 

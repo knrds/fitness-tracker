@@ -503,3 +503,8 @@ test('Safety 30: Arbitrary attachment URL is rejected before provider access', a
   assert.match(res.body.error, /Invalid image/i);
   assert.equal(providerCalled, false);
 });
+
+test('research text decodes XML entities exactly once', () => {
+  const { plain } = require('./coach-research.cjs');
+  assert.equal(plain('<i>Load</i> &amp;lt;script&amp;gt; &lt;5 kg&gt; &quot;RIR&quot;'), 'Load &lt;script&gt; <5 kg> "RIR"');
+});

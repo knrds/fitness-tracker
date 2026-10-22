@@ -68,3 +68,32 @@ test('CLI fails on missing/malformed files and retains only sanitized diagnostic
     rmSync(join(root, 'test.sarif'), { force: true }); rmdirSync(root);
   }
 });
+
+test('resolves rules referenced through query-pack extensions (CodeQL action v4 SARIF)', () => {
+  const { inspectSarif } = require('./codeql-gate.cjs');
+  const extensionReport = (severity) => ({
+    version: '2.1.0',
+    runs: [{
+      tool: {
+        driver: { name: 'CodeQL', rules: [] },
+        extensions: [{ name: 'codeql/javascript-queries', rules: [
+          { id: 'js/double-escaping', properties: { tags: ['security'], 'security-severity': severity } },
+        ] }],
+      },
+      invocations: [{ executionSuccessful: true }],
+      results: [{ ruleId: 'js/double-escaping', rule: { id: 'js/double-escaping', index: 0, toolComponent: { index: 0 } } }],
+    }],
+  });
+  assert.deepEqual(inspectSarif(extensionReport('7.8')).blockingRules, ['js/double-escaping']);
+  assert.deepEqual(inspectSarif(extensionReport('4.0')).blockingRules, []);
+  for (const mutate of [
+    (r) => { r.runs[0].results[0].rule.toolComponent.index = 5; },
+    (r) => { r.runs[0].results[0].rule.index = 3; },
+    (r) => { r.runs[0].results[0].rule.id = 'js/other'; },
+    (r) => { r.runs[0].tool.extensions[0].rules = []; },
+  ]) {
+    const report = extensionReport('7.8');
+    mutate(report);
+    assert.throws(() => inspectSarif(report), /Incomplete or invalid CodeQL evidence/);
+  }
+});

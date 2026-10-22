@@ -70,8 +70,15 @@ function createPreviewServer(directory) {
       const realFile = await fs.realpath(file);
       const relative = path.relative(realRoot, realFile);
       if (relative.startsWith('..') || path.isAbsolute(relative)) return reply(404, 'Not found');
-      if (!(await fs.stat(realFile)).isFile()) return reply(404, 'Not found');
-      const bytes = await fs.readFile(realFile);
+      // Stat and read through one handle so the checked file is the served file.
+      const handle = await fs.open(realFile, 'r');
+      let bytes;
+      try {
+        if (!(await handle.stat()).isFile()) return reply(404, 'Not found');
+        bytes = await handle.readFile();
+      } finally {
+        await handle.close();
+      }
       res.setHeader('Content-Type', mime[path.extname(realFile)] || 'application/octet-stream');
       res.writeHead(200);
       res.end(req.method === 'HEAD' ? undefined : bytes);

@@ -1,5 +1,5 @@
 'use strict';
-const { readFileSync, readdirSync, lstatSync } = require('node:fs');
+const { readFileSync, readdirSync, lstatSync, openSync, fstatSync, closeSync } = require('node:fs');
 const { resolve, join } = require('node:path');
 const record = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const safeId = (value) => typeof value === 'string' && /^[A-Za-z0-9_./-]{1,200}$/.test(value);
@@ -15,20 +15,42 @@ function inspectSarif(report) {
   const blocking = new Set();
   for (const run of report.runs) {
     requireEvidence(record(run) && run.tool?.driver?.name === 'CodeQL' &&
-      Array.isArray(run.tool.driver.rules) && run.tool.driver.rules.length > 0 &&
+      (run.tool.driver.rules === undefined || Array.isArray(run.tool.driver.rules)) &&
+      (run.tool.extensions === undefined || (Array.isArray(run.tool.extensions) && run.tool.extensions.length <= 32)) &&
       Array.isArray(run.results) && Array.isArray(run.invocations) && run.invocations.length > 0 &&
       run.invocations.every((invocation) => record(invocation) && invocation.executionSuccessful === true));
-    const rules = run.tool.driver.rules;
+    // CodeQL may list rules on the driver or on query-pack extensions (action v4); results
+    // then reference them through rule.toolComponent.index. Both are resolved strictly.
+    const components = [run.tool.driver, ...(run.tool.extensions ?? [])];
+    let ruleCount = 0;
     const byId = new Map();
-    for (const rule of rules) {
-      requireEvidence(record(rule) && safeId(rule.id) && !byId.has(rule.id));
-      byId.set(rule.id, rule);
+    for (const component of components) {
+      requireEvidence(record(component) && (component.rules === undefined || Array.isArray(component.rules)));
+      for (const rule of component.rules ?? []) {
+        requireEvidence(record(rule) && safeId(rule.id) && !byId.has(rule.id));
+        byId.set(rule.id, rule);
+        ruleCount++;
+      }
     }
+    requireEvidence(ruleCount > 0);
+    const rules = run.tool.driver.rules ?? [];
     for (const result of run.results) {
       requireEvidence(record(result));
-      const indexed = result.ruleIndex === undefined ? undefined : rules[result.ruleIndex];
-      if (result.ruleIndex !== undefined)
-        requireEvidence(Number.isSafeInteger(result.ruleIndex) && result.ruleIndex >= 0 && indexed !== undefined);
+      const reference = result.rule;
+      let indexed;
+      if (reference !== undefined) {
+        requireEvidence(record(reference) && Number.isSafeInteger(reference.index) && reference.index >= 0);
+        const componentIndex = reference.toolComponent?.index;
+        const component = componentIndex === undefined ? run.tool.driver : run.tool.extensions?.[componentIndex];
+        requireEvidence(componentIndex === undefined ||
+          (Number.isSafeInteger(componentIndex) && componentIndex >= 0 && component !== undefined));
+        indexed = component.rules?.[reference.index];
+        requireEvidence(indexed !== undefined && (reference.id === undefined || reference.id === indexed.id));
+      } else if (result.ruleIndex !== undefined) {
+        requireEvidence(Number.isSafeInteger(result.ruleIndex) && result.ruleIndex >= 0);
+        indexed = rules[result.ruleIndex];
+        requireEvidence(indexed !== undefined);
+      }
       const rule = result.ruleId === undefined ? indexed : byId.get(result.ruleId);
       requireEvidence(rule !== undefined && (indexed === undefined || rule.id === indexed.id));
       const raw = rule.properties?.['security-severity'];
@@ -56,9 +78,18 @@ function main(directory) {
     let count = 0;
     const blocked = new Set();
     for (const file of files) {
-      const path = join(root, file), stat = lstatSync(path);
-      requireEvidence(stat.isFile() && !stat.isSymbolicLink() && stat.size <= 20 * 1024 * 1024);
-      const result = inspectSarif(JSON.parse(readFileSync(path, 'utf8')));
+      const path = join(root, file), link = lstatSync(path);
+      requireEvidence(link.isFile() && !link.isSymbolicLink());
+      const fd = openSync(path, 'r');
+      let text;
+      try {
+        const stat = fstatSync(fd);
+        requireEvidence(stat.isFile() && stat.size <= 20 * 1024 * 1024 && stat.ino === link.ino);
+        text = readFileSync(fd, 'utf8');
+      } finally {
+        closeSync(fd);
+      }
+      const result = inspectSarif(JSON.parse(text));
       count += result.results;
       for (const rule of result.blockingRules) blocked.add(rule);
     }

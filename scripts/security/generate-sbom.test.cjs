@@ -174,8 +174,8 @@ test('only declared inventory metadata is emitted and source credentials/query/f
   f.direct('alpha', 'alpha@1.0.0');
   fs.writeFileSync(path.join(f.root, '.env'), 'DO_NOT_COPY_USER_SECRET=private-env-secret');
   const rendered = renderSbom(f.generate().bom);
-  assert.match(rendered, /https:\/\/registry\.npmjs\.org\//);
-  assert.match(rendered, /https:\/\/github\.com\/example\/alpha\.git/);
+  assert.ok(rendered.includes('"https://registry.npmjs.org/'));
+  assert.ok(rendered.includes('"https://github.com/example/alpha.git"'));
   for (const secret of ['private-registry-token', 'registry-secret', 'repository-password', 'query-secret', 'fragment-secret', 'person-secret', 'private-description', 'script-secret', 'private-env-secret', f.root.replace(/\\/g, '\\\\')]) {
     assert.ok(!rendered.includes(secret), 'private fields and absolute host paths must not be copied');
   }
@@ -213,8 +213,9 @@ test('license declarations and strict engineering screening preserve unresolved 
   assert.equal(licenseFindings.length, 1);
   assert.equal(bom.metadata.component.licenses, undefined);
   const output = path.join(f.root, 'strict-inventory.json');
-  const code = `const g=require(${JSON.stringify(generator)}); g.main(['--require-license','--output',${JSON.stringify(output)}], {generate:()=>g.generateSbom({root:${JSON.stringify(f.root)},source:${JSON.stringify(source)}})});`;
-  const result = spawnSync(process.execPath, ['-e', code], { encoding: 'utf8', timeout: 10000 });
+  // Values travel as argv data; the evaluated code is a constant.
+  const code = "const [generator, output, root, source] = process.argv.slice(1); const g = require(generator); g.main(['--require-license', '--output', output], { generate: () => g.generateSbom({ root, source: JSON.parse(source) }) });";
+  const result = spawnSync(process.execPath, ['-e', code, generator, output, f.root, JSON.stringify(source)], { encoding: 'utf8', timeout: 10000 });
   assert.equal(result.status, 1, result.stderr);
   assert.match(result.stderr, /strict engineering license screening failed; inventory retained/);
   assert.equal(JSON.parse(fs.readFileSync(output, 'utf8')).bomFormat, 'CycloneDX');

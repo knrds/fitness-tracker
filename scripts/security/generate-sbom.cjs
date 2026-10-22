@@ -35,9 +35,14 @@ function inside(parent, child) {
 }
 function readBytes(file) {
   try {
-    const stat = fs.statSync(file);
-    requireEvidence(stat.isFile() && stat.size <= 20 * 1024 * 1024, 'INPUT_NOT_A_BOUNDED_FILE');
-    return fs.readFileSync(file);
+    const fd = fs.openSync(file, 'r');
+    try {
+      const stat = fs.fstatSync(fd);
+      requireEvidence(stat.isFile() && stat.size <= 20 * 1024 * 1024, 'INPUT_NOT_A_BOUNDED_FILE');
+      return fs.readFileSync(fd);
+    } finally {
+      fs.closeSync(fd);
+    }
   } catch (error) {
     if (error instanceof InventoryError) throw error;
     throw new InventoryError('REQUIRED_INPUT_UNAVAILABLE');

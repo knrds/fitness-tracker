@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { DocumentDatabase } from '../../data/documentDatabase';
-import { saveCoachPlan } from '../saveCoachPlan';
+import { saveCoachExercises, saveCoachPlan } from '../saveCoachPlan';
 import { useCoachStore } from '../../stores/coachStore';
 import { useProgramStore } from '../../stores/programStore';
 import { useExerciseStore } from '../../stores/exerciseStore';
@@ -71,7 +71,7 @@ beforeEach(async () => {
   useProgramStore.setState({ templates: [], programs: [] });
   useSyncStore.setState({ queue: [], isOnline: false });
   useCoachStore.setState({ messages: [message] });
-  useExerciseStore.setState({ exercises: EXERCISES });
+  useExerciseStore.setState({ exercises: EXERCISES, customExercises: [] });
 });
 afterEach(() => {
   db.close();
@@ -157,4 +157,96 @@ it('rolls back a local reset when a later store write fails on native SQLite', a
   expect(useProgramStore.getState().templates.filter((item) => ids.includes(item.id)).map((item) => item.id)).toEqual(ids);
   expect(useSyncStore.getState().isSyncing).toBe(false);
   expect(useCoachStore.getState().isSending).toBe(false);
+});
+
+const frontLever = {
+  key: 'n0',
+  name: 'Einbeinige Front-Lever-Raises',
+  primaryMuscles: ['lats', 'abs'],
+  secondaryMuscles: ['rear_delts'],
+  equipment: 'bodyweight',
+  movementPattern: 'core',
+  tracking: 'reps',
+  instructions: '1. Hängen. 2. Ein Bein gestreckt anheben.',
+} as NonNullable<ChatMessage['newExercises']>[number];
+
+it('creates proposed exercises with the plan and links the template to the new library entry', () => {
+  useCoachStore.setState({
+    messages: [
+      {
+        ...message,
+        newExercises: [frontLever],
+        plan: {
+          ...message.plan!,
+          kind: 'template',
+          days: [
+            {
+              name: 'Front Lever',
+              exercises: [{ ...message.plan!.days[0]!.exercises[0]!, exerciseId: 'new:n0' }],
+            },
+          ],
+        },
+      },
+    ],
+  });
+  const [templateId] = saveCoachPlan(message.id);
+  const created = useExerciseStore.getState().customExercises.find((e) => e.name === frontLever.name)!;
+  expect(created).toMatchObject({ isCustom: true, primaryMuscles: ['lats', 'abs'] });
+  const template = useProgramStore.getState().templates.find((t) => t.id === templateId)!;
+  expect(template.exercises[0]!.exerciseId).toBe(created.id);
+  expect(useCoachStore.getState().messages[0]!.savedExerciseIds).toEqual({ n0: created.id });
+  expect(useSyncStore.getState().queue.map((op) => op.table).sort()).toEqual(['exercises', 'workout_templates']);
+});
+
+it('adds exercise-only proposals once and never duplicates an existing name', () => {
+  useCoachStore.setState({ messages: [{ ...message, plan: undefined, newExercises: [frontLever] }] });
+  const first = saveCoachExercises(message.id);
+  const second = saveCoachExercises(message.id);
+  expect(second).toEqual(first);
+  expect(useExerciseStore.getState().customExercises.filter((e) => e.name === frontLever.name)).toHaveLength(1);
+});
+
+it('rewrites an existing template in place when the coach was asked to edit it', () => {
+  useProgramStore.getState().createTemplate({ name: 'Push A' });
+  const existing = useProgramStore.getState().templates[0]!;
+  useCoachStore.setState({
+    messages: [
+      {
+        ...message,
+        plan: {
+          ...message.plan!,
+          kind: 'template',
+          updatesTemplateId: existing.id,
+          days: [{ ...message.plan!.days[0]!, name: 'Push A' }],
+        },
+      },
+    ],
+  });
+  expect(saveCoachPlan(message.id)).toEqual([existing.id]);
+  const state = useProgramStore.getState();
+  expect(state.templates).toHaveLength(1);
+  expect(state.templates[0]!.createdAt).toEqual(existing.createdAt);
+  expect(state.templates[0]!.exercises[0]!.targetRepsMax).toBe(12);
+  expect(state.programs).toHaveLength(0);
+});
+
+it('rolls back created exercises when the plan cannot be committed', () => {
+  useCoachStore.setState({
+    messages: [
+      {
+        ...message,
+        newExercises: [frontLever],
+        plan: {
+          ...message.plan!,
+          days: [{ name: 'Tag A', exercises: [{ ...message.plan!.days[0]!.exercises[0]!, exerciseId: 'new:n0' }] }],
+        },
+      },
+    ],
+  });
+  db.exec(
+    "CREATE TRIGGER fail_coach BEFORE INSERT ON state_documents WHEN NEW.key = 'volt-coach-store' BEGIN SELECT RAISE(ABORT, 'disk full'); END;",
+  );
+  expect(() => saveCoachPlan(message.id)).toThrow();
+  expect(useExerciseStore.getState().customExercises).toHaveLength(0);
+  expect(useSyncStore.getState().queue).toHaveLength(0);
 });

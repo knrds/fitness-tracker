@@ -12,6 +12,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { getStorageScope, isScopeCurrent } from '../data/storageScope';
 import { getDropIndex, moveItem, RowLayout } from '../utils/reorderGeometry';
+import { lockTabSwipe } from '../utils/tabSwipeLock';
 
 export interface MeasuredReorderOptions<T> {
   onDrop?: (item: T, contentY: number) => void;
@@ -30,6 +31,7 @@ export function useMeasuredReorder<T extends { id: string }>(
   const current = useRef({ items, onReorder, options });
   current.current = { items, onReorder, options };
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  useEffect(() => (activeDragId ? lockTabSwipe() : undefined), [activeDragId]);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const itemLayouts = useRef<Record<string, RowLayout>>({});
   const internalScrollRef = useRef<ScrollView>(null);

@@ -732,7 +732,16 @@ export const SessionExerciseCard = ({
                   onUpdate={(updates) => updateSet(sessionExercise.id, set.id, updates)}
                   onComplete={() => {
                     const willComplete = !set.completed;
-                    completeSet(sessionExercise.id, set.id);
+                    // Adopt exactly the hint values the row shows as placeholders.
+                    completeSet(sessionExercise.id, set.id, {
+                      ...(lastPerformanceSet?.weight != null && lastPerformanceSet.weight > 0
+                        ? { weight: lastPerformanceSet.weight }
+                        : {}),
+                      ...(lastPerformanceSet?.reps ? { reps: lastPerformanceSet.reps } : {}),
+                      ...(lastPerformanceSet?.durationSeconds
+                        ? { durationSeconds: lastPerformanceSet.durationSeconds }
+                        : {}),
+                    });
                     if (willComplete) {
                       const willBePR =
                         set.type !== 'warmup' &&
@@ -1650,7 +1659,7 @@ export const SetRow = ({
             }}
           >
             <Ionicons name="trash-outline" size={18} color={theme.colors.onError} />
-            <Text style={{ color: theme.colors.onError, fontSize: 11, fontWeight: '600' }}>
+            <Text style={{ color: theme.colors.onError, fontSize: 11, fontFamily: 'Manrope_600SemiBold'}}>
               Löschen
             </Text>
           </Pressable>
@@ -1708,7 +1717,7 @@ export const SetRow = ({
                 setEditingWeight(false);
               }}
               onChangeText={handleWeightChange}
-              placeholder={ghostWeight ?? '-'}
+              placeholder={(!isDone && ghostWeight) || '-'}
               placeholderTextColor={theme.colors.muted}
               selectTextOnFocus={true}
               inputAccessoryViewID="keyboardDoneAccessory"
@@ -1754,7 +1763,7 @@ export const SetRow = ({
                   if (reps > 999) reps = 999;
                   onUpdate({ reps });
                 }}
-                placeholder={ghostReps ?? '-'}
+                placeholder={(!isDone && ghostReps) || '-'}
                 placeholderTextColor={theme.colors.muted}
                 selectTextOnFocus={true}
                 inputAccessoryViewID="keyboardDoneAccessory"
@@ -1928,7 +1937,7 @@ const createStyles = (theme: Theme) =>
     },
     columnHeader: {
       fontSize: 11,
-      fontWeight: '600',
+      fontFamily: 'Manrope_600SemiBold',
       textAlign: 'center',
     },
     setCol: { width: 28, textAlign: 'center' },
@@ -1967,7 +1976,7 @@ const createStyles = (theme: Theme) =>
     },
     cell: {
       fontSize: 15,
-      fontWeight: '600',
+      fontFamily: 'Manrope_600SemiBold',
     },
     centerAlign: {
       justifyContent: 'center',
@@ -1975,7 +1984,7 @@ const createStyles = (theme: Theme) =>
     },
     typeBadge: {
       fontSize: 12,
-      fontWeight: '800',
+      fontFamily: 'Manrope_700Bold',
       borderRadius: 6,
       width: 22,
       height: 22,
@@ -1996,7 +2005,7 @@ const createStyles = (theme: Theme) =>
     prBadgeText: {
       color: theme.colors.onWarning,
       fontSize: 8,
-      fontWeight: '900',
+      fontFamily: 'Manrope_700Bold',
       letterSpacing: 0.5,
     },
     input: {
@@ -2006,7 +2015,7 @@ const createStyles = (theme: Theme) =>
       paddingHorizontal: 2,
       fontSize: 16,
       textAlign: 'center',
-      fontWeight: '500',
+      fontFamily: 'Manrope_500Medium',
       borderWidth: 1,
       borderColor: 'transparent',
       minHeight: 44,
@@ -2039,7 +2048,7 @@ const createStyles = (theme: Theme) =>
     },
     addSetRowText: {
       fontSize: 14,
-      fontWeight: '700',
+      fontFamily: 'Manrope_700Bold',
     },
     warmupIconCircle: {
       width: 24,
@@ -2051,7 +2060,7 @@ const createStyles = (theme: Theme) =>
     },
     warmupIconText: {
       fontSize: 12,
-      fontWeight: '800',
+      fontFamily: 'Manrope_700Bold',
       lineHeight: 14,
     },
     e1rmRow: {

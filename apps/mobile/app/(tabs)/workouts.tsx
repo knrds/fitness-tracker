@@ -81,7 +81,7 @@ export default function WorkoutsScreen() {
     [allTemplates, hiddenTemplateIds, hiddenFolderKeys, showHidden],
   );
 
-  const { startWorkout, startWorkoutFromTemplate, status } = useWorkoutStore();
+  const { startWorkoutFromTemplate, status } = useWorkoutStore();
   const { exercises } = useExerciseStore();
   const { sessions } = useHistoryStore();
 
@@ -258,13 +258,6 @@ export default function WorkoutsScreen() {
 
   const isFolderExpanded = (name: string) => {
     return expandedFolders[name] !== false; // default open
-  };
-
-  const handleStartEmpty = () => {
-    if (status === 'idle' || status === 'finished') {
-      startWorkout(language === 'de' ? 'Leeres Workout' : 'Empty Workout');
-    }
-    router.push('/workout/session');
   };
 
   const handleStartTemplate = async (template: WorkoutTemplate) => {
@@ -627,18 +620,6 @@ export default function WorkoutsScreen() {
               <Ionicons name="add-circle" size={18} color={theme.colors.primary} />
               <Text style={[styles.directCreateTemplateBtnText, { color: theme.colors.text }]}>
                 {language === 'de' ? 'Neue Vorlage erstellen' : 'Create New Template'}
-              </Text>
-            </Pressable>
-          </View>
-
-          {/* Quick Start Empty Workout */}
-          <View style={styles.quickStart}>
-            <Text style={styles.sectionTitle}>{t('workout.quickStart')}</Text>
-            <Pressable style={styles.emptyWorkoutBtn} onPress={handleStartEmpty}>
-              <Text style={styles.emptyWorkoutBtnText}>
-                {status === 'active' || status === 'paused'
-                  ? t('workout.resumeWorkout')
-                  : t('workout.startEmptyWorkout')}
               </Text>
             </Pressable>
           </View>
@@ -1671,10 +1652,6 @@ export default function WorkoutsScreen() {
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.colors.background },
-    quickStart: {
-      paddingHorizontal: 16,
-      marginBottom: 16,
-    },
     sectionTitle: {
       fontSize: 18,
       fontFamily: 'SpaceGrotesk_700Bold',
@@ -1696,18 +1673,6 @@ const createStyles = (theme: Theme) =>
       borderRadius: 12,
       borderWidth: 1,
       borderColor: theme.colors.border,
-    },
-    emptyWorkoutBtn: {
-      backgroundColor: theme.colors.primary,
-      paddingVertical: 14,
-      borderRadius: 12,
-      alignItems: 'center',
-      marginTop: 8,
-    },
-    emptyWorkoutBtnText: {
-      color: theme.colors.background,
-      fontSize: 15,
-      fontFamily: 'SpaceGrotesk_700Bold',
     },
 
     // 2x2 Top Grid (Strong Style)

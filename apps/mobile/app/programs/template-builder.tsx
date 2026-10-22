@@ -3,6 +3,7 @@ import { useHistoryStore } from '../../src/stores/historyStore';
 import { getStorageScope, isScopeCurrent } from '../../src/data/storageScope';
 import { recalculateDerivedStatsAfterHistoryMutation } from '../../src/utils/historyRecalculation';
 import { DatePickerModal, toIsoDateString } from '../../src/components/DatePickerModal';
+import { formatDisplayDate } from '../../src/utils/dateFormat';
 import { ProtectedPlanScreen } from '../../src/components/ProtectedPlanScreen';
 import { useProfileStore } from '../../src/stores/profileStore';
 import { SetRow } from '../../src/components/workout/SessionExerciseCard';
@@ -132,7 +133,10 @@ export default function WorkoutTemplateBuilderScreen() {
       const date = new Date(`${historyDate}T12:00:00`);
       const minutes = Number(historyDuration.replace(',', '.'));
       if (!Number.isFinite(date.getTime()) || !Number.isFinite(minutes) || minutes < 0) {
-        void showAlert({ title: 'Ungültige Eingabe', message: 'Bitte Datum und Dauer prüfen.' });
+        void showAlert({
+          title: language === 'de' ? 'Ungültige Eingabe' : 'Invalid input',
+          message: language === 'de' ? 'Bitte Datum und Dauer prüfen.' : 'Please check date and duration.',
+        });
         return;
       }
       const updated = { ...historySession, name: name.trim(), notes: description.trim(),
@@ -148,7 +152,13 @@ export default function WorkoutTemplateBuilderScreen() {
         recalculateDerivedStatsAfterHistoryMutation();
         allowLeave(() => router.back());
       } catch {
-        void showAlert({ title: 'Speichern fehlgeschlagen', message: 'Deine Eingaben bleiben im Editor erhalten.' });
+        void showAlert({
+          title: language === 'de' ? 'Speichern fehlgeschlagen' : 'Could not save',
+          message:
+            language === 'de'
+              ? 'Deine Eingaben bleiben im Editor erhalten.'
+              : 'Your changes are kept in the editor.',
+        });
       }
       return;
     }
@@ -355,13 +365,40 @@ export default function WorkoutTemplateBuilderScreen() {
           onSubmitEditing={() => Keyboard.dismiss()}
         />
 
-        {historySession ? <View style={{ gap: 12, marginBottom: 16 }}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Trainingsdatum ändern" onPress={() => setHistoryDateOpen(true)} style={styles.input}>
-            <Text style={{ color: theme.colors.text }}>{historyDate}</Text>
+        {historySession ? <View>
+          <Text style={styles.label}>{language === 'de' ? 'Datum' : 'Date'}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={language === 'de' ? 'Trainingsdatum ändern' : 'Change workout date'}
+            onPress={() => setHistoryDateOpen(true)}
+            style={[styles.input, { flexDirection: 'row', alignItems: 'center', gap: 10 }]}
+          >
+            <Ionicons name="calendar-outline" size={18} color={theme.colors.primary} />
+            <Text style={{ color: theme.colors.text, fontFamily: 'Manrope_500Medium', fontSize: 16, flex: 1 }}>
+              {formatDisplayDate(historyDate, language === 'de' ? 'de' : 'en')}
+            </Text>
+            <Ionicons name="chevron-down" size={18} color={theme.colors.muted} />
           </Pressable>
-          <Text style={styles.label}>Dauer (Minuten)</Text>
-          <TextInput style={styles.input} accessibilityLabel="Dauer in Minuten" value={historyDuration} onChangeText={setHistoryDuration} keyboardType="decimal-pad" inputAccessoryViewID={KEYBOARD_DONE_ID} />
-          <DatePickerModal visible={historyDateOpen} value={historyDate} onClose={() => setHistoryDateOpen(false)} onConfirm={setHistoryDate} language={language} allowClear={false} />
+          <Text style={styles.label}>{language === 'de' ? 'Dauer (Minuten)' : 'Duration (minutes)'}</Text>
+          <TextInput
+            style={styles.input}
+            accessibilityLabel={language === 'de' ? 'Dauer in Minuten' : 'Duration in minutes'}
+            value={historyDuration}
+            onChangeText={setHistoryDuration}
+            keyboardType="decimal-pad"
+            inputAccessoryViewID={KEYBOARD_DONE_ID}
+          />
+          <DatePickerModal
+            visible={historyDateOpen}
+            value={historyDate}
+            onClose={() => setHistoryDateOpen(false)}
+            onConfirm={setHistoryDate}
+            language={language}
+            title={language === 'de' ? 'Trainingsdatum' : 'Workout date'}
+            maxDate={new Date()}
+            defaultToToday
+            allowClear={false}
+          />
         </View> : <>
         <Text style={styles.label}>
           {language === 'de' ? 'Ordner (Optional)' : 'Folder (Optional)'}
@@ -723,7 +760,7 @@ const createStyles = (theme: Theme) =>
       justifyContent: 'center',
       alignItems: 'center',
     },
-    headerTitle: { fontSize: 18, fontFamily: 'SpaceGrotesk_700Bold', textTransform: 'uppercase' },
+    headerTitle: { fontSize: 18, fontFamily: 'SpaceGrotesk_700Bold', letterSpacing: -0.2 },
     saveBtn: {
       minHeight: 44,
       paddingHorizontal: 16,
@@ -847,7 +884,7 @@ const createStyles = (theme: Theme) =>
     },
     tableColHeader: {
       fontSize: 12,
-      fontWeight: '600',
+      fontFamily: 'Manrope_600SemiBold',
       textAlign: 'center',
     },
     setCol: { width: 30, textAlign: 'center' },
@@ -887,7 +924,7 @@ const createStyles = (theme: Theme) =>
       paddingHorizontal: 4,
       fontSize: 16,
       textAlign: 'center',
-      fontWeight: '500',
+      fontFamily: 'Manrope_500Medium',
       borderWidth: 1,
       borderColor: 'transparent',
       minHeight: 44,

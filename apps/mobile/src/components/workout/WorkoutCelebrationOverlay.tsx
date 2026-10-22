@@ -273,7 +273,7 @@ export function WorkoutCelebrationOverlay({
                 color: p.color,
                 fontSize: effect === 'matrix' ? 12 : p.size,
                 lineHeight: effect === 'matrix' ? 13 : p.size,
-                fontWeight: '700',
+                fontFamily: 'Manrope_700Bold',
               }}
             >
               {effect === 'matrix' ? (p.id % 2 ? '1\n0\n1' : '0\n1\n0') : '✦'}

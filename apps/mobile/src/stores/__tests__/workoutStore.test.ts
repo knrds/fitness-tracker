@@ -166,6 +166,29 @@ describe('workoutStore', () => {
     expect(state.restTimer.isRunning).toBe(true);
   });
 
+  it('adopts the displayed last-performance hint when a set is completed empty', () => {
+    useWorkoutStore.getState().startWorkout();
+    useWorkoutStore.getState().addExercise('ex-1');
+    const exId = useWorkoutStore.getState().exercises[0]!.id;
+    const setId = useWorkoutStore.getState().exercises[0]!.sets[0]!.id;
+    useWorkoutStore.setState((state) => ({
+      exercises: state.exercises.map((ex) => ({
+        ...ex,
+        sets: ex.sets.map(({ weight: _w, reps: _r, ...rest }) => rest),
+      })),
+    }));
+
+    useWorkoutStore.getState().completeSet(exId, setId, { weight: 82.5, reps: 8 });
+    const completed = useWorkoutStore.getState().exercises[0]!.sets[0]!;
+    expect(completed).toMatchObject({ completed: true, weight: 82.5, reps: 8 });
+
+    // Explicit user input is never replaced by the hint.
+    useWorkoutStore.getState().completeSet(exId, setId);
+    useWorkoutStore.getState().updateSet(exId, setId, { weight: 90, reps: 5 });
+    useWorkoutStore.getState().completeSet(exId, setId, { weight: 82.5, reps: 8 });
+    expect(useWorkoutStore.getState().exercises[0]!.sets[0]!).toMatchObject({ weight: 90, reps: 5 });
+  });
+
   it('should add, complete and then uncomplete a set', () => {
     useWorkoutStore.getState().startWorkout();
     useWorkoutStore.getState().addExercise('ex-1');

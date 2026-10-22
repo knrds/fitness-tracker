@@ -20,7 +20,7 @@ describe('Plans Create Modal i18n parity', () => {
     });
 
     expect(getTranslation('de', 'plans.createChoiceTitle')).toBe('Was möchtest du erstellen?');
-    expect(getTranslation('de', 'plans.createTemplate')).toBe('Template erstellen');
+    expect(getTranslation('de', 'plans.createTemplate')).toBe('Vorlage erstellen');
     expect(getTranslation('de', 'plans.createTemplateDesc')).toBe(
       'Erstelle eine wiederverwendbare Trainingsvorlage.',
     );

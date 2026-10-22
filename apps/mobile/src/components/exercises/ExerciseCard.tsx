@@ -140,7 +140,7 @@ const createStyles = (theme: Theme) =>
     placeholderText: {
       fontSize: 12,
       color: theme.colors.muted,
-      fontWeight: '600',
+      fontFamily: 'Manrope_600SemiBold',
     },
     header: {
       flexDirection: 'row',
@@ -150,7 +150,7 @@ const createStyles = (theme: Theme) =>
     },
     title: {
       fontSize: 18,
-      fontWeight: '700',
+      fontFamily: 'SpaceGrotesk_700Bold',
       color: theme.colors.text,
       flex: 1,
     },
@@ -176,7 +176,7 @@ const createStyles = (theme: Theme) =>
     },
     equipmentBadgeText: {
       fontSize: 12,
-      fontWeight: '600',
+      fontFamily: 'Manrope_600SemiBold',
       color: theme.colors.muted,
     },
   });

@@ -14,13 +14,17 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  useWindowDimensions,
   Animated,
   Platform,
   TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LineChart } from 'react-native-chart-kit';
+import { TrendChart, TrendPoint } from '../../src/components/charts/TrendChart';
+import {
+  ChartRange,
+  ChartRangePicker,
+  filterByRange,
+} from '../../src/components/charts/ChartRangePicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import {
@@ -38,6 +42,7 @@ import {
   KEYBOARD_DONE_ID,
 } from '../../src/components/workout/KeyboardDoneAccessory';
 import { DatePickerModal } from '../../src/components/DatePickerModal';
+import { formatDisplayDate } from '../../src/utils/dateFormat';
 import { useI18n } from '../../src/i18n';
 import { entitlementService } from '../../src/services/entitlementService';
 import { usePaywallStore } from '../../src/stores/paywallStore';
@@ -126,7 +131,6 @@ export default function BodyTrackingScreen() {
   const scrollRef = useFocusScroll();
   const theme = useTheme();
   const { t, language } = useI18n();
-  const { width: screenWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ tab?: BodyTab }>();
   const { metrics, addMetric, getMetricHistory, getLatestMetric } = useBodyMetricStore();
@@ -144,10 +148,8 @@ export default function BodyTrackingScreen() {
   );
   const [activeBodyWidget, setActiveBodyWidget] = useState<BodyWidgetKey | null>(null);
   const [bodyFactIndex, setBodyFactIndex] = useState(0);
-  const [selectedPoint, setSelectedPoint] = useState<{
-    date: string;
-    value: string;
-  } | null>(null);
+  const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null);
+  const [chartRange, setChartRange] = useState<ChartRange>('3m');
 
   React.useEffect(() => {
     if (params.tab === 'exercises') {
@@ -161,7 +163,7 @@ export default function BodyTrackingScreen() {
   const chartSlideAnim = React.useRef(new Animated.Value(20)).current;
 
   React.useEffect(() => {
-    setSelectedPoint(null);
+    setSelectedPointIndex(null);
     chartFadeAnim.setValue(0);
     chartSlideAnim.setValue(8);
     Animated.parallel([
@@ -473,52 +475,31 @@ export default function BodyTrackingScreen() {
   };
 
   const renderChart = () => {
-    const history = getMetricHistory(activeChartTab);
-
-    if (history.length < 2) {
-      return (
-        <Card padding="lg" style={{ alignItems: 'center', marginBottom: 24 }}>
-          <Text
-            style={[
-              {
-                color: theme.colors.text,
-                ...theme.typography.heading,
-                fontSize: 16,
-                marginBottom: 4,
-              },
-            ]}
-          >
-            {t('body.notEnoughData')}
-          </Text>
-          <Text style={[{ color: theme.colors.muted, ...theme.typography.body }]}>
-            {t('body.logAtLeastTwo')}
-          </Text>
-        </Card>
-      );
-    }
-
-    const data = {
-      labels: history.slice(-6).map((h) => {
-        const d = new Date(h.recordedAt);
-        return `${d.getMonth() + 1}/${d.getDate()}`;
-      }),
-      datasets: [
-        {
-          data: history.slice(-6).map((h) => {
-            if (activeChartTab === 'weight') {
-              const kg = h.weightKg || 0;
-              return isImperial ? kg * 2.20462 : kg;
-            } else {
-              return h.bodyFatPercentage || 0;
-            }
-          }),
-          color: () => theme.colors.primary,
-          strokeWidth: 2,
-        },
-      ],
-    };
-
-    const chartWidth = Math.max(180, Math.min(screenWidth - 112, 600));
+    const allHistory = getMetricHistory(activeChartTab);
+    const history = filterByRange(allHistory, chartRange, (h) => new Date(h.recordedAt).getTime());
+    const isWeight = activeChartTab === 'weight';
+    const unit = isWeight ? (isImperial ? 'lbs' : 'kg') : '%';
+    const points: TrendPoint[] = history
+      .map((h) => ({
+        t: new Date(h.recordedAt).getTime(),
+        y: isWeight
+          ? isImperial
+            ? (h.weightKg ?? 0) * 2.20462
+            : (h.weightKg ?? 0)
+          : (h.bodyFatPercentage ?? 0),
+      }))
+      .filter((point) => point.y > 0);
+    const formatValue = (value: number) => (Math.round(value * 10) / 10).toLocaleString(language);
+    const first = points[0]?.y ?? 0;
+    const last = points[points.length - 1]?.y ?? 0;
+    const delta = last - first;
+    const title = isWeight
+      ? language === 'en'
+        ? 'Body weight'
+        : 'Körpergewicht'
+      : language === 'en'
+        ? 'Body fat'
+        : 'Körperfett';
 
     return (
       <Animated.View
@@ -532,90 +513,65 @@ export default function BodyTrackingScreen() {
           },
         ]}
       >
-        <Text
-          style={[
-            styles.chartTitle,
-            {
-              color: theme.colors.text,
-              ...theme.typography.heading,
-              fontSize: 16,
-              marginBottom: 4,
-            },
-          ]}
-        >
-          {activeChartTab === 'weight' ? 'Weight History' : 'Body Fat History'}
-        </Text>
-
-        {selectedPoint ? (
-          <View
-            style={[
-              styles.tooltipContainer,
-              { backgroundColor: theme.colors.background, borderColor: theme.colors.primary },
-            ]}
-          >
-            <Ionicons name="stats-chart" size={16} color={theme.colors.primary} />
-            <Text style={[styles.tooltipText, { color: theme.colors.text }]}>
-              <Text style={{ fontFamily: 'SpaceGrotesk_700Bold' }}>{selectedPoint.date}</Text>:{' '}
-              <Text style={{ color: theme.colors.primary, fontFamily: 'SpaceGrotesk_700Bold' }}>
-                {selectedPoint.value}
-              </Text>
+        <View style={styles.chartHeaderRow}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={[styles.chartEyebrow, { color: theme.colors.muted }]}>
+              {title.toUpperCase()}
             </Text>
-            <Pressable onPress={() => setSelectedPoint(null)} hitSlop={10}>
-              <Ionicons name="close-circle" size={18} color={theme.colors.muted} />
-            </Pressable>
+            <Text style={[styles.chartHeadline, { color: theme.colors.text }]}>
+              {points.length
+                ? formatValue(points[selectedPointIndex ?? points.length - 1]?.y ?? last)
+                : '—'}
+              <Text style={[styles.chartHeadlineUnit, { color: theme.colors.muted }]}> {unit}</Text>
+            </Text>
+          </View>
+          {points.length > 1 && (
+            <View style={[styles.deltaPill, { backgroundColor: withAlpha(theme.colors.primary, 0.12) }]}>
+              <Ionicons
+                name={delta > 0 ? 'arrow-up' : delta < 0 ? 'arrow-down' : 'remove'}
+                size={13}
+                color={theme.colors.primary}
+              />
+              <Text style={[styles.deltaText, { color: theme.colors.primary }]}>
+                {delta > 0 ? '+' : ''}
+                {formatValue(delta)} {unit}
+              </Text>
+            </View>
+          )}
+        </View>
+        {points.length < 2 ? (
+          <View style={styles.chartEmpty}>
+            <Ionicons name="analytics-outline" size={26} color={theme.colors.muted} />
+            <Text style={[styles.chartEmptyTitle, { color: theme.colors.text }]}>
+              {t('body.notEnoughData')}
+            </Text>
+            <Text style={[styles.chartEmptyBody, { color: theme.colors.muted }]}>
+              {allHistory.length >= 2
+                ? language === 'en'
+                  ? 'Choose a longer range.'
+                  : 'Wähle einen längeren Zeitraum.'
+                : t('body.logAtLeastTwo')}
+            </Text>
           </View>
         ) : (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2 }}>
-            <Ionicons name="information-circle-outline" size={13} color={theme.colors.muted} />
-            <Text style={[styles.chartTipText, { color: theme.colors.muted }]}>
-              {t('body.chartTip')}
-            </Text>
-          </View>
+          <TrendChart
+            testID="body-trend-chart"
+            points={points}
+            height={200}
+            locale={language === 'en' ? 'en' : 'de'}
+            formatValue={formatValue}
+            selectedIndex={selectedPointIndex}
+            onSelect={setSelectedPointIndex}
+            accessibilityLabel={`${title}: ${formatValue(first)} → ${formatValue(last)} ${unit}`}
+          />
         )}
-
-        <LineChart
-          data={data}
-          width={chartWidth}
-          height={200}
-          withInnerLines={false}
-          withOuterLines={false}
-          onDataPointClick={({ index }) => {
-            const slicedHistory = history.slice(-6);
-            const item = slicedHistory[index];
-            if (item) {
-              const dateStr = new Date(item.recordedAt).toLocaleDateString();
-              let valStr = '';
-              if (activeChartTab === 'weight') {
-                const w = item.weightKg
-                  ? isImperial
-                    ? item.weightKg * 2.20462
-                    : item.weightKg
-                  : 0;
-                valStr = `${w.toFixed(1)} ${isImperial ? 'lbs' : 'kg'}`;
-              } else {
-                valStr = `${(item.bodyFatPercentage || 0).toFixed(1)}%`;
-              }
-              setSelectedPoint({
-                date: dateStr,
-                value: valStr,
-              });
-            }
+        <ChartRangePicker
+          value={chartRange}
+          onChange={(range) => {
+            setSelectedPointIndex(null);
+            setChartRange(range);
           }}
-          chartConfig={{
-            backgroundColor: theme.colors.surface,
-            backgroundGradientFrom: theme.colors.surface,
-            backgroundGradientTo: theme.colors.surface,
-            decimalPlaces: 1,
-            color: () => theme.colors.primary,
-            labelColor: () => theme.colors.muted,
-            propsForDots: {
-              r: '5',
-              strokeWidth: '2',
-              stroke: theme.colors.surface,
-            },
-          }}
-          bezier
-          style={styles.chart}
+          language={language === 'en' ? 'en' : 'de'}
         />
       </Animated.View>
     );
@@ -934,7 +890,9 @@ export default function BodyTrackingScreen() {
                 onPress={() => setDatePickerVisible(true)}
                 accessibilityRole="button"
                 accessibilityLabel={
-                  language === 'de' ? `Messdatum: ${dateStr}` : `Measurement Date: ${dateStr}`
+                  language === 'de'
+                    ? `Messdatum: ${formatDisplayDate(dateStr, 'de')}`
+                    : `Measurement date: ${formatDisplayDate(dateStr, 'en')}`
                 }
                 style={[
                   styles.dateTriggerBtn,
@@ -951,7 +909,7 @@ export default function BodyTrackingScreen() {
                   style={{ marginRight: 8 }}
                 />
                 <Text style={[styles.dateTriggerText, { color: theme.colors.text }]}>
-                  {dateStr}
+                  {formatDisplayDate(dateStr, language === 'en' ? 'en' : 'de')}
                 </Text>
                 <Ionicons
                   name="chevron-down"
@@ -1193,7 +1151,7 @@ export default function BodyTrackingScreen() {
                   },
                 ]}
               >
-                {t('body.bodyFat')}
+                {t('body.bodyFat').toUpperCase()}
               </Text>
             </Pressable>
           </View>
@@ -1796,6 +1754,34 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   toggleText: {},
+  chartHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    alignSelf: 'stretch',
+    gap: 12,
+    marginBottom: 8,
+  },
+  chartEyebrow: { fontFamily: 'SpaceGrotesk_600SemiBold', fontSize: 11, letterSpacing: 1 },
+  chartHeadline: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 30,
+    letterSpacing: -0.6,
+    fontVariant: ['tabular-nums'],
+  },
+  chartHeadlineUnit: { fontFamily: 'SpaceGrotesk_500Medium', fontSize: 15, letterSpacing: 0 },
+  deltaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    marginBottom: 6,
+  },
+  deltaText: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 13, fontVariant: ['tabular-nums'] },
+  chartEmpty: { alignItems: 'center', gap: 6, paddingVertical: 36, alignSelf: 'stretch' },
+  chartEmptyTitle: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 15 },
+  chartEmptyBody: { fontFamily: 'Manrope_500Medium', fontSize: 13, textAlign: 'center' },
   chartContainer: {
     borderRadius: 16,
     paddingVertical: 12,

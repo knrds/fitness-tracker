@@ -13,7 +13,6 @@ import {
   FlatList,
   Pressable,
   ScrollView,
-  useWindowDimensions,
   Modal,
   Animated,
   Platform,
@@ -22,7 +21,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useRouter } from 'expo-router';
-import { LineChart } from 'react-native-chart-kit';
+import { TrendChart, TrendPoint } from '../../src/components/charts/TrendChart';
+import {
+  ChartRange,
+  ChartRangePicker,
+  filterByRange,
+} from '../../src/components/charts/ChartRangePicker';
 import { Ionicons } from '@expo/vector-icons';
 import { hapticFeedback } from '../../src/utils/haptics';
 
@@ -594,7 +598,7 @@ function HistoryView() {
                   : isToday
                     ? theme.colors.primary
                     : theme.colors.muted,
-                fontWeight: isSelected || isToday ? '700' : '500',
+                fontFamily: isSelected || isToday ? 'SpaceGrotesk_700Bold' : 'SpaceGrotesk_500Medium',
               },
             ]}
           >
@@ -1123,6 +1127,8 @@ function HistoryView() {
   );
 }
 
+type ProgressChartMetric = 'weight' | 'e1rm' | 'volume';
+
 function ProgressView() {
   const reducedMotion = useReducedMotion();
   const scrollRef = useFocusScroll();
@@ -1140,6 +1146,7 @@ function ProgressView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   const favoriteIds = useExerciseStore((state) => state.favoriteIds);
+  const toggleFavorite = useExerciseStore((state) => state.toggleFavorite);
 
   const filteredExerciseIds = React.useMemo(() => {
     return activeExerciseIds.filter((id) => {
@@ -1164,16 +1171,9 @@ function ProgressView() {
     }
   }, [filteredExerciseIds]);
 
-  const [selectedPoint, setSelectedPoint] = useState<{
-    date: string;
-    volume: number;
-    isPR: boolean;
-    maxWeight: number;
-    e1rm?: number;
-  } | null>(null);
-
-  const [crosshairIdx, setCrosshairIdx] = useState<number | null>(null);
-  const [crosshairX, setCrosshairX] = useState<number | null>(null);
+  const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null);
+  const [chartMetric, setChartMetric] = useState<ProgressChartMetric>('weight');
+  const [chartRange, setChartRange] = useState<ChartRange>('all');
 
   const progressDetails = React.useMemo(() => {
     if (!selectedExId) return null;
@@ -1251,9 +1251,7 @@ function ProgressView() {
   const chartSlideAnim = React.useRef(new Animated.Value(20)).current;
 
   React.useEffect(() => {
-    setSelectedPoint(null);
-    setCrosshairIdx(null);
-    setCrosshairX(null);
+    setSelectedPointIndex(null);
     chartFadeAnim.setValue(0);
     chartSlideAnim.setValue(8);
     Animated.parallel([
@@ -1270,88 +1268,41 @@ function ProgressView() {
     ]).start();
   }, [selectedExId, reducedMotion]);
 
-  const { width: screenWidth } = useWindowDimensions();
-
   const getProgressHistory = (exerciseId: string) => {
     const exercise = exercises.find((e) => e.id === exerciseId);
     return getExerciseProgressHistory(exerciseId, historyStore.sessions, exercise?.name);
   };
 
+  const unit = isImperial ? 'lbs' : 'kg';
+  const toDisplay = (kg: number) => (isImperial ? kg * 2.20462 : kg);
+  const canUseE1rm = entitlementService.canUseAdvancedAnalytics();
+
   const renderChart = () => {
     if (!selectedExId) return null;
-    const history = getProgressHistory(selectedExId).slice(-24);
-    if (history.length < 2) {
-      return (
-        <Card padding="lg" style={{ alignItems: 'center', marginBottom: 24 }}>
-          <Text
-            style={[
-              { color: theme.colors.text, fontSize: 16, marginBottom: 4 },
-              theme.typography.heading,
-            ]}
-          >
-            {language === 'de' ? 'Nicht genug Daten' : 'Not enough data'}
-          </Text>
-          <Text style={[{ color: theme.colors.muted }, theme.typography.body]}>
-            {language === 'de'
-              ? 'Schließe mindestens 2 Einheiten ab.'
-              : 'Complete at least 2 sessions.'}
-          </Text>
-        </Card>
-      );
-    }
-
-    const chartWidth = Math.max(180, Math.min(screenWidth - 112, 600));
-    const chartPaddingRight = 64;
-    const chartStep = (chartWidth - chartPaddingRight) / history.length;
-
-    const getPointX = (index: number) => {
-      if (history.length <= 1) return chartPaddingRight;
-      return Math.floor(chartPaddingRight + index * chartStep);
-    };
-
-    const selectHistoryPoint = (index: number, pointX = getPointX(index)) => {
-      if (index < 0 || index >= history.length) return;
-      const item = history[index];
-      if (!item) return;
-      const vol = isImperial ? Math.round(item.volume * 2.20462) : Math.round(item.volume);
-      setCrosshairIdx(index);
-      setCrosshairX(pointX);
-      setSelectedPoint({
-        date: new Date(item.date).toLocaleDateString(),
-        volume: vol,
-        isPR: item.isWeightPR,
-        maxWeight: isImperial ? Math.round(item.maxWeight * 2.20462) : Math.round(item.maxWeight),
-        e1rm: isImperial ? Math.round(item.maxE1RM * 2.20462) : Math.round(item.maxE1RM),
-      });
-      void hapticFeedback.impact('light');
-    };
-
-    const handleChartTouch = (touchX: number) => {
-      if (history.length < 2) return;
-      const firstX = getPointX(0);
-      const lastX = getPointX(history.length - 1);
-      const clampedX = Math.max(firstX, Math.min(lastX, touchX));
-      const index = Math.round((clampedX - chartPaddingRight) / chartStep);
-
-      if (index !== crosshairIdx && index >= 0 && index < history.length) {
-        selectHistoryPoint(index, getPointX(index));
-      }
-    };
-
-    const data = {
-      labels: history.map((h, index) =>
-        index === 0 || index === history.length - 1 || index % Math.ceil(history.length / 4) === 0
-          ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(h.date)
-          : '',
-      ),
-      datasets: [
-        {
-          data: history.map((h) => (isImperial ? Math.round(h.maxWeight * 2.20462) : h.maxWeight)),
-          color: () => theme.colors.primary,
-          strokeWidth: 2,
-        },
-      ],
-    };
+    const allHistory = getProgressHistory(selectedExId);
+    const history = filterByRange(allHistory, chartRange, (h) => new Date(h.date).getTime());
+    const metric = chartMetric === 'e1rm' && !canUseE1rm ? 'weight' : chartMetric;
+    const valueOf = (h: (typeof history)[number]) =>
+      metric === 'e1rm' ? h.maxE1RM : metric === 'volume' ? h.volume : h.maxWeight;
+    const points: TrendPoint[] = history.map((h) => ({
+      t: new Date(h.date).getTime(),
+      y: toDisplay(valueOf(h)),
+      highlight: metric === 'weight' && h.isWeightPR,
+      ...(h.isWeightPR ? { note: language === 'de' ? '★ Gewichts-PR' : '★ Weight PR' } : {}),
+    }));
+    const selected = selectedPointIndex !== null ? history[selectedPointIndex] : undefined;
+    const first = points[0]?.y ?? 0;
+    const last = points[points.length - 1]?.y ?? 0;
+    const delta = last - first;
+    const formatChartValue = (value: number) =>
+      metric === 'volume' && value >= 10000
+        ? `${(value / 1000).toFixed(1)} t`
+        : `${Math.round(value * 10) / 10}`;
+    const metricLabel = {
+      weight: language === 'de' ? 'Max-Gewicht' : 'Max weight',
+      e1rm: language === 'de' ? 'Geschätztes 1RM' : 'Estimated 1RM',
+      volume: language === 'de' ? 'Volumen' : 'Volume',
+    }[metric];
 
     return (
       <Animated.View
@@ -1365,134 +1316,118 @@ function ProgressView() {
           },
         ]}
       >
-        <Text
-          style={[
-            styles.chartTitle,
-            { color: theme.colors.text, ...theme.typography.heading, fontSize: 20 },
-          ]}
-        >
-          {language === 'de'
-            ? 'Max-Gewicht-Verlauf · letzte 24 Trainings'
-            : 'Max Weight History · last 24 workouts'}
-        </Text>
-
-        {/* Selected Data Point Details */}
-        {selectedPoint ? (
-          <View
-            style={[
-              styles.tooltipContainer,
-              {
-                backgroundColor: theme.colors.background,
-                borderColor: selectedPoint.isPR ? theme.colors.warning : theme.colors.primary,
-              },
-            ]}
-          >
-            <Ionicons
-              name={selectedPoint.isPR ? 'star' : 'stats-chart'}
-              size={16}
-              color={selectedPoint.isPR ? theme.colors.warning : theme.colors.primary}
-            />
-            <Text style={[styles.tooltipText, { color: theme.colors.text, fontSize: 11 }]}>
-              <Text style={{ fontFamily: 'SpaceGrotesk_700Bold' }}>{selectedPoint.date}</Text>: Max:{' '}
-              <Text
-                style={{
-                  color: selectedPoint.isPR ? theme.colors.warning : theme.colors.primary,
-                  fontFamily: 'SpaceGrotesk_700Bold',
-                }}
-              >
-                {selectedPoint.maxWeight} {isImperial ? 'lbs' : 'kg'}
-              </Text>{' '}
-              | Vol:{' '}
-              <Text style={{ color: theme.colors.primary, fontFamily: 'SpaceGrotesk_700Bold' }}>
-                {selectedPoint.volume} {isImperial ? 'lbs' : 'kg'}
-              </Text>
-              {selectedPoint.e1rm !== undefined && (
-                <>
-                  {' '}
-                  | e1RM:{' '}
-                  <Text style={{ color: theme.colors.primary, fontFamily: 'SpaceGrotesk_700Bold' }}>
-                    {selectedPoint.e1rm} {isImperial ? 'lbs' : 'kg'}
-                  </Text>
-                </>
-              )}
-              {selectedPoint.isPR && (
-                <Text style={{ color: theme.colors.warning, fontFamily: 'SpaceGrotesk_700Bold' }}>
-                  {' '}
-                  {language === 'de' ? '(★ Gewichts-PR)' : '(★ Weight PR)'}
-                </Text>
-              )}
+        <View style={styles.chartHeaderRow}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={[styles.chartEyebrow, { color: theme.colors.muted }]}>
+              {metricLabel.toUpperCase()} · {unit}
             </Text>
-            <Pressable
-              onPress={() => {
-                setSelectedPoint(null);
-                setCrosshairIdx(null);
-                setCrosshairX(null);
-              }}
-              hitSlop={10}
+            <Text style={[styles.chartHeadline, { color: theme.colors.text }]}>
+              {points.length
+                ? formatChartValue(points[selectedPointIndex ?? points.length - 1]?.y ?? last)
+                : '—'}
+              <Text style={[styles.chartHeadlineUnit, { color: theme.colors.muted }]}> {unit}</Text>
+            </Text>
+          </View>
+          {points.length > 1 && (
+            <View
+              style={[
+                styles.deltaPill,
+                {
+                  backgroundColor: withAlpha(delta >= 0 ? theme.colors.success : theme.colors.error, 0.12),
+                },
+              ]}
             >
-              <Ionicons name="close-circle" size={18} color={theme.colors.muted} />
-            </Pressable>
+              <Ionicons
+                name={delta >= 0 ? 'trending-up' : 'trending-down'}
+                size={14}
+                color={delta >= 0 ? theme.colors.success : theme.colors.error}
+              />
+              <Text
+                style={[
+                  styles.deltaText,
+                  { color: delta >= 0 ? theme.colors.success : theme.colors.error },
+                ]}
+              >
+                {delta >= 0 ? '+' : ''}
+                {formatChartValue(delta)}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <SegmentedControl
+          style={{ marginHorizontal: 0, alignSelf: 'stretch', backgroundColor: theme.colors.background }}
+          label={language === 'de' ? 'Kennzahl' : 'Metric'}
+          value={metric}
+          onChange={(value) => {
+            if (value === 'e1rm' && !canUseE1rm) {
+              usePaywallStore.getState().openPaywall('pro', 'analytics');
+              return;
+            }
+            setSelectedPointIndex(null);
+            setChartMetric(value);
+          }}
+          options={[
+            { value: 'weight', label: language === 'de' ? 'Gewicht' : 'Weight' },
+            { value: 'e1rm', label: canUseE1rm ? 'e1RM' : 'e1RM 🔒' },
+            { value: 'volume', label: language === 'de' ? 'Volumen' : 'Volume' },
+          ]}
+        />
+
+        {history.length < 2 ? (
+          <View style={styles.chartEmpty}>
+            <Ionicons name="analytics-outline" size={26} color={theme.colors.muted} />
+            <Text style={[styles.chartEmptyTitle, { color: theme.colors.text }]}>
+              {language === 'de' ? 'Noch zu wenig Daten' : 'Not enough data yet'}
+            </Text>
+            <Text style={[styles.chartEmptyBody, { color: theme.colors.muted }]}>
+              {allHistory.length >= 2
+                ? language === 'de'
+                  ? 'Wähle einen längeren Zeitraum.'
+                  : 'Choose a longer range.'
+                : language === 'de'
+                  ? 'Schließe mindestens 2 Einheiten mit dieser Übung ab.'
+                  : 'Complete at least 2 sessions with this exercise.'}
+            </Text>
           </View>
         ) : (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2 }}>
-            <Ionicons name="information-circle-outline" size={13} color={theme.colors.muted} />
+          <TrendChart
+            testID="progress-trend-chart"
+            points={points}
+            height={210}
+            locale={language === 'de' ? 'de' : 'en'}
+            formatValue={formatChartValue}
+            selectedIndex={selectedPointIndex}
+            onSelect={setSelectedPointIndex}
+            accessibilityLabel={`${metricLabel}: ${formatChartValue(first)} → ${formatChartValue(last)} ${unit}`}
+          />
+        )}
+
+        <ChartRangePicker value={chartRange} onChange={(range) => { setSelectedPointIndex(null); setChartRange(range); }} language={language === 'de' ? 'de' : 'en'} />
+
+        {selected ? (
+          <View style={[styles.pointDetails, { borderTopColor: theme.colors.border }]}>
+            {[
+              [language === 'de' ? 'Max' : 'Max', `${Math.round(toDisplay(selected.maxWeight) * 10) / 10} ${unit}`],
+              ['e1RM', canUseE1rm ? `${Math.round(toDisplay(selected.maxE1RM))} ${unit}` : 'PRO'],
+              [language === 'de' ? 'Volumen' : 'Volume', `${Math.round(toDisplay(selected.volume)).toLocaleString(language)} ${unit}`],
+            ].map(([name, value]) => (
+              <View key={name} style={styles.pointDetailCell}>
+                <Text style={[styles.pointDetailLabel, { color: theme.colors.muted }]}>{name}</Text>
+                <Text style={[styles.pointDetailValue, { color: theme.colors.text }]}>{value}</Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 10 }}>
+            <Ionicons name="hand-left-outline" size={13} color={theme.colors.muted} />
             <Text style={[styles.chartTipText, { color: theme.colors.muted }]}>
               {language === 'de'
-                ? 'Über das Diagramm streichen für Max-Gewicht, Vol & e1RM'
-                : 'Slide across chart to view Max Weight, Vol & e1RM'}
+                ? 'Über das Diagramm streichen für Details'
+                : 'Slide across the chart for details'}
             </Text>
           </View>
         )}
-
-        <View
-          onStartShouldSetResponder={() => true}
-          onResponderGrant={(e) => handleChartTouch(e.nativeEvent.locationX)}
-          onResponderMove={(e) => handleChartTouch(e.nativeEvent.locationX)}
-          style={{ position: 'relative', overflow: 'visible' }}
-        >
-          <LineChart
-            data={data}
-            width={chartWidth}
-            height={220}
-            withInnerLines={false}
-            withOuterLines={false}
-            onDataPointClick={({ index, x }) => {
-              selectHistoryPoint(index, typeof x === 'number' ? x : getPointX(index));
-            }}
-            getDotColor={(dataPoint, dataPointIndex) => {
-              const point = history[dataPointIndex];
-              return point?.isWeightPR ? theme.chart.record : theme.chart.line;
-            }}
-            chartConfig={{
-              backgroundColor: theme.colors.surface,
-              backgroundGradientFrom: theme.colors.surface,
-              backgroundGradientTo: theme.colors.surface,
-              decimalPlaces: 0,
-              color: (opacity = 1) => withAlpha(theme.chart.line, opacity),
-              labelColor: () => theme.colors.muted,
-              propsForDots: { r: '6', strokeWidth: '2.5', stroke: theme.colors.surface },
-            }}
-            style={{ marginVertical: 8, borderRadius: 16 }}
-          />
-          {crosshairX !== null && (
-            <View
-              style={{
-                position: 'absolute',
-                top: 16,
-                bottom: 24,
-                left: Math.max(0, crosshairX - 0.75),
-                width: 1.5,
-                backgroundColor: theme.colors.primary,
-                zIndex: 10,
-                shadowColor: theme.colors.primary,
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.6,
-                shadowRadius: 2,
-                pointerEvents: 'none',
-              }}
-            />
-          )}
-        </View>
       </Animated.View>
     );
   };
@@ -1583,7 +1518,23 @@ function ProgressView() {
                         },
                       ]}
                       onPress={() => setSelectedExId(id)}
+                      onLongPress={() => {
+                        void hapticFeedback.selection();
+                        toggleFavorite(id);
+                      }}
+                      accessibilityHint={
+                        language === 'de'
+                          ? 'Lange drücken, um Favorit zu ändern'
+                          : 'Long press to change favourite'
+                      }
                     >
+                      {favoriteIds.includes(id) && (
+                        <Ionicons
+                          name="star"
+                          size={11}
+                          color={isSelected ? theme.colors.background : theme.colors.warning}
+                        />
+                      )}
                       <Text
                         style={[
                           styles.chipText,
@@ -1601,6 +1552,45 @@ function ProgressView() {
               </HorizontalFadeScroll>
               {selectedExId && prs[selectedExId] !== undefined && (
                 <Card style={styles.prHighlight} padding="md">
+                  {(() => {
+                    const isFavorite = favoriteIds.includes(selectedExId);
+                    return (
+                      <Pressable
+                        testID="progress-favorite-toggle"
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: isFavorite }}
+                        accessibilityLabel={
+                          isFavorite
+                            ? language === 'de'
+                              ? 'Aus Favoriten entfernen'
+                              : 'Remove from favourites'
+                            : language === 'de'
+                              ? 'Zu Favoriten hinzufügen'
+                              : 'Add to favourites'
+                        }
+                        hitSlop={8}
+                        onPress={() => {
+                          void hapticFeedback.selection();
+                          toggleFavorite(selectedExId);
+                        }}
+                        style={[
+                          styles.prFavoriteBtn,
+                          {
+                            borderColor: isFavorite ? theme.colors.warning : theme.colors.border,
+                            backgroundColor: isFavorite
+                              ? withAlpha(theme.colors.warning, 0.14)
+                              : theme.colors.surface,
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name={isFavorite ? 'star' : 'star-outline'}
+                          size={20}
+                          color={isFavorite ? theme.colors.warning : theme.colors.muted}
+                        />
+                      </Pressable>
+                    );
+                  })()}
                   <Text
                     style={[
                       styles.prHighlightLabel,
@@ -2053,13 +2043,33 @@ const createStyles = (theme: Theme) =>
     content: { paddingHorizontal: 24, paddingBottom: 40 },
     sectionTitle: { marginBottom: 16 },
     chipScroll: { marginBottom: 24 },
-    chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8 },
+    chip: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      marginRight: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
     chipText: {},
     prHighlight: {
       alignItems: 'flex-start',
       marginBottom: 24,
     },
     prHighlightLabel: { marginBottom: 8 },
+    prFavoriteBtn: {
+      position: 'absolute',
+      top: 12,
+      right: 12,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1,
+    },
     prHighlightValue: {},
     chartContainer: {
       borderRadius: 16,
@@ -2069,6 +2079,44 @@ const createStyles = (theme: Theme) =>
       overflow: 'hidden',
     },
     chartTitle: { alignSelf: 'flex-start', marginBottom: 16 },
+    chartHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      alignSelf: 'stretch',
+      gap: 12,
+      marginBottom: 12,
+    },
+    chartEyebrow: { fontFamily: 'SpaceGrotesk_600SemiBold', fontSize: 11, letterSpacing: 1 },
+    chartHeadline: {
+      fontFamily: 'SpaceGrotesk_700Bold',
+      fontSize: 30,
+      letterSpacing: -0.6,
+      fontVariant: ['tabular-nums'],
+    },
+    chartHeadlineUnit: { fontFamily: 'SpaceGrotesk_500Medium', fontSize: 15, letterSpacing: 0 },
+    deltaPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 999,
+      marginBottom: 6,
+    },
+    deltaText: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 13, fontVariant: ['tabular-nums'] },
+    chartEmpty: { alignItems: 'center', gap: 6, paddingVertical: 36, alignSelf: 'stretch' },
+    chartEmptyTitle: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 15 },
+    chartEmptyBody: { fontFamily: 'Manrope_500Medium', fontSize: 13, textAlign: 'center' },
+    pointDetails: {
+      flexDirection: 'row',
+      alignSelf: 'stretch',
+      borderTopWidth: 1,
+      marginTop: 12,
+      paddingTop: 12,
+    },
+    pointDetailCell: { flex: 1, alignItems: 'center', gap: 3 },
+    pointDetailLabel: { fontFamily: 'SpaceGrotesk_600SemiBold', fontSize: 10, letterSpacing: 0.8 },
+    pointDetailValue: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 14, fontVariant: ['tabular-nums'] },
     levelCard: {
       marginBottom: 32,
     },

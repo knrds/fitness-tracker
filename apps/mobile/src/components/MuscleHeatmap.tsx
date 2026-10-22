@@ -107,7 +107,7 @@ export function MuscleHeatmap({
             <Text
               style={{
                 color: side === value ? theme.colors.text : theme.colors.muted,
-                fontWeight: '600',
+                fontFamily: 'Manrope_600SemiBold',
               }}
             >
               {value === 'front' ? t('muscles.front') : t('muscles.back')}

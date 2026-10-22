@@ -3,6 +3,7 @@ import {
   ChatMessage,
   CoachPlan,
   CoachPlanSchema,
+  CoachNewExerciseSchema,
   ExperienceLevel,
   FitnessGoal,
   UnitSystem,
@@ -146,7 +147,11 @@ export interface CoachOptions {
   audio?: { data: string; format: string };
   mode?: 'fast' | 'plan' | undefined;
   createPlan?: boolean;
-  onResult?: (result: { plan?: CoachPlan | undefined; sources?: ChatMessage['sources'] }) => void;
+  onResult?: (result: {
+    plan?: CoachPlan | undefined;
+    newExercises?: ChatMessage['newExercises'];
+    sources?: ChatMessage['sources'];
+  }) => void;
   signal?: AbortSignal;
   timeoutMs?: number;
   /** Reuse only for the same logical request and unchanged payload. */
@@ -293,6 +298,20 @@ export async function* streamCoachResponse(
       throw new Error('Das Coach-Backend hat keine Antwort geliefert.');
     }
     const plan = data.plan === undefined ? undefined : CoachPlanSchema.parse(data.plan);
+    const newExercises =
+      data.newExercises === undefined
+        ? undefined
+        : CoachNewExerciseSchema.array().max(8).parse(data.newExercises);
+    // A plan may only reference exercises proposed in the same answer.
+    const proposedKeys = new Set((newExercises ?? []).map((exercise) => 'new:' + exercise.key));
+    if (
+      plan?.days.some((day) =>
+        day.exercises.some(
+          (exercise) => exercise.exerciseId.startsWith('new:') && !proposedKeys.has(exercise.exerciseId),
+        ),
+      )
+    )
+      throw new Error('Der Plan verweist auf eine unbekannte neue Übung. Bitte erneut erstellen lassen.');
     const sources = Array.isArray(data.sources)
       ? data.sources.filter(
           (source): source is { title: string; url: string; date?: string } =>
@@ -304,7 +323,7 @@ export async function* streamCoachResponse(
         )
       : undefined;
     defaultCoachCircuitBreaker.recordSuccess();
-    options.onResult?.({ plan, sources });
+    options.onResult?.({ plan, newExercises, sources });
     yield data.reply.trim();
   } catch (error) {
     if (options.signal?.aborted)

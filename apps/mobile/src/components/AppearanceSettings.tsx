@@ -641,7 +641,7 @@ export function AppearanceSettings() {
                       styles.milestonePillText,
                       {
                         color: isCurrent ? theme.colors.background : theme.colors.text,
-                        fontWeight: isCurrent ? '700' : '500',
+                        fontFamily: isCurrent ? 'Manrope_700Bold' : 'Manrope_500Medium',
                       },
                     ]}
                   >

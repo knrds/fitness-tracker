@@ -17,12 +17,17 @@ export function ActivityRing({
   color,
   animate = true,
   delay = 0,
+  center = 62,
+  strokeWidth = 7,
 }: {
   radius: number;
   ratio: number;
   color: string;
   animate?: boolean;
   delay?: number;
+  /** Centre of the ring inside its Svg viewBox (both axes). */
+  center?: number;
+  strokeWidth?: number;
 }) {
   const reduced = useReducedMotion();
   const progress = useSharedValue(reduced ? ratio : 0);
@@ -48,16 +53,16 @@ export function ActivityRing({
   return (
     <AnimatedCircle
       animatedProps={props}
-      cx={62}
-      cy={62}
+      cx={center}
+      cy={center}
       r={radius}
       stroke={color}
-      strokeWidth={7}
+      strokeWidth={strokeWidth}
       fill="none"
       strokeDasharray={`${circumference} ${circumference}`}
       strokeLinecap="round"
       rotation={-90}
-      origin="62,62"
+      origin={`${center},${center}`}
     />
   );
 }

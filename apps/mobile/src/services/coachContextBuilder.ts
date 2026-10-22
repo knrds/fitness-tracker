@@ -14,7 +14,7 @@ import { useProfileStore } from '../stores/profileStore';
 import { useBodyMetricStore } from '../stores/bodyMetricStore';
 import { useExerciseStore } from '../stores/exerciseStore';
 import { useHistoryStore } from '../stores/historyStore';
-import { useProgramStore } from '../stores/programStore';
+import { isTemplateEditable, useProgramStore } from '../stores/programStore';
 import { useAchievementStore } from '../stores/achievementStore';
 import { entitlementService } from './entitlementService';
 
@@ -195,8 +195,50 @@ export interface CoachContextPayload {
   }[] | undefined;
   personalRecords?: RelevantPRView[] | undefined;
   metrics?: RelevantMetricsView | undefined;
+  /** Saved, editable templates so the coach can rewrite one on request. */
+  editableTemplates?: EditableTemplateView[] | undefined;
   exerciseCatalog: { id: string; name: string }[];
   [key: string]: unknown;
+}
+
+export interface EditableTemplateView {
+  id: string;
+  name: string;
+  folder?: string;
+  exercises: {
+    exerciseId: string;
+    name: string;
+    sets: number;
+    reps?: number;
+    repsMax?: number;
+    rir?: number;
+    restSeconds?: number;
+  }[];
+}
+
+/** Compact view of templates the athlete may change (default templates stay read-only). */
+export function getEditableTemplates(limit = 40): EditableTemplateView[] {
+  const { templates } = useProgramStore.getState();
+  const names = new Map(useExerciseStore.getState().exercises.map((e) => [e.id, e.name]));
+  return templates
+    .filter((template) => !template.isArchived && isTemplateEditable(template.id, templates))
+    .slice(0, limit)
+    .map((template) => ({
+      id: template.id,
+      name: template.name,
+      ...(template.folder ? { folder: template.folder } : {}),
+      exercises: template.exercises.slice(0, 16).map((exercise) => ({
+        exerciseId: exercise.exerciseId,
+        name: names.get(exercise.exerciseId) ?? 'Exercise',
+        sets: exercise.sets?.filter((set) => set.type !== 'warmup').length || exercise.targetSets,
+        ...(exercise.targetReps !== undefined ? { reps: exercise.targetReps } : {}),
+        ...(exercise.targetRepsMax !== undefined ? { repsMax: exercise.targetRepsMax } : {}),
+        ...(exercise.targetRir !== undefined ? { rir: exercise.targetRir } : {}),
+        ...(exercise.targetRestSeconds !== undefined
+          ? { restSeconds: exercise.targetRestSeconds }
+          : {}),
+      })),
+    }));
 }
 
 export interface BuildContextOptions {
@@ -662,54 +704,22 @@ export function buildContextForQuery(
     }
   }
 
-  // 3. Keyword extraction: Programs / Schedules
-  const programKeywords = [
-    'programm',
-    'program',
-    'plan',
-    'split',
-    'woche',
-    'week',
-    'heute',
-    'today',
-    'morgen',
-    'tomorrow',
-    'nächste',
-    'next',
-  ];
-  const wantsProgram =
-    options.mode === 'plan' || programKeywords.some((kw) => q.includes(kw));
-  const activeProgram = wantsProgram ? getActiveProgram() : null;
-  const nextProgramWorkout = wantsProgram ? getNextProgramWorkout() : undefined;
-
-  // 4. Keyword extraction: Metrics
+  // 3.-5. Programme and records are small training data and always relevant to planning.
+  // Body metrics are highly sensitive: only shared when the question is about them.
+  const activeProgram = getActiveProgram();
+  const nextProgramWorkout = getNextProgramWorkout();
   const metricKeywords = [
-    'gewicht',
-    'weight',
-    'körper',
-    'body',
-    'metrik',
-    'metric',
-    'waage',
-    'kfa',
-    'fat',
-    'abnehmen',
-    'zunehmen',
-    'kalorien',
+    'gewicht', 'weight', 'körper', 'body', 'metrik', 'metric', 'waage', 'kfa', 'fat', 'fett',
+    'abnehmen', 'zunehmen', 'kalorien', 'calorie', 'kcal', 'ernähr', 'nutrition', 'diät', 'diet',
+    'makro', 'macro', 'protein', 'bulk', 'cut', 'definition', 'bmi', 'umfang', 'taille', 'waist',
   ];
-  const wantsMetrics = metricKeywords.some((kw) => q.includes(kw));
-  const metrics = wantsMetrics ? getRelevantMetrics() : undefined;
-
-  // 5. Keyword extraction: PRs / Performance
-  const prKeywords = ['pr', 'rekord', 'record', 'max', 'kraft', 'stärker'];
-  const wantsPRs =
-    prKeywords.some((kw) => q.includes(kw)) || matchedExerciseIds.length > 0;
-  const personalRecords = wantsPRs
-    ? getRelevantPRs(matchedExerciseIds.length > 0 ? matchedExerciseIds : undefined)
-    : undefined;
+  const metrics = metricKeywords.some((kw) => q.includes(kw)) ? getRelevantMetrics() : undefined;
+  const personalRecords = getRelevantPRs(
+    matchedExerciseIds.length > 0 ? matchedExerciseIds : undefined,
+  );
 
   // 6. Workout History
-  const historyLimit = options.mode === 'plan' ? 5 : 3;
+  const historyLimit = options.mode === 'plan' ? 8 : 5;
   const recentWorkouts = getWorkoutHistorySummary(historyLimit);
 
   // 7. Gamification
@@ -739,6 +749,7 @@ export function buildContextForQuery(
     ...(matchedExercises.length > 0 ? { matchedExercises } : {}),
     ...(personalRecords && personalRecords.length > 0 ? { personalRecords } : {}),
     ...(metrics ? { metrics } : {}),
+    editableTemplates: getEditableTemplates(),
     exerciseCatalog,
   };
 }
@@ -759,4 +770,5 @@ export const coachContextBuilder = {
   getCurrentTrainingState,
   buildResourceIndex,
   buildContextForQuery,
+  getEditableTemplates,
 };

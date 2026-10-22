@@ -81,19 +81,19 @@ export const SaveTemplateModal = ({
           <Text style={[styles.title, { color: theme.colors.text, ...theme.typography.heading }]}>
             {templateId
               ? language === 'de'
-                ? 'Template aktualisieren?'
+                ? 'Vorlage aktualisieren?'
                 : 'Update Template?'
               : language === 'de'
-              ? 'Als Template speichern?'
+              ? 'Als Vorlage speichern?'
               : 'Save as Template?'}
           </Text>
           <Text style={[styles.subtitle, { color: theme.colors.muted }]}>
             {templateId
               ? language === 'de'
-                ? 'Du hast das Training angepasst. Möchtest du das bestehende Template überschreiben oder ein neues erstellen?'
+                ? 'Du hast das Training angepasst. Möchtest du die bestehende Vorlage überschreiben oder ein neues erstellen?'
                 : 'You adjusted this workout. Do you want to update the existing template or create a new one?'
               : language === 'de'
-              ? 'Speichere dieses Training als Template ab, um es später einfach wiederholen zu können.'
+              ? 'Speichere dieses Training als Vorlage ab, um es später einfach wiederholen zu können.'
               : 'Save this workout as a template to easily repeat it later.'}
           </Text>
           <Text style={[styles.subtitle, { color: theme.colors.muted }]}>
@@ -107,7 +107,7 @@ export const SaveTemplateModal = ({
               accessibilityRole="button"
               accessibilityLabel={
                 language === 'de'
-                  ? 'Bestehendes Template aktualisieren'
+                  ? 'Bestehende Vorlage aktualisieren'
                   : 'Update Existing Template'
               }
               style={({ pressed }) => [
@@ -141,7 +141,7 @@ export const SaveTemplateModal = ({
                 ]}
               >
                 {language === 'de'
-                  ? 'Template aktualisieren'
+                  ? 'Vorlage aktualisieren'
                   : 'Update Template'}
               </Text>
             </Pressable>
@@ -163,7 +163,7 @@ export const SaveTemplateModal = ({
                 ? 'Oder als neues speichern unter:'
                 : 'Or save as new template under:'
               : language === 'de'
-              ? 'Template-Name'
+              ? 'Vorlagenname'
               : 'Template Name'}
           </Text>
           <TextInput
@@ -296,7 +296,7 @@ const createStyles = (theme: Theme) =>
     },
     updateBtnText: {
       fontSize: 16,
-      fontWeight: '700',
+      fontFamily: 'Manrope_700Bold',
       letterSpacing: 0.8,
       textTransform: 'uppercase',
     },

@@ -100,6 +100,12 @@ it('promotes Monday only after the local calendar date changes', () => {
   expect(within(screen.getByTestId('today-session')).getByText('Monday workout')).toBeTruthy();
   expect(screen.queryByText('TRAINING COMPLETE')).toBeNull();
   expect(screen.getByRole('button', { name: 'START SESSION →' })).toBeTruthy();
+
+  // An unplanned session stays one tap away even when the programme suggests one.
+  fireEvent.press(screen.getByRole('button', { name: 'START EMPTY SESSION' }));
+  expect(mockStartQuick).toHaveBeenCalledWith('Quick Workout');
+  expect(mockStartTemplate).not.toHaveBeenCalled();
+  expect(mockPush).toHaveBeenCalledWith('/workout/session');
 });
 
 it('localizes the completion and future date and keeps resuming an active workout available', () => {

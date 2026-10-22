@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'SpaceGrotesk_700Bold',
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: '#000000',
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Manrope_700Bold',
   },
   secondaryButton: {
     height: 40,
@@ -253,6 +253,6 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Manrope_600SemiBold',
   },
 });

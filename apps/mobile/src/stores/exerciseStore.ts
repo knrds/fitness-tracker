@@ -15,7 +15,7 @@ import { createHydratedStorage } from './storage';
 import { useSyncStore } from './syncStore';
 import { matchesExerciseSearch } from '../utils/exerciseSearch';
 
-function filterExercises(
+export function filterExercises(
   exercises: Exercise[],
   query: string,
   muscleGroup: MuscleGroup | null,
@@ -44,9 +44,10 @@ export interface ExerciseState {
   setSearchQuery: (query: string) => void;
   resetFilters: () => void;
   toggleFavorite: (id: string) => void;
+  /** Creates, queues and returns the new custom exercise so callers can select it at once. */
   addCustomExercise: (
     data: Omit<Exercise, 'id' | 'createdAt' | 'updatedAt' | 'isCustom' | 'ownerId'>,
-  ) => void;
+  ) => Exercise;
   exerciseRestDurations: Record<string, number>;
   setExerciseRestDuration: (exerciseId: string, durationSeconds: number) => void;
   persistentNotes: Record<string, string>;
@@ -129,16 +130,16 @@ export const useExerciseStore = create<ExerciseState>()(
           };
         }),
 
-      addCustomExercise: (data) =>
+      addCustomExercise: (data) => {
+        const newEx: Exercise = {
+          ...data,
+          id: Crypto.randomUUID(),
+          isCustom: true,
+          ownerId: getCurrentUserId(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
         set((state) => {
-          const newEx: Exercise = {
-            ...data,
-            id: Crypto.randomUUID(),
-            isCustom: true,
-            ownerId: getCurrentUserId(),
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
           useSyncStore.getState().addToQueue('exercises', 'INSERT', newEx);
           const newCustom = [...state.customExercises, newEx];
           const allExercises = [...EXERCISES, ...newCustom];
@@ -153,7 +154,9 @@ export const useExerciseStore = create<ExerciseState>()(
             exercises: allExercises,
             filteredExercises: filtered,
           };
-        }),
+        });
+        return newEx;
+      },
 
       setExerciseRestDuration: (exerciseId, durationSeconds) =>
         set((state) => ({

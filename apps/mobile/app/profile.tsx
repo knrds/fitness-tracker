@@ -725,7 +725,7 @@ export default function ProfileScreen() {
                       color: birthDateInput
                         ? theme.colors.text
                         : theme.colors.muted,
-                      fontWeight: birthDateInput ? '600' : '400',
+                      fontFamily: birthDateInput ? 'Manrope_600SemiBold' : 'Manrope_500Medium',
                     },
                   ]}
                 >
@@ -1612,7 +1612,7 @@ export default function ProfileScreen() {
                   borderRadius: 6,
                 }}
               >
-                <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.primary }}>
+                <Text style={{ fontSize: 11, fontFamily: 'Manrope_700Bold', color: theme.colors.primary }}>
                   Beta
                 </Text>
               </View>

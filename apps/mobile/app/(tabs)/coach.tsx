@@ -35,6 +35,10 @@ import { entitlementService } from '../../src/services/entitlementService';
 import { usePaywallStore } from '../../src/stores/paywallStore';
 
 const SUGGESTIONS_EN = [
+  'Create a single workout template for today',
+  'Write a comprehensive 4-day program',
+  'Improve one of my templates',
+  'Add a new exercise to my library',
   'Review recent progress',
   'Check PR readiness',
   'Adjust next session',
@@ -43,6 +47,10 @@ const SUGGESTIONS_EN = [
 ];
 
 const SUGGESTIONS_DE = [
+  'Erstelle eine einzelne Vorlage für heute',
+  'Schreibe ein umfangreiches 4-Tage-Programm',
+  'Überarbeite eine meiner Vorlagen',
+  'Lege eine neue Übung in meiner Bibliothek an',
   'Fortschritt prüfen',
   'PR-Bereitschaft testen',
   'Nächste Session anpassen',
@@ -88,7 +96,7 @@ export default function CoachScreen() {
     }
 
     const base = language === 'de' ? SUGGESTIONS_DE : SUGGESTIONS_EN;
-    return [...list, ...base].slice(0, 6);
+    return [...base.slice(0, 4), ...list, ...base.slice(4)].slice(0, 8);
   }, [profile, language]);
   const hasWorkoutBar = useWorkoutStore((state) => state.status !== 'idle' && state.isMinimized);
   const { messages, isSending, error, sendMessage, retryLastMessage, clearChatHistory } =
@@ -236,7 +244,7 @@ export default function CoachScreen() {
                 }}
                 style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }}
               >
-                <Text style={{ color: theme.colors.primary, fontWeight: '600' }}>
+                <Text style={{ color: theme.colors.primary, fontFamily: 'Manrope_600SemiBold'}}>
                   {t('coach.retry')}
                 </Text>
               </Pressable>

@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { MuscleGroup, Equipment, MovementPattern } from '@fitness-tracker/domain';
+import { MuscleGroup, Equipment, MovementPattern, Exercise } from '@fitness-tracker/domain';
 import { useTheme } from '@fitness-tracker/ui';
 import { KEYBOARD_DONE_ID } from '../workout/KeyboardDoneAccessory';
 
@@ -22,9 +22,12 @@ import { useI18n } from '../../i18n';
 interface Props {
   visible: boolean;
   onClose: () => void;
+  /** Prefills the name, e.g. with the search text that found nothing. */
+  initialName?: string;
+  onCreated?: (exercise: Exercise) => void;
 }
 
-export const CustomExerciseModal = ({ visible, onClose }: Props) => {
+export const CustomExerciseModal = ({ visible, onClose, initialName, onCreated }: Props) => {
   const theme = useTheme();
   const { t, language, formatMuscle, formatEquipment } = useI18n();
   const { addCustomExercise } = useExerciseStore();
@@ -36,13 +39,13 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
 
   useEffect(() => {
     if (visible) {
-      setName('');
+      setName(initialName?.trim() ?? '');
       setInstructions('');
       setMuscle([]);
       setEq([]);
       setTrackMode('reps');
     }
-  }, [visible]);
+  }, [visible, initialName]);
 
   const handleSave = () => {
     const errTitle = t('common.error');
@@ -63,7 +66,7 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
       );
 
     try {
-      addCustomExercise({
+      const created = addCustomExercise({
         name: name.trim(),
         instructions: instructions.trim(),
         primaryMuscles: muscle,
@@ -78,6 +81,7 @@ export const CustomExerciseModal = ({ visible, onClose }: Props) => {
       setMuscle([]);
       setEq([]);
       setTrackMode('reps');
+      onCreated?.(created);
       onClose();
     } catch {
       Alert.alert(

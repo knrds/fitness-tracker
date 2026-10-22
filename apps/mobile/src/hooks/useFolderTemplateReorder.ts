@@ -12,6 +12,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { getStorageScope, isScopeCurrent } from '../data/storageScope';
 import { getDropIndex, moveItem, RowLayout } from '../utils/reorderGeometry';
+import { lockTabSwipe } from '../utils/tabSwipeLock';
 import { WorkoutTemplate } from '@fitness-tracker/domain';
 
 export interface FolderLayout {
@@ -72,6 +73,7 @@ export function useFolderTemplateReorder({
   };
 
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  useEffect(() => (activeDragId ? lockTabSwipe() : undefined), [activeDragId]);
   const [activeDragFolderKey, setActiveDragFolderKey] = useState<string | null>(null);
   const [hoveredTargetFolder, setHoveredTargetFolder] = useState<string | null>(null);
 

@@ -124,6 +124,14 @@ export default function HomeScreen() {
     router.push('/workout/session');
   };
 
+  const handleStartEmpty = () => {
+    if (status === 'active' || status === 'paused') {
+      router.push('/workout/session');
+      return;
+    }
+    handleStartWorkout();
+  };
+
   const handleStartToday = () => {
     if (status === 'active' || status === 'paused') {
       router.push('/workout/session');
@@ -197,6 +205,7 @@ export default function HomeScreen() {
           templates={sortedTemplates}
           activity={muscleVolumes}
           onStart={handleStartToday}
+          onStartEmpty={handleStartEmpty}
           onNext={handlePreviewNext}
           onTemplate={handleSelectTemplate}
           resume={status === 'active' || status === 'paused'}

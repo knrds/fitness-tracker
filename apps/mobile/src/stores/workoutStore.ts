@@ -81,7 +81,16 @@ export interface WorkoutActions {
   removeExercise: (sessionExerciseId: UUID) => void;
   addSet: (sessionExerciseId: UUID, set?: Partial<ExerciseSet>) => void;
   updateSet: (sessionExerciseId: UUID, setId: UUID, updates: Partial<ExerciseSet>) => void;
-  completeSet: (sessionExerciseId: UUID, setId: UUID) => void;
+  /**
+   * Toggles completion. `suggested` holds the values the row displayed as a hint (last
+   * performance); they are adopted for fields the user left empty, so a completed set
+   * never silently stores less than it showed.
+   */
+  completeSet: (
+    sessionExerciseId: UUID,
+    setId: UUID,
+    suggested?: Pick<ExerciseSet, 'weight' | 'reps' | 'durationSeconds'>,
+  ) => void;
   removeSet: (sessionExerciseId: UUID, setId: UUID) => void;
 
   // Timer Actions
@@ -441,7 +450,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
             return { exercises, lastUpdatedAt: new Date() };
           }),
 
-        completeSet: (sessionExerciseId, setId) =>
+        completeSet: (sessionExerciseId, setId, suggested) =>
           set((state) => {
             const exercise = state.exercises.find((ex) => ex.id === sessionExerciseId);
             const targetSet = exercise?.sets.find((set) => set.id === setId);
@@ -459,6 +468,13 @@ export const useWorkoutStore = create<WorkoutStore>()(
                   };
                   if (nextCompleted) {
                     updatedSet.completedAt = new Date();
+                    if (updatedSet.weight === undefined && suggested?.weight !== undefined) {
+                      updatedSet.weight = suggested.weight;
+                    }
+                    if (!updatedSet.reps && suggested?.reps) updatedSet.reps = suggested.reps;
+                    if (!updatedSet.durationSeconds && suggested?.durationSeconds) {
+                      updatedSet.durationSeconds = suggested.durationSeconds;
+                    }
                   } else {
                     delete updatedSet.completedAt;
                   }

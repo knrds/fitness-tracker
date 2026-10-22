@@ -30,10 +30,10 @@ describe('SaveTemplateModal', () => {
     );
 
     // Title for template update
-    expect(getByText('Template aktualisieren?')).toBeTruthy();
+    expect(getByText('Vorlage aktualisieren?')).toBeTruthy();
 
     // Large, prominent update button is present
-    const updateBtn = getByText('Template aktualisieren');
+    const updateBtn = getByText('Vorlage aktualisieren');
     expect(updateBtn).toBeTruthy();
 
     // "ODER" divider is present
@@ -114,8 +114,8 @@ describe('SaveTemplateModal', () => {
       />,
     );
 
-    expect(getByText('Als Template speichern?')).toBeTruthy();
-    expect(queryByText('Template aktualisieren')).toBeNull();
+    expect(getByText('Als Vorlage speichern?')).toBeTruthy();
+    expect(queryByText('Vorlage aktualisieren')).toBeNull();
     expect(queryByText('ODER')).toBeNull();
 
     const saveBtn = getByText('Speichern');

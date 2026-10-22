@@ -3,6 +3,7 @@ import {
   ChatMessage,
   CoachPlan,
   CoachPlanSchema,
+  CoachNewExerciseSchema,
   ExperienceLevel,
   FitnessGoal,
   UnitSystem,
@@ -11,6 +12,7 @@ import {
 import { supabase, isSupabaseConfigured } from './supabase';
 import { defaultCoachCircuitBreaker } from './coachCircuitBreaker';
 import { isBetaFullAccess } from './betaAccessConfig';
+import { randomUUID } from './uuid';
 
 export { defaultCoachCircuitBreaker };
 
@@ -145,9 +147,15 @@ export interface CoachOptions {
   audio?: { data: string; format: string };
   mode?: 'fast' | 'plan' | undefined;
   createPlan?: boolean;
-  onResult?: (result: { plan?: CoachPlan | undefined; sources?: ChatMessage['sources'] }) => void;
+  onResult?: (result: {
+    plan?: CoachPlan | undefined;
+    newExercises?: ChatMessage['newExercises'];
+    sources?: ChatMessage['sources'];
+  }) => void;
   signal?: AbortSignal;
   timeoutMs?: number;
+  /** Reuse only for the same logical request and unchanged payload. */
+  idempotencyKey?: string | undefined;
 }
 
 export async function* streamCoachResponse(
@@ -167,7 +175,21 @@ export async function* streamCoachResponse(
   ) {
     throw new Error('Der Coach benötigt eine gültige HTTPS-Backend-URL.');
   }
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const circuitCheck = defaultCoachCircuitBreaker.canExecute();
+  if (!circuitCheck.allowed) {
+    throw new Error(
+      circuitCheck.reason ??
+        'Der KI-Coach ist vorübergehend nicht erreichbar. Bitte versuche es in wenigen Momenten erneut.',
+    );
+  }
+  const requestKey = options.idempotencyKey ?? randomUUID();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestKey))
+    throw new Error('Ungültige Coach-Anfragekennung.');
+  if (options.signal?.aborted) throw new Error('Anfrage durch Nutzer abgebrochen.');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Idempotency-Key': requestKey.toLowerCase(),
+  };
   let hasUserAuth = false;
   if (isSupabaseConfigured) {
     const { data, error } = await supabase.auth.getSession();
@@ -194,21 +216,10 @@ export async function* streamCoachResponse(
   }
   const controller = new AbortController();
   const timeoutMs = options.timeoutMs ?? 75000;
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  if (options.signal) {
-    if (options.signal.aborted) {
-      controller.abort();
-    } else {
-      options.signal.addEventListener('abort', () => controller.abort(), { once: true });
-    }
-  }
-  const circuitCheck = defaultCoachCircuitBreaker.canExecute();
-  if (!circuitCheck.allowed) {
-    throw new Error(
-      circuitCheck.reason ??
-        'Der KI-Coach ist vorübergehend nicht erreichbar. Bitte versuche es in wenigen Momenten erneut.',
-    );
-  }
+  const abortRequest = () => controller.abort();
+  const timeout = setTimeout(abortRequest, timeoutMs);
+  if (options.signal?.aborted) controller.abort();
+  else options.signal?.addEventListener('abort', abortRequest, { once: true });
 
   let responseReceived = false;
   try {
@@ -287,6 +298,20 @@ export async function* streamCoachResponse(
       throw new Error('Das Coach-Backend hat keine Antwort geliefert.');
     }
     const plan = data.plan === undefined ? undefined : CoachPlanSchema.parse(data.plan);
+    const newExercises =
+      data.newExercises === undefined
+        ? undefined
+        : CoachNewExerciseSchema.array().max(8).parse(data.newExercises);
+    // A plan may only reference exercises proposed in the same answer.
+    const proposedKeys = new Set((newExercises ?? []).map((exercise) => 'new:' + exercise.key));
+    if (
+      plan?.days.some((day) =>
+        day.exercises.some(
+          (exercise) => exercise.exerciseId.startsWith('new:') && !proposedKeys.has(exercise.exerciseId),
+        ),
+      )
+    )
+      throw new Error('Der Plan verweist auf eine unbekannte neue Übung. Bitte erneut erstellen lassen.');
     const sources = Array.isArray(data.sources)
       ? data.sources.filter(
           (source): source is { title: string; url: string; date?: string } =>
@@ -298,7 +323,7 @@ export async function* streamCoachResponse(
         )
       : undefined;
     defaultCoachCircuitBreaker.recordSuccess();
-    options.onResult?.({ plan, sources });
+    options.onResult?.({ plan, newExercises, sources });
     yield data.reply.trim();
   } catch (error) {
     if (options.signal?.aborted)
@@ -315,5 +340,6 @@ export async function* streamCoachResponse(
     throw error;
   } finally {
     clearTimeout(timeout);
+    options.signal?.removeEventListener('abort', abortRequest);
   }
 }

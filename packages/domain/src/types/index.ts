@@ -602,7 +602,21 @@ export interface ChatMessage {
   createdAt: Timestamp;
   plan?: CoachPlan | undefined;
   savedTemplateIds?: UUID[] | undefined;
+  newExercises?: CoachNewExercise[] | undefined;
+  savedExerciseIds?: Record<string, UUID> | undefined;
   sources?: Array<{ title: string; url: string; date?: string | undefined }> | undefined;
+}
+
+/** A custom exercise the coach proposes; created only after the athlete confirms. */
+export interface CoachNewExercise {
+  key: string;
+  name: string;
+  primaryMuscles: MuscleGroup[];
+  secondaryMuscles: MuscleGroup[];
+  equipment: Equipment;
+  movementPattern: MovementPattern;
+  tracking: 'reps' | 'duration';
+  instructions: string;
 }
 
 export interface CoachPlan {
@@ -610,9 +624,12 @@ export interface CoachPlan {
   /** Absent on older messages: one day is a template, multiple days a program. */
   kind?: 'template' | 'program' | undefined;
   durationWeeks?: number | undefined;
+  /** Existing template to rewrite instead of creating a new one. */
+  updatesTemplateId?: UUID | undefined;
   days: Array<{
     name: string;
     exercises: Array<{
+      /** Catalog id, or `new:<key>` for an exercise proposed in `ChatMessage.newExercises`. */
       exerciseId: UUID;
       sets: number;
       reps: number;

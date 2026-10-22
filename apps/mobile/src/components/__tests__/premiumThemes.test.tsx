@@ -156,3 +156,21 @@ it('uses quieter default surfaces while reserving distinct motif variations for 
   expect(screen.getByTestId('premium-material-thread-detail', { includeHiddenElements: true })).toBeTruthy();
   expect(screen.getByTestId('premium-material-thread-signature', { includeHiddenElements: true })).toBeTruthy();
 });
+
+describe('accent visibility', () => {
+  const { colorways } = jest.requireActual('@fitness-tracker/ui') as typeof import('@fitness-tracker/ui');
+  it.each(colorways.map((entry) => entry.id))(
+    '%s: ring accents never blend into the elevated surface or each other',
+    (id) => {
+      const { colors } = createTheme(id);
+      const accents = [colors.primary, colors.secondary, colors.tertiary].map((value) =>
+        value.toLowerCase(),
+      );
+      expect(new Set(accents).size).toBe(3);
+      for (const accent of accents) {
+        expect(accent).not.toBe(colors.surfaceElevated.toLowerCase());
+        expect(accent).not.toBe(colors.surface.toLowerCase());
+      }
+    },
+  );
+});

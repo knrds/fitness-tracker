@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'SpaceGrotesk_700Bold',
   },
   closeButton: {
     padding: 6,
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'Manrope_700Bold',
     marginBottom: 8,
   },
   cardBody: {
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   },
   privacyTitle: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: 'Manrope_700Bold',
     color: '#38BDF8',
     marginBottom: 4,
   },
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   },
   sendButtonText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Manrope_700Bold',
     color: '#000',
   },
 });

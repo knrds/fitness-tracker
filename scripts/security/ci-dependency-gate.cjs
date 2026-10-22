@@ -204,13 +204,14 @@ function evaluateAudit(audit, { now = Date.now(), installedDependency } = {}) {
   };
 }
 
-function main() {
+/** `installedDependency` is injectable for tests only; the CLI always reads the real install. */
+function main({ installedDependency } = {}) {
   console.log('\n================================================================================');
   console.log('         EVARO SECURITY GOVERNANCE — CI DEPENDENCY RELEASE GATE                 ');
   console.log('================================================================================');
 
   const audit = runAudit();
-  const evaluation = evaluateAudit(audit);
+  const evaluation = evaluateAudit(audit, installedDependency ? { installedDependency } : {});
 
   if (!evaluation.passed) {
     console.error(`\n[SECURITY RELEASE GATE BLOCKED] ${evaluation.error}\n`);

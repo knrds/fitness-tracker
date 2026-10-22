@@ -174,6 +174,11 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
     ];
   }, [search, selectedCategory, sortedExercises, popularExercises, otherExercises, language]);
 
+  const hasExactMatch = React.useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return query.length > 0 && exercises.some((ex) => ex.name.trim().toLowerCase() === query);
+  }, [exercises, search]);
+
   const toggleSelection = (id: UUID) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -334,7 +339,48 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
           initialNumToRender={20}
+          ListEmptyComponent={
+            search.trim() ? (
+              <View style={styles.emptyState} testID="exercise-picker-empty">
+                <Ionicons name="search-outline" size={28} color={theme.colors.muted} />
+                <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
+                  {language === 'de'
+                    ? `Keine Übung für „${search.trim()}“ gefunden`
+                    : `No exercise found for “${search.trim()}”`}
+                </Text>
+                <Text style={[styles.emptyBody, { color: theme.colors.muted }]}>
+                  {language === 'de'
+                    ? 'Lege sie als eigene Übung an. Sie wird direkt ausgewählt.'
+                    : 'Create it as a custom exercise. It will be selected right away.'}
+                </Text>
+              </View>
+            ) : null
+          }
+          ListFooterComponent={
+            search.trim() && !hasExactMatch ? (
+              <Pressable
+                testID="exercise-picker-create-from-search"
+                accessibilityRole="button"
+                style={[
+                  styles.createFromSearch,
+                  { borderColor: theme.colors.primary, backgroundColor: theme.colors.primarySubtle },
+                ]}
+                onPress={() => setCustomExVisible(true)}
+              >
+                <Ionicons name="add-circle" size={22} color={theme.colors.primary} />
+                <Text
+                  style={[styles.createFromSearchText, { color: theme.colors.primary }]}
+                  numberOfLines={2}
+                >
+                  {language === 'de'
+                    ? `„${search.trim()}“ als neue Übung erstellen`
+                    : `Create “${search.trim()}” as new exercise`}
+                </Text>
+              </Pressable>
+            ) : null
+          }
         />
 
         {selectedIds.size > 0 && (
@@ -369,7 +415,15 @@ export const ExercisePickerModal = ({ visible, onClose, onSelect }: Props) => {
         )}
       </SafeAreaView>
 
-      <CustomExerciseModal visible={customExVisible} onClose={() => setCustomExVisible(false)} />
+      <CustomExerciseModal
+        visible={customExVisible}
+        initialName={search}
+        onClose={() => setCustomExVisible(false)}
+        onCreated={(exercise) => {
+          setSelectedCategory('All');
+          setSelectedIds((prev) => new Set(prev).add(exercise.id));
+        }}
+      />
       <KeyboardDoneAccessory />
     </Modal>
       <Modal visible={visible && !!detailId} onRequestClose={() => setDetailId(null)} animationType="slide">
@@ -500,6 +554,39 @@ const createStyles = (theme: Theme) =>
       paddingHorizontal: 20,
       paddingTop: 20,
       paddingBottom: 8,
+    },
+    emptyState: {
+      alignItems: 'center',
+      paddingHorizontal: 32,
+      paddingTop: 32,
+      gap: 8,
+    },
+    emptyTitle: {
+      fontFamily: 'Manrope_700Bold',
+      fontSize: 16,
+      textAlign: 'center',
+    },
+    emptyBody: {
+      fontFamily: 'Manrope_500Medium',
+      fontSize: 14,
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+    createFromSearch: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginHorizontal: 20,
+      marginTop: 20,
+      paddingHorizontal: 16,
+      minHeight: 52,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+    },
+    createFromSearchText: {
+      flex: 1,
+      fontFamily: 'Manrope_700Bold',
+      fontSize: 15,
     },
     addBtnContainer: {
       padding: 20,

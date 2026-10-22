@@ -25,6 +25,16 @@
         height: 100%;
         flex: 1;
       }
+      html {
+        -webkit-tap-highlight-color: transparent;
+        overscroll-behavior: none;
+      }
+      /* Keyboard focus stays visible, but in a neutral tone that fits every theme. */
+      input:focus-visible,
+      textarea:focus-visible {
+        outline: 2px solid rgba(160, 166, 180, 0.7);
+        outline-offset: 1px;
+      }
     </style>
   </head>
   <body>

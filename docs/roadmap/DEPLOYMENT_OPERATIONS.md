@@ -26,13 +26,17 @@ Vor Cloudaktivierung existiert kein provisionierter EVARO-Server. [Private Quote
 
 Auf einem **isolierten lokalen** PostgreSQL mit Testadmin und freiem Port 55432: `PGUSER=<testadmin> bash scripts/security/run-coach-quota-tests.sh`. Runner erzwingt Loopback, erzeugt eigens benannte Testdatenbanken, testet Lifecycle/Rechte/Rollback sowie parallele Budget-/Replaygrenzen. Keine Remote-Host-/Reset-/Dropoption. Auf Windows über WSL; `.gitattributes` hält Bash-Dateien in LF. Aktueller Hosttest PostgreSQL 16.15, CI-Service weiterhin gepinntes PostgreSQL 17.11. Kein bezahltes Datenbankprojekt oder AI-Aufruf nötig.
 
-`COACH_QUOTA_ENABLED=false` erhält die bisherige private Beta. Erst nach realer Server-/Client-/Policy-Abnahme aktivieren; fehlender Store bei Aktivierung stoppt Providerkosten. Account-Deletionskern hat weder Envschalter noch Route und bleibt ohne konkrete freigegebene Adapter OFF.
+Weitere isolierte Gates: `PGUSER=<testadmin> bash scripts/security/run-account-deletion-tests.sh` und `PGUSER=<testadmin> bash scripts/security/run-workout-sync-tests.sh`, anschließend `PGUSER=<testadmin> PGPORT=55432 pnpm test:postgres-adapters`. Alle SQL-Installationspreflights **vor** dem Nodeadapterrunner und nicht parallel ausführen: der Adapterrunner gewährt ausschließlich seiner neuen synthetischen LOGIN-Rolle temporär Memberships und widerruft sie abschließend. Bestehende Datenbanken werden nie zurückgesetzt/gelöscht. Authshim und externe Löschstufen sind Fakes, der PostgreSQL-Journal-/Quotenpfad ist real. Alle Gates werden in CI auf PostgreSQL 17.11 wiederholt.
+
+`pnpm security:sbom` erzeugt `output/security/sbom.json` aus installiertem und gelocktem pnpm-Graph (CycloneDX 1.6). SHA/Lock-/Generatorhash, Plattformskips und deklarierte Lizenzbefunde werden mitgeführt; CI archiviert das Inventar 30 Tage je SHA. Regulärer Generator scheitert bei fehlender Graph-/Versionsevidence, nicht allein bei offenen Lizenzreviews. `--require-license` ist eine optionale enge Engineering-Allowlist, keine Rechtsfreigabe. Native/Web-Runtimeinventar, erforderliche Copyrighttexte und rechtliche Prüfung bleiben getrennte Gates.
+
+`COACH_QUOTA_ENABLED=false` erhält die bisherige private Beta. Der direkte `COACH_QUOTA_STORE=postgres`-Adapter ist lokal geprüft; Server-DSNs/TLS/Entitlements/Policies/Geldbudgets vor Aktivierung separat abnehmen. Fehlender Store bei Aktivierung stoppt Providerkosten. Account-Deletionskern hat weder Envschalter noch Route und bleibt ohne vollständige freigegebene Adapter OFF. Die drei neuen SQL-Dateien sind reviewpflichtige einmalige Installationsartefakte, keine automatisch ausgeführte Cloudmigration.
 
 | Ziel | Konfiguration | Freigabegrenze |
 | --- | --- | --- |
 | Lokal | Loopbackserver, synthetische Daten, `.env.coach.local` ignoriert | Keine öffentliche unautorisierte API |
 | Web-Beta | `APP_ENV=beta` + serverseitiger zufälliger `BETA_SESSION_SECRET`; Client `EXPO_PUBLIC_APP_ENV=beta` | Signierte Beta-Gäste, aktuelle Instanzlimits; keine Storefreigabe |
-| Staging | Eigenes Supabase/Auth/Providerbudget, eigene Testkonten, geschützter Zugang | Echte RLS/Sync/Delete/Billing-Abnahme ohne Produktivdaten |
+| Staging | Eigenes PostgreSQL + geprüfter Auth/API-Adapter, Providerbudget, Testkonten, geschützter Zugang | Echte RLS/Sync/Delete/Billing-Abnahme ohne Produktivdaten |
 | Produktion | `APP_ENV=production`, Client `EXPO_PUBLIC_APP_ENV=production`, serverseitige Autorität | Keine Beta-/Local-Authausnahme; sämtliche P0-Gates geschlossen |
 
 `APP_VARIANT` steuert native Appidentität, **nicht** allein die Sicherheits-/Betaumgebung. Native Basis derzeit `studio.skar.evaro`, Scheme `evaro`, EAS-Projekt `ddb36b12-30d0-4422-9e17-85ab8919f656`, Owner `knrd.s`; Development/Preview mit Suffix, Production ohne. Betreiber muss Identität bestätigen. EAS `appVersionSource=remote`/autoIncrement nutzen; nicht widersprüchliche Buildnummern erfinden. Paketbeta und native Marketingversion getrennt behandeln.

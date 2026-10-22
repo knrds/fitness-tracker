@@ -177,12 +177,12 @@ const styles = StyleSheet.create({
   },
   tierBadgeText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: 'Manrope_700Bold',
     letterSpacing: 0.5,
   },
   title: {
     fontSize: 19,
-    fontWeight: '700',
+    fontFamily: 'SpaceGrotesk_700Bold',
     marginBottom: 8,
   },
   description: {
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   },
   dismissText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Manrope_600SemiBold',
   },
   upgradeButton: {
     flex: 1.3,
@@ -215,6 +215,6 @@ const styles = StyleSheet.create({
   },
   upgradeText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'Manrope_700Bold',
   },
 });

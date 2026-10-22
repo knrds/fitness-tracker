@@ -7,10 +7,15 @@ import { StatusBar } from 'expo-status-bar';
 import {
   useFonts,
   SpaceGrotesk_400Regular,
+  SpaceGrotesk_500Medium,
   SpaceGrotesk_600SemiBold,
   SpaceGrotesk_700Bold,
 } from '@expo-google-fonts/space-grotesk';
-import { Manrope_500Medium, Manrope_600SemiBold } from '@expo-google-fonts/manrope';
+import {
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+} from '@expo-google-fonts/manrope';
 import * as SplashScreen from 'expo-splash-screen';
 import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -110,10 +115,12 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     ...Ionicons.font,
     SpaceGrotesk_400Regular,
+    SpaceGrotesk_500Medium,
     SpaceGrotesk_600SemiBold,
     SpaceGrotesk_700Bold,
     Manrope_500Medium,
     Manrope_600SemiBold,
+    Manrope_700Bold,
   });
   const canRender = fontsLoaded || Boolean(fontError) || fontWaitTimedOut;
   const isStaticWebRender = Platform.OS === 'web' && !('window' in globalThis);

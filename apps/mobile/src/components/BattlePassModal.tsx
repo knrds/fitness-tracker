@@ -518,7 +518,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                                     : isDone
                                     ? c.primary
                                     : c.muted,
-                                  fontWeight: isCurrentLvl ? '700' : '500',
+                                  fontFamily: isCurrentLvl ? 'SpaceGrotesk_700Bold' : 'SpaceGrotesk_500Medium',
                                 },
                               ]}
                             >
@@ -659,7 +659,7 @@ export function BattlePassModal({ visible, onClose, level, xp }: BattlePassModal
                           <Ionicons name="checkmark-circle" size={16} color="#57DFAB" />
                           <Text style={[styles.detailXpCompletedText, { color: c.text }]}>
                             {t('rank.alreadyReachedProgress')}{' '}
-                            <Text style={{ color: c.primary, fontWeight: '700' }}>
+                            <Text style={{ color: c.primary, fontFamily: 'Manrope_700Bold'}}>
                               {xp.toLocaleString(language === 'de' ? 'de-DE' : 'en-US')} XP
                             </Text>
                           </Text>

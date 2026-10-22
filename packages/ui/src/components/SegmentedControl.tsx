@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleProp, Text, View, ViewStyle } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -15,11 +15,14 @@ export function SegmentedControl<T extends string>({
   value,
   onChange,
   label,
+  style,
 }: {
   options: readonly { value: T; label: string }[];
   value: T;
   onChange: (value: T) => void;
   label: string;
+  /** Overrides the default screen-level margins/background, e.g. inside a card. */
+  style?: StyleProp<ViewStyle>;
 }) {
   const theme = useTheme();
   const reduced = useReducedMotion();
@@ -43,14 +46,17 @@ export function SegmentedControl<T extends string>({
     <View
       onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
       accessibilityLabel={label}
-      style={{
-        flexDirection: 'row',
-        backgroundColor: theme.colors.surface,
-        padding: 4,
-        borderRadius: theme.radius.md,
-        marginHorizontal: theme.spacing.md,
-        marginBottom: theme.spacing.md,
-      }}
+      style={[
+        {
+          flexDirection: 'row',
+          backgroundColor: theme.colors.surface,
+          padding: 4,
+          borderRadius: theme.radius.md,
+          marginHorizontal: theme.spacing.md,
+          marginBottom: theme.spacing.md,
+        },
+        style,
+      ]}
     >
       {width > 0 && (
         <Animated.View

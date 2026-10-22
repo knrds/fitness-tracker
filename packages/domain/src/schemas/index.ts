@@ -367,11 +367,27 @@ export type SyncOperationInput = z.input<typeof SyncOperationSchema>;
 
 export const ChatRoleSchema = z.enum(['user', 'assistant', 'system']);
 
+/** Reference to an exercise the coach proposed in the same answer (`new:n0` … `new:n7`). */
+export const CoachNewExerciseRefSchema = z.string().regex(/^new:n[0-7]$/);
+
+export const CoachNewExerciseSchema = z.object({
+  key: z.string().regex(/^n[0-7]$/),
+  name: z.string().trim().min(1).max(80),
+  primaryMuscles: z.array(MuscleGroupSchema).min(1).max(3),
+  secondaryMuscles: z.array(MuscleGroupSchema).max(4),
+  equipment: EquipmentSchema,
+  movementPattern: MovementPatternSchema,
+  tracking: z.enum(['reps', 'duration']),
+  instructions: z.string().max(1200),
+});
+
 export const CoachPlanSchema = z
   .object({
     name: z.string().trim().min(1).max(100),
     kind: z.enum(['template', 'program']).optional(),
     durationWeeks: z.number().int().min(1).max(104).optional(),
+    /** Existing template the athlete asked the coach to rewrite. */
+    updatesTemplateId: UUIDSchema.optional(),
     days: z
       .array(
         z.object({
@@ -380,8 +396,8 @@ export const CoachPlanSchema = z
             .array(
               z
                 .object({
-                  exerciseId: UUIDSchema,
-                  sets: z.number().int().min(1).max(10),
+                  exerciseId: z.union([UUIDSchema, CoachNewExerciseRefSchema]),
+                  sets: z.number().int().min(1).max(12),
                   reps: z.number().int().min(1).max(50),
                   repsMax: z.number().int().min(1).max(50),
                   rir: z.number().int().min(0).max(5),
@@ -391,7 +407,7 @@ export const CoachPlanSchema = z
                 .refine((exercise) => exercise.repsMax >= exercise.reps),
             )
             .min(1)
-            .max(12),
+            .max(16),
         }),
       )
       .min(1)
@@ -403,7 +419,10 @@ export const CoachPlanSchema = z
     {
       message: 'A workout template contains exactly one day, without a multiweek schedule.',
     },
-  );
+  )
+  .refine((plan) => plan.updatesTemplateId === undefined || plan.kind === 'template', {
+    message: 'Only a single workout template can replace an existing template.',
+  });
 
 export const ChatMessageSchema = z.object({
   id: UUIDSchema,
@@ -412,6 +431,9 @@ export const ChatMessageSchema = z.object({
   createdAt: TimestampSchema,
   plan: CoachPlanSchema.optional(),
   savedTemplateIds: z.array(UUIDSchema).optional(),
+  newExercises: z.array(CoachNewExerciseSchema).max(8).optional(),
+  /** Proposed key (`n0`) → created custom exercise id, set once the athlete confirmed. */
+  savedExerciseIds: z.record(z.string().regex(/^n[0-7]$/), UUIDSchema).optional(),
   sources: z
     .array(z.object({ title: z.string(), url: z.string().url(), date: z.string().optional() }))
     .optional(),

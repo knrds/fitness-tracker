@@ -22,15 +22,7 @@ async function pubmedFallback() {
   );
   if (!response.ok) throw Error('Abstracts unavailable');
   const xml = await response.text();
-  const plain = (value) =>
-    value
-      .replace(/<[^>]*>/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/\s+/g, ' ')
-      .trim();
+
   return [...xml.matchAll(/<PubmedArticle>([\s\S]*?)<\/PubmedArticle>/g)].flatMap((match) => {
     const article = match[1];
     const id = article.match(/<PMID[^>]*>(\d+)<\/PMID>/)?.[1];
@@ -90,4 +82,16 @@ async function getResearch() {
   })();
   return pending;
 }
-module.exports = { getResearch };
+/** Plain text from PubMed XML; entities decoded once, ampersand last. */
+const plain = (value) =>
+  value
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    // Decode the ampersand last; earlier would turn "&amp;lt;" into "<" (double unescape).
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+module.exports = { getResearch, plain };

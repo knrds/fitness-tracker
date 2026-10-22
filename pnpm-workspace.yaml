@@ -9,7 +9,7 @@ overrides:
   'nanoid@3.3.12': '3.3.18'
   'undici@6.26.0': '6.28.1'
   'form-data@4.0.5': '4.0.6'
-  'shell-quote@1.8.4': '1.10.0'
+  'shell-quote@1.8.4': '1.11.0'
   'browserslist@4.28.2': '4.28.9'
   'postcss@8.4.49': '8.5.18'
   'postcss@8.5.15': '8.5.18'
@@ -20,4 +20,10 @@ overrides:
   'brace-expansion@5.0.6': '5.0.12'
   '@xmldom/xmldom@0.8.13': '0.8.15'
   '@xmldom/xmldom@0.9.10': '0.9.12'
-  'vite@8.0.14': '8.0.16'
+  'vite@8.0.14': '8.1.6'
+  # 22.10.2026 re-audit: patched releases for newly published advisories.
+  'source-map-js@1.2.1': '1.2.2'
+  'compression@1.8.1': '1.8.2'
+  # Metro 0.83.3 still requests image-size 1.x (GHSA-w3rx-r6r6-pgpr, GHSA-5p2g-fcmc-qvqq,
+  # fixed only in 2.0.3). The adapter keeps Metro's 1.x call signature on image-size 2.0.4.
+  'image-size@1.2.1': 'file:./tools/image-size-compat'

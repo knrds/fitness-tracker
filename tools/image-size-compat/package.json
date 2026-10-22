@@ -1,0 +1,11 @@
+{
+  "name": "@evaro/image-size-compat",
+  "version": "1.2.1-evaro.1",
+  "private": true,
+  "description": "image-size 1.x call signature for Metro 0.83 backed by the patched image-size 2.x parser (GHSA-w3rx-r6r6-pgpr, GHSA-5p2g-fcmc-qvqq).",
+  "license": "MIT",
+  "main": "index.js",
+  "dependencies": {
+    "image-size": "2.0.4"
+  }
+}

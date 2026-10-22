@@ -487,7 +487,7 @@ const createStyles = (theme: Theme) =>
       alignItems: 'center',
     },
     plateLabel: {
-      fontWeight: '800',
+      fontFamily: 'Manrope_700Bold',
       textAlign: 'center',
     },
     summaryList: {

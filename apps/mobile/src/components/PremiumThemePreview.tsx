@@ -26,7 +26,7 @@ export function PremiumThemePreview({ theme }: { theme: Theme }) {
           style={{
             color: theme.colors.text,
             fontSize: 9,
-            fontWeight: '700',
+            fontFamily: 'Manrope_700Bold',
             flex: 1,
             letterSpacing: 0.6,
             lineHeight: 14,
@@ -99,7 +99,7 @@ export function PremiumThemePreview({ theme }: { theme: Theme }) {
         }}
       >
         <PremiumSurface colors={spec.buttonGradient} radius={spec.buttonRadius} />
-        <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 11 }}>EVARO COACH →</Text>
+        <Text style={{ color: '#FFFFFF', fontFamily: 'Manrope_700Bold', fontSize: 11 }}>EVARO COACH →</Text>
       </View>
     </View>
   );

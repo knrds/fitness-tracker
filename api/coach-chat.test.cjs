@@ -804,3 +804,86 @@ test('deterministic safety interception needs no durable capacity or provider ca
     assert.equal(mock.calls.length, 0);
   });
 });
+test('coach can define new exercises and reference them only by their declared keys', () => {
+  const { parsePlanReply, planResponseFormat, wantsStructuredPlan } = require('./coach-plans.cjs');
+  const catalog = [{ id: 'squat-id', name: 'Barbell Squat' }];
+  const newExercise = {
+    key: 'n0',
+    name: 'Einbeinige Front-Lever-Raises',
+    primaryMuscles: ['lats', 'abs'],
+    secondaryMuscles: ['abs', 'rear_delts'],
+    equipment: 'bodyweight',
+    movementPattern: 'core',
+    tracking: 'reps',
+    instructions: '1. Hang an der Stange. 2. Ein Bein gestreckt anheben.',
+  };
+  const exercise = (exerciseId) => ({ exerciseId, sets: 4, reps: 5, repsMax: 8, rir: 2, restSeconds: 120, notes: '' });
+  const reply = {
+    reply: 'Bereit',
+    plan: { name: 'Front Lever', kind: 'template', durationWeeks: 1, updatesTemplate: null, days: [{ name: 'Skill', exercises: [exercise('n0'), exercise('e0')] }] },
+    newExercises: [newExercise],
+  };
+  const parsed = parsePlanReply(JSON.stringify(reply), catalog);
+  assert.equal(parsed.plan.days[0].exercises[0].exerciseId, 'new:n0');
+  assert.equal(parsed.plan.days[0].exercises[1].exerciseId, 'squat-id');
+  // Secondary muscles never repeat a primary muscle.
+  assert.deepEqual(parsed.newExercises[0].secondaryMuscles, ['rear_delts']);
+  // Undeclared keys, catalog duplicates and unknown muscles are rejected.
+  assert.equal(parsePlanReply(JSON.stringify({ ...reply, newExercises: [] }), catalog), null);
+  assert.equal(
+    parsePlanReply(JSON.stringify({ ...reply, newExercises: [{ ...newExercise, name: 'barbell squat' }] }), catalog),
+    null,
+  );
+  assert.equal(
+    parsePlanReply(JSON.stringify({ ...reply, newExercises: [{ ...newExercise, primaryMuscles: ['wings'] }] }), catalog),
+    null,
+  );
+  // Exercise-only answers are valid without a plan.
+  const only = parsePlanReply(JSON.stringify({ reply: 'Angelegt', plan: null, newExercises: [newExercise] }), catalog);
+  assert.equal(only.plan, undefined);
+  assert.equal(only.newExercises.length, 1);
+  assert.ok(planResponseFormat(catalog).json_schema.schema.properties.newExercises);
+  assert.equal(wantsStructuredPlan('Lege bitte eine neue Übung für den Front Lever an'), true);
+  assert.equal(wantsStructuredPlan('Erstelle mir eine einzelne Vorlage für heute'), true);
+});
+test('coach edits only templates the app listed and returns the real template id', async () => {
+  const { parsePlanReply, normalizeEditableTemplates } = require('./coach-plans.cjs');
+  const catalog = [{ id: 'bench-id', name: 'Bench Press' }];
+  const templates = normalizeEditableTemplates(
+    [{ id: '00000000-0000-4000-8000-0000000000aa', name: 'Push A', exercises: [{ exerciseId: 'bench-id', name: 'Bench Press', sets: 3 }] }],
+    catalog,
+  );
+  assert.deepEqual(templates[0].exercises[0], { exerciseId: 'e0', name: 'Bench Press', sets: 3 });
+  const exercise = { exerciseId: 'e0', sets: 5, reps: 5, repsMax: 5, rir: 1, restSeconds: 180, notes: '' };
+  const reply = (updatesTemplate, kind = 'template') => JSON.stringify({
+    reply: 'Angepasst',
+    plan: { name: 'Push A', kind, durationWeeks: 1, updatesTemplate, days: [{ name: 'Push A', exercises: [exercise] }] },
+    newExercises: [],
+  });
+  assert.equal(parsePlanReply(reply('t0'), catalog, templates).plan.updatesTemplateId, templates[0].id);
+  assert.equal(parsePlanReply(reply('t9'), catalog, templates), null);
+  assert.equal(parsePlanReply(reply('t0', 'program'), catalog, templates), null);
+
+  process.env.OPENROUTER_API_KEY = 'test-key';
+  process.env.OPENROUTER_MODEL = 'test-model';
+  let system = '';
+  global.fetch = async (url, init) => {
+    if (url.includes('europepmc')) return { ok: true, json: async () => ({ resultList: { result: [] } }) };
+    system = JSON.parse(init.body).messages[0].content;
+    return { ok: true, json: async () => ({ choices: [{ finish_reason: 'stop', message: { content: reply('t0') } }] }) };
+  };
+  const req = request();
+  req.body.createPlan = true;
+  req.body.context = {
+    exerciseCatalog: catalog,
+    editableTemplates: [{ id: templates[0].id, name: 'Push A', exercises: [{ exerciseId: 'bench-id', sets: 3 }] }],
+  };
+  const r = res();
+  await handler({ ...req, localCoachUser: 'loopback-development' }, r);
+  assert.equal(r.code, 200);
+  assert.equal(r.body.plan.updatesTemplateId, templates[0].id);
+  assert.match(system, /EDITABLE TEMPLATES/);
+  assert.match(system, /"ref":"t0"/);
+  // Raw template ids are never echoed to the model.
+  assert.equal(system.includes(templates[0].id), false);
+});

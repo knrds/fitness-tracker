@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import {
+  Animated,
   View,
-  Text,
   ScrollView,
   Pressable,
   StyleSheet,
@@ -22,10 +22,14 @@ export interface DateWheelPickerProps {
   disabled?: boolean;
 }
 
-const ITEM_HEIGHT = 44;
-const VISIBLE_ITEMS = 5;
-const CONTAINER_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS; // 220
-const CENTER_OFFSET = Math.floor(VISIBLE_ITEMS / 2) * ITEM_HEIGHT; // 88
+// iOS wheel geometry: 7 visible rows on a curved drum, the middle one selected.
+const ITEM_HEIGHT = 36;
+const VISIBLE_ITEMS = 7;
+const CONTAINER_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS; // 252
+const CENTER_OFFSET = Math.floor(VISIBLE_ITEMS / 2) * ITEM_HEIGHT; // 108
+const WHEEL_ROTATION = ['-62deg', '-42deg', '-21deg', '0deg', '21deg', '42deg', '62deg'];
+const WHEEL_OPACITY = [0.18, 0.34, 0.62, 1, 0.62, 0.34, 0.18];
+const WHEEL_SCALE = [0.8, 0.89, 0.96, 1, 0.96, 0.89, 0.8];
 
 export const MONTH_NAMES_DE = [
   'Januar',
@@ -103,6 +107,7 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
 }) => {
   const theme = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
+  const scrollY = useRef(new Animated.Value(selectedIndex * ITEM_HEIGHT)).current;
   const isScrollingRef = useRef(false);
   const offsetRef = useRef(selectedIndex * ITEM_HEIGHT);
   const mouseDrag = useRef<{ pointerId: number; startY: number; offset: number; moved: boolean } | null>(null);
@@ -113,12 +118,13 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
   useEffect(() => {
     if (!isScrollingRef.current && scrollViewRef.current) {
       offsetRef.current = selectedIndex * ITEM_HEIGHT;
+      scrollY.setValue(selectedIndex * ITEM_HEIGHT);
       scrollViewRef.current.scrollTo({
         y: selectedIndex * ITEM_HEIGHT,
         animated: false,
       });
     }
-  }, [selectedIndex]);
+  }, [selectedIndex, scrollY]);
 
   // Clean up web scroll timer
   useEffect(() => {
@@ -291,7 +297,7 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
       }}
       {...(webEventProps as unknown as Record<string, unknown>)}
     >
-      <ScrollView
+      <Animated.ScrollView
         ref={scrollViewRef}
         showsVerticalScrollIndicator={false}
         contentOffset={{ x: 0, y: selectedIndex * ITEM_HEIGHT }}
@@ -309,7 +315,10 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
         onScrollBeginDrag={() => {
           isScrollingRef.current = true;
         }}
-        onScroll={handleScroll}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: Platform.OS !== 'web',
+          listener: handleScroll,
+        })}
         onMomentumScrollEnd={(e) =>
           handleScrollEnd(e.nativeEvent.contentOffset.y)
         }
@@ -323,8 +332,10 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
       >
         {items.map((item, index) => {
           const isSelected = index === selectedIndex;
-          const distance = Math.abs(index - selectedIndex);
-          const opacity = isSelected ? 1 : distance === 1 ? 0.85 : 0.55;
+          const center = index * ITEM_HEIGHT;
+          const inputRange = [-3, -2, -1, 0, 1, 2, 3].map((step) => center + step * ITEM_HEIGHT);
+          const drum = (outputRange: number[] | string[]) =>
+            scrollY.interpolate({ inputRange, outputRange, extrapolate: 'clamp' });
 
           return (
             <Pressable
@@ -353,25 +364,27 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
               ]}
               hitSlop={4}
             >
-              <Text
+              <Animated.Text
                 style={[
                   styles.itemText,
                   {
-                    color: isSelected ? theme.colors.text : theme.colors.muted,
-                    fontWeight: isSelected ? '700' : '500',
-                    fontSize: isSelected ? 19 : 17,
-                    fontVariant: ['tabular-nums'],
-                    opacity,
+                    color: theme.colors.text,
+                    opacity: drum(WHEEL_OPACITY),
+                    transform: [
+                      { perspective: 700 },
+                      { rotateX: drum(WHEEL_ROTATION) },
+                      { scale: drum(WHEEL_SCALE) },
+                    ],
                   },
                 ]}
                 numberOfLines={1}
               >
                 {item}
-              </Text>
+              </Animated.Text>
             </Pressable>
           );
         })}
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 };
@@ -487,11 +500,10 @@ export const DateWheelPicker: React.FC<DateWheelPickerProps> = ({
         {
           height: CONTAINER_HEIGHT,
           backgroundColor: theme.colors.surfaceElevated,
-          borderColor: theme.colors.border,
         },
       ]}
     >
-      {/* Centered Selection Lens */}
+      {/* iOS-style selection band: a softly filled rounded rectangle, no rules. */}
       <View
         pointerEvents="none"
         style={[
@@ -499,32 +511,7 @@ export const DateWheelPicker: React.FC<DateWheelPickerProps> = ({
           {
             top: CENTER_OFFSET,
             height: ITEM_HEIGHT,
-            backgroundColor: withAlpha(theme.colors.primary, 0.12),
-            borderColor: withAlpha(theme.colors.primary, 0.4),
-          },
-        ]}
-      />
-
-      {/* Top and Bottom Gradient/Fade Bars */}
-      <View
-        pointerEvents="none"
-        style={[
-          styles.fadeTop,
-          {
-            height: CENTER_OFFSET,
-            backgroundColor: theme.colors.surfaceElevated,
-            opacity: 0.22,
-          },
-        ]}
-      />
-      <View
-        pointerEvents="none"
-        style={[
-          styles.fadeBottom,
-          {
-            height: CENTER_OFFSET,
-            backgroundColor: theme.colors.surfaceElevated,
-            opacity: 0.22,
+            backgroundColor: withAlpha(theme.colors.text, theme.isDark ? 0.1 : 0.07),
           },
         ]}
       />
@@ -571,7 +558,6 @@ const styles = StyleSheet.create({
   container: {
     position: 'relative',
     borderRadius: 16,
-    borderWidth: 1,
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
@@ -594,28 +580,15 @@ const styles = StyleSheet.create({
   },
   itemText: {
     textAlign: 'center',
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 20,
+    letterSpacing: -0.2,
+    fontVariant: ['tabular-nums'],
   },
   selectionLens: {
     position: 'absolute',
-    left: 12,
-    right: 12,
-    borderTopWidth: 1.5,
-    borderBottomWidth: 1.5,
-    borderRadius: 10,
-    zIndex: 1,
-  },
-  fadeTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 2,
-  },
-  fadeBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 2,
+    left: 8,
+    right: 8,
+    borderRadius: 9,
   },
 });

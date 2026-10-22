@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  ScrollView,
   StyleSheet,
   ScrollViewProps,
   NativeSyntheticEvent,
@@ -9,6 +8,8 @@ import {
   LayoutChangeEvent,
 } from 'react-native';
 import { useTheme } from '@fitness-tracker/ui';
+// Gesture-handler ScrollView wins against the parent tab swipe while it scrolls horizontally.
+import { ScrollView } from 'react-native-gesture-handler';
 
 interface HorizontalFadeScrollProps extends ScrollViewProps {
   children: React.ReactNode;
@@ -96,7 +97,7 @@ export const HorizontalFadeScroll: React.FC<HorizontalFadeScrollProps> = ({
         onScroll={handleScroll}
         onContentSizeChange={handleContentSizeChange}
         contentContainerStyle={contentContainerStyle}
-        {...props}
+        {...(props as React.ComponentProps<typeof ScrollView>)}
       >
         {children}
       </ScrollView>

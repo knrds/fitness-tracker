@@ -6,6 +6,7 @@ import { useTheme, withAlpha, PremiumSurface } from '@fitness-tracker/ui';
 import { View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MinimizedWorkoutBar } from '../../src/components/workout/MinimizedWorkoutBar';
+import { TabSwipeArea } from '../../src/components/TabSwipeArea';
 import { useI18n } from '../../src/i18n';
 
 export default function TabLayout() {
@@ -21,6 +22,9 @@ export default function TabLayout() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <View style={{ flex: 1, width: '100%', maxWidth: 1040, alignSelf: 'center' }}>
         <Tabs
+          screenLayout={({ children, route }) => (
+            <TabSwipeArea routeName={route.name}>{children}</TabSwipeArea>
+          )}
           screenOptions={{
             headerShown: false,
             ...(theme.premium

@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'SpaceGrotesk_700Bold',
   },
   closeBtn: {
     padding: 4,
@@ -337,11 +337,11 @@ const styles = StyleSheet.create({
   },
   optInBadgeText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: 'Manrope_700Bold',
   },
   preferenceLabel: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'Manrope_600SemiBold',
     marginBottom: 3,
   },
   preferenceDesc: {
@@ -376,6 +376,6 @@ const styles = StyleSheet.create({
   doneButtonText: {
     color: '#000000',
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Manrope_700Bold',
   },
 });

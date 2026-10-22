@@ -1,4 +1,4 @@
-import { isCompletedWorkingSet } from '@fitness-tracker/domain';
+import { isCompletedWorkingSet, getLevelProgress } from '@fitness-tracker/domain';
 import { ActivityRing } from './ActivityRing';
 import { dashboardSummary } from '../utils/dashboardSummary';
 import React from 'react';
@@ -44,6 +44,7 @@ export function VoltDashboard({
   templates,
   activity,
   onStart,
+  onStartEmpty,
   onNext,
   onTemplate,
   resume,
@@ -59,6 +60,8 @@ export function VoltDashboard({
   templates: WorkoutTemplate[];
   activity: MuscleActivity;
   onStart: () => void;
+  /** Starts an unplanned, empty session even when the programme suggests one. */
+  onStartEmpty?: () => void;
   onNext?: () => void;
   onTemplate: (template: WorkoutTemplate) => void;
   resume: boolean;
@@ -81,6 +84,8 @@ export function VoltDashboard({
   const sideBySide = wide && weekExpanded;
   const { t, formatMuscle, language } = useI18n();
   const { level, xp } = useAchievementStore();
+  const levelPercent = Math.round(getLevelProgress(xp).progressPercent);
+  const avatarUri = resolveAvatarUri(profile.profileImageUri);
   const { exercises } = useExerciseStore();
   const history = useHistoryStore();
   const sessions = history.getSessionsByDateDesc();
@@ -126,29 +131,71 @@ export function VoltDashboard({
       ? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
       : ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
   const weekCard = (
-    <Card padding="md" style={{ flex: sideBySide ? 1 : undefined }}>
+    <Card
+      padding="none"
+      style={{
+        flex: sideBySide ? 1 : undefined,
+        paddingHorizontal: 14,
+        paddingVertical: weekExpanded ? 12 : 4,
+      }}
+    >
       <Pressable
+        testID="dashboard-week-toggle"
         accessibilityRole="button"
         accessibilityLabel={language === 'en' ? 'Weekly cycle' : 'Wochenzyklus'}
+        accessibilityHint={`${weekly.length} ${language === 'en' ? 'sessions this week' : 'Einheiten diese Woche'}`}
         accessibilityState={{ expanded: weekExpanded }}
         aria-expanded={weekExpanded}
+        hitSlop={{ top: 6, bottom: 6 }}
         onPress={() => {
           void hapticFeedback.selection();
           updateProfile({ dashboardWeekExpanded: !weekExpanded });
         }}
-        style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+        style={{ minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 10 }}
       >
-        <Ionicons name="calendar-outline" size={16} color={c.primary} />
-        <Text style={[label, { color: c.text, flex: 1 }]}>
-          {language === 'en' ? 'WEEKLY CYCLE' : 'WOCHENZYKLUS'}
-        </Text>
+        <Ionicons name="calendar-outline" size={14} color={c.primary} />
+        <Text style={[label, { color: c.text }]}>{language === 'en' ? 'WEEK' : 'WOCHE'}</Text>
+        <View
+          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}
+          importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden
+        >
+          {!weekExpanded &&
+            Array.from({ length: 7 }, (_, i) => {
+              const date = new Date(monday);
+              date.setDate(date.getDate() + i);
+              const trained = hasWorkoutOnDate(weekly, date);
+              const isToday = date.toDateString() === today.toDateString();
+              return (
+                <View
+                  key={i}
+                  testID={trained ? 'dashboard-week-dot-trained' : 'dashboard-week-dot'}
+                  style={{
+                    width: isToday ? 9 : 7,
+                    height: isToday ? 9 : 7,
+                    borderRadius: 5,
+                    backgroundColor: trained ? c.primary : 'transparent',
+                    borderWidth: trained ? 0 : 1.5,
+                    borderColor: isToday ? c.primary : withAlpha(c.muted, 0.55),
+                  }}
+                />
+              );
+            })}
+        </View>
         <Text style={[label, { color: c.primary, letterSpacing: 0 }]}>
-          {weekly.length} {language === 'en' ? 'sessions' : 'Einheiten'}
+          {weekly.length}{' '}
+          {language === 'en'
+            ? weekly.length === 1
+              ? 'session'
+              : 'sessions'
+            : weekly.length === 1
+              ? 'Einheit'
+              : 'Einheiten'}
         </Text>
-        <Ionicons name={weekExpanded ? 'chevron-up' : 'chevron-down'} size={18} color={c.muted} />
+        <Ionicons name={weekExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={c.muted} />
       </Pressable>
       <AnimatedDisclosure expanded={weekExpanded}>
-        <View testID="dashboard-week-days" style={{ flexDirection: 'row', gap: 5, paddingTop: 12 }}>
+        <View testID="dashboard-week-days" style={{ flexDirection: 'row', gap: 5, paddingTop: 8 }}>
           {Array.from({ length: 7 }, (_, i) => {
             const date = new Date(monday);
             date.setDate(date.getDate() + i);
@@ -192,7 +239,7 @@ export function VoltDashboard({
                     {
                       color: active && !isSelected ? c.onPrimary : isSelected ? c.primary : c.muted,
                       letterSpacing: 0,
-                      fontWeight: isSelected || active ? '700' : '500',
+                      fontFamily: isSelected || active ? 'SpaceGrotesk_700Bold' : 'SpaceGrotesk_500Medium',
                     },
                   ]}
                 >
@@ -267,7 +314,7 @@ export function VoltDashboard({
                       }}
                     >
                       <Text
-                        style={{ color: c.primary, fontSize: 13, fontWeight: '600', flex: 1 }}
+                        style={{ color: c.primary, fontSize: 13, fontFamily: 'Manrope_600SemiBold', flex: 1 }}
                         numberOfLines={1}
                       >
                         {s.name}
@@ -407,7 +454,7 @@ export function VoltDashboard({
               }}
             >
               {caption(name!)}
-              <Text style={{ color: c.text, fontWeight: '600' }}>{value}</Text>
+              <Text style={{ color: c.text, fontFamily: 'Manrope_600SemiBold'}}>{value}</Text>
             </View>
           ))}
         </View>
@@ -428,6 +475,14 @@ export function VoltDashboard({
         }
         onPress={onStart}
       />
+      {onStartEmpty && template && !todayCompleted && !resume && (
+        <Button
+          testID="dashboard-start-empty"
+          variant="secondary"
+          title={language === 'en' ? 'START EMPTY SESSION' : 'LEERE SESSION STARTEN'}
+          onPress={onStartEmpty}
+        />
+      )}
       {nextTemplate && (
         <Pressable
           testID="next-program-session"
@@ -479,33 +534,51 @@ export function VoltDashboard({
         style={{ borderColor: c.borderActive }}
       >
         <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-          {resolveAvatarUri(profile.profileImageUri) ? (
-            <Image
-              source={{ uri: resolveAvatarUri(profile.profileImageUri) }}
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 26,
-                borderWidth: 1,
-                borderColor: c.primary,
-              }}
-            />
-          ) : (
-            <View
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 26,
-                borderWidth: 1,
-                borderColor: c.primary,
-                backgroundColor: c.primarySubtle,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Image source={voltEmblem} style={{ width: 50, height: 50, borderRadius: 25 }} />
-            </View>
-          )}
+          <View
+            testID="dashboard-level-ring"
+            accessible
+            accessibilityLabel={
+              language === 'en'
+                ? `Level ${level}, ${levelPercent}% to level ${level + 1}`
+                : `Level ${level}, ${levelPercent} % bis Level ${level + 1}`
+            }
+            style={{ width: 66, height: 66, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Svg width={66} height={66} viewBox="0 0 66 66" style={{ position: 'absolute' }}>
+              <Circle
+                cx={33}
+                cy={33}
+                r={30}
+                stroke={withAlpha(c.primary, 0.18)}
+                strokeWidth={4}
+                fill="none"
+              />
+              <ActivityRing
+                radius={30}
+                center={33}
+                strokeWidth={4}
+                ratio={levelPercent / 100}
+                color={c.primary}
+              />
+            </Svg>
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+            ) : (
+              <View
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 26,
+                  backgroundColor: c.primarySubtle,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                }}
+              >
+                <Image source={voltEmblem} style={{ width: 52, height: 52, borderRadius: 26 }} />
+              </View>
+            )}
+          </View>
           <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Text style={[heading, { fontSize: 17 }]} numberOfLines={1}>
@@ -534,7 +607,8 @@ export function VoltDashboard({
               </Pressable>
             </View>
             <Text style={[label, { color: c.primary, letterSpacing: 0.6 }]}>
-              {history.getStreak()} {language === 'en' ? 'DAY STREAK' : 'TAGE STREAK'} · {xp} XP
+              {history.getStreak()} {language === 'en' ? 'DAY STREAK' : 'TAGE STREAK'} · {levelPercent}%{' '}
+              {language === 'en' ? 'TO' : 'BIS'} LVL {level + 1}
             </Text>
           </View>
           <Ionicons name="options-outline" size={20} color={c.muted} />
@@ -804,7 +878,7 @@ export function VoltDashboard({
                         cx={62}
                         cy={62}
                         r={r}
-                        stroke={c.surfaceElevated}
+                        stroke={withAlpha(c.muted, 0.16)}
                         strokeWidth={7}
                         fill="none"
                       />
@@ -839,7 +913,7 @@ export function VoltDashboard({
                       {formatMuscle(name)} · {Math.round(share * 100)}%
                     </Text>
                     <View
-                      style={{ height: 5, backgroundColor: c.surfaceElevated, borderRadius: 3 }}
+                      style={{ height: 5, backgroundColor: withAlpha(c.muted, 0.16), borderRadius: 3 }}
                     >
                       <View
                         style={{

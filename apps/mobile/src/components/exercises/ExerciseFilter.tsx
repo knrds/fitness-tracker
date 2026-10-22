@@ -101,17 +101,17 @@ const createStyles = (theme: Theme) =>
     },
     title: {
       fontSize: 16,
-      fontWeight: '700',
+      fontFamily: 'Manrope_700Bold',
       color: theme.colors.text,
     },
     resetText: {
       fontSize: 14,
       color: theme.colors.primary,
-      fontWeight: '600',
+      fontFamily: 'Manrope_600SemiBold',
     },
     subtitle: {
       fontSize: 14,
-      fontWeight: '600',
+      fontFamily: 'Manrope_600SemiBold',
       color: theme.colors.muted,
       paddingHorizontal: 16,
       marginTop: 8,
@@ -136,7 +136,7 @@ const createStyles = (theme: Theme) =>
     chipText: {
       fontSize: 14,
       color: theme.colors.text,
-      fontWeight: '500',
+      fontFamily: 'Manrope_500Medium',
     },
     chipTextSelected: {
       color: theme.colors.onPrimary,

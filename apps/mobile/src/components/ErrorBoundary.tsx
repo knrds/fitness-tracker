@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: '#0D0F12',
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'Manrope_700Bold',
   },
   supportNote: {
     fontSize: 12,

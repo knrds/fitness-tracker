@@ -176,7 +176,8 @@ test('ci dependency gate accepts reviewed image-size toolchain findings', () => 
 
   // Fix only this child process clock so regression tests remain deterministic
   // after the real policy expires. The gate has no environment expiry bypass.
-  const result = spawnSync(process.execPath, ['-e', `Date.now = () => ${reviewNow}; require(${JSON.stringify(gateScript)}).main();`], {
+  const code = 'const [gate, now, installed] = process.argv.slice(1); Date.now = () => Number(now); require(gate).main({ installedDependency: JSON.parse(installed) });';
+  const result = spawnSync(process.execPath, ['-e', code, gateScript, String(reviewNow), JSON.stringify(reviewedInstallation)], {
     env: { ...process.env, CI_AUDIT_DATA: JSON.stringify(auditData) },
     encoding: 'utf8',
   });
@@ -195,6 +196,14 @@ test('ci dependency gate accepts reviewed image-size toolchain findings', () => 
   assert.match(result.stdout, /SECURITY GATE PASS/);
   assert.match(result.stdout, /Client Reachability: not inferred/);
   assert.doesNotMatch(result.stdout, /Client Reachable:\s+0/);
+});
+
+test('the retired image-size exception cannot match the patched real installation', () => {
+  // Metro now resolves tools/image-size-compat (image-size 2.0.4), so the historical
+  // 1.2.1 exception must not cover any image-size finding against the real install.
+  const evaluation = evaluateAudit(reviewedReport(), { now: reviewNow });
+  assert.equal(evaluation.passed, false);
+  assert.ok(evaluation.unreviewedHighs.every((high) => /differ from the reviewed exposure/.test(high.rejectionReason)));
 });
 
 test('reviewed advisory requires every finding to have the exact reviewed installed version', () => {

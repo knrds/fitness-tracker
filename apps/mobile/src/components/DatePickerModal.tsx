@@ -323,14 +323,15 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
-    fontWeight: '700',
+    fontFamily: 'SpaceGrotesk_700Bold',
+    letterSpacing: -0.2,
   },
   headerAction: {
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: 'Manrope_500Medium',
   },
   doneAction: {
-    fontWeight: '700',
+    fontFamily: 'Manrope_700Bold',
   },
   previewBadge: {
     flexDirection: 'row',
@@ -344,11 +345,11 @@ const styles = StyleSheet.create({
   },
   previewDateText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'SpaceGrotesk_600SemiBold',
   },
   previewAgeText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'SpaceGrotesk_700Bold',
   },
   pickerWrapper: {
     marginBottom: 12,
@@ -362,6 +363,6 @@ const styles = StyleSheet.create({
   },
   clearBtnText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Manrope_600SemiBold',
   },
 });

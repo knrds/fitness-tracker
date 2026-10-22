@@ -82,11 +82,20 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Audit locked dependencies (unreviewed high findings block release)
         run: node scripts/security/ci-dependency-gate.cjs
+      - name: Generate locked dependency and declared license evidence
+        run: pnpm security:sbom
+      - name: Archive source-bound software inventory
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: software-inventory-${{ github.sha }}
+          path: output/security/sbom.json
+          if-no-files-found: error
+          retention-days: 30
 
   rls:
     name: PostgreSQL ownership & RLS
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     services:
       postgres:
         image: postgres:17.11-bookworm@sha256:639ab7ceb90e13123085b741fb31ef493fba25463002f6da665352e7b534b652
@@ -113,3 +122,19 @@ jobs:
         run: bash scripts/security/run-rls-tests.sh
       - name: Portable PostgreSQL Coach quota lifecycle and concurrency
         run: bash scripts/security/run-coach-quota-tests.sh
+      - name: Durable account deletion journal, authority and concurrency
+        run: bash scripts/security/run-account-deletion-tests.sh
+      - name: Atomic workout revisions, cursors and tombstones
+        run: bash scripts/security/run-workout-sync-tests.sh
+      - name: Setup pnpm
+        uses: pnpm/action-setup@9fd676a19091d4595eefd76e4bd31c97133911f1 # v4.2.0
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+      - name: Install locked server adapter dependencies
+        run: pnpm install --frozen-lockfile
+      # Run after SQL role preflights: the runner temporarily grants its unique
+      # synthetic login membership and always revokes it on completion.
+      - name: Real restricted Node PostgreSQL adapters and restart recovery
+        run: pnpm test:postgres-adapters

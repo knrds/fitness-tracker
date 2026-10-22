@@ -258,7 +258,7 @@ export function PremiumSignature({ compact = false }: { compact?: boolean }) {
           flex: 1,
           fontSize: compact ? 10 : 11,
           letterSpacing: 1.5,
-          fontWeight: '600',
+          fontFamily: 'Manrope_600SemiBold',
         }}
       >
         {theme.premium.signature}

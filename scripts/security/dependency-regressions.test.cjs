@@ -129,3 +129,40 @@ test('Expo undici rejects unrequested WebSocket protocols without crashing the p
       .catch(error => { console.error(error.message); process.exitCode = 1; });
   `);
 });
+
+// 22.10.2026 re-audit: patched releases for advisories published after the last checkpoint.
+test('Expo toolchain resolves patched shell-quote, compression and source-map-js', () => {
+  const versionOf = (resolver, name) => {
+    let dir = path.dirname(resolver.resolve(name));
+    for (;;) {
+      const candidate = path.join(dir, 'package.json');
+      try {
+        const manifest = require(candidate);
+        if (manifest.name === name) return manifest.version;
+      } catch {
+        /* keep walking up */
+      }
+      const parent = path.dirname(dir);
+      assert.notEqual(parent, dir, `${name} manifest not found`);
+      dir = parent;
+    }
+  };
+  const atLeast = (version, minimum) => {
+    const a = version.split('.').map(Number);
+    const b = minimum.split('.').map(Number);
+    for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] > b[i];
+    return true;
+  };
+  const reactNative = createRequire(mobile.resolve('react-native/package.json'));
+  const devtools = createRequire(reactNative.resolve('react-devtools-core/package.json'));
+  const metroConfig = createRequire(expo.resolve('@expo/metro-config/package.json'));
+  const postcss = createRequire(metroConfig.resolve('postcss/package.json'));
+  for (const [resolver, name, minimum] of [
+    [devtools, 'shell-quote', '1.11.0'],
+    [cli, 'compression', '1.8.2'],
+    [postcss, 'source-map-js', '1.2.2'],
+  ]) {
+    const version = versionOf(resolver, name);
+    assert.ok(atLeast(version, minimum), `${name} ${version} must be >= ${minimum}`);
+  }
+});

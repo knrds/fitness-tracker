@@ -1,5 +1,5 @@
 'use strict';
-const { readFileSync, readdirSync, lstatSync, openSync, fstatSync, closeSync } = require('node:fs');
+const { readFileSync, readdirSync, openSync, fstatSync, closeSync, constants } = require('node:fs');
 const { resolve, join } = require('node:path');
 const record = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const safeId = (value) => typeof value === 'string' && /^[A-Za-z0-9_./-]{1,200}$/.test(value);
@@ -78,13 +78,12 @@ function main(directory) {
     let count = 0;
     const blocked = new Set();
     for (const file of files) {
-      const path = join(root, file), link = lstatSync(path);
-      requireEvidence(link.isFile() && !link.isSymbolicLink());
-      const fd = openSync(path, 'r');
+      // Open first (refusing symlinks where the OS supports it), then judge the opened file.
+      const fd = openSync(join(root, file), constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
       let text;
       try {
         const stat = fstatSync(fd);
-        requireEvidence(stat.isFile() && stat.size <= 20 * 1024 * 1024 && stat.ino === link.ino);
+        requireEvidence(stat.isFile() && stat.size <= 20 * 1024 * 1024);
         text = readFileSync(fd, 'utf8');
       } finally {
         closeSync(fd);
